@@ -1,0 +1,17 @@
+{
+  "name": "okj-market-impact",
+  "version": "1.0.0",
+  "description": "成行取引リアルタイム板シュミレーター",
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.0.0 <25.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "ws": "^8.18.0"
+  }
+}
