@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: market-order-board-simulator
+    name: japan-crypto-information
     runtime: node
     plan: free
     region: singapore

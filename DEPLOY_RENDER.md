@@ -24,7 +24,7 @@
 - Health Check Path: `/healthz`
 - Node.js: `22.22.0`
 
-公開URLは Render が `https://market-order-board-simulator.onrender.com` のような `onrender.com` サブドメインを自動発行します。
+公開URLは Render が `https://japan-crypto-information.onrender.com` のような `onrender.com` サブドメインを自動発行します。
 
 ## 無料枠の注意
 
