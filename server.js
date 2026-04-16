@@ -40,11 +40,39 @@ const analyticsStore = new AnalyticsStore({
   salt: process.env.ANALYTICS_SALT,
 });
 const analyticsAdminToken = process.env.ANALYTICS_ADMIN_TOKEN || '';
+const LOCAL_ANALYTICS_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '0.0.0.0']);
 
 function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/' || reqPath === '/index.html') return '/';
   if (reqPath === '/volume-share' || reqPath === '/volume-share.html') return '/volume-share';
   return null;
+}
+
+function normalizeHost(value) {
+  const host = String(value || '').trim().toLowerCase();
+  if (host.startsWith('[')) {
+    const end = host.indexOf(']');
+    return end >= 0 ? host.slice(1, end) : host;
+  }
+  return host.split(':')[0];
+}
+
+function isLocalAnalyticsRequest(req) {
+  return LOCAL_ANALYTICS_HOSTS.has(normalizeHost(req.hostname || req.get('host')));
+}
+
+function requireLocalAnalytics(req, res, next) {
+  if (isLocalAnalyticsRequest(req)) {
+    next();
+    return;
+  }
+
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+
+  res.status(404).send('Not found');
 }
 
 function getRequestAdminToken(req) {
@@ -103,13 +131,13 @@ app.get('/healthz', (_req, res) => {
 app.get('/volume-share', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'volume-share.html'));
 });
-app.get('/admin/analytics', (_req, res) => {
+app.get('/admin/analytics', requireLocalAnalytics, (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin-analytics.html'));
 });
 app.get('/api/volume-share', (req, res) => {
   res.json(volumeShareStore.getShare(req.query.window || '1d'));
 });
-app.get('/api/admin/analytics', requireAnalyticsAdmin, (req, res) => {
+app.get('/api/admin/analytics', requireLocalAnalytics, requireAnalyticsAdmin, (req, res) => {
   res.json(analyticsStore.getReport(req.query.window || '7d'));
 });
 app.use(express.static(path.join(__dirname, 'public')));
