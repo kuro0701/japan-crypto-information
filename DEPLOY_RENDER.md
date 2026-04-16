@@ -26,6 +26,15 @@
 
 公開URLは Render が `https://japan-crypto-information.onrender.com` のような `onrender.com` サブドメインを自動発行します。
 
+## アクセス解析
+
+アクセス解析画面は `/admin/analytics` です。Render の Environment で以下を設定してください。
+
+- `ANALYTICS_ADMIN_TOKEN`: 管理画面/API用の長いトークン
+- `ANALYTICS_SALT`: 訪問者の概算集計に使うランダム文字列
+
+管理画面は `https://公開URL/admin/analytics` で開き、トークン欄に `ANALYTICS_ADMIN_TOKEN` を入力してください。URLで一度だけ渡す場合は `?token=...` も使えます。トークンはブラウザに保存され、表示後はURLから外して利用します。
+
 ## 無料枠の注意
 
 Free Web Service はアクセスがない状態が続くとスリープします。次回アクセス時は起動まで少し待つことがあります。

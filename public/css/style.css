@@ -383,6 +383,63 @@ button {
   background: rgba(53, 200, 210, 0.12);
 }
 
+.analytics-bars {
+  display: grid;
+  gap: 10px;
+}
+
+.analytics-bar-row {
+  display: grid;
+  grid-template-columns: minmax(92px, 140px) minmax(0, 1fr) minmax(44px, auto);
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+
+.analytics-bars.compact {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.analytics-bars.compact .analytics-bar-row {
+  grid-template-columns: 38px minmax(0, 1fr) 36px;
+}
+
+.analytics-bar-label,
+.analytics-bar-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analytics-bar-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.analytics-bar-value {
+  color: var(--warn);
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 12px;
+  text-align: right;
+}
+
+.analytics-bar-track {
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(205, 222, 190, 0.1);
+  border-radius: 8px;
+  background: rgba(205, 222, 190, 0.08);
+}
+
+.analytics-bar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--accent), var(--bid));
+}
+
 table {
   border-collapse: separate;
   border-spacing: 0;

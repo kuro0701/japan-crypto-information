@@ -6,9 +6,11 @@ const CoincheckClient = require('./lib/coincheck-client');
 const BitflyerClient = require('./lib/bitflyer-client');
 const BitbankClient = require('./lib/bitbank-client');
 const GMOClient = require('./lib/gmo-client');
+const BinanceJapanClient = require('./lib/binance-japan-client');
 const OrderBook = require('./lib/orderbook');
 const WSManager = require('./lib/ws-manager');
 const VolumeShareStore = require('./lib/volume-share-store');
+const AnalyticsStore = require('./lib/analytics-store');
 const {
   DEFAULT_EXCHANGE_ID,
   DEFAULT_OKJ_INSTRUMENT_ID,
@@ -20,14 +22,79 @@ const {
   DEFAULT_BITBANK_INSTRUMENT_ID,
   GMO_EXCHANGE_ID,
   DEFAULT_GMO_INSTRUMENT_ID,
+  BINANCE_JAPAN_EXCHANGE_ID,
+  DEFAULT_BINANCE_JAPAN_INSTRUMENT_ID,
   EXCHANGES,
   getPublicExchanges,
   setExchangeMarkets,
 } = require('./lib/exchanges');
 
 const app = express();
+app.set('trust proxy', 1);
+
 const volumeShareStore = new VolumeShareStore({
   dataFilePath: path.join(__dirname, 'data', 'volume-share-history.json'),
+});
+const analyticsStore = new AnalyticsStore({
+  dataFilePath: path.join(__dirname, 'data', 'analytics.json'),
+  salt: process.env.ANALYTICS_SALT,
+});
+const analyticsAdminToken = process.env.ANALYTICS_ADMIN_TOKEN || '';
+
+function normalizeAnalyticsRoute(reqPath) {
+  if (reqPath === '/' || reqPath === '/index.html') return '/';
+  if (reqPath === '/volume-share' || reqPath === '/volume-share.html') return '/volume-share';
+  return null;
+}
+
+function getRequestAdminToken(req) {
+  const authorization = req.get('authorization') || '';
+  if (authorization.toLowerCase().startsWith('bearer ')) {
+    return authorization.slice(7).trim();
+  }
+  return req.get('x-admin-token') || req.query.token || '';
+}
+
+function requireAnalyticsAdmin(req, res, next) {
+  if (!analyticsAdminToken) {
+    if (process.env.NODE_ENV === 'production') {
+      res.status(503).json({ error: 'ANALYTICS_ADMIN_TOKEN is not configured' });
+      return;
+    }
+    next();
+    return;
+  }
+
+  if (getRequestAdminToken(req) === analyticsAdminToken) {
+    next();
+    return;
+  }
+
+  res.status(401).json({ error: 'Unauthorized' });
+}
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET') {
+    next();
+    return;
+  }
+
+  const route = normalizeAnalyticsRoute(req.path);
+  if (!route) {
+    next();
+    return;
+  }
+
+  res.on('finish', () => {
+    if (res.statusCode >= 200 && res.statusCode < 400) {
+      try {
+        analyticsStore.trackPageView(req, route);
+      } catch (err) {
+        console.warn('[Analytics] Page view tracking failed:', err.message);
+      }
+    }
+  });
+  next();
 });
 
 app.get('/healthz', (_req, res) => {
@@ -36,8 +103,14 @@ app.get('/healthz', (_req, res) => {
 app.get('/volume-share', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'volume-share.html'));
 });
+app.get('/admin/analytics', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-analytics.html'));
+});
 app.get('/api/volume-share', (req, res) => {
   res.json(volumeShareStore.getShare(req.query.window || '1d'));
+});
+app.get('/api/admin/analytics', requireAnalyticsAdmin, (req, res) => {
+  res.json(analyticsStore.getReport(req.query.window || '7d'));
 });
 app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/exchanges', (_req, res) => {
@@ -63,12 +136,16 @@ const bitbankClient = new BitbankClient(500, {
 const gmoClient = new GMOClient(500, {
   defaultInstrumentId: DEFAULT_GMO_INSTRUMENT_ID,
 });
+const binanceJapanClient = new BinanceJapanClient(500, {
+  defaultInstrumentId: DEFAULT_BINANCE_JAPAN_INSTRUMENT_ID,
+});
 const clientsByExchange = new Map([
   [DEFAULT_EXCHANGE_ID, okjClient],
   [COINCHECK_EXCHANGE_ID, coincheckClient],
   [BITFLYER_EXCHANGE_ID, bitflyerClient],
   [BITBANK_EXCHANGE_ID, bitbankClient],
   [GMO_EXCHANGE_ID, gmoClient],
+  [BINANCE_JAPAN_EXCHANGE_ID, binanceJapanClient],
 ]);
 const defaultInstrumentIds = {
   [DEFAULT_EXCHANGE_ID]: DEFAULT_OKJ_INSTRUMENT_ID,
@@ -76,6 +153,7 @@ const defaultInstrumentIds = {
   [BITFLYER_EXCHANGE_ID]: DEFAULT_BITFLYER_INSTRUMENT_ID,
   [BITBANK_EXCHANGE_ID]: DEFAULT_BITBANK_INSTRUMENT_ID,
   [GMO_EXCHANGE_ID]: DEFAULT_GMO_INSTRUMENT_ID,
+  [BINANCE_JAPAN_EXCHANGE_ID]: DEFAULT_BINANCE_JAPAN_INSTRUMENT_ID,
 };
 const wsManager = new WSManager(server, {
   exchanges: getPublicExchanges(),
@@ -83,6 +161,16 @@ const wsManager = new WSManager(server, {
   onMarketSelected: ({ exchangeId, instrumentId }) => {
     const exchangeClient = clientsByExchange.get(exchangeId);
     if (exchangeClient) exchangeClient.activateInstrument(instrumentId);
+  },
+  onClientConnected: ({ request }) => {
+    try {
+      analyticsStore.trackWebSocketOpen(request);
+    } catch (err) {
+      console.warn('[Analytics] WebSocket tracking failed:', err.message);
+    }
+  },
+  onClientDisconnected: () => {
+    analyticsStore.trackWebSocketClose();
   },
 });
 
@@ -156,6 +244,7 @@ wireExchangeClient(COINCHECK_EXCHANGE_ID, coincheckClient, 'Coincheck');
 wireExchangeClient(BITFLYER_EXCHANGE_ID, bitflyerClient, 'bitFlyer');
 wireExchangeClient(BITBANK_EXCHANGE_ID, bitbankClient, 'bitbank');
 wireExchangeClient(GMO_EXCHANGE_ID, gmoClient, 'GMO Coin');
+wireExchangeClient(BINANCE_JAPAN_EXCHANGE_ID, binanceJapanClient, 'Binance Japan');
 
 const TICKER_FETCH_DELAY_MS = 120;
 const VOLUME_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
@@ -198,6 +287,8 @@ async function refreshAllVolumeTickers(source = 'scheduled') {
       if (!client || typeof client.fetchTicker !== 'function') continue;
 
       for (const market of exchange.markets || []) {
+        if (market.status && market.status !== 'active') continue;
+
         try {
           const rawTicker = await client.fetchTicker(market.instrumentId);
           if (rawTicker) {
