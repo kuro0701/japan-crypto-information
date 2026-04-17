@@ -28,11 +28,11 @@
 
 ## アクセス解析
 
-アクセス解析へのリンクは公開ページには出しません。管理画面とAPIは `localhost` / `127.0.0.1` / `::1` からのアクセスだけ通します。
+アクセス解析へのリンクは公開ページには出しません。管理画面は直URLで開き、APIはトークン必須です。
 
-手元で見る場合はローカル起動後に `http://localhost:3000/admin/analytics` を開いてください。
+本番で見る場合は `https://公開URL/admin/analytics?token=管理トークン` を開いてください。表示後はURLからトークンを外して使えます。
 
-Render の Environment には、訪問者の概算集計に使う `ANALYTICS_SALT` を設定してください。`ANALYTICS_ADMIN_TOKEN` はローカルでトークン認証したい場合だけ使います。
+Render の Environment には、訪問者の概算集計に使う `ANALYTICS_SALT` を設定してください。管理トークンを変更したい場合は `ANALYTICS_ADMIN_TOKEN` または `ANALYTICS_ADMIN_TOKEN_HASH` を設定します。
 
 ## 無料枠の注意
 
