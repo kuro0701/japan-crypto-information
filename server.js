@@ -8,9 +8,11 @@ const BitflyerClient = require('./lib/bitflyer-client');
 const BitbankClient = require('./lib/bitbank-client');
 const GMOClient = require('./lib/gmo-client');
 const BinanceJapanClient = require('./lib/binance-japan-client');
+const OKJSaleClient = require('./lib/okj-sale-client');
 const OrderBook = require('./lib/orderbook');
 const WSManager = require('./lib/ws-manager');
 const VolumeShareStore = require('./lib/volume-share-store');
+const SalesSpreadStore = require('./lib/sales-spread-store');
 const AnalyticsStore = require('./lib/analytics-store');
 const {
   DEFAULT_EXCHANGE_ID,
@@ -36,6 +38,9 @@ app.set('trust proxy', 1);
 const volumeShareStore = new VolumeShareStore({
   dataFilePath: path.join(__dirname, 'data', 'volume-share-history.json'),
 });
+const salesSpreadStore = new SalesSpreadStore({
+  dataFilePath: path.join(__dirname, 'data', 'sales-spread-history.json'),
+});
 const analyticsStore = new AnalyticsStore({
   dataFilePath: path.join(__dirname, 'data', 'analytics.json'),
   salt: process.env.ANALYTICS_SALT,
@@ -47,6 +52,7 @@ const analyticsAdminTokenHash = process.env.ANALYTICS_ADMIN_TOKEN_HASH
 function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/' || reqPath === '/index.html') return '/';
   if (reqPath === '/volume-share' || reqPath === '/volume-share.html') return '/volume-share';
+  if (reqPath === '/sales-spread' || reqPath === '/sales-spread.html') return '/sales-spread';
   return null;
 }
 
@@ -119,11 +125,17 @@ app.get('/healthz', (_req, res) => {
 app.get('/volume-share', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'volume-share.html'));
 });
+app.get('/sales-spread', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'sales-spread.html'));
+});
 app.get('/admin/analytics', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin-analytics.html'));
 });
 app.get('/api/volume-share', (req, res) => {
   res.json(volumeShareStore.getShare(req.query.window || '1d'));
+});
+app.get('/api/sales-spread', (_req, res) => {
+  res.json(salesSpreadStore.getReport());
 });
 app.get('/api/admin/analytics', requireAnalyticsAdmin, (req, res) => {
   res.json(analyticsStore.getReport(req.query.window || '7d'));
@@ -155,6 +167,7 @@ const gmoClient = new GMOClient(500, {
 const binanceJapanClient = new BinanceJapanClient(500, {
   defaultInstrumentId: DEFAULT_BINANCE_JAPAN_INSTRUMENT_ID,
 });
+const okjSaleClient = new OKJSaleClient();
 const clientsByExchange = new Map([
   [DEFAULT_EXCHANGE_ID, okjClient],
   [COINCHECK_EXCHANGE_ID, coincheckClient],
@@ -264,8 +277,10 @@ wireExchangeClient(BINANCE_JAPAN_EXCHANGE_ID, binanceJapanClient, 'Binance Japan
 
 const TICKER_FETCH_DELAY_MS = 120;
 const VOLUME_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
+const SALES_SPREAD_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 let volumeRefreshPromise = null;
+let salesSpreadRefreshPromise = null;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -282,6 +297,13 @@ function msUntilNextJstMidnight(now = new Date()) {
     5
   );
   return Math.max(1000, nextJstMidnightAsUtc - jstClock.getTime());
+}
+
+function getOkjPublicExchange() {
+  return getPublicExchanges().find(exchange => exchange.id === DEFAULT_EXCHANGE_ID) || {
+    id: DEFAULT_EXCHANGE_ID,
+    label: 'OKJ',
+  };
 }
 
 async function refreshAllVolumeTickers(source = 'scheduled') {
@@ -354,6 +376,59 @@ async function refreshAllVolumeTickers(source = 'scheduled') {
   return volumeRefreshPromise;
 }
 
+async function refreshSalesSpreadRecords(source = 'scheduled') {
+  if (salesSpreadRefreshPromise) return salesSpreadRefreshPromise;
+
+  salesSpreadRefreshPromise = (async () => {
+    const capturedAt = new Date();
+    const errors = [];
+    salesSpreadStore.setRefreshStatus({
+      running: true,
+      startedAt: capturedAt.toISOString(),
+      source,
+      errors: [],
+    });
+
+    let records = [];
+    try {
+      const exchange = getOkjPublicExchange();
+      const currencies = await okjSaleClient.fetchCurrencies();
+      records = currencies
+        .map(item => salesSpreadStore.buildRecord(item, exchange, capturedAt))
+        .filter(Boolean);
+    } catch (err) {
+      errors.push({
+        exchangeId: DEFAULT_EXCHANGE_ID,
+        message: err.message,
+      });
+    }
+
+    if (records.length > 0) {
+      salesSpreadStore.replaceLatest(records, source, {
+        capturedAt: capturedAt.toISOString(),
+        errors,
+      });
+    }
+
+    salesSpreadStore.setRefreshStatus({
+      running: false,
+      finishedAt: new Date().toISOString(),
+      source,
+      errors,
+    });
+
+    return {
+      capturedAt: capturedAt.toISOString(),
+      records,
+      errors,
+    };
+  })().finally(() => {
+    salesSpreadRefreshPromise = null;
+  });
+
+  return salesSpreadRefreshPromise;
+}
+
 async function captureDailyVolumeSnapshot(reason = 'jst-midnight') {
   const result = await refreshAllVolumeTickers(reason);
   if (result.records.length === 0) return null;
@@ -362,6 +437,17 @@ async function captureDailyVolumeSnapshot(reason = 'jst-midnight') {
     capturedAt: result.capturedAt,
     reason,
     volumeDateJst: VolumeShareStore.getPreviousJstDate(new Date(result.capturedAt)),
+  });
+}
+
+async function captureDailySalesSpreadSnapshot(reason = 'jst-midnight') {
+  const result = await refreshSalesSpreadRecords(reason);
+  if (result.records.length === 0) return null;
+
+  return salesSpreadStore.captureDaily(result.records, {
+    capturedAt: result.capturedAt,
+    reason,
+    spreadDateJst: SalesSpreadStore.getPreviousJstDate(new Date(result.capturedAt)),
   });
 }
 
@@ -381,6 +467,22 @@ function maybeCaptureEarlyMorningCatchup(result) {
   });
 }
 
+function maybeCaptureEarlyMorningSalesSpreadCatchup(result) {
+  if (!result || result.records.length === 0) return;
+  const capturedAt = new Date(result.capturedAt);
+  const parts = SalesSpreadStore.getJstParts(capturedAt);
+  if (parts.hour > 1) return;
+
+  const spreadDateJst = SalesSpreadStore.getPreviousJstDate(capturedAt);
+  if (salesSpreadStore.hasDailySnapshot(spreadDateJst)) return;
+
+  salesSpreadStore.captureDaily(result.records, {
+    capturedAt: result.capturedAt,
+    reason: 'early-morning-catchup',
+    spreadDateJst,
+  });
+}
+
 function scheduleDailyVolumeSnapshot() {
   setTimeout(async () => {
     try {
@@ -389,6 +491,18 @@ function scheduleDailyVolumeSnapshot() {
       console.warn('[Volume Share] Daily snapshot failed:', err.message);
     } finally {
       scheduleDailyVolumeSnapshot();
+    }
+  }, msUntilNextJstMidnight());
+}
+
+function scheduleDailySalesSpreadSnapshot() {
+  setTimeout(async () => {
+    try {
+      await captureDailySalesSpreadSnapshot('jst-midnight');
+    } catch (err) {
+      console.warn('[Sales Spread] Daily snapshot failed:', err.message);
+    } finally {
+      scheduleDailySalesSpreadSnapshot();
     }
   }, msUntilNextJstMidnight());
 }
@@ -415,6 +529,28 @@ function scheduleVolumeShareJobs() {
   scheduleDailyVolumeSnapshot();
 }
 
+function scheduleSalesSpreadJobs() {
+  setTimeout(async () => {
+    try {
+      const result = await refreshSalesSpreadRecords('startup');
+      maybeCaptureEarlyMorningSalesSpreadCatchup(result);
+    } catch (err) {
+      console.warn('[Sales Spread] Startup refresh failed:', err.message);
+    }
+  }, 5000);
+
+  setInterval(async () => {
+    try {
+      const result = await refreshSalesSpreadRecords('hourly');
+      maybeCaptureEarlyMorningSalesSpreadCatchup(result);
+    } catch (err) {
+      console.warn('[Sales Spread] Hourly refresh failed:', err.message);
+    }
+  }, SALES_SPREAD_REFRESH_INTERVAL_MS);
+
+  scheduleDailySalesSpreadSnapshot();
+}
+
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 server.listen(PORT, HOST, () => {
@@ -424,4 +560,5 @@ server.listen(PORT, HOST, () => {
     client.start();
   }
   scheduleVolumeShareJobs();
+  scheduleSalesSpreadJobs();
 });
