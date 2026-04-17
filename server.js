@@ -9,6 +9,7 @@ const BitbankClient = require('./lib/bitbank-client');
 const GMOClient = require('./lib/gmo-client');
 const BinanceJapanClient = require('./lib/binance-japan-client');
 const OKJSaleClient = require('./lib/okj-sale-client');
+const CoincheckSalesClient = require('./lib/coincheck-sales-client');
 const OrderBook = require('./lib/orderbook');
 const WSManager = require('./lib/ws-manager');
 const VolumeShareStore = require('./lib/volume-share-store');
@@ -168,6 +169,7 @@ const binanceJapanClient = new BinanceJapanClient(500, {
   defaultInstrumentId: DEFAULT_BINANCE_JAPAN_INSTRUMENT_ID,
 });
 const okjSaleClient = new OKJSaleClient();
+const coincheckSaleClient = new CoincheckSalesClient();
 const clientsByExchange = new Map([
   [DEFAULT_EXCHANGE_ID, okjClient],
   [COINCHECK_EXCHANGE_ID, coincheckClient],
@@ -299,10 +301,10 @@ function msUntilNextJstMidnight(now = new Date()) {
   return Math.max(1000, nextJstMidnightAsUtc - jstClock.getTime());
 }
 
-function getOkjPublicExchange() {
-  return getPublicExchanges().find(exchange => exchange.id === DEFAULT_EXCHANGE_ID) || {
-    id: DEFAULT_EXCHANGE_ID,
-    label: 'OKJ',
+function getPublicExchangeById(exchangeId, label) {
+  return getPublicExchanges().find(exchange => exchange.id === exchangeId) || {
+    id: exchangeId,
+    label,
   };
 }
 
@@ -389,18 +391,34 @@ async function refreshSalesSpreadRecords(source = 'scheduled') {
       errors: [],
     });
 
-    let records = [];
-    try {
-      const exchange = getOkjPublicExchange();
-      const currencies = await okjSaleClient.fetchCurrencies();
-      records = currencies
-        .map(item => salesSpreadStore.buildRecord(item, exchange, capturedAt))
-        .filter(Boolean);
-    } catch (err) {
-      errors.push({
+    const records = [];
+    const sources = [
+      {
         exchangeId: DEFAULT_EXCHANGE_ID,
-        message: err.message,
-      });
+        label: 'OKJ',
+        client: okjSaleClient,
+      },
+      {
+        exchangeId: COINCHECK_EXCHANGE_ID,
+        label: 'Coincheck',
+        client: coincheckSaleClient,
+      },
+    ];
+
+    for (const sourceConfig of sources) {
+      try {
+        const exchange = getPublicExchangeById(sourceConfig.exchangeId, sourceConfig.label);
+        const currencies = await sourceConfig.client.fetchCurrencies();
+        for (const item of currencies) {
+          const record = salesSpreadStore.buildRecord(item, exchange, capturedAt);
+          if (record) records.push(record);
+        }
+      } catch (err) {
+        errors.push({
+          exchangeId: sourceConfig.exchangeId,
+          message: err.message,
+        });
+      }
     }
 
     if (records.length > 0) {
