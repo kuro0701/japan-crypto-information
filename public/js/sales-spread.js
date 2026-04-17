@@ -91,11 +91,25 @@ document.addEventListener('DOMContentLoaded', () => {
     ].some(value => String(value || '').toLowerCase().includes(needle));
   }
 
+  function sortSpreadValue(row) {
+    const average24h = row.averages && row.averages['1d'];
+    const value = average24h ? average24h.spreadPct : row.latest && row.latest.spreadPct;
+    return Number.isFinite(Number(value)) ? Number(value) : Infinity;
+  }
+
+  function sortNarrowestSpread(a, b) {
+    const spreadDiff = sortSpreadValue(a) - sortSpreadValue(b);
+    if (spreadDiff !== 0) return spreadDiff;
+    if (a.instrumentId !== b.instrumentId) return a.instrumentId.localeCompare(b.instrumentId);
+    return a.exchangeId.localeCompare(b.exchangeId);
+  }
+
   function renderRows() {
     const tbody = $('sales-spread-tbody');
     if (!tbody) return;
 
     const rows = allRows.filter(rowMatchesFilter);
+    if (filterText) rows.sort(sortNarrowestSpread);
     if (rows.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-4">記録待ち</td></tr>';
       return;

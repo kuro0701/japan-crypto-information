@@ -10,6 +10,7 @@ const GMOClient = require('./lib/gmo-client');
 const BinanceJapanClient = require('./lib/binance-japan-client');
 const OKJSaleClient = require('./lib/okj-sale-client');
 const CoincheckSalesClient = require('./lib/coincheck-sales-client');
+const BitflyerSalesClient = require('./lib/bitflyer-sales-client');
 const BitbankSalesClient = require('./lib/bitbank-sales-client');
 const OrderBook = require('./lib/orderbook');
 const WSManager = require('./lib/ws-manager');
@@ -171,6 +172,7 @@ const binanceJapanClient = new BinanceJapanClient(500, {
 });
 const okjSaleClient = new OKJSaleClient();
 const coincheckSaleClient = new CoincheckSalesClient();
+const bitflyerSaleClient = new BitflyerSalesClient();
 const bitbankSaleClient = new BitbankSalesClient();
 const clientsByExchange = new Map([
   [DEFAULT_EXCHANGE_ID, okjClient],
@@ -404,6 +406,11 @@ async function refreshSalesSpreadRecords(source = 'scheduled') {
         exchangeId: COINCHECK_EXCHANGE_ID,
         label: 'Coincheck',
         client: coincheckSaleClient,
+      },
+      {
+        exchangeId: BITFLYER_EXCHANGE_ID,
+        label: 'bitFlyer',
+        client: bitflyerSaleClient,
       },
       {
         exchangeId: BITBANK_EXCHANGE_ID,
