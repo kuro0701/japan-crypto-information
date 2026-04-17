@@ -11,148 +11,90 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
-  <header class="topbar border-b border-gray-800 px-6 py-3 flex items-center justify-between">
-    <div class="brand-cluster flex items-center gap-3 min-w-0">
+  <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
+  <header class="topbar px-6 py-3">
+    <div class="brand-cluster">
       <div class="brand-mark" aria-hidden="true">₿</div>
       <div class="brand-copy min-w-0">
-        <h1 class="text-lg font-bold text-white">Japan クリプト インフォメーション</h1>
-        <div class="text-xs text-gray-500">アクセス解析</div>
+        <h1 class="page-title">Japan クリプト インフォメーション</h1>
+        <div class="brand-subtitle">アクセス解析</div>
       </div>
-      <a class="nav-link text-xs font-bold" href="/">板シミュレーター</a>
-      <a class="nav-link text-xs font-bold" href="/volume-share">出来高シェア</a>
     </div>
-    <div class="status-cluster flex items-center gap-2">
+    <nav class="nav-menu" aria-label="ページ間ナビゲーション">
+      <a class="nav-link" href="/">板シミュレーター</a>
+      <a class="nav-link" href="/volume-share">出来高シェア</a>
+      <a class="nav-link is-active" href="/admin-analytics">アクセス解析</a>
+    </nav>
+    <div class="status-cluster" role="status" aria-live="polite">
       <div id="analytics-status-dot" class="w-3 h-3 rounded-full bg-red-500"></div>
-      <span id="analytics-status" class="text-xs text-gray-400">未接続</span>
+      <span id="analytics-status" class="status-text">未接続</span>
       <span class="text-xs text-gray-600 ml-2">更新: <span id="analytics-updated-at" class="text-gray-400">-</span></span>
     </div>
   </header>
 
-  <main class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
-    <section id="auth-panel" class="panel bg-gray-900 border border-gray-800 rounded-lg p-4 hidden">
+  <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
+    <section id="auth-panel" class="panel panel--dense hidden">
       <div class="panel-title-row mb-3">
         <div>
-          <h2 class="text-sm font-semibold text-gray-300">管理トークン</h2>
+          <h2 class="panel-title">管理トークン</h2>
           <p id="auth-message" class="text-xs text-gray-500 mt-1">アクセス解析を見るにはトークンを入力してください</p>
         </div>
-        <span class="panel-kicker">ADMIN</span>
+        <span class="panel-kicker">Admin</span>
       </div>
       <div class="flex flex-col md:flex-row gap-2">
         <input id="admin-token-input" class="field flex-1 rounded px-3 py-2 text-sm font-mono" type="password" autocomplete="current-password" placeholder="ANALYTICS_ADMIN_TOKEN">
-        <button id="save-token-btn" class="py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-sm transition-colors" type="button">接続</button>
-        <button id="clear-token-btn" class="py-2.5 px-4 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors" type="button">クリア</button>
+        <button id="save-token-btn" class="btn btn-primary py-2.5 px-4 rounded-lg font-bold text-sm" type="button">接続</button>
+        <button id="clear-token-btn" class="btn btn-ghost py-2.5 px-4 rounded-lg text-sm" type="button">クリア</button>
       </div>
     </section>
 
-    <section class="panel bg-gray-900 border border-gray-800 rounded-lg p-4">
+    <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="text-sm font-semibold text-gray-300">アクセス解析</h2>
+          <h2 class="panel-title">アクセス解析</h2>
           <p id="analytics-meta" class="text-xs text-gray-500 mt-1">JST基準で集計中</p>
         </div>
-        <span class="panel-kicker">TRAFFIC</span>
+        <span class="panel-kicker">Traffic</span>
       </div>
 
-      <div class="flex flex-wrap gap-2 mb-4" role="tablist" aria-label="集計期間">
+      <div class="tab-group mb-4" role="tablist" aria-label="集計期間">
         <button class="window-tab rounded text-xs font-bold" data-window="1d" type="button">今日</button>
         <button class="window-tab active rounded text-xs font-bold" data-window="7d" type="button">7日間</button>
         <button class="window-tab rounded text-xs font-bold" data-window="30d" type="button">30日間</button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div class="metric-row primary">
-          <span class="text-gray-500 text-xs">ページビュー</span>
-          <span id="metric-pageviews" class="font-mono text-yellow-300 text-sm">-</span>
-        </div>
-        <div class="metric-row bid">
-          <span class="text-gray-500 text-xs">ユニーク</span>
-          <span id="metric-unique" class="font-mono text-green-300 text-sm">-</span>
-        </div>
-        <div class="metric-row ask">
-          <span class="text-gray-500 text-xs">WS接続中</span>
-          <span id="metric-ws-current" class="font-mono text-red-300 text-sm">-</span>
-        </div>
-        <div class="metric-row">
-          <span class="text-gray-500 text-xs">最終アクセス</span>
-          <span id="metric-last-access" class="font-mono text-gray-300 text-sm">-</span>
-        </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div class="metric-row metric-row--hero"><span class="metric-label">ページビュー</span><span id="metric-pageviews" class="metric-value metric-value--hero">-</span></div>
+        <div class="metric-row metric-row--hero bid"><span class="metric-label">ユニーク</span><span id="metric-unique" class="metric-value metric-value--hero text-green-300">-</span></div>
+        <div class="metric-row metric-row--hero ask"><span class="metric-label">WS接続中</span><span id="metric-ws-current" class="metric-value metric-value--hero text-red-300">-</span></div>
+        <div class="metric-row metric-row--hero"><span class="metric-label">最終アクセス</span><span id="metric-last-access" class="metric-value">-</span></div>
       </div>
     </section>
 
     <div class="grid grid-cols-1 xl:grid-cols-[1fr_440px] gap-4">
       <div class="flex flex-col gap-4">
-        <section class="panel bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div class="panel-title-row mb-3">
-            <h2 class="text-sm font-semibold text-gray-300">日別アクセス</h2>
-            <span class="panel-kicker">DAILY</span>
-          </div>
-          <div id="daily-bars" class="analytics-bars"></div>
-        </section>
-
-        <section class="panel bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div class="panel-title-row mb-3">
-            <h2 class="text-sm font-semibold text-gray-300">時間帯</h2>
-            <span class="panel-kicker">HOURLY</span>
-          </div>
-          <div id="hourly-bars" class="analytics-bars compact"></div>
-        </section>
-
-        <section class="panel bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div class="panel-title-row mb-3">
-            <h2 class="text-sm font-semibold text-gray-300">日別ログ</h2>
-            <span class="panel-kicker">LOG</span>
-          </div>
+        <section class="panel panel--dense"><div class="panel-title-row mb-3"><h2 class="panel-title">日別アクセス</h2><span class="panel-kicker">Daily</span></div><div id="daily-bars" class="analytics-bars"></div></section>
+        <section class="panel panel--dense"><div class="panel-title-row mb-3"><h2 class="panel-title">時間帯</h2><span class="panel-kicker">Hourly</span></div><div id="hourly-bars" class="analytics-bars compact"></div></section>
+        <section class="panel panel--dense">
+          <div class="panel-title-row mb-3"><h2 class="panel-title">日別ログ</h2><span class="panel-kicker">Log</span></div>
           <div class="overflow-auto scrollbar-thin">
-            <table class="w-full text-xs">
-              <thead class="sticky">
-                <tr class="text-gray-500 border-b border-gray-800">
-                  <th class="px-3 py-2 text-left">日付</th>
-                  <th class="px-3 py-2 text-right">PV</th>
-                  <th class="px-3 py-2 text-right">ユニーク</th>
-                  <th class="px-3 py-2 text-right">WS接続</th>
-                  <th class="px-3 py-2 text-right">WSピーク</th>
-                  <th class="px-3 py-2 text-right">最終アクセス</th>
-                </tr>
-              </thead>
-              <tbody id="daily-tbody">
-                <tr><td colspan="6" class="text-center text-gray-500 py-4">読み込み中</td></tr>
-              </tbody>
+            <table class="data-table text-xs">
+              <thead class="sticky"><tr><th class="px-3 py-2 text-left">日付</th><th class="px-3 py-2 text-right">PV</th><th class="px-3 py-2 text-right">ユニーク</th><th class="px-3 py-2 text-right">WS接続</th><th class="px-3 py-2 text-right">WSピーク</th><th class="px-3 py-2 text-right">最終アクセス</th></tr></thead>
+              <tbody id="daily-tbody"><tr><td colspan="6" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
             </table>
           </div>
         </section>
       </div>
 
       <div class="flex flex-col gap-4">
-        <section class="panel bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div class="panel-title-row mb-3">
-            <h2 class="text-sm font-semibold text-gray-300">ページ別</h2>
-            <span class="panel-kicker">PAGES</span>
-          </div>
-          <div id="route-bars" class="analytics-bars"></div>
-        </section>
-
-        <section class="panel bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div class="panel-title-row mb-3">
-            <h2 class="text-sm font-semibold text-gray-300">端末</h2>
-            <span class="panel-kicker">DEVICE</span>
-          </div>
-          <div id="device-bars" class="analytics-bars"></div>
-        </section>
-
-        <section class="panel bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <div class="panel-title-row mb-3">
-            <h2 class="text-sm font-semibold text-gray-300">流入元</h2>
-            <span class="panel-kicker">REFERRER</span>
-          </div>
-          <div id="referrer-bars" class="analytics-bars"></div>
-        </section>
+        <section class="panel panel--dense"><div class="panel-title-row mb-3"><h2 class="panel-title">ページ別</h2><span class="panel-kicker">Pages</span></div><div id="route-bars" class="analytics-bars"></div></section>
+        <section class="panel panel--dense"><div class="panel-title-row mb-3"><h2 class="panel-title">端末</h2><span class="panel-kicker">Device</span></div><div id="device-bars" class="analytics-bars"></div></section>
+        <section class="panel panel--dense"><div class="panel-title-row mb-3"><h2 class="panel-title">流入元</h2><span class="panel-kicker">Referrer</span></div><div id="referrer-bars" class="analytics-bars"></div></section>
       </div>
     </div>
   </main>
 
-  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">
-    Japan クリプト インフォメーション | アクセス解析
-  </footer>
+  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | アクセス解析</footer>
 
   <script src="/js/formatter.js?v=analytics-1"></script>
   <script src="/js/admin-analytics.js?v=analytics-1"></script>

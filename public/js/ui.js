@@ -235,6 +235,17 @@ const UI = {
     panel.innerHTML = html;
   },
 
+  applyFlashClass(element, currentValue, nextValue) {
+    if (!element) return;
+    if (currentValue == null || nextValue == null || isNaN(currentValue) || isNaN(nextValue)) return;
+    if (nextValue === currentValue) return;
+    const className = nextValue > currentValue ? 'flash-up' : 'flash-down';
+    element.classList.remove('flash-up', 'flash-down');
+    void element.offsetWidth;
+    element.classList.add(className);
+    setTimeout(() => element.classList.remove(className), 600);
+  },
+
   updateFillTable(fills) {
     const tbody = document.getElementById('fill-tbody');
     if (!tbody || !fills) return;
@@ -244,18 +255,32 @@ const UI = {
       return;
     }
 
+    const previousRows = new Map(Array.from(tbody.querySelectorAll('tr')).map((row, idx) => [idx + 1, row]));
+
     tbody.innerHTML = fills.map((f, i) => `
-      <tr class="border-b border-gray-800 hover:bg-gray-800/50 ${f.fullyConsumed ? '' : 'bg-yellow-900/10'}">
-        <td class="px-3 py-1.5 text-right text-gray-400">${i + 1}</td>
-        <td class="px-3 py-1.5 text-right font-mono">${Fmt.jpy(f.price)}</td>
-        <td class="px-3 py-1.5 text-right font-mono">${this.formatBase(f.quantity, true)}</td>
-        <td class="px-3 py-1.5 text-right font-mono">${Fmt.jpy(f.subtotalJPY)}</td>
-        <td class="px-3 py-1.5 text-right font-mono">${this.formatBase(f.cumulativeBTC, true)}</td>
-        <td class="px-3 py-1.5 text-right font-mono">${Fmt.jpy(f.cumulativeJPY)}</td>
-        <td class="px-3 py-1.5 text-right font-mono">${Fmt.pct(f.cumulativeImpactPct)}</td>
-        <td class="px-3 py-1.5 text-right font-mono">${Fmt.num(f.orders)}</td>
+      <tr class="border-b border-gray-800 ${f.fullyConsumed ? '' : 'bg-yellow-900/10'}">
+        <td headers="fill-col-idx" class="px-3 py-1.5 text-right text-gray-400">${i + 1}</td>
+        <td headers="fill-col-price" class="px-3 py-1.5 text-right font-mono" data-value="${f.price}">${Fmt.jpy(f.price)}</td>
+        <td headers="fill-quantity-header" class="px-3 py-1.5 text-right font-mono" data-value="${f.quantity}">${this.formatBase(f.quantity, true)}</td>
+        <td headers="fill-col-subtotal" class="px-3 py-1.5 text-right font-mono" data-value="${f.subtotalJPY}">${Fmt.jpy(f.subtotalJPY)}</td>
+        <td headers="fill-col-cum-base" class="px-3 py-1.5 text-right font-mono" data-value="${f.cumulativeBTC}">${this.formatBase(f.cumulativeBTC, true)}</td>
+        <td headers="fill-col-cum-quote" class="px-3 py-1.5 text-right font-mono" data-value="${f.cumulativeJPY}">${Fmt.jpy(f.cumulativeJPY)}</td>
+        <td headers="fill-col-impact" class="px-3 py-1.5 text-right font-mono" data-value="${f.cumulativeImpactPct}">${Fmt.pct(f.cumulativeImpactPct)}</td>
+        <td headers="fill-col-orders" class="px-3 py-1.5 text-right font-mono" data-value="${f.orders}">${Fmt.num(f.orders)}</td>
       </tr>
     `).join('');
+
+    Array.from(tbody.querySelectorAll('tr')).forEach((row, idx) => {
+      const previousRow = previousRows.get(idx + 1);
+      if (!previousRow) return;
+      const nextCells = row.querySelectorAll('td[data-value]');
+      const prevCells = previousRow.querySelectorAll('td[data-value]');
+      nextCells.forEach((cell, cellIndex) => {
+        const previousValue = Number(prevCells[cellIndex]?.dataset.value);
+        const nextValue = Number(cell.dataset.value);
+        this.applyFlashClass(cell, previousValue, nextValue);
+      });
+    });
   },
 
   setConnectionStatus(status) {
@@ -271,6 +296,8 @@ const UI = {
     const s = styles[status] || styles.disconnected;
     dot.className = `w-3 h-3 rounded-full ${s.color}`;
     text.textContent = s.label;
+    const liveLabel = document.getElementById('status-live-label');
+    if (liveLabel) liveLabel.textContent = `接続状態: ${s.label}`;
   },
 
   setText(id, value) {
