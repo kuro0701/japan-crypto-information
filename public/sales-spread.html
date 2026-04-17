@@ -11,83 +11,49 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
-  <header class="topbar border-b border-gray-800 px-6 py-3 flex items-center justify-between">
-    <div class="brand-cluster flex items-center gap-3 min-w-0">
+  <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
+  <header class="topbar px-6 py-3">
+    <div class="brand-cluster">
       <div class="brand-mark" aria-hidden="true">₿</div>
       <div class="brand-copy min-w-0">
-        <h1 class="text-lg font-bold text-white">Japan クリプト インフォメーション</h1>
-        <div class="text-xs text-gray-500">国内取引所 販売所スプレッド</div>
+        <h1 class="page-title">Japan クリプト インフォメーション</h1>
+        <div class="brand-subtitle">国内取引所 販売所スプレッド</div>
       </div>
-      <a class="nav-link text-xs font-bold" href="/">板シミュレーター</a>
-      <a class="nav-link text-xs font-bold" href="/volume-share">出来高シェア</a>
     </div>
-    <div class="status-cluster flex items-center gap-2">
-      <div class="w-3 h-3 rounded-full bg-green-500"></div>
-      <span id="spread-status" class="text-xs text-gray-400">読み込み中</span>
-      <span class="text-xs text-gray-600 ml-2">更新: <span id="spread-updated-at" class="text-gray-400">-</span></span>
-    </div>
+    <nav class="nav-menu" aria-label="ページ間ナビゲーション">
+      <a class="nav-link" href="/">板シミュレーター</a>
+      <a class="nav-link" href="/volume-share">出来高シェア</a>
+      <a class="nav-link is-active" href="/sales-spread">販売所スプレッド</a>
+    </nav>
+    <div class="status-cluster"><span class="badge badge--live">LIVE</span><span id="spread-status" class="status-text">読み込み中</span><span class="text-xs text-gray-600 ml-2">更新: <span id="spread-updated-at" class="text-gray-400">-</span></span></div>
   </header>
 
-  <main class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
-    <section class="panel bg-gray-900 border border-gray-800 rounded-lg p-4">
-      <div class="panel-title-row mb-4">
-        <div>
-          <h2 class="text-sm font-semibold text-gray-300">販売所スプレッド</h2>
-          <p id="spread-meta" class="text-xs text-gray-500 mt-1">JST 24:00 基準の記録を集計中</p>
-        </div>
-        <span class="panel-kicker">SALES SPREAD</span>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div class="metric-row primary">
-          <span class="text-gray-500 text-xs">24h平均</span>
-          <span id="avg-spread-24h" class="font-mono text-yellow-300 text-sm">-</span>
-        </div>
-        <div class="metric-row bid">
-          <span class="text-gray-500 text-xs">最大スプレッド</span>
-          <span id="widest-spread" class="font-mono text-green-300 text-sm">-</span>
-        </div>
-        <div class="metric-row ask">
-          <span class="text-gray-500 text-xs">記録銘柄</span>
-          <span id="spread-count" class="font-mono text-red-300 text-sm">-</span>
-        </div>
+  <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4"><div><h2 class="panel-title">販売所スプレッド</h2><p id="spread-meta" class="text-xs text-gray-500 mt-1">JST 24:00 基準の記録を集計中</p></div><span class="panel-kicker">Sales Spread</span></div>
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div class="metric-row metric-row--hero"><span class="metric-label">24h平均</span><span id="avg-spread-24h" class="metric-value metric-value--hero">-</span></div>
+        <div class="metric-row metric-row--hero bid"><span class="metric-label">最大スプレッド</span><span id="widest-spread" class="metric-value metric-value--hero text-green-300">-</span></div>
+        <div class="metric-row metric-row--hero ask"><span class="metric-label">記録銘柄</span><span id="spread-count" class="metric-value metric-value--hero text-red-300">-</span></div>
         <div class="metric-row">
-          <label for="spread-filter" class="text-gray-500 text-xs">銘柄検索</label>
-          <input id="spread-filter" class="field min-h-[28px] w-32 px-2 py-1 text-xs font-mono" type="search" placeholder="BTC">
+          <label for="spread-filter" class="metric-label">銘柄検索</label>
+          <input id="spread-filter" class="field w-full px-2 py-1 text-xs font-mono" type="search" placeholder="BTC">
         </div>
       </div>
     </section>
 
-    <section class="panel bg-gray-900 border border-gray-800 rounded-lg p-4">
-      <div class="panel-title-row mb-3">
-        <h2 class="text-sm font-semibold text-gray-300">銘柄別スプレッド</h2>
-        <span class="panel-kicker">MARKETS</span>
-      </div>
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-3"><h2 class="panel-title">銘柄別スプレッド</h2><span class="panel-kicker">Markets</span></div>
       <div class="overflow-auto scrollbar-thin max-h-[760px]">
-        <table class="w-full text-xs">
-          <thead class="sticky">
-            <tr class="text-gray-500 border-b border-gray-800">
-              <th class="px-3 py-2 text-left">銘柄</th>
-              <th class="px-3 py-2 text-left">取引所</th>
-              <th class="px-3 py-2 text-right">買値</th>
-              <th class="px-3 py-2 text-right">売値</th>
-              <th class="px-3 py-2 text-right">現在</th>
-              <th class="px-3 py-2 text-right">24h平均</th>
-              <th class="px-3 py-2 text-right">7日平均</th>
-              <th class="px-3 py-2 text-right">30日平均</th>
-            </tr>
-          </thead>
-          <tbody id="sales-spread-tbody">
-            <tr><td colspan="8" class="text-center text-gray-500 py-4">読み込み中</td></tr>
-          </tbody>
+        <table class="data-table text-xs">
+          <thead class="sticky"><tr><th class="px-3 py-2 text-left">銘柄</th><th class="px-3 py-2 text-left">取引所</th><th class="px-3 py-2 text-right">買値</th><th class="px-3 py-2 text-right">売値</th><th class="px-3 py-2 text-right">現在</th><th class="px-3 py-2 text-right">24h平均</th><th class="px-3 py-2 text-right">7日平均</th><th class="px-3 py-2 text-right">30日平均</th></tr></thead>
+          <tbody id="sales-spread-tbody"><tr><td colspan="8" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
         </table>
       </div>
     </section>
   </main>
 
-  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">
-    Japan クリプト インフォメーション | 販売所価格はJPY建て、スプレッド率は仲値比です
-  </footer>
+  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | 販売所価格はJPY建て、スプレッド率は仲値比です</footer>
 
   <script src="js/formatter.js?v=sales-spread-1"></script>
   <script src="js/sales-spread.js?v=sales-spread-2"></script>

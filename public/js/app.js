@@ -152,11 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-side]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('[data-side]').forEach(b => {
-        b.classList.remove('ring-2');
-        b.classList.add('opacity-50');
+        b.classList.remove('is-active');
       });
-      btn.classList.add('ring-2');
-      btn.classList.remove('opacity-50');
+      btn.classList.add('is-active');
       sideSelect.value = btn.dataset.side;
     });
   });

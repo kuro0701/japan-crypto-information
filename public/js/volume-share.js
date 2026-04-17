@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    tbody.innerHTML = exchanges.map(exchange => `
-      <tr class="border-b border-gray-800/60">
+    tbody.innerHTML = exchanges.map((exchange, index) => `
+      <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
         <td class="px-3 py-3 font-bold text-gray-200">${escapeHtml(exchange.exchangeLabel)}</td>
         <td class="px-3 py-3 text-right font-mono text-gray-300">${fmtJpy(exchange.quoteVolume)}</td>
         <td class="px-3 py-3 text-right font-mono text-yellow-300">
@@ -76,8 +76,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    tbody.innerHTML = rows.map(row => `
-      <tr class="border-b border-gray-800/60">
+    tbody.innerHTML = rows.map((row, index) => `
+      <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
         <td class="px-3 py-3 font-bold text-gray-200">${escapeHtml(row.instrumentLabel)}</td>
         <td class="px-3 py-3 text-gray-300">${escapeHtml(row.exchangeLabel)}</td>
         <td class="px-3 py-3 text-right font-mono text-gray-300">
