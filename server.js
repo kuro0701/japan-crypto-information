@@ -132,7 +132,7 @@ app.get('/volume-share', (_req, res) => {
 app.get('/sales-spread', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'sales-spread.html'));
 });
-app.get('/admin/analytics', (_req, res) => {
+app.get(['/admin/analytics', '/admin-analytics'], (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin-analytics.html'));
 });
 app.get('/api/volume-share', (req, res) => {

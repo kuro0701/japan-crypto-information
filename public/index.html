@@ -21,7 +21,7 @@
   </script>
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
-  <a href="#main" class="sr-only focus:not-sr-only skip-link">メインコンテンツへスキップ</a>
+  <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
 
   <header class="topbar px-6 py-3">
     <div class="brand-cluster">
@@ -70,28 +70,28 @@
 
         <input type="hidden" id="side-select" value="buy">
         <div class="grid grid-cols-2 gap-2 mt-3 mb-3">
-          <button data-side="buy" class="btn btn-toggle is-active text-sm" type="button" aria-pressed="true">▲ 買い (BUY)</button>
-          <button data-side="sell" class="btn btn-toggle text-sm" type="button" aria-pressed="false">▼ 売り (SELL)</button>
+          <button data-side="buy" class="btn btn-toggle is-active text-sm" type="button" aria-pressed="true"><span aria-hidden="true">▲</span><span>買い (BUY)</span></button>
+          <button data-side="sell" class="btn btn-toggle text-sm" type="button" aria-pressed="false"><span aria-hidden="true">▼</span><span>売り (SELL)</span></button>
         </div>
 
         <div class="grid grid-cols-2 gap-2 mb-3">
           <div>
             <label class="metric-label block mb-1" for="amount-type">入力タイプ</label>
-            <select id="amount-type" class="field w-full rounded px-3 py-2 text-sm focus:outline-none">
+            <select id="amount-type" class="field w-full rounded px-3 py-2 text-sm">
               <option id="amount-type-base-option" value="base">数量 (BTC)</option>
               <option value="jpy">金額 (JPY)</option>
             </select>
           </div>
           <div>
             <label class="metric-label block mb-1" for="fee-rate">手数料率 (%)</label>
-            <input id="fee-rate" type="number" min="0" step="0.001" value="0.14" class="field w-full rounded px-3 py-2 text-sm font-mono focus:outline-none">
+            <input id="fee-rate" type="number" min="0" step="0.001" value="0.14" class="field w-full rounded px-3 py-2 text-sm font-mono">
           </div>
         </div>
 
         <div class="mb-3">
           <label class="metric-label block mb-1" for="amount-input">数量 / 金額</label>
           <div class="flex items-center gap-2">
-            <input id="amount-input" type="text" inputmode="decimal" placeholder="1.0" class="field amount-field flex-1 rounded px-3 py-2 text-lg focus:outline-none">
+            <input id="amount-input" type="text" inputmode="decimal" placeholder="1.0" class="field amount-field flex-1 rounded px-3 py-2 text-lg">
             <span id="amount-unit" class="text-sm text-gray-400 w-10">BTC</span>
           </div>
         </div>
