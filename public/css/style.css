@@ -445,6 +445,33 @@ input.field[inputmode="decimal"] {
 
 .amount-field { min-height: 52px; font-weight: 750; font-family: var(--font-mono); }
 
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-3);
+  align-items: end;
+}
+
+.filter-control {
+  display: grid;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.filter-control span {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.filter-control .field {
+  width: 100%;
+  min-width: 0;
+  padding: 0 10px;
+  border-radius: var(--r-sm) !important;
+  font-size: var(--fs-sm);
+}
+
 .btn,
 .btn-tab,
 .tab,

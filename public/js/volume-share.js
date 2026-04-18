@@ -4,7 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
     '7d': '7日間',
     '30d': '30日間',
   };
+  const ALL_VALUE = '__all__';
   let selectedWindow = '1d';
+  let selectedInstrument = ALL_VALUE;
+  let selectedExchange = ALL_VALUE;
+  let latestData = null;
 
   const $ = (id) => document.getElementById(id);
   const setText = (id, value) => {
@@ -24,6 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
       minute: '2-digit',
     });
   };
+
+  function parseNumber(value) {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
 
   function escapeHtml(value) {
     return String(value ?? '')
@@ -46,12 +55,137 @@ document.addEventListener('DOMContentLoaded', () => {
     return '最新24h収集値';
   }
 
-  function renderExchangeRows(exchanges) {
+  function uniqueOptions(rows, valueKey, labelKey) {
+    const byValue = new Map();
+    for (const row of rows || []) {
+      const value = row[valueKey];
+      if (!value || byValue.has(value)) continue;
+      byValue.set(value, {
+        value,
+        label: row[labelKey] || value,
+      });
+    }
+    return Array.from(byValue.values())
+      .sort((a, b) => String(a.label).localeCompare(String(b.label), 'ja'));
+  }
+
+  function populateFilter(selectId, options, selectedValue) {
+    const select = $(selectId);
+    if (!select) return ALL_VALUE;
+
+    const values = new Set(options.map(option => option.value));
+    const nextValue = values.has(selectedValue) ? selectedValue : ALL_VALUE;
+    select.innerHTML = [
+      `<option value="${ALL_VALUE}">すべて</option>`,
+      ...options.map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`),
+    ].join('');
+    select.value = nextValue;
+    return nextValue;
+  }
+
+  function syncFilterOptions(data) {
+    const rows = data.rows || [];
+    selectedInstrument = populateFilter(
+      'volume-instrument-filter',
+      uniqueOptions(rows, 'instrumentId', 'instrumentLabel'),
+      selectedInstrument
+    );
+    selectedExchange = populateFilter(
+      'volume-exchange-filter',
+      uniqueOptions(rows, 'exchangeId', 'exchangeLabel'),
+      selectedExchange
+    );
+  }
+
+  function hasActiveFilters() {
+    return selectedInstrument !== ALL_VALUE || selectedExchange !== ALL_VALUE;
+  }
+
+  function rowMatchesFilters(row) {
+    return (selectedInstrument === ALL_VALUE || row.instrumentId === selectedInstrument)
+      && (selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange);
+  }
+
+  function buildFilteredShare(data) {
+    const byExchange = new Map();
+    const byInstrument = new Map();
+    const rows = [];
+    let totalQuoteVolume = 0;
+
+    for (const row of data.rows || []) {
+      if (!rowMatchesFilters(row)) continue;
+      const quoteVolume = parseNumber(row.quoteVolume);
+      if (quoteVolume == null || quoteVolume < 0) continue;
+
+      const normalizedRow = {
+        ...row,
+        quoteVolume,
+      };
+      rows.push(normalizedRow);
+      totalQuoteVolume += quoteVolume;
+
+      if (!byExchange.has(row.exchangeId)) {
+        byExchange.set(row.exchangeId, {
+          exchangeId: row.exchangeId,
+          exchangeLabel: row.exchangeLabel,
+          quoteVolume: 0,
+        });
+      }
+      byExchange.get(row.exchangeId).quoteVolume += quoteVolume;
+
+      if (!byInstrument.has(row.instrumentId)) {
+        byInstrument.set(row.instrumentId, {
+          instrumentId: row.instrumentId,
+          instrumentLabel: row.instrumentLabel,
+          quoteVolume: 0,
+        });
+      }
+      byInstrument.get(row.instrumentId).quoteVolume += quoteVolume;
+    }
+
+    const filteredRows = rows.map(row => {
+      const instrumentTotal = byInstrument.get(row.instrumentId);
+      return {
+        ...row,
+        instrumentTotalQuoteVolume: instrumentTotal ? instrumentTotal.quoteVolume : 0,
+        instrumentSharePct: instrumentTotal && instrumentTotal.quoteVolume > 0
+          ? (row.quoteVolume / instrumentTotal.quoteVolume) * 100
+          : 0,
+        totalSharePct: totalQuoteVolume > 0 ? (row.quoteVolume / totalQuoteVolume) * 100 : 0,
+      };
+    }).sort((a, b) => {
+      if (a.instrumentId !== b.instrumentId) return a.instrumentId.localeCompare(b.instrumentId);
+      return b.quoteVolume - a.quoteVolume;
+    });
+
+    const exchanges = Array.from(byExchange.values())
+      .map(exchange => ({
+        ...exchange,
+        sharePct: totalQuoteVolume > 0 ? (exchange.quoteVolume / totalQuoteVolume) * 100 : 0,
+      }))
+      .sort((a, b) => b.quoteVolume - a.quoteVolume);
+
+    const instruments = Array.from(byInstrument.values())
+      .map(instrument => ({
+        ...instrument,
+        sharePct: totalQuoteVolume > 0 ? (instrument.quoteVolume / totalQuoteVolume) * 100 : 0,
+      }))
+      .sort((a, b) => b.quoteVolume - a.quoteVolume);
+
+    return {
+      exchanges,
+      instruments,
+      rows: filteredRows,
+      totalQuoteVolume,
+    };
+  }
+
+  function renderExchangeRows(exchanges, emptyMessage = '記録待ち') {
     const tbody = $('exchange-share-tbody');
     if (!tbody) return;
 
     if (!exchanges || exchanges.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-500 py-4">記録待ち</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500 py-4">${escapeHtml(emptyMessage)}</td></tr>`;
       return;
     }
 
@@ -67,12 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
-  function renderInstrumentRows(rows) {
+  function renderInstrumentRows(rows, emptyMessage = '記録待ち') {
     const tbody = $('instrument-share-tbody');
     if (!tbody) return;
 
     if (!rows || rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-4">記録待ち</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500 py-4">${escapeHtml(emptyMessage)}</td></tr>`;
       return;
     }
 
@@ -82,7 +216,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="出来高">
           ${fmtJpy(row.quoteVolume)}
-          ${row.quoteVolumeEstimated ? '<span class="text-[10px] text-gray-500 ml-1">推定</span>' : ''}
         </td>
         <td class="is-num text-right font-mono text-green-300" data-label="銘柄内シェア">
           ${fmtPct(row.instrumentSharePct)}
@@ -93,19 +226,24 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
-  function render(data) {
-    const meta = data.meta || {};
-    const exchanges = data.exchanges || [];
-    const instruments = data.instruments || [];
-    const rows = data.rows || [];
-    const topExchange = exchanges[0];
+  function renderFilteredShare() {
+    if (!latestData) return;
+
+    const meta = latestData.meta || {};
+    const filtered = buildFilteredShare(latestData);
+    const topExchange = filtered.exchanges[0];
     const status = meta.refreshStatus || {};
     const label = WINDOW_LABELS[meta.windowKey] || WINDOW_LABELS[selectedWindow];
+    const allRowCount = (latestData.rows || []).length;
+    const visibleCountLabel = hasActiveFilters()
+      ? `${filtered.rows.length}/${allRowCount}件`
+      : `${filtered.rows.length}件`;
+    const emptyMessage = hasActiveFilters() ? '該当なし' : '記録待ち';
 
-    setText('total-volume', fmtJpy(meta.totalQuoteVolume));
+    setText('total-volume', fmtJpy(filtered.totalQuoteVolume));
     setText('top-exchange', topExchange ? `${topExchange.exchangeLabel} ${fmtPct(topExchange.sharePct)}` : '-');
-    setText('instrument-count', instruments.length);
-    setText('share-status', status.running ? '更新中' : (rows.length > 0 ? '集計済み' : '記録待ち'));
+    setText('instrument-count', filtered.instruments.length);
+    setText('share-status', status.running ? '更新中' : (allRowCount > 0 ? '集計済み' : '記録待ち'));
     setText('share-updated-at', fmtDateTime(meta.latestCapturedAt || meta.generatedAt));
 
     const dateRange = meta.earliestVolumeDateJst && meta.latestVolumeDateJst
@@ -113,11 +251,17 @@ document.addEventListener('DOMContentLoaded', () => {
       : '最新収集値';
     setText(
       'share-meta',
-      `${label} | ${sourceLabel(meta)} | ${dateRange} | ${rows.length}件`
+      `${label} | ${sourceLabel(meta)} | ${dateRange} | ${visibleCountLabel}`
     );
 
-    renderExchangeRows(exchanges);
-    renderInstrumentRows(rows);
+    renderExchangeRows(filtered.exchanges, emptyMessage);
+    renderInstrumentRows(filtered.rows, emptyMessage);
+  }
+
+  function render(data) {
+    latestData = data;
+    syncFilterOptions(data);
+    renderFilteredShare();
   }
 
   async function loadShare() {
@@ -145,6 +289,22 @@ document.addEventListener('DOMContentLoaded', () => {
       loadShare();
     });
   });
+
+  const instrumentFilter = $('volume-instrument-filter');
+  if (instrumentFilter) {
+    instrumentFilter.addEventListener('change', () => {
+      selectedInstrument = instrumentFilter.value || ALL_VALUE;
+      renderFilteredShare();
+    });
+  }
+
+  const exchangeFilter = $('volume-exchange-filter');
+  if (exchangeFilter) {
+    exchangeFilter.addEventListener('change', () => {
+      selectedExchange = exchangeFilter.value || ALL_VALUE;
+      renderFilteredShare();
+    });
+  }
 
   loadShare();
   setInterval(loadShare, 60000);

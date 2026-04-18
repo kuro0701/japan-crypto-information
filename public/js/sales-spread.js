@@ -4,8 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
     '7d': '7日',
     '30d': '30日',
   };
+  const ALL_VALUE = '__all__';
   let allRows = [];
   let filterText = '';
+  let selectedExchange = ALL_VALUE;
+  let latestMeta = {};
 
   const $ = (id) => document.getElementById(id);
   const setText = (id, value) => {
@@ -80,8 +83,42 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
+  function uniqueExchangeOptions(rows) {
+    const byValue = new Map();
+    for (const row of rows || []) {
+      if (!row.exchangeId || byValue.has(row.exchangeId)) continue;
+      byValue.set(row.exchangeId, {
+        value: row.exchangeId,
+        label: row.exchangeLabel || row.exchangeId,
+      });
+    }
+    return Array.from(byValue.values())
+      .sort((a, b) => String(a.label).localeCompare(String(b.label), 'ja'));
+  }
+
+  function populateExchangeFilter() {
+    const select = $('spread-exchange-filter');
+    if (!select) return;
+
+    const options = uniqueExchangeOptions(allRows);
+    const values = new Set(options.map(option => option.value));
+    selectedExchange = values.has(selectedExchange) ? selectedExchange : ALL_VALUE;
+    select.innerHTML = [
+      `<option value="${ALL_VALUE}">すべて</option>`,
+      ...options.map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`),
+    ].join('');
+    select.value = selectedExchange;
+  }
+
+  function hasActiveFilters() {
+    return Boolean(filterText) || selectedExchange !== ALL_VALUE;
+  }
+
   function rowMatchesFilter(row) {
+    const matchesExchange = selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange;
+    if (!matchesExchange) return false;
     if (!filterText) return true;
+
     const needle = filterText.toLowerCase();
     return [
       row.instrumentLabel,
@@ -89,6 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
       row.currencyFullName,
       row.exchangeLabel,
     ].some(value => String(value || '').toLowerCase().includes(needle));
+  }
+
+  function getFilteredRows() {
+    const rows = allRows.filter(rowMatchesFilter);
+    if (filterText || selectedExchange !== ALL_VALUE) rows.sort(sortNarrowestSpread);
+    return rows;
   }
 
   function sortSpreadValue(row) {
@@ -104,19 +147,19 @@ document.addEventListener('DOMContentLoaded', () => {
     return a.exchangeId.localeCompare(b.exchangeId);
   }
 
-  function renderRows() {
+  function renderRows(rows) {
     const tbody = $('sales-spread-tbody');
     if (!tbody) return;
 
-    const rows = allRows.filter(rowMatchesFilter);
-    if (filterText) rows.sort(sortNarrowestSpread);
     if (rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-4">記録待ち</td></tr>';
+      const message = hasActiveFilters() ? '該当なし' : '記録待ち';
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-gray-500 py-4">${message}</td></tr>`;
       return;
     }
 
     tbody.innerHTML = rows.map(row => {
       const latest = row.latest || {};
+      const averages = row.averages || {};
       const precision = latest.quotePrecision ?? null;
       return `
         <tr class="border-b border-gray-800/60">
@@ -128,39 +171,54 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="is-num text-right font-mono text-red-300" data-label="買値">${fmtJpyPrice(latest.buyPrice, precision)}</td>
           <td class="is-num text-right font-mono text-green-300" data-label="売値">${fmtJpyPrice(latest.sellPrice, precision)}</td>
           <td class="is-num text-right" data-label="現在">${latestSpreadCell(row)}</td>
-          <td class="is-num text-right" data-label="24h平均">${spreadCell(row.averages['1d'], precision)}</td>
-          <td class="is-num text-right" data-label="7日平均">${spreadCell(row.averages['7d'], precision)}</td>
-          <td class="is-num text-right" data-label="30日平均">${spreadCell(row.averages['30d'], precision)}</td>
+          <td class="is-num text-right" data-label="24h平均">${spreadCell(averages['1d'], precision)}</td>
+          <td class="is-num text-right" data-label="7日平均">${spreadCell(averages['7d'], precision)}</td>
+          <td class="is-num text-right" data-label="30日平均">${spreadCell(averages['30d'], precision)}</td>
         </tr>
       `;
     }).join('');
   }
 
-  function render(data) {
-    const meta = data.meta || {};
-    allRows = data.rows || [];
-    const rowsWith24h = allRows.filter(row => row.averages && row.averages['1d']);
+  function renderSummary(rows) {
+    const rowsWith24h = rows.filter(row => row.averages && row.averages['1d']);
     const avg24hPct = rowsWith24h.length > 0
       ? rowsWith24h.reduce((sum, row) => sum + row.averages['1d'].spreadPct, 0) / rowsWith24h.length
       : null;
     const widest = rowsWith24h.slice().sort((a, b) => b.averages['1d'].spreadPct - a.averages['1d'].spreadPct)[0];
-    const status = meta.refreshStatus || {};
-    const windows = meta.windows || {};
-    const range30d = windows['30d'] && windows['30d'].earliestSpreadDateJst && windows['30d'].latestSpreadDateJst
-      ? `${windows['30d'].earliestSpreadDateJst} - ${windows['30d'].latestSpreadDateJst}`
-      : '最新収集値';
+    const status = latestMeta.refreshStatus || {};
 
     setText('avg-spread-24h', fmtPct(avg24hPct));
     setText('widest-spread', widest ? `${widest.instrumentLabel} ${fmtPct(widest.averages['1d'].spreadPct)}` : '-');
-    setText('spread-count', allRows.length);
+    setText('spread-count', hasActiveFilters() ? `${rows.length}/${allRows.length}` : allRows.length);
     setText('spread-status', status.running ? '更新中' : (allRows.length > 0 ? '集計済み' : '記録待ち'));
-    setText('spread-updated-at', fmtDateTime(meta.latestCapturedAt || meta.generatedAt));
+    setText('spread-updated-at', fmtDateTime(latestMeta.latestCapturedAt || latestMeta.generatedAt));
+  }
+
+  function renderMeta(rows) {
+    const windows = latestMeta.windows || {};
+    const range30d = windows['30d'] && windows['30d'].earliestSpreadDateJst && windows['30d'].latestSpreadDateJst
+      ? `${windows['30d'].earliestSpreadDateJst} - ${windows['30d'].latestSpreadDateJst}`
+      : '最新収集値';
+    const visibleCountLabel = hasActiveFilters() ? `${rows.length}/${allRows.length}件` : `${allRows.length}件`;
+
     setText(
       'spread-meta',
-      `${Object.keys(WINDOW_LABELS).map(key => `${WINDOW_LABELS[key]} ${sourceLabel(windows[key])}`).join(' | ')} | ${range30d} | ${allRows.length}件`
+      `${Object.keys(WINDOW_LABELS).map(key => `${WINDOW_LABELS[key]} ${sourceLabel(windows[key])}`).join(' | ')} | ${range30d} | ${visibleCountLabel}`
     );
+  }
 
-    renderRows();
+  function renderView() {
+    const rows = getFilteredRows();
+    renderSummary(rows);
+    renderMeta(rows);
+    renderRows(rows);
+  }
+
+  function render(data) {
+    latestMeta = data.meta || {};
+    allRows = data.rows || [];
+    populateExchangeFilter();
+    renderView();
   }
 
   async function loadSpread() {
@@ -181,7 +239,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (filterInput) {
     filterInput.addEventListener('input', () => {
       filterText = filterInput.value.trim();
-      renderRows();
+      renderView();
+    });
+  }
+
+  const exchangeFilter = $('spread-exchange-filter');
+  if (exchangeFilter) {
+    exchangeFilter.addEventListener('change', () => {
+      selectedExchange = exchangeFilter.value || ALL_VALUE;
+      renderView();
     });
   }
 
