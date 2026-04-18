@@ -217,7 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setText('narrowest-spread', narrowest ? spreadHighlightLabel(narrowest.row) : '-');
     setText('widest-spread', widest ? spreadHighlightLabel(widest.row) : '-');
-    setText('spread-count', hasActiveFilters() ? `${rows.length}/${allRows.length}` : allRows.length);
     setText('spread-status', status.running ? '更新中' : (allRows.length > 0 ? '集計済み' : '記録待ち'));
     setText('spread-updated-at', fmtDateTime(latestMeta.latestCapturedAt || latestMeta.generatedAt));
   }

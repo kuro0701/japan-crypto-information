@@ -31,10 +31,9 @@
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4"><div><h2 class="panel-title">販売所スプレッド</h2><p id="spread-meta" class="text-xs text-gray-500 mt-1">スプレッドスナップショットを集計中</p></div><span class="panel-kicker">Sales Spread</span></div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         <div class="metric-row metric-row--hero bid"><span class="metric-label">最小スプレッド</span><span id="narrowest-spread" class="metric-value metric-value--market text-green-300">-</span></div>
         <div class="metric-row metric-row--hero ask"><span class="metric-label">最大スプレッド</span><span id="widest-spread" class="metric-value metric-value--market text-red-300">-</span></div>
-        <div class="metric-row metric-row--hero"><span class="metric-label">記録銘柄</span><span id="spread-count" class="metric-value metric-value--hero">-</span></div>
       </div>
       <div class="filter-grid" aria-label="販売所スプレッドフィルター">
         <label class="filter-control" for="spread-filter"><span>銘柄検索</span><input id="spread-filter" class="field font-mono" type="search" placeholder="BTC"></label>
@@ -56,6 +55,6 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | 販売所価格はJPY建て、スプレッド率は仲値比です</footer>
 
   <script src="js/formatter.js?v=sales-spread-1"></script>
-  <script src="js/sales-spread.js?v=sales-spread-5"></script>
+  <script src="js/sales-spread.js?v=sales-spread-6"></script>
 </body>
 </html>
