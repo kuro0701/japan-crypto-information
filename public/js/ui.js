@@ -91,7 +91,7 @@ const UI = {
 
     const tbody = document.getElementById('fill-tbody');
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" headers="fill-col-side fill-col-idx fill-col-price fill-quantity-header fill-col-subtotal fill-col-cum-base fill-col-cum-quote fill-col-impact fill-col-orders" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>';
     }
   },
 
@@ -100,7 +100,7 @@ const UI = {
     if (!tbody) return;
 
     if (!thresholds || !thresholds.targets) {
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-gray-500 py-4">板データ待機中</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="3" headers="threshold-col-impact threshold-col-buy threshold-col-sell" class="text-center text-gray-500 py-4">板データ待機中</td></tr>';
       return;
     }
 
@@ -116,9 +116,9 @@ const UI = {
 
     tbody.innerHTML = thresholds.targets.map((pct, i) => `
       <tr class="border-b border-gray-800">
-        <td class="is-num text-right font-mono text-gray-300" data-label="変動">${pct}%</td>
-        <td class="is-num text-right" data-label="買い">${cell(thresholds.buy[i])}</td>
-        <td class="is-num text-right" data-label="売り">${cell(thresholds.sell[i])}</td>
+        <td headers="threshold-col-impact" class="is-num text-right font-mono text-gray-300" data-label="変動">${pct}%</td>
+        <td headers="threshold-col-buy" class="is-num text-right" data-label="買い">${cell(thresholds.buy[i])}</td>
+        <td headers="threshold-col-sell" class="is-num text-right" data-label="売り">${cell(thresholds.sell[i])}</td>
       </tr>
     `).join('');
   },
@@ -246,12 +246,26 @@ const UI = {
     setTimeout(() => element.classList.remove(className), 600);
   },
 
+  toggleChangedTableCellFlashes(tbody, previousRows) {
+    Array.from(tbody.querySelectorAll('tr')).forEach((row, idx) => {
+      const previousRow = previousRows.get(idx + 1);
+      if (!previousRow) return;
+      const nextCells = row.querySelectorAll('td[data-value]');
+      const prevCells = previousRow.querySelectorAll('td[data-value]');
+      nextCells.forEach((cell, cellIndex) => {
+        const previousValue = Number(prevCells[cellIndex]?.dataset.value);
+        const nextValue = Number(cell.dataset.value);
+        this.applyFlashClass(cell, previousValue, nextValue);
+      });
+    });
+  },
+
   updateFillTable(fills, side = 'buy') {
     const tbody = document.getElementById('fill-tbody');
     if (!tbody || !fills) return;
 
     if (fills.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" headers="fill-col-side fill-col-idx fill-col-price fill-quantity-header fill-col-subtotal fill-col-cum-base fill-col-cum-quote fill-col-impact fill-col-orders" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>';
       return;
     }
 
@@ -277,17 +291,7 @@ const UI = {
       </tr>
     `).join('');
 
-    Array.from(tbody.querySelectorAll('tr')).forEach((row, idx) => {
-      const previousRow = previousRows.get(idx + 1);
-      if (!previousRow) return;
-      const nextCells = row.querySelectorAll('td[data-value]');
-      const prevCells = previousRow.querySelectorAll('td[data-value]');
-      nextCells.forEach((cell, cellIndex) => {
-        const previousValue = Number(prevCells[cellIndex]?.dataset.value);
-        const nextValue = Number(cell.dataset.value);
-        this.applyFlashClass(cell, previousValue, nextValue);
-      });
-    });
+    this.toggleChangedTableCellFlashes(tbody, previousRows);
   },
 
   setConnectionStatus(status) {
