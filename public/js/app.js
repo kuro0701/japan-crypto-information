@@ -153,8 +153,10 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('[data-side]').forEach(b => {
         b.classList.remove('is-active');
+        b.setAttribute('aria-pressed', 'false');
       });
       btn.classList.add('is-active');
+      btn.setAttribute('aria-pressed', 'true');
       sideSelect.value = btn.dataset.side;
     });
   });
@@ -268,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ws.on('simulation', (data) => {
     setSimulationForChart(data);
     UI.updateSimulationResults(data);
-    UI.updateFillTable(data.fills || []);
+    UI.updateFillTable(data.fills || [], data.side);
     if (latestDepthData) {
       updateDepthChart(latestDepthData, latestMidPrice);
     }

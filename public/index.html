@@ -70,8 +70,8 @@
 
         <input type="hidden" id="side-select" value="buy">
         <div class="grid grid-cols-2 gap-2 mt-3 mb-3">
-          <button data-side="buy" class="btn btn-toggle is-active text-sm">▲ 買い (BUY)</button>
-          <button data-side="sell" class="btn btn-toggle text-sm">▼ 売り (SELL)</button>
+          <button data-side="buy" class="btn btn-toggle is-active text-sm" type="button" aria-pressed="true">▲ 買い (BUY)</button>
+          <button data-side="sell" class="btn btn-toggle text-sm" type="button" aria-pressed="false">▼ 売り (SELL)</button>
         </div>
 
         <div class="grid grid-cols-2 gap-2 mb-3">
@@ -97,8 +97,8 @@
         </div>
 
         <div class="grid grid-cols-2 gap-2">
-          <button id="simulate-btn" class="btn btn-primary col-span-2 py-2.5 rounded-lg font-bold text-sm">シミュレーション実行</button>
-          <button id="clear-btn" class="btn btn-ghost py-2.5 rounded-lg text-sm">クリア</button>
+          <button id="simulate-btn" class="btn btn-primary col-span-2 py-2.5 rounded-lg font-bold text-sm" type="button">シミュレーション実行</button>
+          <button id="clear-btn" class="btn btn-ghost justify-self-start px-3 py-2.5 rounded-lg text-sm" type="button">クリア</button>
         </div>
 
         <div class="mt-3 flex items-center gap-2">
@@ -108,16 +108,14 @@
 
         <div class="mt-3 grid grid-cols-1 gap-2 text-xs">
           <div class="callout callout--warn">
-            <div>
-              <div class="callout-title">注文ガード</div>
-              <div class="callout-body">5%以上で自動キャンセル</div>
-            </div>
+            <span class="callout-icon" aria-hidden="true">!</span>
+            <div class="callout-title">注文ガード</div>
+            <div class="callout-body">5%以上で自動キャンセル</div>
           </div>
           <div class="callout callout--danger">
-            <div>
-              <div class="callout-title">サーキット</div>
-              <div class="callout-body">上下50%で停止想定</div>
-            </div>
+            <span class="callout-icon" aria-hidden="true">▲</span>
+            <div class="callout-title">サーキット</div>
+            <div class="callout-body">上下50%で停止想定</div>
           </div>
         </div>
       </section>
@@ -151,11 +149,11 @@
         <p class="text-xs text-gray-600 mb-3 mt-1">表示板でその変動率以内に収まる最大成行サイズ</p>
         <div class="overflow-auto scrollbar-thin">
           <table class="data-table text-xs">
-            <thead>
+            <thead class="sticky top-0">
               <tr>
-                <th id="threshold-col-impact" class="px-2 py-2 text-right">変動</th>
-                <th id="threshold-col-buy" class="px-2 py-2 text-right text-red-300">買い</th>
-                <th id="threshold-col-sell" class="px-2 py-2 text-right text-green-300">売り</th>
+                <th id="threshold-col-impact" class="is-num text-right">変動</th>
+                <th id="threshold-col-buy" class="is-num text-right text-red-300">買い</th>
+                <th id="threshold-col-sell" class="is-num text-right text-green-300">売り</th>
               </tr>
             </thead>
             <tbody id="threshold-tbody">
@@ -196,18 +194,19 @@
           <table class="data-table text-xs">
             <thead class="sticky top-0 bg-gray-900">
               <tr>
-                <th id="fill-col-idx" class="px-3 py-2 text-right w-12">#</th>
-                <th id="fill-col-price" class="px-3 py-2 text-right">約定価格</th>
-                <th id="fill-quantity-header" class="px-3 py-2 text-right">数量 (BTC)</th>
-                <th id="fill-col-subtotal" class="px-3 py-2 text-right">小計 (JPY)</th>
-                <th id="fill-col-cum-base" class="px-3 py-2 text-right">累計数量</th>
-                <th id="fill-col-cum-quote" class="px-3 py-2 text-right">累計金額</th>
-                <th id="fill-col-impact" class="px-3 py-2 text-right">累計Impact</th>
-                <th id="fill-col-orders" class="px-3 py-2 text-right">注文数</th>
+                <th id="fill-col-idx" class="is-num text-right w-12">#</th>
+                <th id="fill-col-side" class="text-left">方向</th>
+                <th id="fill-col-price" class="is-num text-right">約定価格</th>
+                <th id="fill-quantity-header" class="is-num text-right">数量 (BTC)</th>
+                <th id="fill-col-subtotal" class="is-num text-right">小計 (JPY)</th>
+                <th id="fill-col-cum-base" class="is-num text-right">累計数量</th>
+                <th id="fill-col-cum-quote" class="is-num text-right">累計金額</th>
+                <th id="fill-col-impact" class="is-num text-right">累計Impact</th>
+                <th id="fill-col-orders" class="is-num text-right">注文数</th>
               </tr>
             </thead>
             <tbody id="fill-tbody">
-              <tr><td colspan="8" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>
+              <tr><td colspan="9" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>
             </tbody>
           </table>
         </div>

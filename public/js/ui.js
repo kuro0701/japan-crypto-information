@@ -91,7 +91,7 @@ const UI = {
 
     const tbody = document.getElementById('fill-tbody');
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>';
     }
   },
 
@@ -115,10 +115,10 @@ const UI = {
     };
 
     tbody.innerHTML = thresholds.targets.map((pct, i) => `
-      <tr class="border-b border-gray-800 hover:bg-gray-800/40">
-        <td class="px-2 py-2 text-right font-mono text-gray-300">${pct}%</td>
-        <td class="px-2 py-2 text-right">${cell(thresholds.buy[i])}</td>
-        <td class="px-2 py-2 text-right">${cell(thresholds.sell[i])}</td>
+      <tr class="border-b border-gray-800">
+        <td class="is-num text-right font-mono text-gray-300">${pct}%</td>
+        <td class="is-num text-right">${cell(thresholds.buy[i])}</td>
+        <td class="is-num text-right">${cell(thresholds.sell[i])}</td>
       </tr>
     `).join('');
   },
@@ -246,27 +246,34 @@ const UI = {
     setTimeout(() => element.classList.remove(className), 600);
   },
 
-  updateFillTable(fills) {
+  updateFillTable(fills, side = 'buy') {
     const tbody = document.getElementById('fill-tbody');
     if (!tbody || !fills) return;
 
     if (fills.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>';
       return;
     }
 
     const previousRows = new Map(Array.from(tbody.querySelectorAll('tr')).map((row, idx) => [idx + 1, row]));
+    const isBuy = side === 'buy';
+    const sideMark = isBuy ? '▲' : '▼';
+    const sideLabel = isBuy ? '買い' : '売り';
+    const sideClass = isBuy ? 'text-red-300' : 'text-green-300';
 
     tbody.innerHTML = fills.map((f, i) => `
       <tr class="border-b border-gray-800 ${f.fullyConsumed ? '' : 'bg-yellow-900/10'}">
-        <td headers="fill-col-idx" class="px-3 py-1.5 text-right text-gray-400">${i + 1}</td>
-        <td headers="fill-col-price" class="px-3 py-1.5 text-right font-mono" data-value="${f.price}">${Fmt.jpy(f.price)}</td>
-        <td headers="fill-quantity-header" class="px-3 py-1.5 text-right font-mono" data-value="${f.quantity}">${this.formatBase(f.quantity, true)}</td>
-        <td headers="fill-col-subtotal" class="px-3 py-1.5 text-right font-mono" data-value="${f.subtotalJPY}">${Fmt.jpy(f.subtotalJPY)}</td>
-        <td headers="fill-col-cum-base" class="px-3 py-1.5 text-right font-mono" data-value="${f.cumulativeBTC}">${this.formatBase(f.cumulativeBTC, true)}</td>
-        <td headers="fill-col-cum-quote" class="px-3 py-1.5 text-right font-mono" data-value="${f.cumulativeJPY}">${Fmt.jpy(f.cumulativeJPY)}</td>
-        <td headers="fill-col-impact" class="px-3 py-1.5 text-right font-mono" data-value="${f.cumulativeImpactPct}">${Fmt.pct(f.cumulativeImpactPct)}</td>
-        <td headers="fill-col-orders" class="px-3 py-1.5 text-right font-mono" data-value="${f.orders}">${Fmt.num(f.orders)}</td>
+        <td headers="fill-col-idx" class="is-num text-right text-gray-400">${i + 1}</td>
+        <td headers="fill-col-side" class="${sideClass}">
+          <span class="fill-side"><span class="fill-side__mark" aria-hidden="true">${sideMark}</span>${sideLabel}</span>
+        </td>
+        <td headers="fill-col-price" class="is-num text-right font-mono" data-value="${f.price}">${Fmt.jpy(f.price)}</td>
+        <td headers="fill-quantity-header" class="is-num text-right font-mono" data-value="${f.quantity}">${this.formatBase(f.quantity, true)}</td>
+        <td headers="fill-col-subtotal" class="is-num text-right font-mono" data-value="${f.subtotalJPY}">${Fmt.jpy(f.subtotalJPY)}</td>
+        <td headers="fill-col-cum-base" class="is-num text-right font-mono" data-value="${f.cumulativeBTC}">${this.formatBase(f.cumulativeBTC, true)}</td>
+        <td headers="fill-col-cum-quote" class="is-num text-right font-mono" data-value="${f.cumulativeJPY}">${Fmt.jpy(f.cumulativeJPY)}</td>
+        <td headers="fill-col-impact" class="is-num text-right font-mono" data-value="${f.cumulativeImpactPct}">${Fmt.pct(f.cumulativeImpactPct)}</td>
+        <td headers="fill-col-orders" class="is-num text-right font-mono" data-value="${f.orders}">${Fmt.num(f.orders)}</td>
       </tr>
     `).join('');
 
