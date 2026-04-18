@@ -307,8 +307,39 @@ const UI = {
     if (liveLabel) liveLabel.textContent = `接続状態: ${s.label}`;
   },
 
+  isFlashTextTarget(id, element) {
+    const flashIds = new Set([
+      'spread-pct',
+      'volume-24h-base',
+      'volume-24h-quote',
+      'ask-volume',
+      'bid-volume',
+      'ask-depth-jpy',
+      'bid-depth-jpy',
+      'ask-levels',
+      'bid-levels',
+    ]);
+    return flashIds.has(id) || element.classList.contains('metric-value');
+  },
+
+  numericText(value) {
+    const text = String(value ?? '').trim();
+    if (!text || text === '-') return NaN;
+    const normalized = text.replace(/,/g, '').replace(/[^\d.+-]/g, '');
+    if (!/\d/.test(normalized)) return NaN;
+    return Number(normalized);
+  },
+
   setText(id, value) {
     const el = document.getElementById(id);
-    if (el) el.textContent = value ?? '-';
+    if (!el) return;
+
+    const previousValue = this.isFlashTextTarget(id, el) ? this.numericText(el.textContent) : NaN;
+    const nextText = value ?? '-';
+    el.textContent = nextText;
+
+    if (this.isFlashTextTarget(id, el)) {
+      this.applyFlashClass(el, previousValue, this.numericText(nextText));
+    }
   },
 };

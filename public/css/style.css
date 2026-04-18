@@ -119,6 +119,10 @@ body.terminal-body {
 .hover\:bg-blue-500:hover { background: linear-gradient(180deg, #62ead8, #18a79a) !important; }
 .rounded-lg, .rounded { border-radius: var(--r) !important; }
 
+:where(a[href], button, input, select, textarea, .btn, .btn-tab, .tab, .window-tab, .nav-link, .field) {
+  transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease;
+}
+
 .topbar {
   position: sticky;
   top: 0;
@@ -617,7 +621,27 @@ th {
   font-family: var(--font-mono);
 }
 
-.data-table tbody tr { transition: background-color 120ms ease; }
+.data-table tbody tr {
+  position: relative;
+  transition: background-color 140ms ease;
+}
+.data-table tbody tr::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-4px);
+  transition: opacity 140ms ease, transform 120ms ease;
+}
+.data-table tbody tr:hover::before {
+  opacity: 1;
+  transform: translateX(0);
+}
 .data-table tbody tr:hover { background: var(--surface-3) !important; }
 
 .fill-side {
