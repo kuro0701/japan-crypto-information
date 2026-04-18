@@ -147,6 +147,30 @@ document.addEventListener('DOMContentLoaded', () => {
     return a.exchangeId.localeCompare(b.exchangeId);
   }
 
+  function getSummarySpread(row) {
+    const latest = row.latest || null;
+    if (latest && Number.isFinite(Number(latest.spreadPct))) {
+      return {
+        spreadPct: Number(latest.spreadPct),
+      };
+    }
+
+    const average24h = row.averages && row.averages['1d'];
+    if (average24h && Number.isFinite(Number(average24h.spreadPct))) {
+      return {
+        spreadPct: Number(average24h.spreadPct),
+      };
+    }
+
+    return null;
+  }
+
+  function spreadHighlightLabel(row) {
+    const summary = getSummarySpread(row);
+    if (!summary) return '-';
+    return `${row.instrumentLabel} / ${row.exchangeLabel} ${fmtPct(summary.spreadPct)}`;
+  }
+
   function renderRows(rows) {
     const tbody = $('sales-spread-tbody');
     if (!tbody) return;
@@ -180,15 +204,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderSummary(rows) {
-    const rowsWith24h = rows.filter(row => row.averages && row.averages['1d']);
-    const avg24hPct = rowsWith24h.length > 0
-      ? rowsWith24h.reduce((sum, row) => sum + row.averages['1d'].spreadPct, 0) / rowsWith24h.length
-      : null;
-    const widest = rowsWith24h.slice().sort((a, b) => b.averages['1d'].spreadPct - a.averages['1d'].spreadPct)[0];
+    const rowsWithSpread = rows
+      .map(row => ({ row, summary: getSummarySpread(row) }))
+      .filter(item => item.summary);
+    const narrowest = rowsWithSpread
+      .slice()
+      .sort((a, b) => a.summary.spreadPct - b.summary.spreadPct)[0];
+    const widest = rowsWithSpread
+      .slice()
+      .sort((a, b) => b.summary.spreadPct - a.summary.spreadPct)[0];
     const status = latestMeta.refreshStatus || {};
 
-    setText('avg-spread-24h', fmtPct(avg24hPct));
-    setText('widest-spread', widest ? `${widest.instrumentLabel} ${fmtPct(widest.averages['1d'].spreadPct)}` : '-');
+    setText('narrowest-spread', narrowest ? spreadHighlightLabel(narrowest.row) : '-');
+    setText('widest-spread', widest ? spreadHighlightLabel(widest.row) : '-');
     setText('spread-count', hasActiveFilters() ? `${rows.length}/${allRows.length}` : allRows.length);
     setText('spread-status', status.running ? '更新中' : (allRows.length > 0 ? '集計済み' : '記録待ち'));
     setText('spread-updated-at', fmtDateTime(latestMeta.latestCapturedAt || latestMeta.generatedAt));

@@ -380,6 +380,7 @@ body.terminal-body {
 .metric-label { font-size: var(--fs-xs); color: var(--text-3); }
 .metric-value { font-family: var(--font-mono); font-size: var(--fs-md); font-weight: 500; color: var(--text-1); }
 .metric-value--hero { font-size: var(--fs-xl); font-weight: 700; }
+.metric-value--market { font-size: var(--fs-sm); font-weight: 700; white-space: normal; overflow-wrap: anywhere; }
 
 .metric-row {
   margin: 0;
