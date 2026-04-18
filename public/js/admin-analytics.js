@@ -127,12 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = [...days].reverse().map(day => `
       <tr class="border-b border-gray-800/60">
-        <td class="px-3 py-3 font-mono text-gray-200">${escapeHtml(day.date)}</td>
-        <td class="px-3 py-3 text-right font-mono text-yellow-300">${num(day.pageViews)}</td>
-        <td class="px-3 py-3 text-right font-mono text-green-300">${num(day.uniqueVisitors)}</td>
-        <td class="px-3 py-3 text-right font-mono text-gray-300">${num(day.ws && day.ws.connections)}</td>
-        <td class="px-3 py-3 text-right font-mono text-red-300">${num(day.ws && day.ws.peakConcurrent)}</td>
-        <td class="px-3 py-3 text-right font-mono text-gray-300">${fmtTime(day.lastAccessAt)}</td>
+        <td class="font-mono text-gray-200">${escapeHtml(day.date)}</td>
+        <td class="is-num text-right font-mono text-yellow-300">${num(day.pageViews)}</td>
+        <td class="is-num text-right font-mono text-green-300">${num(day.uniqueVisitors)}</td>
+        <td class="is-num text-right font-mono text-gray-300">${num(day.ws && day.ws.connections)}</td>
+        <td class="is-num text-right font-mono text-red-300">${num(day.ws && day.ws.peakConcurrent)}</td>
+        <td class="is-num text-right font-mono text-gray-300">${fmtTime(day.lastAccessAt)}</td>
       </tr>
     `).join('');
   }
@@ -206,7 +206,9 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', () => {
       selectedWindow = button.dataset.window || '7d';
       document.querySelectorAll('[data-window]').forEach(item => {
-        item.classList.toggle('active', item === button);
+        const isActive = item === button;
+        item.classList.toggle('active', isActive);
+        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
       loadAnalytics();
     });

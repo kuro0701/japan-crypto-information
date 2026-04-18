@@ -57,9 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = exchanges.map((exchange, index) => `
       <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
-        <td class="px-3 py-3 font-bold text-gray-200">${escapeHtml(exchange.exchangeLabel)}</td>
-        <td class="px-3 py-3 text-right font-mono text-gray-300">${fmtJpy(exchange.quoteVolume)}</td>
-        <td class="px-3 py-3 text-right font-mono text-yellow-300">
+        <td class="font-bold text-gray-200">${escapeHtml(exchange.exchangeLabel)}</td>
+        <td class="is-num text-right font-mono text-gray-300">${fmtJpy(exchange.quoteVolume)}</td>
+        <td class="is-num text-right font-mono text-yellow-300">
           ${fmtPct(exchange.sharePct)}
           ${shareBar(exchange.sharePct)}
         </td>
@@ -78,17 +78,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = rows.map((row, index) => `
       <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
-        <td class="px-3 py-3 font-bold text-gray-200">${escapeHtml(row.instrumentLabel)}</td>
-        <td class="px-3 py-3 text-gray-300">${escapeHtml(row.exchangeLabel)}</td>
-        <td class="px-3 py-3 text-right font-mono text-gray-300">
+        <td class="font-bold text-gray-200">${escapeHtml(row.instrumentLabel)}</td>
+        <td class="text-gray-300">${escapeHtml(row.exchangeLabel)}</td>
+        <td class="is-num text-right font-mono text-gray-300">
           ${fmtJpy(row.quoteVolume)}
           ${row.quoteVolumeEstimated ? '<span class="text-[10px] text-gray-500 ml-1">推定</span>' : ''}
         </td>
-        <td class="px-3 py-3 text-right font-mono text-green-300">
+        <td class="is-num text-right font-mono text-green-300">
           ${fmtPct(row.instrumentSharePct)}
           ${shareBar(row.instrumentSharePct)}
         </td>
-        <td class="px-3 py-3 text-right font-mono text-yellow-300">${fmtPct(row.totalSharePct)}</td>
+        <td class="is-num text-right font-mono text-yellow-300">${fmtPct(row.totalSharePct)}</td>
       </tr>
     `).join('');
   }
@@ -138,7 +138,9 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', () => {
       selectedWindow = button.dataset.window || '1d';
       document.querySelectorAll('[data-window]').forEach(item => {
-        item.classList.toggle('active', item === button);
+        const isActive = item === button;
+        item.classList.toggle('active', isActive);
+        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
       loadShare();
     });

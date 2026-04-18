@@ -656,7 +656,22 @@ th {
 .analytics-bar-value { color: var(--warn); font-family: var(--font-mono); font-size: var(--fs-sm); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .analytics-bar-track { height: 10px; overflow: hidden; border: 1px solid var(--line-weak); border-radius: 8px; background: var(--surface-2); }
 .analytics-bar-fill { display: block; height: 100%; min-width: 2px; border-radius: 8px; background: linear-gradient(90deg, var(--accent), var(--bid)); }
-.data-table__row--rank-1 { border-left: 3px solid var(--accent); }
+.share-bar {
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+.share-bar span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--bid));
+}
+.data-table__row--rank-1 > :first-child {
+  border-left: 3px solid var(--accent);
+}
 
 .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
 .scrollbar-thin::-webkit-scrollbar-track { background: var(--surface-1); border-radius: 3px; }
