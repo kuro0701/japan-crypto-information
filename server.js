@@ -38,15 +38,18 @@ const {
 
 const app = express();
 app.set('trust proxy', 1);
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.join(__dirname, 'data');
 
 const volumeShareStore = new VolumeShareStore({
-  dataFilePath: path.join(__dirname, 'data', 'volume-share-history.json'),
+  dataFilePath: path.join(DATA_DIR, 'volume-share-history.json'),
 });
 const salesSpreadStore = new SalesSpreadStore({
-  dataFilePath: path.join(__dirname, 'data', 'sales-spread-history.json'),
+  dataFilePath: path.join(DATA_DIR, 'sales-spread-history.json'),
 });
 const analyticsStore = new AnalyticsStore({
-  dataFilePath: path.join(__dirname, 'data', 'analytics.json'),
+  dataFilePath: path.join(DATA_DIR, 'analytics.json'),
   salt: process.env.ANALYTICS_SALT,
 });
 const analyticsAdminToken = process.env.ANALYTICS_ADMIN_TOKEN || '';
@@ -285,7 +288,9 @@ wireExchangeClient(BINANCE_JAPAN_EXCHANGE_ID, binanceJapanClient, 'Binance Japan
 
 const TICKER_FETCH_DELAY_MS = 120;
 const VOLUME_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
+const STARTUP_VOLUME_REFRESH_DELAY_MS = 8000;
 const SALES_SPREAD_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
+const STARTUP_SALES_SPREAD_REFRESH_DELAY_MS = 5000;
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 let volumeRefreshPromise = null;
 let salesSpreadRefreshPromise = null;
@@ -468,57 +473,89 @@ async function refreshSalesSpreadRecords(source = 'scheduled') {
   return salesSpreadRefreshPromise;
 }
 
-async function captureDailyVolumeSnapshot(reason = 'jst-midnight') {
-  const result = await refreshAllVolumeTickers(reason);
-  if (result.records.length === 0) return null;
+function captureVolumeSnapshotFromResult(result, reason, options = {}) {
+  if (!result || result.records.length === 0) return null;
+  const capturedAt = new Date(result.capturedAt);
+  const volumeDateJst = options.volumeDateJst || VolumeShareStore.getJstDate(capturedAt);
+
+  if (options.skipIfExists && volumeShareStore.hasDailySnapshot(volumeDateJst)) {
+    return null;
+  }
 
   return volumeShareStore.captureDaily(result.records, {
     capturedAt: result.capturedAt,
     reason,
+    volumeDateJst,
+  });
+}
+
+async function captureDailyVolumeSnapshot(reason = 'jst-midnight') {
+  const result = await refreshAllVolumeTickers(reason);
+
+  return captureVolumeSnapshotFromResult(result, reason, {
     volumeDateJst: VolumeShareStore.getPreviousJstDate(new Date(result.capturedAt)),
   });
 }
 
 async function captureDailySalesSpreadSnapshot(reason = 'jst-midnight') {
   const result = await refreshSalesSpreadRecords(reason);
-  if (result.records.length === 0) return null;
 
-  return salesSpreadStore.captureDaily(result.records, {
-    capturedAt: result.capturedAt,
-    reason,
+  return captureSalesSpreadSnapshotFromResult(result, reason, {
     spreadDateJst: SalesSpreadStore.getPreviousJstDate(new Date(result.capturedAt)),
   });
 }
 
-function maybeCaptureEarlyMorningCatchup(result) {
-  if (!result || result.records.length === 0) return;
+function captureSalesSpreadSnapshotFromResult(result, reason, options = {}) {
+  if (!result || result.records.length === 0) return null;
   const capturedAt = new Date(result.capturedAt);
-  const parts = VolumeShareStore.getJstParts(capturedAt);
-  if (parts.hour > 1) return;
+  const spreadDateJst = options.spreadDateJst || SalesSpreadStore.getJstDate(capturedAt);
 
-  const volumeDateJst = VolumeShareStore.getPreviousJstDate(capturedAt);
-  if (volumeShareStore.hasDailySnapshot(volumeDateJst)) return;
+  if (options.skipIfExists && salesSpreadStore.hasDailySnapshot(spreadDateJst)) {
+    return null;
+  }
 
-  volumeShareStore.captureDaily(result.records, {
+  return salesSpreadStore.captureDaily(result.records, {
     capturedAt: result.capturedAt,
-    reason: 'early-morning-catchup',
-    volumeDateJst,
+    reason,
+    spreadDateJst,
   });
 }
 
-function maybeCaptureEarlyMorningSalesSpreadCatchup(result) {
+function captureRollingVolumeSnapshot(result, reason = 'refresh-snapshot') {
+  if (!result || result.records.length === 0) return;
+  const capturedAt = new Date(result.capturedAt);
+  const parts = VolumeShareStore.getJstParts(capturedAt);
+  // Before 02:00 JST, keep treating the first wake-up as a catch-up for yesterday.
+  const isEarlyMorning = parts.hour <= 1;
+  const volumeDateJst = isEarlyMorning
+    ? VolumeShareStore.getPreviousJstDate(capturedAt)
+    : parts.date;
+  const existingSnapshot = isEarlyMorning ? volumeShareStore.getDailySnapshot(volumeDateJst) : null;
+  const hasClosingSnapshot = existingSnapshot
+    && ['jst-midnight', 'early-morning-catchup'].includes(existingSnapshot.reason);
+
+  return captureVolumeSnapshotFromResult(result, isEarlyMorning ? 'early-morning-catchup' : reason, {
+    volumeDateJst,
+    skipIfExists: hasClosingSnapshot,
+  });
+}
+
+function captureRollingSalesSpreadSnapshot(result, reason = 'refresh-snapshot') {
   if (!result || result.records.length === 0) return;
   const capturedAt = new Date(result.capturedAt);
   const parts = SalesSpreadStore.getJstParts(capturedAt);
-  if (parts.hour > 1) return;
+  // Before 02:00 JST, keep treating the first wake-up as a catch-up for yesterday.
+  const isEarlyMorning = parts.hour <= 1;
+  const spreadDateJst = isEarlyMorning
+    ? SalesSpreadStore.getPreviousJstDate(capturedAt)
+    : parts.date;
+  const existingSnapshot = isEarlyMorning ? salesSpreadStore.getDailySnapshot(spreadDateJst) : null;
+  const hasClosingSnapshot = existingSnapshot
+    && ['jst-midnight', 'early-morning-catchup'].includes(existingSnapshot.reason);
 
-  const spreadDateJst = SalesSpreadStore.getPreviousJstDate(capturedAt);
-  if (salesSpreadStore.hasDailySnapshot(spreadDateJst)) return;
-
-  salesSpreadStore.captureDaily(result.records, {
-    capturedAt: result.capturedAt,
-    reason: 'early-morning-catchup',
+  return captureSalesSpreadSnapshotFromResult(result, isEarlyMorning ? 'early-morning-catchup' : reason, {
     spreadDateJst,
+    skipIfExists: hasClosingSnapshot,
   });
 }
 
@@ -550,16 +587,16 @@ function scheduleVolumeShareJobs() {
   setTimeout(async () => {
     try {
       const result = await refreshAllVolumeTickers('startup');
-      maybeCaptureEarlyMorningCatchup(result);
+      captureRollingVolumeSnapshot(result, 'startup-snapshot');
     } catch (err) {
       console.warn('[Volume Share] Startup refresh failed:', err.message);
     }
-  }, 8000);
+  }, STARTUP_VOLUME_REFRESH_DELAY_MS);
 
   setInterval(async () => {
     try {
       const result = await refreshAllVolumeTickers('hourly');
-      maybeCaptureEarlyMorningCatchup(result);
+      captureRollingVolumeSnapshot(result, 'hourly-snapshot');
     } catch (err) {
       console.warn('[Volume Share] Hourly refresh failed:', err.message);
     }
@@ -572,16 +609,16 @@ function scheduleSalesSpreadJobs() {
   setTimeout(async () => {
     try {
       const result = await refreshSalesSpreadRecords('startup');
-      maybeCaptureEarlyMorningSalesSpreadCatchup(result);
+      captureRollingSalesSpreadSnapshot(result, 'startup-snapshot');
     } catch (err) {
       console.warn('[Sales Spread] Startup refresh failed:', err.message);
     }
-  }, 5000);
+  }, STARTUP_SALES_SPREAD_REFRESH_DELAY_MS);
 
   setInterval(async () => {
     try {
       const result = await refreshSalesSpreadRecords('hourly');
-      maybeCaptureEarlyMorningSalesSpreadCatchup(result);
+      captureRollingSalesSpreadSnapshot(result, 'hourly-snapshot');
     } catch (err) {
       console.warn('[Sales Spread] Hourly refresh failed:', err.message);
     }

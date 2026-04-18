@@ -49,8 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function sourceLabel(meta) {
-    if (meta.source === 'daily-snapshots') return `JST日次記録 ${meta.dailySnapshotCount}件`;
-    if (meta.source === 'daily-snapshot') return 'JST日次記録';
+    if (meta.source === 'daily-snapshots') return `24hスナップショット ${meta.dailySnapshotCount}件`;
+    if (meta.source === 'daily-snapshot') return '24hスナップショット';
     if (meta.source === 'latest-fallback') return '最新24h収集値';
     return '最新24h収集値';
   }

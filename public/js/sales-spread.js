@@ -59,8 +59,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function sourceLabel(windowMeta) {
     if (!windowMeta) return '記録待ち';
-    if (windowMeta.source === 'daily-snapshots') return `JST日次記録 ${windowMeta.sampleSnapshotCount}件`;
-    if (windowMeta.source === 'daily-snapshot') return 'JST日次記録';
+    if (windowMeta.source === 'daily-snapshots') return `スプレッドスナップショット ${windowMeta.sampleSnapshotCount}件`;
+    if (windowMeta.source === 'daily-snapshot') return 'スプレッドスナップショット';
     if (windowMeta.source === 'latest-fallback') return '最新収集値';
     if (windowMeta.source === 'latest') return '最新収集値';
     return '記録待ち';
