@@ -148,7 +148,7 @@
         </div>
         <p class="text-xs text-gray-600 mb-3 mt-1">表示板でその変動率以内に収まる最大成行サイズ</p>
         <div class="overflow-auto scrollbar-thin">
-          <table class="data-table text-xs">
+          <table class="data-table data-table--cards text-xs">
             <thead class="sticky top-0">
               <tr>
                 <th id="threshold-col-impact" class="is-num text-right">変動</th>
@@ -191,11 +191,11 @@
           <span class="panel-kicker">Fills</span>
         </div>
         <div class="overflow-auto max-h-[400px] scrollbar-thin mt-3">
-          <table class="data-table text-xs">
+          <table class="data-table data-table--cards text-xs">
             <thead class="sticky top-0 bg-gray-900">
               <tr>
-                <th id="fill-col-idx" class="is-num text-right w-12">#</th>
                 <th id="fill-col-side" class="text-left">方向</th>
+                <th id="fill-col-idx" class="is-num text-right w-12">#</th>
                 <th id="fill-col-price" class="is-num text-right">約定価格</th>
                 <th id="fill-quantity-header" class="is-num text-right">数量 (BTC)</th>
                 <th id="fill-col-subtotal" class="is-num text-right">小計 (JPY)</th>

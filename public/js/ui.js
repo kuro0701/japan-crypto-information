@@ -116,9 +116,9 @@ const UI = {
 
     tbody.innerHTML = thresholds.targets.map((pct, i) => `
       <tr class="border-b border-gray-800">
-        <td class="is-num text-right font-mono text-gray-300">${pct}%</td>
-        <td class="is-num text-right">${cell(thresholds.buy[i])}</td>
-        <td class="is-num text-right">${cell(thresholds.sell[i])}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="変動">${pct}%</td>
+        <td class="is-num text-right" data-label="買い">${cell(thresholds.buy[i])}</td>
+        <td class="is-num text-right" data-label="売り">${cell(thresholds.sell[i])}</td>
       </tr>
     `).join('');
   },
@@ -263,17 +263,17 @@ const UI = {
 
     tbody.innerHTML = fills.map((f, i) => `
       <tr class="border-b border-gray-800 ${f.fullyConsumed ? '' : 'bg-yellow-900/10'}">
-        <td headers="fill-col-idx" class="is-num text-right text-gray-400">${i + 1}</td>
-        <td headers="fill-col-side" class="${sideClass}">
+        <td headers="fill-col-side" class="${sideClass}" data-label="方向">
           <span class="fill-side"><span class="fill-side__mark" aria-hidden="true">${sideMark}</span>${sideLabel}</span>
         </td>
-        <td headers="fill-col-price" class="is-num text-right font-mono" data-value="${f.price}">${Fmt.jpy(f.price)}</td>
-        <td headers="fill-quantity-header" class="is-num text-right font-mono" data-value="${f.quantity}">${this.formatBase(f.quantity, true)}</td>
-        <td headers="fill-col-subtotal" class="is-num text-right font-mono" data-value="${f.subtotalJPY}">${Fmt.jpy(f.subtotalJPY)}</td>
-        <td headers="fill-col-cum-base" class="is-num text-right font-mono" data-value="${f.cumulativeBTC}">${this.formatBase(f.cumulativeBTC, true)}</td>
-        <td headers="fill-col-cum-quote" class="is-num text-right font-mono" data-value="${f.cumulativeJPY}">${Fmt.jpy(f.cumulativeJPY)}</td>
-        <td headers="fill-col-impact" class="is-num text-right font-mono" data-value="${f.cumulativeImpactPct}">${Fmt.pct(f.cumulativeImpactPct)}</td>
-        <td headers="fill-col-orders" class="is-num text-right font-mono" data-value="${f.orders}">${Fmt.num(f.orders)}</td>
+        <td headers="fill-col-idx" class="is-num text-right text-gray-400" data-label="#">${i + 1}</td>
+        <td headers="fill-col-price" class="is-num text-right font-mono" data-label="約定価格" data-value="${f.price}">${Fmt.jpy(f.price)}</td>
+        <td headers="fill-quantity-header" class="is-num text-right font-mono" data-label="数量" data-value="${f.quantity}">${this.formatBase(f.quantity, true)}</td>
+        <td headers="fill-col-subtotal" class="is-num text-right font-mono" data-label="小計" data-value="${f.subtotalJPY}">${Fmt.jpy(f.subtotalJPY)}</td>
+        <td headers="fill-col-cum-base" class="is-num text-right font-mono" data-label="累計数量" data-value="${f.cumulativeBTC}">${this.formatBase(f.cumulativeBTC, true)}</td>
+        <td headers="fill-col-cum-quote" class="is-num text-right font-mono" data-label="累計金額" data-value="${f.cumulativeJPY}">${Fmt.jpy(f.cumulativeJPY)}</td>
+        <td headers="fill-col-impact" class="is-num text-right font-mono" data-label="累計Impact" data-value="${f.cumulativeImpactPct}">${Fmt.pct(f.cumulativeImpactPct)}</td>
+        <td headers="fill-col-orders" class="is-num text-right font-mono" data-label="注文数" data-value="${f.orders}">${Fmt.num(f.orders)}</td>
       </tr>
     `).join('');
 

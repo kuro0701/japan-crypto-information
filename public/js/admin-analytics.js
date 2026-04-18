@@ -127,12 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = [...days].reverse().map(day => `
       <tr class="border-b border-gray-800/60">
-        <td class="font-mono text-gray-200">${escapeHtml(day.date)}</td>
-        <td class="is-num text-right font-mono text-yellow-300">${num(day.pageViews)}</td>
-        <td class="is-num text-right font-mono text-green-300">${num(day.uniqueVisitors)}</td>
-        <td class="is-num text-right font-mono text-gray-300">${num(day.ws && day.ws.connections)}</td>
-        <td class="is-num text-right font-mono text-red-300">${num(day.ws && day.ws.peakConcurrent)}</td>
-        <td class="is-num text-right font-mono text-gray-300">${fmtTime(day.lastAccessAt)}</td>
+        <td class="font-mono text-gray-200" data-label="日付">${escapeHtml(day.date)}</td>
+        <td class="is-num text-right font-mono text-yellow-300" data-label="PV">${num(day.pageViews)}</td>
+        <td class="is-num text-right font-mono text-green-300" data-label="ユニーク">${num(day.uniqueVisitors)}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="WS接続">${num(day.ws && day.ws.connections)}</td>
+        <td class="is-num text-right font-mono text-red-300" data-label="WSピーク">${num(day.ws && day.ws.peakConcurrent)}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="最終アクセス">${fmtTime(day.lastAccessAt)}</td>
       </tr>
     `).join('');
   }

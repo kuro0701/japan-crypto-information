@@ -57,9 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = exchanges.map((exchange, index) => `
       <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
-        <td class="font-bold text-gray-200">${escapeHtml(exchange.exchangeLabel)}</td>
-        <td class="is-num text-right font-mono text-gray-300">${fmtJpy(exchange.quoteVolume)}</td>
-        <td class="is-num text-right font-mono text-yellow-300">
+        <td class="font-bold text-gray-200" data-label="取引所">${escapeHtml(exchange.exchangeLabel)}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="出来高">${fmtJpy(exchange.quoteVolume)}</td>
+        <td class="is-num text-right font-mono text-yellow-300" data-label="シェア">
           ${fmtPct(exchange.sharePct)}
           ${shareBar(exchange.sharePct)}
         </td>
@@ -78,17 +78,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = rows.map((row, index) => `
       <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
-        <td class="font-bold text-gray-200">${escapeHtml(row.instrumentLabel)}</td>
-        <td class="text-gray-300">${escapeHtml(row.exchangeLabel)}</td>
-        <td class="is-num text-right font-mono text-gray-300">
+        <td class="font-bold text-gray-200" data-label="銘柄">${escapeHtml(row.instrumentLabel)}</td>
+        <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="出来高">
           ${fmtJpy(row.quoteVolume)}
           ${row.quoteVolumeEstimated ? '<span class="text-[10px] text-gray-500 ml-1">推定</span>' : ''}
         </td>
-        <td class="is-num text-right font-mono text-green-300">
+        <td class="is-num text-right font-mono text-green-300" data-label="銘柄内シェア">
           ${fmtPct(row.instrumentSharePct)}
           ${shareBar(row.instrumentSharePct)}
         </td>
-        <td class="is-num text-right font-mono text-yellow-300">${fmtPct(row.totalSharePct)}</td>
+        <td class="is-num text-right font-mono text-yellow-300" data-label="全体シェア">${fmtPct(row.totalSharePct)}</td>
       </tr>
     `).join('');
   }

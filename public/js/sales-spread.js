@@ -120,17 +120,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const precision = latest.quotePrecision ?? null;
       return `
         <tr class="border-b border-gray-800/60">
-          <td>
+          <td data-label="銘柄">
             <div class="font-bold text-gray-200">${escapeHtml(row.instrumentLabel)}</div>
             <div class="text-[10px] text-gray-500">${escapeHtml(row.currencyFullName || row.baseCurrency)}</div>
           </td>
-          <td class="text-gray-300">${escapeHtml(row.exchangeLabel)}</td>
-          <td class="is-num text-right font-mono text-red-300">${fmtJpyPrice(latest.buyPrice, precision)}</td>
-          <td class="is-num text-right font-mono text-green-300">${fmtJpyPrice(latest.sellPrice, precision)}</td>
-          <td class="is-num text-right">${latestSpreadCell(row)}</td>
-          <td class="is-num text-right">${spreadCell(row.averages['1d'], precision)}</td>
-          <td class="is-num text-right">${spreadCell(row.averages['7d'], precision)}</td>
-          <td class="is-num text-right">${spreadCell(row.averages['30d'], precision)}</td>
+          <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
+          <td class="is-num text-right font-mono text-red-300" data-label="買値">${fmtJpyPrice(latest.buyPrice, precision)}</td>
+          <td class="is-num text-right font-mono text-green-300" data-label="売値">${fmtJpyPrice(latest.sellPrice, precision)}</td>
+          <td class="is-num text-right" data-label="現在">${latestSpreadCell(row)}</td>
+          <td class="is-num text-right" data-label="24h平均">${spreadCell(row.averages['1d'], precision)}</td>
+          <td class="is-num text-right" data-label="7日平均">${spreadCell(row.averages['7d'], precision)}</td>
+          <td class="is-num text-right" data-label="30日平均">${spreadCell(row.averages['30d'], precision)}</td>
         </tr>
       `;
     }).join('');
