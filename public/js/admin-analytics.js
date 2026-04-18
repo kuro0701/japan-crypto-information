@@ -61,8 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function setStatus(text, ok = false) {
     setText('analytics-status', text);
     const dot = $('analytics-status-dot');
-    if (!dot) return;
-    dot.className = `w-3 h-3 rounded-full ${ok ? 'bg-green-500' : 'bg-red-500'}`;
+    if (dot) dot.className = `status-dot w-3 h-3 rounded-full ${ok ? 'bg-green-500' : 'bg-red-500'}`;
+    setText('analytics-status-live-label', `接続状態: ${text}`);
   }
 
   function showAuth(message) {

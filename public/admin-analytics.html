@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
-  <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
+  <a href="#main" class="sr-only focus:not-sr-only skip-link">メインコンテンツへスキップ</a>
   <header class="topbar px-6 py-3">
     <div class="brand-cluster">
       <div class="brand-mark" aria-hidden="true">₿</div>
@@ -23,10 +23,12 @@
     <nav class="nav-menu" aria-label="ページ間ナビゲーション">
       <a class="nav-link" href="/">板シミュレーター</a>
       <a class="nav-link" href="/volume-share">出来高シェア</a>
-      <a class="nav-link is-active" href="/admin-analytics">アクセス解析</a>
+      <a class="nav-link is-active" href="/admin/analytics" aria-current="page">アクセス解析</a>
     </nav>
-    <div class="status-cluster" role="status" aria-live="polite">
-      <div id="analytics-status-dot" class="w-3 h-3 rounded-full bg-red-500"></div>
+    <div class="status-cluster">
+      <div id="analytics-status-dot" class="status-dot w-3 h-3 rounded-full bg-red-500" role="status" aria-live="polite" aria-atomic="true">
+        <span id="analytics-status-live-label" class="sr-only">接続状態: 未接続</span>
+      </div>
       <span id="analytics-status" class="status-text">未接続</span>
       <span class="text-xs text-gray-600 ml-2">更新: <span id="analytics-updated-at" class="text-gray-400">-</span></span>
     </div>

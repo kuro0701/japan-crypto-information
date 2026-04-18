@@ -294,7 +294,7 @@ const UI = {
       reconnecting: { color: 'bg-yellow-500 animate-pulse', label: '再接続中...' },
     };
     const s = styles[status] || styles.disconnected;
-    dot.className = `w-3 h-3 rounded-full ${s.color}`;
+    dot.className = `status-dot w-3 h-3 rounded-full ${s.color}`;
     text.textContent = s.label;
     const liveLabel = document.getElementById('status-live-label');
     if (liveLabel) liveLabel.textContent = `接続状態: ${s.label}`;
