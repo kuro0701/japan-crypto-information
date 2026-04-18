@@ -242,7 +242,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setText('total-volume', fmtJpy(filtered.totalQuoteVolume));
     setText('top-exchange', topExchange ? `${topExchange.exchangeLabel} ${fmtPct(topExchange.sharePct)}` : '-');
-    setText('instrument-count', filtered.instruments.length);
     setText('share-status', status.running ? '更新中' : (allRowCount > 0 ? '集計済み' : '記録待ち'));
     setText('share-updated-at', fmtDateTime(meta.latestCapturedAt || meta.generatedAt));
 
