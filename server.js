@@ -88,9 +88,12 @@ const analyticsAdminToken = process.env.ANALYTICS_ADMIN_TOKEN || '';
 const analyticsAdminTokenHash = process.env.ANALYTICS_ADMIN_TOKEN_HASH
   || '59875027e31f7e785553fea0cbef84c4b36fa25b9c5d81c6bd1be2c53861c3b0';
 
-function publicHtmlWithMeta(filePath, metaOptions) {
+function publicHtmlWithMeta(req, filePath, metaOptions) {
   const html = fs.readFileSync(filePath, 'utf8');
-  return html.replace(HEAD_META_INJECT, renderHeadMeta(metaOptions));
+  return html.replace(HEAD_META_INJECT, renderHeadMeta({
+    ...metaOptions,
+    siteOrigin: requestOrigin(req),
+  }));
 }
 
 function xmlEscape(value) {
@@ -229,6 +232,7 @@ function renderArticleHtml(req, article) {
       canonical: article.path,
       ogImage: '/ogp/default.png',
       pageId: 'article',
+      siteOrigin: origin,
     }))
     .replace(ARTICLE_JSON_LD_INJECT, jsonLdScript(articleJsonLd(article, origin)));
 
@@ -316,20 +320,23 @@ app.use((req, res, next) => {
 app.get('/healthz', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
-app.get(['/', '/index.html'], (_req, res) => {
+app.get(['/', '/index.html'], (req, res) => {
   res.type('html').send(publicHtmlWithMeta(
+    req,
     path.join(PUBLIC_DIR, 'index.html'),
     { pageId: 'home' }
   ));
 });
-app.get(['/volume-share', '/volume-share.html'], (_req, res) => {
+app.get(['/volume-share', '/volume-share.html'], (req, res) => {
   res.type('html').send(publicHtmlWithMeta(
+    req,
     path.join(PUBLIC_DIR, 'volume-share.html'),
     { pageId: 'volume-share' }
   ));
 });
-app.get(['/sales-spread', '/sales-spread.html'], (_req, res) => {
+app.get(['/sales-spread', '/sales-spread.html'], (req, res) => {
   res.type('html').send(publicHtmlWithMeta(
+    req,
     path.join(PUBLIC_DIR, 'sales-spread.html'),
     { pageId: 'sales-spread' }
   ));
