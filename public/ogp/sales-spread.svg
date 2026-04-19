@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">販売所スプレッド比較</title>
+  <desc id="desc">国内販売所の買値・売値スプレッド比較ページのOGP画像</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1214"/>
+      <stop offset="1" stop-color="#04070a"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g opacity="0.45" stroke="#1d2a2c">
+    <path d="M0 78H1200M0 156H1200M0 234H1200M0 312H1200M0 390H1200M0 468H1200M0 546H1200"/>
+    <path d="M100 0V630M200 0V630M300 0V630M400 0V630M500 0V630M600 0V630M700 0V630M800 0V630M900 0V630M1000 0V630M1100 0V630"/>
+  </g>
+  <text x="88" y="110" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#ff6b70">販売所スプレッド</text>
+  <text x="88" y="214" font-family="Inter, Arial, sans-serif" font-size="62" font-weight="800" fill="#f2f7f4">買値・売値スプレッドを</text>
+  <text x="88" y="289" font-family="Inter, Arial, sans-serif" font-size="62" font-weight="800" fill="#f2f7f4">リアルタイム比較</text>
+  <text x="88" y="350" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="600" fill="#c9d3cd">Coincheck・bitFlyer・GMOコインほか国内販売所</text>
+  <g transform="translate(760 135)">
+    <rect x="0" y="0" width="300" height="360" rx="8" fill="#0d1214" stroke="#26383b"/>
+    <text x="32" y="58" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#9aa6a1">Spread</text>
+    <line x1="54" y1="112" x2="246" y2="112" stroke="#35e0a5" stroke-width="12" stroke-linecap="round"/>
+    <line x1="54" y1="232" x2="246" y2="232" stroke="#ff6b70" stroke-width="12" stroke-linecap="round"/>
+    <path d="M150 124V220" stroke="#f4c95d" stroke-width="6" stroke-linecap="round"/>
+    <path d="M132 142L150 124L168 142M132 202L150 220L168 202" fill="none" stroke="#f4c95d" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="54" y="164" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#35e0a5">Buy</text>
+    <text x="54" y="284" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#ff6b70">Sell</text>
+    <text x="54" y="330" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#f4c95d">Cost gap</text>
+  </g>
+  <text x="88" y="482" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#35c8d2">24h / 7d / 30d average</text>
+  <text x="88" y="528" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" fill="#9aa6a1">japan-crypto-information.onrender.com/sales-spread</text>
+</svg>

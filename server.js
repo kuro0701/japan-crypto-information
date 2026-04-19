@@ -1,5 +1,6 @@
 const http = require('http');
 const crypto = require('crypto');
+const fs = require('fs');
 const express = require('express');
 const path = require('path');
 const OKCoinClient = require('./lib/okcoin-client');
@@ -18,6 +19,8 @@ const WSManager = require('./lib/ws-manager');
 const VolumeShareStore = require('./lib/volume-share-store');
 const SalesSpreadStore = require('./lib/sales-spread-store');
 const AnalyticsStore = require('./lib/analytics-store');
+const { renderHeadMeta } = require('./lib/head-meta');
+const { getArticle, listArticles } = require('./lib/content');
 const {
   DEFAULT_EXCHANGE_ID,
   DEFAULT_OKJ_INSTRUMENT_ID,
@@ -41,6 +44,35 @@ app.set('trust proxy', 1);
 const DATA_DIR = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
   : path.join(__dirname, 'data');
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const HEAD_META_INJECT = '<!-- HEAD_META_INJECT -->';
+const ARTICLE_JSON_LD_INJECT = '<!-- ARTICLE_JSON_LD_INJECT -->';
+
+function fileLastmod(filePath) {
+  try {
+    return fs.statSync(filePath).mtime.toISOString();
+  } catch (_err) {
+    return new Date().toISOString();
+  }
+}
+
+const SITEMAP_PAGES = [
+  {
+    path: '/',
+    lastmod: fileLastmod(path.join(PUBLIC_DIR, 'index.html')),
+    priority: '1.0',
+  },
+  {
+    path: '/volume-share',
+    lastmod: fileLastmod(path.join(PUBLIC_DIR, 'volume-share.html')),
+    priority: '0.8',
+  },
+  {
+    path: '/sales-spread',
+    lastmod: fileLastmod(path.join(PUBLIC_DIR, 'sales-spread.html')),
+    priority: '0.8',
+  },
+];
 
 const volumeShareStore = new VolumeShareStore({
   dataFilePath: path.join(DATA_DIR, 'volume-share-history.json'),
@@ -55,6 +87,161 @@ const analyticsStore = new AnalyticsStore({
 const analyticsAdminToken = process.env.ANALYTICS_ADMIN_TOKEN || '';
 const analyticsAdminTokenHash = process.env.ANALYTICS_ADMIN_TOKEN_HASH
   || '59875027e31f7e785553fea0cbef84c4b36fa25b9c5d81c6bd1be2c53861c3b0';
+
+function publicHtmlWithMeta(filePath, metaOptions) {
+  const html = fs.readFileSync(filePath, 'utf8');
+  return html.replace(HEAD_META_INJECT, renderHeadMeta(metaOptions));
+}
+
+function xmlEscape(value) {
+  return String(value == null ? '' : value).replace(/[<>&'"]/g, (char) => ({
+    '<': '&lt;',
+    '>': '&gt;',
+    '&': '&amp;',
+    "'": '&apos;',
+    '"': '&quot;',
+  }[char]));
+}
+
+function requestOrigin(req) {
+  if (process.env.SITE_ORIGIN) return String(process.env.SITE_ORIGIN).replace(/\/+$/, '');
+  const forwardedProto = String(req.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol || 'http';
+  return `${protocol}://${req.get('host')}`;
+}
+
+function siteUrl(origin, urlPath) {
+  if (/^https?:\/\//i.test(urlPath)) return urlPath;
+  return `${origin}${urlPath.startsWith('/') ? urlPath : `/${urlPath}`}`;
+}
+
+function rssDate(value, fallback = new Date()) {
+  const date = new Date(value || fallback);
+  if (Number.isNaN(date.getTime())) return new Date(fallback).toUTCString();
+  return date.toUTCString();
+}
+
+function buildSitemapXml(origin) {
+  const pages = SITEMAP_PAGES.concat(listArticles().map(article => ({
+    path: article.path,
+    lastmod: article.updated,
+    priority: '0.6',
+  })));
+
+  const urls = pages.map(page => [
+    '  <url>',
+    `    <loc>${xmlEscape(siteUrl(origin, page.path))}</loc>`,
+    `    <lastmod>${xmlEscape(page.lastmod)}</lastmod>`,
+    `    <priority>${xmlEscape(page.priority)}</priority>`,
+    '  </url>',
+  ].join('\n')).join('\n');
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    urls,
+    '</urlset>',
+  ].join('\n') + '\n';
+}
+
+function buildRssXml(origin) {
+  const articles = listArticles();
+  const items = articles.map(article => [
+    '    <item>',
+    `      <title>${xmlEscape(article.title)}</title>`,
+    `      <link>${xmlEscape(siteUrl(origin, article.path))}</link>`,
+    `      <guid isPermaLink="true">${xmlEscape(siteUrl(origin, article.path))}</guid>`,
+    `      <pubDate>${xmlEscape(rssDate(article.date, article.updated))}</pubDate>`,
+    article.description ? `      <description>${xmlEscape(article.description)}</description>` : '',
+    '    </item>',
+  ].filter(Boolean).join('\n')).join('\n');
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<rss version="2.0">',
+    '  <channel>',
+    '    <title>Japan クリプト インフォメーション</title>',
+    `    <link>${xmlEscape(origin)}</link>`,
+    '    <description>国内暗号資産取引所の板情報、出来高シェア、販売所スプレッドを確認できます。</description>',
+    '    <language>ja-JP</language>',
+    `    <lastBuildDate>${xmlEscape(new Date().toUTCString())}</lastBuildDate>`,
+    items,
+    '  </channel>',
+    '</rss>',
+  ].filter(Boolean).join('\n') + '\n';
+}
+
+function jsonLdScript(data) {
+  const json = JSON.stringify(data, null, 2)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e');
+  return `<script type="application/ld+json">${json}</script>`;
+}
+
+function formatArticleDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function replaceTemplateSlots(template, slots) {
+  return Object.entries(slots).reduce((html, [key, value]) => (
+    html.replaceAll(`{{${key}}}`, String(value == null ? '' : value))
+  ), template);
+}
+
+function articleJsonLd(article, origin) {
+  const url = siteUrl(origin, article.path);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: article.title,
+    description: article.description,
+    url,
+    mainEntityOfPage: url,
+    datePublished: article.date,
+    dateModified: article.updated,
+    inLanguage: 'ja-JP',
+    author: {
+      '@type': 'Organization',
+      name: article.author,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Japan クリプト インフォメーション',
+    },
+  };
+}
+
+function renderArticleHtml(req, article) {
+  const origin = requestOrigin(req);
+  const template = fs.readFileSync(path.join(PUBLIC_DIR, 'templates', 'article.html'), 'utf8');
+  const title = `${article.title}｜Japan クリプト インフォメーション`;
+  const withHead = template
+    .replace(HEAD_META_INJECT, renderHeadMeta({
+      title,
+      description: article.description,
+      canonical: article.path,
+      ogImage: '/ogp/default.png',
+      pageId: 'article',
+    }))
+    .replace(ARTICLE_JSON_LD_INJECT, jsonLdScript(articleJsonLd(article, origin)));
+
+  return replaceTemplateSlots(withHead, {
+    ARTICLE_TITLE: xmlEscape(article.title),
+    ARTICLE_DESCRIPTION: xmlEscape(article.description),
+    ARTICLE_DATE_ISO: xmlEscape(article.date),
+    ARTICLE_DATE: xmlEscape(formatArticleDate(article.date)),
+    ARTICLE_UPDATED_ISO: xmlEscape(article.updated),
+    ARTICLE_UPDATED: xmlEscape(formatArticleDate(article.updated)),
+    ARTICLE_BODY: article.html,
+  });
+}
 
 function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/' || reqPath === '/index.html') return '/';
@@ -129,14 +316,41 @@ app.use((req, res, next) => {
 app.get('/healthz', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
-app.get('/volume-share', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'volume-share.html'));
+app.get(['/', '/index.html'], (_req, res) => {
+  res.type('html').send(publicHtmlWithMeta(
+    path.join(PUBLIC_DIR, 'index.html'),
+    { pageId: 'home' }
+  ));
 });
-app.get('/sales-spread', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'sales-spread.html'));
+app.get(['/volume-share', '/volume-share.html'], (_req, res) => {
+  res.type('html').send(publicHtmlWithMeta(
+    path.join(PUBLIC_DIR, 'volume-share.html'),
+    { pageId: 'volume-share' }
+  ));
+});
+app.get(['/sales-spread', '/sales-spread.html'], (_req, res) => {
+  res.type('html').send(publicHtmlWithMeta(
+    path.join(PUBLIC_DIR, 'sales-spread.html'),
+    { pageId: 'sales-spread' }
+  ));
+});
+app.get('/articles/:slug', (req, res) => {
+  const article = getArticle(req.params.slug);
+  if (!article) {
+    res.status(404).type('text/plain').send('Article not found');
+    return;
+  }
+
+  res.type('html').send(renderArticleHtml(req, article));
 });
 app.get(['/admin/analytics', '/admin-analytics'], (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin-analytics.html'));
+  res.sendFile(path.join(PUBLIC_DIR, 'admin-analytics.html'));
+});
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml').send(buildSitemapXml(requestOrigin(req)));
+});
+app.get('/rss.xml', (req, res) => {
+  res.type('application/xml').send(buildRssXml(requestOrigin(req)));
 });
 app.get('/api/volume-share', (req, res) => {
   res.json(volumeShareStore.getShare(req.query.window || '1d'));
@@ -147,7 +361,7 @@ app.get('/api/sales-spread', (_req, res) => {
 app.get('/api/admin/analytics', requireAnalyticsAdmin, (req, res) => {
   res.json(analyticsStore.getReport(req.query.window || '7d'));
 });
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(PUBLIC_DIR));
 app.get('/api/exchanges', (_req, res) => {
   res.json({
     defaultExchangeId: DEFAULT_EXCHANGE_ID,
@@ -631,7 +845,7 @@ const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 server.listen(PORT, HOST, () => {
   const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
-  console.log(`成行取引リアルタイム板シュミレーター running on http://${displayHost}:${PORT} (${EXCHANGES.map(exchange => exchange.label).join(', ')})`);
+  console.log(`成行取引リアルタイム板シミュレーター running on http://${displayHost}:${PORT} (${EXCHANGES.map(exchange => exchange.label).join(', ')})`);
   for (const client of clientsByExchange.values()) {
     client.start();
   }

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">国内暗号資産取引所 出来高シェア比較</title>
+  <desc id="desc">国内主要取引所の出来高シェアを可視化するページのOGP画像</desc>
+  <rect width="1200" height="630" fill="#0a0a0a"/>
+  <rect width="1200" height="630" fill="#0d1214" opacity="0.72"/>
+  <g opacity="0.45" stroke="#1d2a2c">
+    <path d="M0 90H1200M0 180H1200M0 270H1200M0 360H1200M0 450H1200M0 540H1200"/>
+    <path d="M120 0V630M240 0V630M360 0V630M480 0V630M600 0V630M720 0V630M840 0V630M960 0V630M1080 0V630"/>
+  </g>
+  <text x="86" y="110" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800" fill="#35c8d2">出来高シェア</text>
+  <text x="86" y="214" font-family="Inter, Arial, sans-serif" font-size="62" font-weight="800" fill="#f2f7f4">国内暗号資産取引所</text>
+  <text x="86" y="289" font-family="Inter, Arial, sans-serif" font-size="62" font-weight="800" fill="#f2f7f4">出来高シェア比較</text>
+  <text x="86" y="350" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="600" fill="#c9d3cd">BTC・ETH他銘柄を日次・週次・月次で可視化</text>
+  <g transform="translate(780 128)">
+    <circle cx="170" cy="170" r="150" fill="none" stroke="#1a2326" stroke-width="34"/>
+    <path d="M170 20 A150 150 0 0 1 304 237" fill="none" stroke="#35e0a5" stroke-width="34" stroke-linecap="round"/>
+    <path d="M304 237 A150 150 0 0 1 99 302" fill="none" stroke="#35c8d2" stroke-width="34" stroke-linecap="round"/>
+    <path d="M99 302 A150 150 0 0 1 170 20" fill="none" stroke="#f4c95d" stroke-width="34" stroke-linecap="round"/>
+    <text x="170" y="160" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800" fill="#f2f7f4">Liquidity</text>
+    <text x="170" y="199" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#9aa6a1">Share</text>
+  </g>
+  <g transform="translate(88 420)" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">
+    <rect x="0" y="0" width="540" height="30" rx="8" fill="#1a2326"/>
+    <rect x="0" y="0" width="392" height="30" rx="8" fill="#35e0a5"/>
+    <text x="0" y="72" fill="#9aa6a1">Exchange ranking / Market share / JPY volume</text>
+  </g>
+</svg>

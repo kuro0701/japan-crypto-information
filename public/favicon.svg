@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-labelledby="title desc">
+  <title>Japan クリプト インフォメーション</title>
+  <desc>ブランドマークのビットコイン記号</desc>
+  <rect width="180" height="180" rx="32" fill="#0a0a0a"/>
+  <circle cx="90" cy="90" r="66" fill="#f2c94c"/>
+  <circle cx="90" cy="90" r="57" fill="#111111"/>
+  <text x="90" y="117" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="82" font-weight="700" fill="#f2c94c">₿</text>
+</svg>

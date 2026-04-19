@@ -571,6 +571,32 @@ button:active { transform: scale(0.98); }
 .callout-title { font-size: var(--fs-xs); color: var(--text-3); }
 .callout-body { font-size: var(--fs-sm); color: var(--text-2); font-weight: 600; }
 
+.article-body {
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  line-height: 1.9;
+}
+.article-body > * + * { margin-top: var(--sp-4); }
+.article-body h2,
+.article-body h3 {
+  color: var(--text-1);
+  font-weight: 700;
+  line-height: 1.35;
+  margin-top: var(--sp-6);
+}
+.article-body h2 { font-size: var(--fs-xl); }
+.article-body h3 { font-size: var(--fs-lg); }
+.article-body a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.article-body ul {
+  list-style: disc;
+  padding-left: var(--sp-6);
+}
+.article-body li + li { margin-top: var(--sp-2); }
+
 .chart-panel { min-height: 470px; }
 .chart-container {
   position: relative;
