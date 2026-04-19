@@ -36,12 +36,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBtn = document.getElementById('clear-btn');
   const copyShareUrlBtn = document.getElementById('copy-share-url-btn');
   const shareUrlStatus = document.getElementById('share-url-status');
+  const alertTypeSelect = document.getElementById('alert-type');
+  const alertThresholdInput = document.getElementById('alert-threshold');
+  const alertHelp = document.getElementById('alert-help');
+  const addAlertBtn = document.getElementById('add-alert-btn');
+  const refreshAlertsBtn = document.getElementById('refresh-alerts-btn');
+  const alertTbody = document.getElementById('alert-tbody');
   const autoUpdateCheck = document.getElementById('auto-update');
   const amountUnit = document.getElementById('amount-unit');
+  const ALERT_STORAGE_KEY = 'okj.localAlerts.v1';
+  const ALERT_REFRESH_MS = 60000;
   let exchangeListLoaded = false;
   let initialUrlStateConsumed = false;
   let initialSimulationRun = false;
   let shareStatusTimer = null;
+  let localAlerts = [];
+  let alertRefreshTimer = null;
+  let alertRefreshRunning = false;
+  let lastAlertRefreshAt = null;
 
   const parseNumberInput = (value) => parseFloat(String(value || '').replace(/,/g, ''));
   const formatNumberParam = (value) => {
@@ -174,6 +186,311 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       setShareStatus('コピーできませんでした。アドレスバーのURLを使ってください');
     }
+  }
+
+  function loadLocalAlerts() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(ALERT_STORAGE_KEY) || '[]');
+      localAlerts = Array.isArray(parsed) ? parsed.filter(item => item && item.id && item.type) : [];
+    } catch (_) {
+      localAlerts = [];
+    }
+  }
+
+  function saveLocalAlerts() {
+    localStorage.setItem(ALERT_STORAGE_KEY, JSON.stringify(localAlerts));
+  }
+
+  function alertStatusText(alert) {
+    if (alert.status === 'triggered') return '条件達成';
+    if (alert.status === 'waiting') return '待機中';
+    if (alert.status === 'error') return '取得失敗';
+    return '未判定';
+  }
+
+  function alertStatusClass(alert) {
+    if (alert.status === 'triggered') return 'text-green-300';
+    if (alert.status === 'waiting') return 'text-gray-300';
+    if (alert.status === 'error') return 'text-yellow-300';
+    return 'text-gray-500';
+  }
+
+  function alertTypeLabel(type) {
+    return type === 'slippage' ? '成行スリッページ' : '販売所スプレッド';
+  }
+
+  function formatAlertTime(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleTimeString('ja-JP', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  }
+
+  function alertAmountLabel(alert) {
+    if (alert.amountType === 'jpy') return Fmt.jpy(alert.amount);
+    const base = alert.baseCurrency || (alert.instrumentId || 'BTC-JPY').split('-')[0] || 'BTC';
+    return `${Fmt.baseCompact(alert.amount)} ${base}`;
+  }
+
+  function alertConditionHtml(alert) {
+    const marketLabel = alert.instrumentLabel || alert.instrumentId || '-';
+    if (alert.type === 'slippage') {
+      const sideLabel = alert.side === 'sell' ? '売り' : '買い';
+      return `
+        <div class="font-bold text-gray-200">${escapeHtml(alertTypeLabel(alert.type))}</div>
+        <div class="text-[10px] text-gray-500">${escapeHtml(marketLabel)} / ${sideLabel} / ${escapeHtml(alertAmountLabel(alert))}</div>
+        <div class="text-[10px] text-gray-600">Best比 ${Fmt.pct2(alert.thresholdPct)} 以下</div>
+      `;
+    }
+
+    return `
+      <div class="font-bold text-gray-200">${escapeHtml(alertTypeLabel(alert.type))}</div>
+      <div class="text-[10px] text-gray-500">${escapeHtml(marketLabel)} / 全販売所</div>
+      <div class="text-[10px] text-gray-600">スプレッド ${Fmt.pct2(alert.thresholdPct)} 以下</div>
+    `;
+  }
+
+  function renderAlerts() {
+    const countLabel = localAlerts.length > 0 ? `${localAlerts.length}件保存` : 'アラート未登録';
+    const refreshLabel = lastAlertRefreshAt ? `最終判定 ${formatAlertTime(lastAlertRefreshAt)}` : '未判定';
+    UI.setText('alert-meta', `${countLabel} | ${refreshLabel}`);
+
+    if (!alertTbody) return;
+    if (localAlerts.length === 0) {
+      alertTbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500 py-4">アラート未登録</td></tr>';
+      return;
+    }
+
+    alertTbody.innerHTML = localAlerts.map(alert => {
+      const latestValue = Number.isFinite(Number(alert.lastValuePct)) ? Fmt.pct2(Number(alert.lastValuePct)) : '-';
+      const latestSub = alert.lastSourceLabel || (alert.lastCheckedAt ? `更新 ${formatAlertTime(alert.lastCheckedAt)}` : '判定待ち');
+      const statusText = alertStatusText(alert);
+      const statusClass = alertStatusClass(alert);
+      return `
+        <tr class="border-b border-gray-800/60">
+          <td data-label="条件">${alertConditionHtml(alert)}</td>
+          <td class="is-num text-right font-mono text-gray-300" data-label="最新">
+            <div>${latestValue}</div>
+            <div class="text-[10px] text-gray-500">${escapeHtml(latestSub)}</div>
+          </td>
+          <td class="${statusClass}" data-label="状態">
+            <div class="font-bold">${statusText}</div>
+            <div class="text-[10px] text-gray-500">${alert.lastTriggeredAt ? `達成 ${formatAlertTime(alert.lastTriggeredAt)}` : 'ローカル判定'}</div>
+          </td>
+          <td class="text-right" data-label="操作">
+            <button class="btn btn-ghost alert-delete-btn px-2 py-1 text-xs" type="button" data-alert-id="${escapeHtml(alert.id)}">削除</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function syncAlertHelp() {
+    if (!alertTypeSelect || !alertHelp) return;
+    if (alertTypeSelect.value === 'slippage') {
+      alertHelp.textContent = '現在の銘柄・売買方向・数量で、最小スリッページがしきい値以下になったら点灯します。';
+      if (alertThresholdInput && (!alertThresholdInput.value || Number(alertThresholdInput.value) === 3)) {
+        alertThresholdInput.value = '1';
+      }
+      return;
+    }
+
+    alertHelp.textContent = '現在の銘柄で、販売所スプレッドがしきい値以下になったら点灯します。';
+    if (alertThresholdInput && (!alertThresholdInput.value || Number(alertThresholdInput.value) === 1)) {
+      alertThresholdInput.value = '3';
+    }
+  }
+
+  function currentAlertDraft() {
+    const type = alertTypeSelect ? alertTypeSelect.value : 'spread';
+    const thresholdPct = parseNumberInput(alertThresholdInput && alertThresholdInput.value);
+    const exchange = getSelectedExchange();
+    const market = getSelectedMarket(exchange);
+
+    if (!Number.isFinite(thresholdPct) || thresholdPct < 0) {
+      return { error: 'しきい値は0以上で入力してください' };
+    }
+
+    const alert = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: type === 'slippage' ? 'slippage' : 'spread',
+      thresholdPct,
+      instrumentId: market.instrumentId,
+      instrumentLabel: market.label || market.instrumentId,
+      baseCurrency: market.baseCurrency || 'BTC',
+      quoteCurrency: market.quoteCurrency || 'JPY',
+      createdAt: new Date().toISOString(),
+      status: 'unknown',
+      lastValuePct: null,
+      lastSourceLabel: null,
+      lastCheckedAt: null,
+      lastTriggeredAt: null,
+    };
+
+    if (alert.type === 'slippage') {
+      const amount = parseNumberInput(amountInput.value);
+      const feeRatePct = parseNumberInput(feeRateInput.value);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return { error: '成行スリッページは数量または金額を入力してから追加してください' };
+      }
+      if (!Number.isFinite(feeRatePct) || feeRatePct < 0 || feeRatePct > 100) {
+        return { error: '手数料率は0%以上100%以下で入力してください' };
+      }
+
+      alert.side = normalizeSide(sideSelect.value) || 'buy';
+      alert.amountType = normalizeAmountType(amountTypeSelect.value) || 'base';
+      alert.amount = amount;
+      alert.feeRate = feeRatePct / 100;
+    }
+
+    return { alert };
+  }
+
+  function spreadValue(row) {
+    const latest = row && row.latest;
+    const average24h = row && row.averages && row.averages['1d'];
+    const value = latest && Number.isFinite(Number(latest.spreadPct))
+      ? Number(latest.spreadPct)
+      : (average24h && Number.isFinite(Number(average24h.spreadPct)) ? Number(average24h.spreadPct) : null);
+    return value;
+  }
+
+  function evaluateSpreadAlert(alert, spreadData) {
+    const rows = (spreadData && spreadData.rows || [])
+      .filter(row => row.instrumentId === alert.instrumentId)
+      .map(row => ({
+        row,
+        value: spreadValue(row),
+      }))
+      .filter(item => Number.isFinite(item.value))
+      .sort((a, b) => a.value - b.value);
+
+    const best = rows[0] || null;
+    if (!best) {
+      return {
+        ...alert,
+        status: 'error',
+        lastValuePct: null,
+        lastSourceLabel: '販売所価格待ち',
+        lastCheckedAt: new Date().toISOString(),
+      };
+    }
+
+    const triggered = best.value <= alert.thresholdPct;
+    const now = new Date().toISOString();
+    return {
+      ...alert,
+      status: triggered ? 'triggered' : 'waiting',
+      lastValuePct: best.value,
+      lastSourceLabel: best.row.exchangeLabel || best.row.exchangeId,
+      lastCheckedAt: now,
+      lastTriggeredAt: triggered ? now : alert.lastTriggeredAt || null,
+    };
+  }
+
+  async function evaluateSlippageAlert(alert) {
+    const params = new URLSearchParams({
+      instrumentId: alert.instrumentId,
+      side: alert.side || 'buy',
+      amountType: alert.amountType || 'base',
+      amount: String(alert.amount),
+      feeRate: String(alert.feeRate ?? 0),
+    });
+    const res = await fetch(`/api/market-impact-comparison?${params.toString()}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const rows = (data.rows || [])
+      .filter(row => row.status === 'ready' && row.result && !row.result.error)
+      .map(row => ({
+        row,
+        value: Number(row.result.slippageFromBestPct),
+      }))
+      .filter(item => Number.isFinite(item.value))
+      .sort((a, b) => a.value - b.value);
+    const best = rows[0] || null;
+    if (!best) {
+      return {
+        ...alert,
+        status: 'error',
+        lastValuePct: null,
+        lastSourceLabel: '板データ待ち',
+        lastCheckedAt: new Date().toISOString(),
+      };
+    }
+
+    const triggered = best.value <= alert.thresholdPct;
+    const now = new Date().toISOString();
+    return {
+      ...alert,
+      status: triggered ? 'triggered' : 'waiting',
+      lastValuePct: best.value,
+      lastSourceLabel: best.row.exchangeLabel || best.row.exchangeId,
+      lastCheckedAt: now,
+      lastTriggeredAt: triggered ? now : alert.lastTriggeredAt || null,
+    };
+  }
+
+  async function refreshAlerts() {
+    if (alertRefreshRunning || localAlerts.length === 0) {
+      renderAlerts();
+      return;
+    }
+
+    alertRefreshRunning = true;
+    UI.setText('alert-meta', `${localAlerts.length}件保存 | 判定中`);
+    try {
+      let spreadData = null;
+      let spreadError = null;
+      if (localAlerts.some(alert => alert.type === 'spread')) {
+        try {
+          const res = await fetch('/api/sales-spread', { cache: 'no-store' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          spreadData = await res.json();
+        } catch (err) {
+          spreadError = err;
+        }
+      }
+
+      localAlerts = await Promise.all(localAlerts.map(async (alert) => {
+        try {
+          if (alert.type === 'spread') {
+            if (spreadError) throw spreadError;
+            return evaluateSpreadAlert(alert, spreadData);
+          }
+          return await evaluateSlippageAlert(alert);
+        } catch (err) {
+          return {
+            ...alert,
+            status: 'error',
+            lastValuePct: null,
+            lastSourceLabel: err.message,
+            lastCheckedAt: new Date().toISOString(),
+          };
+        }
+      }));
+      lastAlertRefreshAt = new Date().toISOString();
+      saveLocalAlerts();
+    } finally {
+      alertRefreshRunning = false;
+      renderAlerts();
+    }
+  }
+
+  function addCurrentAlert() {
+    const draft = currentAlertDraft();
+    if (draft.error) {
+      UI.setText('alert-meta', draft.error);
+      return;
+    }
+
+    localAlerts.unshift(draft.alert);
+    saveLocalAlerts();
+    renderAlerts();
+    refreshAlerts();
   }
 
   function updateAmountUnit() {
@@ -769,6 +1086,31 @@ document.addEventListener('DOMContentLoaded', () => {
     copyShareUrlBtn.addEventListener('click', copyShareUrl);
   }
 
+  if (alertTypeSelect) {
+    alertTypeSelect.addEventListener('change', syncAlertHelp);
+  }
+
+  if (addAlertBtn) {
+    addAlertBtn.addEventListener('click', addCurrentAlert);
+  }
+
+  if (refreshAlertsBtn) {
+    refreshAlertsBtn.addEventListener('click', refreshAlerts);
+  }
+
+  if (alertTbody) {
+    alertTbody.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest
+        ? event.target.closest('[data-alert-id]')
+        : null;
+      if (!button) return;
+      const id = button.dataset.alertId;
+      localAlerts = localAlerts.filter(alert => alert.id !== id);
+      saveLocalAlerts();
+      renderAlerts();
+    });
+  }
+
   amountInput.addEventListener('input', updateShareUrl);
   feeRateInput.addEventListener('input', updateShareUrl);
 
@@ -886,7 +1228,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize
   applyInitialUrlState();
+  loadLocalAlerts();
+  syncAlertHelp();
+  renderAlerts();
+  alertRefreshTimer = setInterval(refreshAlerts, ALERT_REFRESH_MS);
   initDepthChart();
   ws.connect();
   loadExchangesFromApi();
+  refreshAlerts();
 });
