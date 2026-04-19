@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- HEAD_META_INJECT -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -42,6 +43,29 @@
     </section>
 
     <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">スプレッド推移</h2>
+          <p id="spread-history-meta" class="text-xs text-gray-500 mt-1">日次スナップショットを読み込み中</p>
+        </div>
+        <span class="panel-kicker">History</span>
+      </div>
+      <div class="history-toolbar">
+        <div class="tab-group" role="tablist" aria-label="スプレッド履歴期間">
+          <button class="btn btn-tab window-tab" data-spread-history-window="7d" type="button" role="tab" aria-selected="false">7日</button>
+          <button class="btn btn-tab window-tab active" data-spread-history-window="30d" type="button" role="tab" aria-selected="true">30日</button>
+        </div>
+        <label class="filter-control history-filter" for="spread-history-instrument">
+          <span>銘柄</span>
+          <select id="spread-history-instrument" class="field" aria-label="履歴グラフの銘柄"><option value="BTC-JPY">BTC/JPY</option></select>
+        </label>
+      </div>
+      <div class="chart-container history-chart-container mt-3">
+        <canvas id="spread-history-chart"></canvas>
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
       <div class="panel-title-row mb-3"><h2 class="panel-title">銘柄別スプレッド</h2><span class="panel-kicker">Markets</span></div>
       <div class="overflow-auto scrollbar-thin max-h-[760px]">
         <table class="data-table data-table--cards text-xs">
@@ -55,6 +79,6 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | 販売所価格はJPY建て、スプレッド率は仲値比です</footer>
 
   <script src="js/formatter.js?v=sales-spread-1"></script>
-  <script src="js/sales-spread.js?v=sales-spread-6"></script>
+  <script src="js/sales-spread.js?v=sales-spread-7"></script>
 </body>
 </html>

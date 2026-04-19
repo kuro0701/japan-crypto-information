@@ -8,7 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedWindow = '1d';
   let selectedInstrument = ALL_VALUE;
   let selectedExchange = ALL_VALUE;
+  let selectedHistoryWindow = '30d';
   let latestData = null;
+  let volumeHistoryRows = [];
+  let volumeHistoryMeta = {};
+  let volumeShareHistoryChart = null;
+  let volumeRankHistoryChart = null;
+  const CHART_COLORS = ['#35e0a5', '#ff6b70', '#35c8d2', '#f4c95d', '#dbe7df', '#ff9f7e', '#9ad46a'];
 
   const $ = (id) => document.getElementById(id);
   const setText = (id, value) => {
@@ -53,6 +59,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (meta.source === 'daily-snapshot') return '24hスナップショット';
     if (meta.source === 'latest-fallback') return '最新24h収集値';
     return '最新24h収集値';
+  }
+
+  function historySourceLabel(meta) {
+    if (!meta) return '記録待ち';
+    if (meta.source === 'daily-snapshots') return `日次 ${meta.historySnapshotCount}件`;
+    if (meta.source === 'latest-fallback') return '最新24h収集値';
+    return '記録待ち';
+  }
+
+  function chartColor(index) {
+    return CHART_COLORS[index % CHART_COLORS.length];
+  }
+
+  function cssVar(name, fallback) {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  function shortDate(value) {
+    if (!value) return '-';
+    const parts = String(value).split('-');
+    if (parts.length === 3) return `${parts[1]}/${parts[2]}`;
+    return String(value);
   }
 
   function uniqueOptions(rows, valueKey, labelKey) {
@@ -255,12 +284,243 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderExchangeRows(filtered.exchanges, emptyMessage);
     renderInstrumentRows(filtered.rows, emptyMessage);
+    renderVolumeHistory();
   }
 
   function render(data) {
     latestData = data;
     syncFilterOptions(data);
     renderFilteredShare();
+  }
+
+  function baseHistoryChartOptions({ yTitle, yTickCallback, reverseY = false, tooltipLabel }) {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 0 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: cssVar('--text-2', '#c9d3cd'),
+            boxWidth: 14,
+            boxHeight: 8,
+            font: { size: 11, weight: 700 },
+          },
+        },
+        tooltip: {
+          backgroundColor: 'rgba(8, 11, 8, 0.94)',
+          borderColor: 'rgba(205, 222, 190, 0.2)',
+          borderWidth: 1,
+          titleColor: cssVar('--text-1', '#f2f7f4'),
+          bodyColor: cssVar('--text-2', '#c9d3cd'),
+          callbacks: {
+            label: tooltipLabel,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: cssVar('--text-4', '#6f7b76') },
+          grid: { color: 'rgba(205, 222, 190, 0.08)' },
+        },
+        y: {
+          beginAtZero: !reverseY,
+          reverse: reverseY,
+          title: { display: true, text: yTitle, color: cssVar('--text-3', '#9aa6a1') },
+          ticks: {
+            color: cssVar('--text-4', '#6f7b76'),
+            callback: yTickCallback,
+          },
+          grid: { color: 'rgba(205, 222, 190, 0.08)' },
+        },
+      },
+    };
+  }
+
+  function initVolumeHistoryCharts() {
+    const shareCanvas = $('volume-share-history-chart');
+    const rankCanvas = $('volume-rank-history-chart');
+    if (typeof Chart === 'undefined') return;
+
+    if (shareCanvas) {
+      volumeShareHistoryChart = new Chart(shareCanvas, {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: baseHistoryChartOptions({
+          yTitle: 'シェア (%)',
+          yTickCallback: (value) => `${value}%`,
+          tooltipLabel: (ctx) => `${ctx.dataset.label}: ${fmtPct(ctx.parsed.y)}`,
+        }),
+      });
+    }
+
+    if (rankCanvas) {
+      volumeRankHistoryChart = new Chart(rankCanvas, {
+        type: 'line',
+        data: { labels: [], datasets: [] },
+        options: baseHistoryChartOptions({
+          yTitle: '順位',
+          reverseY: true,
+          yTickCallback: (value) => `${value}位`,
+          tooltipLabel: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}位`,
+        }),
+      });
+      volumeRankHistoryChart.options.scales.y.min = 1;
+      volumeRankHistoryChart.options.scales.y.ticks.stepSize = 1;
+      volumeRankHistoryChart.options.scales.y.ticks.precision = 0;
+    }
+  }
+
+  function historyInstrumentMatches(row) {
+    return selectedInstrument === ALL_VALUE || row.instrumentId === selectedInstrument;
+  }
+
+  function latestMapValue(dates, byDate, missingValue = null) {
+    for (let index = dates.length - 1; index >= 0; index -= 1) {
+      const value = byDate.get(dates[index]);
+      if (Number.isFinite(Number(value))) return Number(value);
+    }
+    return missingValue;
+  }
+
+  function selectedOptionLabel(selectId, allLabel) {
+    const select = $(selectId);
+    if (!select || select.value === ALL_VALUE) return allLabel;
+    const option = select.selectedOptions && select.selectedOptions[0];
+    return option ? option.textContent : select.value;
+  }
+
+  function buildVolumeHistorySeries() {
+    const dates = Array.from(new Set(volumeHistoryRows.map(row => row.date).filter(Boolean))).sort();
+    const daily = new Map();
+
+    for (const row of volumeHistoryRows) {
+      if (!row.date || !historyInstrumentMatches(row)) continue;
+      const quoteVolume = parseNumber(row.quoteVolume);
+      if (quoteVolume == null || quoteVolume < 0) continue;
+
+      if (!daily.has(row.date)) {
+        daily.set(row.date, {
+          totalQuoteVolume: 0,
+          exchanges: new Map(),
+        });
+      }
+
+      const day = daily.get(row.date);
+      const existing = day.exchanges.get(row.exchangeId) || {
+        exchangeId: row.exchangeId,
+        exchangeLabel: row.exchangeLabel || row.exchangeId,
+        quoteVolume: 0,
+      };
+      existing.quoteVolume += quoteVolume;
+      day.exchanges.set(row.exchangeId, existing);
+      day.totalQuoteVolume += quoteVolume;
+    }
+
+    const seriesByExchange = new Map();
+    let maxRank = 1;
+
+    for (const date of dates) {
+      const day = daily.get(date);
+      if (!day || day.totalQuoteVolume <= 0) continue;
+
+      const ranked = Array.from(day.exchanges.values())
+        .sort((a, b) => b.quoteVolume - a.quoteVolume);
+      maxRank = Math.max(maxRank, ranked.length);
+
+      ranked.forEach((exchange, index) => {
+        if (!seriesByExchange.has(exchange.exchangeId)) {
+          seriesByExchange.set(exchange.exchangeId, {
+            exchangeId: exchange.exchangeId,
+            label: exchange.exchangeLabel,
+            shareByDate: new Map(),
+            rankByDate: new Map(),
+          });
+        }
+
+        const series = seriesByExchange.get(exchange.exchangeId);
+        series.shareByDate.set(date, (exchange.quoteVolume / day.totalQuoteVolume) * 100);
+        series.rankByDate.set(date, index + 1);
+      });
+    }
+
+    let series = Array.from(seriesByExchange.values());
+    if (selectedExchange !== ALL_VALUE) {
+      series = series.filter(item => item.exchangeId === selectedExchange);
+    } else {
+      series = series
+        .sort((a, b) => {
+          const shareDiff = (latestMapValue(dates, b.shareByDate, -1) ?? -1) - (latestMapValue(dates, a.shareByDate, -1) ?? -1);
+          if (shareDiff !== 0) return shareDiff;
+          return String(a.label).localeCompare(String(b.label), 'ja');
+        })
+        .slice(0, 6);
+    }
+
+    return {
+      dates,
+      series,
+      maxRank,
+    };
+  }
+
+  function renderVolumeHistory() {
+    if (!volumeShareHistoryChart || !volumeRankHistoryChart) return;
+
+    const { dates, series, maxRank } = buildVolumeHistorySeries();
+    const labels = dates.map(shortDate);
+    const shareDatasets = series.map((item, index) => {
+      const color = chartColor(index);
+      return {
+        label: item.label,
+        data: dates.map(date => item.shareByDate.get(date) ?? null),
+        borderColor: color,
+        backgroundColor: `${color}24`,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.25,
+        spanGaps: true,
+      };
+    });
+    const rankDatasets = series.map((item, index) => {
+      const color = chartColor(index);
+      return {
+        label: item.label,
+        data: dates.map(date => item.rankByDate.get(date) ?? null),
+        borderColor: color,
+        backgroundColor: `${color}24`,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.2,
+        spanGaps: true,
+      };
+    });
+
+    volumeShareHistoryChart.data.labels = labels;
+    volumeShareHistoryChart.data.datasets = shareDatasets;
+    volumeShareHistoryChart.update('none');
+
+    volumeRankHistoryChart.data.labels = labels;
+    volumeRankHistoryChart.data.datasets = rankDatasets;
+    volumeRankHistoryChart.options.scales.y.suggestedMax = Math.max(3, maxRank);
+    volumeRankHistoryChart.update('none');
+
+    const range = volumeHistoryMeta.earliestVolumeDateJst && volumeHistoryMeta.latestVolumeDateJst
+      ? `${volumeHistoryMeta.earliestVolumeDateJst} - ${volumeHistoryMeta.latestVolumeDateJst}`
+      : '履歴データ待ち';
+    const instrumentLabel = selectedOptionLabel('volume-instrument-filter', '全銘柄');
+    const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '上位取引所');
+    const seriesLabel = series.length > 0 ? `${series.length}系列` : '該当なし';
+
+    setText(
+      'volume-history-meta',
+      `${instrumentLabel} | ${exchangeLabel} | ${range} | ${seriesLabel} | ${historySourceLabel(volumeHistoryMeta)}`
+    );
+    setText('volume-rank-meta', series.length > 0 ? `最大 ${maxRank}位までの日次順位` : '順位データ待ち');
   }
 
   async function loadShare() {
@@ -274,6 +534,23 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       setText('share-status', '取得失敗');
       setText('share-meta', err.message);
+    }
+  }
+
+  async function loadVolumeHistory() {
+    setText('volume-history-meta', '日次スナップショットを読み込み中');
+    try {
+      const res = await fetch(`/api/volume-share/history?window=${encodeURIComponent(selectedHistoryWindow)}`, {
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      volumeHistoryRows = data.rows || [];
+      volumeHistoryMeta = data.meta || {};
+      renderVolumeHistory();
+    } catch (err) {
+      setText('volume-history-meta', err.message);
+      setText('volume-rank-meta', '取得失敗');
     }
   }
 
@@ -305,6 +582,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  document.querySelectorAll('[data-volume-history-window]').forEach(button => {
+    button.addEventListener('click', () => {
+      selectedHistoryWindow = button.dataset.volumeHistoryWindow || '30d';
+      document.querySelectorAll('[data-volume-history-window]').forEach(item => {
+        const isActive = item === button;
+        item.classList.toggle('active', isActive);
+        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      loadVolumeHistory();
+    });
+  });
+
+  initVolumeHistoryCharts();
   loadShare();
+  loadVolumeHistory();
   setInterval(loadShare, 60000);
+  setInterval(loadVolumeHistory, 300000);
 });

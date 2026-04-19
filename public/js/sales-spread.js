@@ -9,6 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let filterText = '';
   let selectedExchange = ALL_VALUE;
   let latestMeta = {};
+  let selectedHistoryWindow = '30d';
+  let selectedHistoryInstrument = 'BTC-JPY';
+  let spreadHistoryRows = [];
+  let spreadHistoryMeta = {};
+  let spreadHistoryChart = null;
+  const CHART_COLORS = ['#35e0a5', '#ff6b70', '#35c8d2', '#f4c95d', '#dbe7df', '#ff9f7e', '#9ad46a'];
 
   const $ = (id) => document.getElementById(id);
   const setText = (id, value) => {
@@ -66,6 +72,29 @@ document.addEventListener('DOMContentLoaded', () => {
     return '記録待ち';
   }
 
+  function historySourceLabel(meta) {
+    if (!meta) return '記録待ち';
+    if (meta.source === 'daily-snapshots') return `日次 ${meta.historySnapshotCount}件`;
+    if (meta.source === 'latest-fallback') return '最新収集値';
+    return '記録待ち';
+  }
+
+  function chartColor(index) {
+    return CHART_COLORS[index % CHART_COLORS.length];
+  }
+
+  function cssVar(name, fallback) {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
+  function shortDate(value) {
+    if (!value) return '-';
+    const parts = String(value).split('-');
+    if (parts.length === 3) return `${parts[1]}/${parts[2]}`;
+    return String(value);
+  }
+
   function spreadCell(summary, precision) {
     if (!summary) return '<span class="text-gray-600">-</span>';
     return `
@@ -108,6 +137,40 @@ document.addEventListener('DOMContentLoaded', () => {
       ...options.map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`),
     ].join('');
     select.value = selectedExchange;
+  }
+
+  function uniqueHistoryInstrumentOptions() {
+    const byValue = new Map();
+    for (const row of spreadHistoryRows.concat(allRows)) {
+      if (!row.instrumentId || byValue.has(row.instrumentId)) continue;
+      byValue.set(row.instrumentId, {
+        value: row.instrumentId,
+        label: row.instrumentLabel || row.instrumentId,
+      });
+    }
+
+    return Array.from(byValue.values())
+      .sort((a, b) => {
+        if (a.value === 'BTC-JPY') return -1;
+        if (b.value === 'BTC-JPY') return 1;
+        return String(a.label).localeCompare(String(b.label), 'ja');
+      });
+  }
+
+  function populateHistoryInstrumentFilter() {
+    const select = $('spread-history-instrument');
+    if (!select) return;
+
+    const options = uniqueHistoryInstrumentOptions();
+    const values = new Set(options.map(option => option.value));
+    if (!values.has(selectedHistoryInstrument)) {
+      selectedHistoryInstrument = values.has('BTC-JPY') ? 'BTC-JPY' : (options[0] && options[0].value) || 'BTC-JPY';
+    }
+
+    select.innerHTML = options.length > 0
+      ? options.map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join('')
+      : '<option value="BTC-JPY">BTC/JPY</option>';
+    select.value = selectedHistoryInstrument;
   }
 
   function hasActiveFilters() {
@@ -245,7 +308,133 @@ document.addEventListener('DOMContentLoaded', () => {
     latestMeta = data.meta || {};
     allRows = data.rows || [];
     populateExchangeFilter();
+    populateHistoryInstrumentFilter();
     renderView();
+    renderSpreadHistory();
+  }
+
+  function initSpreadHistoryChart() {
+    const canvas = $('spread-history-chart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    spreadHistoryChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 0 },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: cssVar('--text-2', '#c9d3cd'),
+              boxWidth: 14,
+              boxHeight: 8,
+              font: { size: 11, weight: 700 },
+            },
+          },
+          tooltip: {
+            backgroundColor: 'rgba(8, 11, 8, 0.94)',
+            borderColor: 'rgba(205, 222, 190, 0.2)',
+            borderWidth: 1,
+            titleColor: cssVar('--text-1', '#f2f7f4'),
+            bodyColor: cssVar('--text-2', '#c9d3cd'),
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${fmtPct(ctx.parsed.y)}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: cssVar('--text-4', '#6f7b76') },
+            grid: { color: 'rgba(205, 222, 190, 0.08)' },
+          },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'スプレッド率 (%)', color: cssVar('--text-3', '#9aa6a1') },
+            ticks: {
+              color: cssVar('--text-4', '#6f7b76'),
+              callback: (value) => `${value}%`,
+            },
+            grid: { color: 'rgba(205, 222, 190, 0.08)' },
+          },
+        },
+      },
+    });
+  }
+
+  function latestSeriesValue(dates, byDate) {
+    for (let index = dates.length - 1; index >= 0; index -= 1) {
+      const value = byDate.get(dates[index]);
+      if (Number.isFinite(Number(value))) return Number(value);
+    }
+    return Infinity;
+  }
+
+  function renderSpreadHistory() {
+    populateHistoryInstrumentFilter();
+
+    if (!spreadHistoryChart) return;
+
+    const dates = Array.from(new Set(spreadHistoryRows.map(row => row.date).filter(Boolean))).sort();
+    const scopedRows = spreadHistoryRows.filter(row => {
+      if (row.instrumentId !== selectedHistoryInstrument) return false;
+      return selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange;
+    });
+    const byExchange = new Map();
+
+    for (const row of scopedRows) {
+      const value = Number(row.spreadPct);
+      if (!row.date || !Number.isFinite(value)) continue;
+      const key = row.exchangeId;
+      if (!byExchange.has(key)) {
+        byExchange.set(key, {
+          exchangeId: row.exchangeId,
+          label: row.exchangeLabel || row.exchangeId,
+          byDate: new Map(),
+        });
+      }
+      byExchange.get(key).byDate.set(row.date, value);
+    }
+
+    const series = Array.from(byExchange.values())
+      .sort((a, b) => {
+        const valueDiff = latestSeriesValue(dates, a.byDate) - latestSeriesValue(dates, b.byDate);
+        if (valueDiff !== 0) return valueDiff;
+        return String(a.label).localeCompare(String(b.label), 'ja');
+      });
+
+    spreadHistoryChart.data.labels = dates.map(shortDate);
+    spreadHistoryChart.data.datasets = series.map((item, index) => {
+      const color = chartColor(index);
+      return {
+        label: item.label,
+        data: dates.map(date => item.byDate.get(date) ?? null),
+        borderColor: color,
+        backgroundColor: `${color}24`,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.25,
+        spanGaps: true,
+      };
+    });
+    spreadHistoryChart.update('none');
+
+    const selectedOption = $('spread-history-instrument')?.selectedOptions?.[0];
+    const instrumentLabel = selectedOption ? selectedOption.textContent : selectedHistoryInstrument;
+    const range = spreadHistoryMeta.earliestSpreadDateJst && spreadHistoryMeta.latestSpreadDateJst
+      ? `${spreadHistoryMeta.earliestSpreadDateJst} - ${spreadHistoryMeta.latestSpreadDateJst}`
+      : '履歴データ待ち';
+    setText(
+      'spread-history-meta',
+      `${instrumentLabel} | ${range} | ${series.length > 0 ? `${series.length}系列` : '該当なし'} | ${historySourceLabel(spreadHistoryMeta)}`
+    );
   }
 
   async function loadSpread() {
@@ -262,6 +451,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function loadSpreadHistory() {
+    setText('spread-history-meta', '日次スナップショットを読み込み中');
+    try {
+      const res = await fetch(`/api/sales-spread/history?window=${encodeURIComponent(selectedHistoryWindow)}`, {
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      spreadHistoryRows = data.rows || [];
+      spreadHistoryMeta = data.meta || {};
+      renderSpreadHistory();
+    } catch (err) {
+      setText('spread-history-meta', err.message);
+    }
+  }
+
   const filterInput = $('spread-filter');
   if (filterInput) {
     filterInput.addEventListener('input', () => {
@@ -275,9 +480,33 @@ document.addEventListener('DOMContentLoaded', () => {
     exchangeFilter.addEventListener('change', () => {
       selectedExchange = exchangeFilter.value || ALL_VALUE;
       renderView();
+      renderSpreadHistory();
     });
   }
 
+  document.querySelectorAll('[data-spread-history-window]').forEach(button => {
+    button.addEventListener('click', () => {
+      selectedHistoryWindow = button.dataset.spreadHistoryWindow || '30d';
+      document.querySelectorAll('[data-spread-history-window]').forEach(item => {
+        const isActive = item === button;
+        item.classList.toggle('active', isActive);
+        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      loadSpreadHistory();
+    });
+  });
+
+  const historyInstrumentFilter = $('spread-history-instrument');
+  if (historyInstrumentFilter) {
+    historyInstrumentFilter.addEventListener('change', () => {
+      selectedHistoryInstrument = historyInstrumentFilter.value || 'BTC-JPY';
+      renderSpreadHistory();
+    });
+  }
+
+  initSpreadHistoryChart();
   loadSpread();
+  loadSpreadHistory();
   setInterval(loadSpread, 60000);
+  setInterval(loadSpreadHistory, 300000);
 });

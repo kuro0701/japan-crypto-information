@@ -363,8 +363,14 @@ app.get('/rss.xml', (req, res) => {
 app.get('/api/volume-share', (req, res) => {
   res.json(volumeShareStore.getShare(req.query.window || '1d'));
 });
+app.get('/api/volume-share/history', (req, res) => {
+  res.json(volumeShareStore.getHistory(req.query.window || '30d'));
+});
 app.get('/api/sales-spread', (_req, res) => {
   res.json(salesSpreadStore.getReport());
+});
+app.get('/api/sales-spread/history', (req, res) => {
+  res.json(salesSpreadStore.getHistory(req.query.window || '30d'));
 });
 app.get('/api/admin/analytics', requireAnalyticsAdmin, (req, res) => {
   res.json(analyticsStore.getReport(req.query.window || '7d'));

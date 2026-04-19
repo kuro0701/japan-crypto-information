@@ -34,10 +34,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const feeRateInput = document.getElementById('fee-rate');
   const simulateBtn = document.getElementById('simulate-btn');
   const clearBtn = document.getElementById('clear-btn');
+  const copyShareUrlBtn = document.getElementById('copy-share-url-btn');
+  const shareUrlStatus = document.getElementById('share-url-status');
   const autoUpdateCheck = document.getElementById('auto-update');
   const amountUnit = document.getElementById('amount-unit');
+  let exchangeListLoaded = false;
+  let initialUrlStateConsumed = false;
+  let initialSimulationRun = false;
+  let shareStatusTimer = null;
 
   const parseNumberInput = (value) => parseFloat(String(value || '').replace(/,/g, ''));
+  const formatNumberParam = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? String(Number(parsed.toPrecision(12))) : null;
+  };
   const escapeHtml = (value) => String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -58,6 +68,113 @@ document.addEventListener('DOMContentLoaded', () => {
       || markets.find(market => market.instrumentId === exchange.defaultInstrumentId)
       || markets[0];
   };
+  const normalizeAmountType = (value) => {
+    const normalized = String(value || '').toLowerCase();
+    if (normalized === 'jpy') return 'jpy';
+    if (normalized === 'base' || normalized === 'btc') return 'base';
+    return null;
+  };
+  const normalizeSide = (value) => {
+    const normalized = String(value || '').toLowerCase();
+    return normalized === 'sell' ? 'sell' : normalized === 'buy' ? 'buy' : null;
+  };
+  const normalizeInstrumentId = (value) => String(value || '').trim().toUpperCase();
+  const normalizeExchangeId = (value) => String(value || '').trim().toLowerCase();
+
+  function readUrlState() {
+    const params = new URLSearchParams(window.location.search);
+    const amount = parseNumberInput(params.get('amount'));
+    const feeRatePct = parseNumberInput(params.get('feeRatePct') ?? params.get('feeRate'));
+    const feeRateDecimal = parseNumberInput(params.get('feeRateDecimal'));
+
+    return {
+      exchangeId: normalizeExchangeId(params.get('exchange') || params.get('exchangeId')),
+      instrumentId: normalizeInstrumentId(params.get('market') || params.get('instrument') || params.get('instrumentId')),
+      side: normalizeSide(params.get('side')),
+      amountType: normalizeAmountType(params.get('amountType')),
+      amount: Number.isFinite(amount) && amount > 0 ? amount : null,
+      feeRatePct: Number.isFinite(feeRatePct) && feeRatePct >= 0 && feeRatePct <= 100
+        ? feeRatePct
+        : (Number.isFinite(feeRateDecimal) && feeRateDecimal >= 0 && feeRateDecimal <= 1 ? feeRateDecimal * 100 : null),
+    };
+  }
+
+  const initialUrlState = readUrlState();
+  const shouldRunInitialSimulation = initialUrlState.amount != null;
+
+  function setShareStatus(message) {
+    if (!shareUrlStatus) return;
+    shareUrlStatus.textContent = message || '';
+    if (shareStatusTimer) clearTimeout(shareStatusTimer);
+    if (message) {
+      shareStatusTimer = setTimeout(() => {
+        shareUrlStatus.textContent = '';
+      }, 2400);
+    }
+  }
+
+  function setSide(side) {
+    const normalized = normalizeSide(side) || 'buy';
+    if (sideSelect) sideSelect.value = normalized;
+    document.querySelectorAll('[data-side]').forEach(button => {
+      const isActive = button.dataset.side === normalized;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  }
+
+  function currentShareParams() {
+    const exchange = getSelectedExchange();
+    const market = getSelectedMarket(exchange);
+    const params = new URLSearchParams();
+    const amount = parseNumberInput(amountInput.value);
+    const feeRatePct = parseNumberInput(feeRateInput.value);
+
+    params.set('exchange', exchange.id);
+    params.set('market', market.instrumentId);
+    params.set('side', normalizeSide(sideSelect.value) || 'buy');
+    params.set('amountType', normalizeAmountType(amountTypeSelect.value) || 'base');
+    if (Number.isFinite(amount) && amount > 0) {
+      params.set('amount', formatNumberParam(amount));
+    }
+    if (Number.isFinite(feeRatePct) && feeRatePct >= 0 && feeRatePct <= 100) {
+      params.set('feeRate', formatNumberParam(feeRatePct));
+    }
+
+    return params;
+  }
+
+  function updateShareUrl() {
+    const params = currentShareParams();
+    const nextUrl = `${window.location.pathname}?${params.toString()}${window.location.hash}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (nextUrl !== currentUrl) {
+      window.history.replaceState({}, document.title, nextUrl);
+    }
+  }
+
+  async function copyShareUrl() {
+    updateShareUrl();
+    const shareUrl = window.location.href;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = shareUrl;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-1000px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+      }
+      setShareStatus('共有URLをコピーしました');
+    } catch (err) {
+      setShareStatus('コピーできませんでした。アドレスバーのURLを使ってください');
+    }
+  }
 
   function updateAmountUnit() {
     const market = getSelectedMarket();
@@ -83,6 +200,28 @@ document.addEventListener('DOMContentLoaded', () => {
       setChartBaseCurrency(market.baseCurrency || 'BTC');
     }
     updateAmountUnit();
+  }
+
+  function applyInitialUrlState() {
+    if (initialUrlState.side) setSide(initialUrlState.side);
+    if (initialUrlState.amountType && amountTypeSelect) amountTypeSelect.value = initialUrlState.amountType;
+    if (initialUrlState.amount != null && amountInput) amountInput.value = formatNumberParam(initialUrlState.amount);
+    if (initialUrlState.feeRatePct != null && feeRateInput) feeRateInput.value = formatNumberParam(initialUrlState.feeRatePct);
+
+    const nextExchangeId = initialUrlState.exchangeId || ws.exchangeId;
+    const nextInstrumentId = initialUrlState.instrumentId || ws.instrumentId;
+    if (nextExchangeId || nextInstrumentId) {
+      ws.setMarket(nextExchangeId, nextInstrumentId);
+    }
+
+    updateAmountUnit();
+  }
+
+  function maybeRunInitialSimulation() {
+    if (!shouldRunInitialSimulation || initialSimulationRun || !exchangeListLoaded) return;
+    if (!ws.ws || ws.ws.readyState !== WebSocket.OPEN) return;
+    initialSimulationRun = true;
+    runSimulation();
   }
 
   function clearMarketState() {
@@ -508,7 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function populateExchangeSelect(nextExchanges, defaultExchangeId = 'okj') {
+  function populateExchangeSelect(nextExchanges, defaultExchangeId = 'okj', preferredExchangeId) {
     if (!Array.isArray(nextExchanges) || nextExchanges.length === 0) return;
     exchanges = nextExchanges;
 
@@ -517,7 +656,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const previousValue = exchangeSelect.value || defaultExchangeId;
+    const previousValue = preferredExchangeId || exchangeSelect.value || ws.exchangeId || defaultExchangeId;
     exchangeSelect.innerHTML = exchanges.map(exchange => `
       <option value="${exchange.id}" ${exchange.status !== 'active' ? 'disabled' : ''}>
         ${exchange.label}
@@ -548,16 +687,28 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadExchangesFromApi() {
     try {
       const res = await fetch('/api/exchanges', { cache: 'no-store' });
-      if (!res.ok) return;
+      if (!res.ok) {
+        exchangeListLoaded = true;
+        maybeRunInitialSimulation();
+        return;
+      }
 
       const data = await res.json();
-      populateExchangeSelect(data.exchanges, data.defaultExchangeId);
+      const preferredExchangeId = initialUrlStateConsumed ? ws.exchangeId : (initialUrlState.exchangeId || ws.exchangeId);
+      const preferredInstrumentId = initialUrlStateConsumed ? ws.instrumentId : (initialUrlState.instrumentId || ws.instrumentId);
+      populateExchangeSelect(data.exchanges, data.defaultExchangeId, preferredExchangeId);
       const exchange = getSelectedExchange();
-      populateMarketSelect(exchange, ws.instrumentId || exchange.defaultInstrumentId);
+      populateMarketSelect(exchange, preferredInstrumentId || exchange.defaultInstrumentId);
       const market = getSelectedMarket(exchange);
       ws.setMarket(exchange.id, market.instrumentId);
       setMarketDisplay(exchange, market);
+      exchangeListLoaded = true;
+      initialUrlStateConsumed = true;
+      updateShareUrl();
+      maybeRunInitialSimulation();
     } catch (err) {
+      exchangeListLoaded = true;
+      maybeRunInitialSimulation();
       console.warn('Exchange list fetch failed:', err);
     }
   }
@@ -565,18 +716,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update unit label on amount type change
   amountTypeSelect.addEventListener('change', () => {
     updateAmountUnit();
+    updateShareUrl();
   });
 
   // Side button toggle
   document.querySelectorAll('[data-side]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('[data-side]').forEach(b => {
-        b.classList.remove('is-active');
-        b.setAttribute('aria-pressed', 'false');
-      });
-      btn.classList.add('is-active');
-      btn.setAttribute('aria-pressed', 'true');
-      sideSelect.value = btn.dataset.side;
+      setSide(btn.dataset.side);
+      updateShareUrl();
     });
   });
 
@@ -610,12 +757,20 @@ document.addEventListener('DOMContentLoaded', () => {
       amountType,
       feeRate: feeRatePct / 100,
     };
+    updateShareUrl();
     loadVenueComparison();
     loadSalesReferenceComparison();
     scheduleComparisonRefresh();
   }
 
   simulateBtn.addEventListener('click', runSimulation);
+
+  if (copyShareUrlBtn) {
+    copyShareUrlBtn.addEventListener('click', copyShareUrl);
+  }
+
+  amountInput.addEventListener('input', updateShareUrl);
+  feeRateInput.addEventListener('input', updateShareUrl);
 
   amountInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') runSimulation();
@@ -655,6 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ws.setMarket(exchange.id, market.instrumentId);
       setMarketDisplay(exchange, market);
       clearMarketState();
+      updateShareUrl();
     });
   }
 
@@ -665,11 +821,15 @@ document.addEventListener('DOMContentLoaded', () => {
       ws.setMarket(exchange.id, market.instrumentId);
       setMarketDisplay(exchange, market);
       clearMarketState();
+      updateShareUrl();
     });
   }
 
   // WebSocket handlers
-  ws.on('connected', () => UI.setConnectionStatus('connected'));
+  ws.on('connected', () => {
+    UI.setConnectionStatus('connected');
+    maybeRunInitialSimulation();
+  });
   ws.on('disconnected', () => UI.setConnectionStatus('disconnected'));
   ws.on('reconnecting', () => UI.setConnectionStatus('reconnecting'));
 
@@ -695,12 +855,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   ws.on('exchanges', (data) => {
-    populateExchangeSelect(data.exchanges, data.defaultExchangeId);
+    const preferredExchangeId = initialUrlStateConsumed ? ws.exchangeId : (initialUrlState.exchangeId || ws.exchangeId);
+    const preferredInstrumentId = initialUrlStateConsumed ? ws.instrumentId : (initialUrlState.instrumentId || ws.instrumentId);
+    populateExchangeSelect(data.exchanges, data.defaultExchangeId, preferredExchangeId);
     const exchange = getSelectedExchange();
-    populateMarketSelect(exchange, ws.instrumentId || exchange.defaultInstrumentId);
+    populateMarketSelect(exchange, preferredInstrumentId || exchange.defaultInstrumentId);
     const market = getSelectedMarket(exchange);
     ws.setMarket(exchange.id, market.instrumentId);
     setMarketDisplay(exchange, market);
+    exchangeListLoaded = true;
+    initialUrlStateConsumed = true;
+    updateShareUrl();
+    maybeRunInitialSimulation();
   });
 
   ws.on('simulation', (data) => {
@@ -719,6 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Initialize
+  applyInitialUrlState();
   initDepthChart();
   ws.connect();
   loadExchangesFromApi();

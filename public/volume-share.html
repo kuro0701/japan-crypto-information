@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- HEAD_META_INJECT -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -42,6 +43,42 @@
       </div>
     </section>
 
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">履歴グラフ</h2>
+          <p id="volume-history-meta" class="text-xs text-gray-500 mt-1">日次スナップショットを読み込み中</p>
+        </div>
+        <span class="panel-kicker">History</span>
+      </div>
+      <div class="history-toolbar">
+        <div class="tab-group" role="tablist" aria-label="出来高履歴期間">
+          <button class="btn btn-tab window-tab" data-volume-history-window="7d" type="button" role="tab" aria-selected="false">7日</button>
+          <button class="btn btn-tab window-tab active" data-volume-history-window="30d" type="button" role="tab" aria-selected="true">30日</button>
+        </div>
+      </div>
+      <div class="history-chart-grid mt-3">
+        <div class="history-chart-block">
+          <div class="history-chart-heading">
+            <h3>出来高シェア推移</h3>
+            <p>選択中の銘柄範囲で、取引所ごとの比率を追います</p>
+          </div>
+          <div class="chart-container history-chart-container">
+            <canvas id="volume-share-history-chart"></canvas>
+          </div>
+        </div>
+        <div class="history-chart-block">
+          <div class="history-chart-heading">
+            <h3>取引所ランキング推移</h3>
+            <p id="volume-rank-meta">順位が小さいほど上位です</p>
+          </div>
+          <div class="chart-container history-chart-container">
+            <canvas id="volume-rank-history-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <div class="dashboard-grid dashboard-grid--left">
       <section class="panel panel--dense">
         <div class="panel-title-row mb-3"><h2 class="panel-title">取引所別シェア</h2><span class="panel-kicker">Exchange</span></div>
@@ -68,6 +105,6 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | 出来高はJPY換算です</footer>
 
   <script src="js/formatter.js?v=volume-share-1"></script>
-  <script src="js/volume-share.js?v=volume-share-4"></script>
+  <script src="js/volume-share.js?v=volume-share-5"></script>
 </body>
 </html>
