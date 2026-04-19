@@ -1,6 +1,8 @@
 .DS_Store
 .claude/
 data/*.json
+!data/volume-share-history.json
+!data/sales-spread-history.json
 node_modules/
 npm-debug.log*
 yarn-debug.log*
