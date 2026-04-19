@@ -187,6 +187,34 @@
 
       <section class="panel panel--dense">
         <div class="panel-title-row">
+          <div>
+            <h2 class="panel-title">取引所横断コスト比較</h2>
+            <p id="venue-comparison-meta" class="text-xs text-gray-500 mt-1">シミュレーション実行後に比較します</p>
+          </div>
+          <span class="panel-kicker">Best Venue</span>
+        </div>
+        <div class="overflow-auto scrollbar-thin mt-3">
+          <table class="data-table data-table--cards text-xs">
+            <thead class="sticky top-0 bg-gray-900">
+              <tr>
+                <th id="venue-col-rank" class="is-num text-right w-12">順位</th>
+                <th id="venue-col-exchange" class="text-left">取引所</th>
+                <th id="venue-col-effective" class="is-num text-right">実効コスト</th>
+                <th id="venue-col-vwap" class="is-num text-right">実効VWAP</th>
+                <th id="venue-col-impact" class="is-num text-right">Impact</th>
+                <th id="venue-col-status" class="text-left">判定</th>
+                <th id="venue-col-updated" class="text-right">更新</th>
+              </tr>
+            </thead>
+            <tbody id="venue-comparison-tbody">
+              <tr><td colspan="7" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel panel--dense">
+        <div class="panel-title-row">
           <h2 class="panel-title">約定明細</h2>
           <span class="panel-kicker">Fills</span>
         </div>

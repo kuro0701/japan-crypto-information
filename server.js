@@ -19,6 +19,7 @@ const WSManager = require('./lib/ws-manager');
 const VolumeShareStore = require('./lib/volume-share-store');
 const SalesSpreadStore = require('./lib/sales-spread-store');
 const AnalyticsStore = require('./lib/analytics-store');
+const { calculateImpact, DEFAULT_FEE_RATE } = require('./lib/impact-calculator');
 const { renderHeadMeta } = require('./lib/head-meta');
 const { getArticle, listArticles } = require('./lib/content');
 const {
@@ -368,13 +369,208 @@ app.get('/api/sales-spread', (_req, res) => {
 app.get('/api/admin/analytics', requireAnalyticsAdmin, (req, res) => {
   res.json(analyticsStore.getReport(req.query.window || '7d'));
 });
-app.use(express.static(PUBLIC_DIR));
 app.get('/api/exchanges', (_req, res) => {
   res.json({
     defaultExchangeId: DEFAULT_EXCHANGE_ID,
     exchanges: getPublicExchanges(),
   });
 });
+
+function parseRequestNumber(value) {
+  const parsed = parseFloat(String(value ?? '').replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeComparisonAmountType(value) {
+  const amountType = value === 'btc' ? 'base' : value;
+  return amountType === 'jpy' ? 'jpy' : 'base';
+}
+
+function compareExecutionStatusRank(row) {
+  if (!row || row.status !== 'ready' || !row.result) return 3;
+  if (row.result.executionStatus === 'executable') return 0;
+  if (row.result.executionStatus === 'insufficient_liquidity') return 1;
+  return 2;
+}
+
+function comparisonSortValue(row, side, amountType) {
+  if (!row || !row.result) {
+    return side === 'sell' ? -Infinity : Infinity;
+  }
+
+  const field = amountType === 'jpy' ? 'effectiveVWAP' : 'effectiveCostJPY';
+  const value = Number(row.result[field]);
+  if (!Number.isFinite(value)) return null;
+  return value;
+}
+
+function sortComparisonRows(rows, side, amountType) {
+  return rows.sort((a, b) => {
+    const statusDiff = compareExecutionStatusRank(a) - compareExecutionStatusRank(b);
+    if (statusDiff !== 0) return statusDiff;
+
+    const aValue = comparisonSortValue(a, side, amountType);
+    const bValue = comparisonSortValue(b, side, amountType);
+    if (aValue == null && bValue == null) return 0;
+    if (aValue == null) return 1;
+    if (bValue == null) return -1;
+
+    const valueDiff = side === 'sell' ? bValue - aValue : aValue - bValue;
+    if (valueDiff !== 0) return valueDiff;
+
+    return String(a.exchangeLabel || a.exchangeId).localeCompare(String(b.exchangeLabel || b.exchangeId), 'ja');
+  });
+}
+
+function resultSummary(result) {
+  if (!result || result.error) {
+    return result && result.error ? { error: result.error } : null;
+  }
+
+  return {
+    side: result.side,
+    amountType: result.amountType,
+    totalBTCFilled: result.totalBTCFilled,
+    totalJPYSpent: result.totalJPYSpent,
+    vwap: result.vwap,
+    effectiveCostJPY: result.effectiveCostJPY,
+    effectiveVWAP: result.effectiveVWAP,
+    feesJPY: result.feesJPY,
+    feeRatePct: result.feeRatePct,
+    marketImpactPct: result.marketImpactPct,
+    slippageFromBestPct: result.slippageFromBestPct,
+    slippageFromMidPct: result.slippageFromMidPct,
+    spreadPct: result.spreadPct,
+    levelsConsumed: result.levelsConsumed,
+    totalLevelsAvailable: result.totalLevelsAvailable,
+    executionStatus: result.executionStatus,
+    executionStatusLabel: result.executionStatusLabel,
+    executableUnderGuards: result.executableUnderGuards,
+    insufficient: result.insufficient,
+    shortfallBTC: result.shortfallBTC,
+    shortfallJPY: result.shortfallJPY,
+    bookTimestamp: result.bookTimestamp,
+  };
+}
+
+function buildMarketImpactComparison({ instrumentId, side, amount, amountType, feeRate }) {
+  const generatedAt = new Date().toISOString();
+  const rows = [];
+  const publicExchanges = getPublicExchanges();
+
+  for (const exchange of publicExchanges) {
+    const market = (exchange.markets || []).find(item => (
+      item.instrumentId === instrumentId && (!item.status || item.status === 'active')
+    ));
+
+    if (!market) {
+      rows.push({
+        exchangeId: exchange.id,
+        exchangeLabel: exchange.label || exchange.id,
+        instrumentId,
+        instrumentLabel: instrumentId,
+        status: 'unsupported',
+        message: '未対応銘柄',
+      });
+      continue;
+    }
+
+    const client = clientsByExchange.get(exchange.id);
+    if (client && typeof client.activateInstrument === 'function') {
+      client.activateInstrument(instrumentId);
+    }
+
+    const book = wsManager.latestBooks.get(wsManager.marketKey(exchange.id, instrumentId));
+    if (!book) {
+      rows.push({
+        exchangeId: exchange.id,
+        exchangeLabel: exchange.label || exchange.id,
+        instrumentId,
+        instrumentLabel: market.label || instrumentId,
+        baseCurrency: market.baseCurrency || null,
+        quoteCurrency: market.quoteCurrency || 'JPY',
+        status: 'waiting',
+        message: '板データ待機中',
+      });
+      continue;
+    }
+
+    const result = calculateImpact(side, amount, amountType, book, { feeRate });
+    rows.push({
+      exchangeId: exchange.id,
+      exchangeLabel: exchange.label || exchange.id,
+      instrumentId,
+      instrumentLabel: market.label || instrumentId,
+      baseCurrency: market.baseCurrency || null,
+      quoteCurrency: market.quoteCurrency || 'JPY',
+      status: result && result.error ? 'error' : 'ready',
+      message: result && result.error ? result.error : null,
+      source: book.source || 'rest',
+      receivedAt: book.receivedAt,
+      timestamp: book.timestamp,
+      bestBid: book.bestBid,
+      bestAsk: book.bestAsk,
+      midPrice: book.midPrice,
+      spread: book.spread,
+      spreadPct: book.spreadPct,
+      result: resultSummary(result),
+    });
+  }
+
+  const sortedRows = sortComparisonRows(rows, side, amountType);
+  let rank = 0;
+  for (const row of sortedRows) {
+    if (row.status === 'ready' && row.result && !row.result.error) {
+      rank += 1;
+      row.rank = rank;
+    } else {
+      row.rank = null;
+    }
+  }
+
+  return {
+    meta: {
+      generatedAt,
+      instrumentId,
+      side,
+      amount,
+      amountType,
+      feeRate,
+      readyCount: sortedRows.filter(row => row.status === 'ready').length,
+      waitingCount: sortedRows.filter(row => row.status === 'waiting').length,
+      unsupportedCount: sortedRows.filter(row => row.status === 'unsupported').length,
+    },
+    rows: sortedRows,
+  };
+}
+
+app.get('/api/market-impact-comparison', (req, res) => {
+  const side = req.query.side === 'sell' ? 'sell' : 'buy';
+  const amountType = normalizeComparisonAmountType(req.query.amountType);
+  const amount = parseRequestNumber(req.query.amount);
+  const feeRate = parseRequestNumber(req.query.feeRate ?? DEFAULT_FEE_RATE);
+  const instrumentId = String(req.query.instrumentId || DEFAULT_OKJ_INSTRUMENT_ID).toUpperCase();
+
+  if (amount == null || amount <= 0) {
+    res.status(400).json({ error: 'amount は正の数値を指定してください' });
+    return;
+  }
+
+  if (feeRate == null || feeRate < 0 || feeRate > 1) {
+    res.status(400).json({ error: 'feeRate は0以上1以下を指定してください' });
+    return;
+  }
+
+  res.json(buildMarketImpactComparison({
+    instrumentId,
+    side,
+    amount,
+    amountType,
+    feeRate,
+  }));
+});
+
+app.use(express.static(PUBLIC_DIR));
 
 const server = http.createServer(app);
 const okjClient = new OKCoinClient(500, {
