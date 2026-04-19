@@ -422,6 +422,12 @@ function sortComparisonRows(rows, side, amountType) {
   });
 }
 
+function getBestReadyComparisonRow(comparison) {
+  return (comparison.rows || []).find(row => (
+    row.status === 'ready' && row.result && !row.result.error && row.rank === 1
+  )) || null;
+}
+
 function resultSummary(result) {
   if (!result || result.error) {
     return result && result.error ? { error: result.error } : null;
@@ -562,6 +568,185 @@ app.get('/api/market-impact-comparison', (req, res) => {
   }
 
   res.json(buildMarketImpactComparison({
+    instrumentId,
+    side,
+    amount,
+    amountType,
+    feeRate,
+  }));
+});
+
+function buildSalesReferenceResult(record, { side, amount, amountType }) {
+  const price = side === 'buy' ? Number(record.buyPrice) : Number(record.sellPrice);
+  if (!Number.isFinite(price) || price <= 0) {
+    return null;
+  }
+
+  const isBaseAmount = amountType === 'base';
+  const totalBase = isBaseAmount ? amount : amount / price;
+  const grossQuote = totalBase * price;
+  const effectiveQuote = grossQuote;
+
+  return {
+    side,
+    amountType,
+    price,
+    priceSide: side === 'buy' ? 'buyPrice' : 'sellPrice',
+    requestedAmount: amount,
+    totalBase,
+    grossQuote,
+    effectiveQuote,
+    effectiveVWAP: price,
+    feesJPY: 0,
+    spreadPct: record.spreadPct,
+    capturedAt: record.capturedAt,
+    priceTimestamp: record.priceTimestamp,
+  };
+}
+
+function buildSalesDelta(salesResult, baselineResult, side, amountType) {
+  if (!salesResult || !baselineResult) return null;
+
+  if (amountType === 'base') {
+    const disadvantageJpy = side === 'buy'
+      ? salesResult.effectiveQuote - baselineResult.effectiveCostJPY
+      : baselineResult.effectiveCostJPY - salesResult.effectiveQuote;
+    return {
+      type: 'quote',
+      disadvantageJpy,
+      quoteDelta: side === 'buy'
+        ? salesResult.effectiveQuote - baselineResult.effectiveCostJPY
+        : salesResult.effectiveQuote - baselineResult.effectiveCostJPY,
+      baseDelta: 0,
+    };
+  }
+
+  const baseDelta = salesResult.totalBase - baselineResult.totalBTCFilled;
+  const disadvantageJpy = side === 'buy'
+    ? (baselineResult.totalBTCFilled - salesResult.totalBase) * salesResult.price
+    : (salesResult.totalBase - baselineResult.totalBTCFilled) * salesResult.price;
+
+  return {
+    type: 'base',
+    disadvantageJpy,
+    baseDelta,
+    quoteDelta: 0,
+  };
+}
+
+function saleReferenceSortValue(row) {
+  if (!row || row.status !== 'ready' || !row.delta) return Infinity;
+  const value = Number(row.delta.disadvantageJpy);
+  return Number.isFinite(value) ? value : Infinity;
+}
+
+function sortSalesReferenceRows(rows) {
+  return rows.sort((a, b) => {
+    if (a.status === 'ready' && b.status !== 'ready') return -1;
+    if (a.status !== 'ready' && b.status === 'ready') return 1;
+
+    const valueDiff = saleReferenceSortValue(a) - saleReferenceSortValue(b);
+    if (valueDiff !== 0) return valueDiff;
+
+    return String(a.exchangeLabel || a.exchangeId).localeCompare(String(b.exchangeLabel || b.exchangeId), 'ja');
+  });
+}
+
+function buildSalesReferenceComparison({ instrumentId, side, amount, amountType, feeRate }) {
+  const generatedAt = new Date().toISOString();
+  const venueComparison = buildMarketImpactComparison({
+    instrumentId,
+    side,
+    amount,
+    amountType,
+    feeRate,
+  });
+  const baseline = getBestReadyComparisonRow(venueComparison);
+  const latestSalesRecords = salesSpreadStore.getLatestRecords()
+    .filter(record => record.instrumentId === instrumentId);
+
+  const rows = latestSalesRecords.map((record) => {
+    const result = buildSalesReferenceResult(record, { side, amount, amountType });
+    const delta = baseline && result
+      ? buildSalesDelta(result, baseline.result, side, amountType)
+      : null;
+
+    return {
+      exchangeId: record.exchangeId,
+      exchangeLabel: record.exchangeLabel,
+      instrumentId: record.instrumentId,
+      instrumentLabel: record.instrumentLabel,
+      baseCurrency: record.baseCurrency,
+      quoteCurrency: record.quoteCurrency || 'JPY',
+      currencyFullName: record.currencyFullName,
+      status: result ? 'ready' : 'error',
+      message: result ? null : '販売所価格を計算できません',
+      buyPrice: record.buyPrice,
+      sellPrice: record.sellPrice,
+      quotePrecision: record.quotePrecision,
+      spread: record.spread,
+      spreadPct: record.spreadPct,
+      isOnline: record.isOnline,
+      isWidgetOpen: record.isWidgetOpen,
+      capturedAt: record.capturedAt,
+      priceTimestamp: record.priceTimestamp,
+      result,
+      delta,
+      riskLabel: '価格再提示リスクあり',
+      assumption: '販売所の表示価格が全数量に適用されると仮定した参考値です。',
+    };
+  });
+
+  const sortedRows = sortSalesReferenceRows(rows);
+  let rank = 0;
+  for (const row of sortedRows) {
+    if (row.status === 'ready') {
+      rank += 1;
+      row.rank = rank;
+    } else {
+      row.rank = null;
+    }
+  }
+
+  return {
+    meta: {
+      generatedAt,
+      instrumentId,
+      side,
+      amount,
+      amountType,
+      feeRate,
+      saleRecordCount: sortedRows.length,
+      baselineExchangeId: baseline ? baseline.exchangeId : null,
+      baselineExchangeLabel: baseline ? baseline.exchangeLabel : null,
+      baselineReady: Boolean(baseline),
+      venueReadyCount: venueComparison.meta.readyCount,
+      refreshStatus: salesSpreadStore.refreshStatus,
+      assumption: '販売所は板情報がないため、表示価格が全数量に適用されると仮定した参考値です。実際の発注時には価格再提示、数量制限、約定拒否が発生する場合があります。',
+    },
+    baseline,
+    rows: sortedRows,
+  };
+}
+
+app.get('/api/sales-reference-comparison', (req, res) => {
+  const side = req.query.side === 'sell' ? 'sell' : 'buy';
+  const amountType = normalizeComparisonAmountType(req.query.amountType);
+  const amount = parseRequestNumber(req.query.amount);
+  const feeRate = parseRequestNumber(req.query.feeRate ?? DEFAULT_FEE_RATE);
+  const instrumentId = String(req.query.instrumentId || DEFAULT_OKJ_INSTRUMENT_ID).toUpperCase();
+
+  if (amount == null || amount <= 0) {
+    res.status(400).json({ error: 'amount は正の数値を指定してください' });
+    return;
+  }
+
+  if (feeRate == null || feeRate < 0 || feeRate > 1) {
+    res.status(400).json({ error: 'feeRate は0以上1以下を指定してください' });
+    return;
+  }
+
+  res.json(buildSalesReferenceComparison({
     instrumentId,
     side,
     amount,

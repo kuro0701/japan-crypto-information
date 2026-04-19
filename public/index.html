@@ -215,6 +215,37 @@
 
       <section class="panel panel--dense">
         <div class="panel-title-row">
+          <div>
+            <h2 class="panel-title">販売所参考コスト比較</h2>
+            <p id="sales-reference-meta" class="text-xs text-gray-500 mt-1">販売所は表示価格ベースの参考値です</p>
+          </div>
+          <span class="panel-kicker">Indicative</span>
+        </div>
+        <p class="text-xs text-gray-600 mt-2">
+          販売所は板情報がないため、表示価格が全数量に適用されると仮定した参考値です。実際の発注時には価格再提示、数量制限、約定拒否が発生する場合があります。
+        </p>
+        <div class="overflow-auto scrollbar-thin mt-3">
+          <table class="data-table data-table--cards text-xs">
+            <thead class="sticky top-0 bg-gray-900">
+              <tr>
+                <th id="sales-ref-col-rank" class="is-num text-right w-12">順位</th>
+                <th id="sales-ref-col-exchange" class="text-left">販売所</th>
+                <th id="sales-ref-col-price" class="is-num text-right">表示価格</th>
+                <th id="sales-ref-col-result" class="is-num text-right">参考結果</th>
+                <th id="sales-ref-col-delta" class="is-num text-right">最良取引所との差</th>
+                <th id="sales-ref-col-risk" class="text-left">注意</th>
+                <th id="sales-ref-col-updated" class="text-right">更新</th>
+              </tr>
+            </thead>
+            <tbody id="sales-reference-tbody">
+              <tr><td colspan="7" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel panel--dense">
+        <div class="panel-title-row">
           <h2 class="panel-title">約定明細</h2>
           <span class="panel-kicker">Fills</span>
         </div>
