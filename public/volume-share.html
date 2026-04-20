@@ -44,6 +44,16 @@
     </section>
 
     <section class="panel panel--dense">
+      <div class="panel-title-row mb-3"><div><h2 class="panel-title">データ鮮度・信頼度</h2><p id="volume-quality-meta" class="text-xs text-gray-500 mt-1">取引所ごとの取得状況を確認中</p></div><span class="panel-kicker">Data Quality</span></div>
+      <div class="overflow-auto scrollbar-thin">
+        <table class="data-table data-table--cards text-xs">
+          <thead class="sticky"><tr><th class="text-left">取引所</th><th class="text-left">API</th><th class="text-left">経路</th><th class="is-num text-right">サンプル</th><th class="text-left">種別</th><th class="text-right">最終取得</th></tr></thead>
+          <tbody id="volume-quality-tbody"><tr><td colspan="6" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">履歴グラフ</h2>
@@ -105,6 +115,6 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | 出来高はJPY換算です</footer>
 
   <script src="js/formatter.js?v=volume-share-1"></script>
-  <script src="js/volume-share.js?v=volume-share-5"></script>
+  <script src="js/volume-share.js?v=volume-share-6"></script>
 </body>
 </html>

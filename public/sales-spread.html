@@ -43,6 +43,16 @@
     </section>
 
     <section class="panel panel--dense">
+      <div class="panel-title-row mb-3"><div><h2 class="panel-title">データ鮮度・信頼度</h2><p id="spread-quality-meta" class="text-xs text-gray-500 mt-1">販売所ごとの取得状況を確認中</p></div><span class="panel-kicker">Data Quality</span></div>
+      <div class="overflow-auto scrollbar-thin">
+        <table class="data-table data-table--cards text-xs">
+          <thead class="sticky"><tr><th class="text-left">販売所</th><th class="text-left">API</th><th class="text-left">経路</th><th class="is-num text-right">サンプル</th><th class="text-left">種別</th><th class="text-right">最終取得</th></tr></thead>
+          <tbody id="spread-quality-tbody"><tr><td colspan="6" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">スプレッド推移</h2>
@@ -79,6 +89,6 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | 販売所価格はJPY建て、スプレッド率は仲値比です</footer>
 
   <script src="js/formatter.js?v=sales-spread-1"></script>
-  <script src="js/sales-spread.js?v=sales-spread-7"></script>
+  <script src="js/sales-spread.js?v=sales-spread-8"></script>
 </body>
 </html>

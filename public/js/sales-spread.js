@@ -72,6 +72,40 @@ document.addEventListener('DOMContentLoaded', () => {
     return '記録待ち';
   }
 
+  const API_STATUS_LABELS = {
+    success: '成功',
+    partial: '一部失敗',
+    failed: '失敗',
+    waiting: '待機中',
+  };
+
+  const DATA_KIND_LABELS = {
+    measured: '実測',
+    estimated: '推定',
+    mixed: '推定含む',
+    unknown: '-',
+  };
+
+  const TRANSPORT_LABELS = {
+    websocket: 'WebSocket',
+    rest: 'REST',
+    web: 'Web',
+  };
+
+  function transportLabel(sources) {
+    const labels = (sources || [])
+      .map(source => TRANSPORT_LABELS[source] || source)
+      .filter(Boolean);
+    return labels.length > 0 ? labels.join(' + ') : '-';
+  }
+
+  function qualityStatusCell(row) {
+    const status = row.apiStatus || 'waiting';
+    const label = API_STATUS_LABELS[status] || status;
+    const note = row.message ? `<div class="quality-note" title="${escapeHtml(row.message)}">${escapeHtml(row.message)}</div>` : '';
+    return `<span class="quality-badge quality-badge--${escapeHtml(status)}">${escapeHtml(label)}</span>${note}`;
+  }
+
   function historySourceLabel(meta) {
     if (!meta) return '記録待ち';
     if (meta.source === 'daily-snapshots') return `日次 ${meta.historySnapshotCount}件`;
@@ -266,6 +300,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
+  function renderQualityRows(qualityRows) {
+    const tbody = $('spread-quality-tbody');
+    if (!tbody) return;
+
+    const rows = (qualityRows || []).filter(row => (
+      selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange
+    ));
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-4">記録待ち</td></tr>';
+      setText('spread-quality-meta', '取得状況の記録待ち');
+      return;
+    }
+
+    const successCount = rows.filter(row => row.apiStatus === 'success').length;
+    const issueCount = rows.filter(row => row.apiStatus === 'partial' || row.apiStatus === 'failed').length;
+    const measuredCount = rows.reduce((sum, row) => sum + (Number(row.measuredCount) || 0), 0);
+    const estimatedCount = rows.reduce((sum, row) => sum + (Number(row.estimatedCount) || 0), 0);
+    setText(
+      'spread-quality-meta',
+      `${rows.length}販売所 | 成功 ${successCount} | 要確認 ${issueCount} | 実測 ${measuredCount} / 推定 ${estimatedCount}`
+    );
+
+    tbody.innerHTML = rows.map(row => `
+      <tr class="border-b border-gray-800/60">
+        <td class="font-bold text-gray-200" data-label="販売所">${escapeHtml(row.exchangeLabel || row.exchangeId)}</td>
+        <td class="text-gray-300" data-label="API">${qualityStatusCell(row)}</td>
+        <td class="text-gray-300" data-label="経路">${escapeHtml(transportLabel(row.transportSources))}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="サンプル">${Number(row.sampleCount) || 0}</td>
+        <td class="text-gray-300" data-label="種別">${escapeHtml(DATA_KIND_LABELS[row.dataKind] || row.dataKind || '-')}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="最終取得">
+          ${escapeHtml(fmtDateTime(row.lastFetchedAt))}
+          <div class="text-[10px] text-gray-500">元データ ${escapeHtml(fmtDateTime(row.lastSourceAt))}</div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
   function renderSummary(rows) {
     const rowsWithSpread = rows
       .map(row => ({ row, summary: getSummarySpread(row) }))
@@ -302,10 +373,12 @@ document.addEventListener('DOMContentLoaded', () => {
     renderSummary(rows);
     renderMeta(rows);
     renderRows(rows);
+    renderQualityRows(latestMeta.quality || []);
   }
 
   function render(data) {
     latestMeta = data.meta || {};
+    latestMeta.quality = data.quality || [];
     allRows = data.rows || [];
     populateExchangeFilter();
     populateHistoryInstrumentFilter();

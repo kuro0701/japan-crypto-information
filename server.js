@@ -9,11 +9,13 @@ const BitflyerClient = require('./lib/bitflyer-client');
 const BitbankClient = require('./lib/bitbank-client');
 const GMOClient = require('./lib/gmo-client');
 const BinanceJapanClient = require('./lib/binance-japan-client');
+const BitTradeClient = require('./lib/bittrade-client');
 const OKJSaleClient = require('./lib/okj-sale-client');
 const CoincheckSalesClient = require('./lib/coincheck-sales-client');
 const BitflyerSalesClient = require('./lib/bitflyer-sales-client');
 const BitbankSalesClient = require('./lib/bitbank-sales-client');
 const GMOSalesClient = require('./lib/gmo-sales-client');
+const BitTradeSalesClient = require('./lib/bittrade-sales-client');
 const OrderBook = require('./lib/orderbook');
 const WSManager = require('./lib/ws-manager');
 const VolumeShareStore = require('./lib/volume-share-store');
@@ -35,6 +37,8 @@ const {
   DEFAULT_GMO_INSTRUMENT_ID,
   BINANCE_JAPAN_EXCHANGE_ID,
   DEFAULT_BINANCE_JAPAN_INSTRUMENT_ID,
+  BITTRADE_EXCHANGE_ID,
+  DEFAULT_BITTRADE_INSTRUMENT_ID,
   EXCHANGES,
   getPublicExchanges,
   setExchangeMarkets,
@@ -782,11 +786,15 @@ const gmoClient = new GMOClient(500, {
 const binanceJapanClient = new BinanceJapanClient(500, {
   defaultInstrumentId: DEFAULT_BINANCE_JAPAN_INSTRUMENT_ID,
 });
+const bittradeClient = new BitTradeClient(500, {
+  defaultInstrumentId: DEFAULT_BITTRADE_INSTRUMENT_ID,
+});
 const okjSaleClient = new OKJSaleClient();
 const coincheckSaleClient = new CoincheckSalesClient();
 const bitflyerSaleClient = new BitflyerSalesClient();
 const bitbankSaleClient = new BitbankSalesClient();
 const gmoSaleClient = new GMOSalesClient();
+const bittradeSaleClient = new BitTradeSalesClient();
 const clientsByExchange = new Map([
   [DEFAULT_EXCHANGE_ID, okjClient],
   [COINCHECK_EXCHANGE_ID, coincheckClient],
@@ -794,6 +802,7 @@ const clientsByExchange = new Map([
   [BITBANK_EXCHANGE_ID, bitbankClient],
   [GMO_EXCHANGE_ID, gmoClient],
   [BINANCE_JAPAN_EXCHANGE_ID, binanceJapanClient],
+  [BITTRADE_EXCHANGE_ID, bittradeClient],
 ]);
 const defaultInstrumentIds = {
   [DEFAULT_EXCHANGE_ID]: DEFAULT_OKJ_INSTRUMENT_ID,
@@ -802,6 +811,7 @@ const defaultInstrumentIds = {
   [BITBANK_EXCHANGE_ID]: DEFAULT_BITBANK_INSTRUMENT_ID,
   [GMO_EXCHANGE_ID]: DEFAULT_GMO_INSTRUMENT_ID,
   [BINANCE_JAPAN_EXCHANGE_ID]: DEFAULT_BINANCE_JAPAN_INSTRUMENT_ID,
+  [BITTRADE_EXCHANGE_ID]: DEFAULT_BITTRADE_INSTRUMENT_ID,
 };
 const wsManager = new WSManager(server, {
   exchanges: getPublicExchanges(),
@@ -893,6 +903,7 @@ wireExchangeClient(BITFLYER_EXCHANGE_ID, bitflyerClient, 'bitFlyer');
 wireExchangeClient(BITBANK_EXCHANGE_ID, bitbankClient, 'bitbank');
 wireExchangeClient(GMO_EXCHANGE_ID, gmoClient, 'GMO Coin');
 wireExchangeClient(BINANCE_JAPAN_EXCHANGE_ID, binanceJapanClient, 'Binance Japan');
+wireExchangeClient(BITTRADE_EXCHANGE_ID, bittradeClient, 'BitTrade');
 
 const TICKER_FETCH_DELAY_MS = 120;
 const VOLUME_REFRESH_INTERVAL_MS = 60 * 60 * 1000;
@@ -953,6 +964,7 @@ async function refreshAllVolumeTickers(source = 'scheduled') {
           if (rawTicker) {
             const ticker = wsManager.normalizeTicker({
               ...rawTicker,
+              dataSource: rawTicker.dataSource || rawTicker.source || 'rest',
               exchangeId: exchange.id,
               instrumentId: rawTicker.instrument_id || rawTicker.instrumentId || market.instrumentId,
             });
@@ -1036,6 +1048,11 @@ async function refreshSalesSpreadRecords(source = 'scheduled') {
         exchangeId: GMO_EXCHANGE_ID,
         label: 'GMO Coin',
         client: gmoSaleClient,
+      },
+      {
+        exchangeId: BITTRADE_EXCHANGE_ID,
+        label: 'BitTrade',
+        client: bittradeSaleClient,
       },
     ];
 
