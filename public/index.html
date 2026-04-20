@@ -96,6 +96,18 @@
           </div>
         </div>
 
+        <div class="favorite-settings mb-3">
+          <div class="favorite-settings__header">
+            <span>お気に入り・初期設定</span>
+            <span id="settings-save-status">このブラウザに保存</span>
+          </div>
+          <div id="favorite-market-list" class="favorite-market-list" aria-label="お気に入り銘柄"></div>
+          <div class="favorite-settings__actions">
+            <button id="save-favorite-btn" class="btn btn-secondary px-3 py-2 rounded-lg text-xs" type="button">今の銘柄を保存</button>
+            <button id="clear-settings-btn" class="btn btn-ghost px-3 py-2 rounded-lg text-xs" type="button">初期設定リセット</button>
+          </div>
+        </div>
+
         <div class="grid grid-cols-2 gap-2">
           <button id="simulate-btn" class="btn btn-primary col-span-2 py-2.5 rounded-lg font-bold text-sm" type="button">シミュレーション実行</button>
           <button id="clear-btn" class="btn btn-ghost justify-self-start px-3 py-2.5 rounded-lg text-sm" type="button">クリア</button>
@@ -317,6 +329,6 @@
   <script src="js/ws-client.js?v=volume-1"></script>
   <script src="js/ui.js?v=volume-1"></script>
   <script src="js/chart.js?v=volume-1"></script>
-  <script src="js/app.js?v=volume-3"></script>
+  <script src="js/app.js?v=volume-4"></script>
 </body>
 </html>

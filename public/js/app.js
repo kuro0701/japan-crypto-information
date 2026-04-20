@@ -36,6 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBtn = document.getElementById('clear-btn');
   const copyShareUrlBtn = document.getElementById('copy-share-url-btn');
   const shareUrlStatus = document.getElementById('share-url-status');
+  const favoriteMarketList = document.getElementById('favorite-market-list');
+  const saveFavoriteBtn = document.getElementById('save-favorite-btn');
+  const clearSettingsBtn = document.getElementById('clear-settings-btn');
+  const settingsSaveStatus = document.getElementById('settings-save-status');
   const alertTypeSelect = document.getElementById('alert-type');
   const alertThresholdInput = document.getElementById('alert-threshold');
   const alertHelp = document.getElementById('alert-help');
@@ -44,7 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const alertTbody = document.getElementById('alert-tbody');
   const autoUpdateCheck = document.getElementById('auto-update');
   const amountUnit = document.getElementById('amount-unit');
+  const SETTINGS_STORAGE_KEY = 'okj.simulatorSettings.v1';
+  const FAVORITE_MARKETS_STORAGE_KEY = 'okj.favoriteMarkets.v1';
   const ALERT_STORAGE_KEY = 'okj.localAlerts.v1';
+  const MAX_FAVORITE_MARKETS = 8;
   const ALERT_REFRESH_MS = 60000;
   let exchangeListLoaded = false;
   let initialUrlStateConsumed = false;
@@ -54,6 +61,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let alertRefreshTimer = null;
   let alertRefreshRunning = false;
   let lastAlertRefreshAt = null;
+  let favoriteMarkets = [];
+  let settingsStatusTimer = null;
 
   const parseNumberInput = (value) => parseFloat(String(value || '').replace(/,/g, ''));
   const formatNumberParam = (value) => {
@@ -93,6 +102,85 @@ document.addEventListener('DOMContentLoaded', () => {
   const normalizeInstrumentId = (value) => String(value || '').trim().toUpperCase();
   const normalizeExchangeId = (value) => String(value || '').trim().toLowerCase();
 
+  function storageGet(key, fallback) {
+    try {
+      const value = localStorage.getItem(key);
+      return value == null ? fallback : JSON.parse(value);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function storageSet(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function storageRemove(key) {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function normalizeFeeRatePct(value) {
+    const parsed = parseNumberInput(value);
+    return Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : null;
+  }
+
+  function readSavedSettings() {
+    const raw = storageGet(SETTINGS_STORAGE_KEY, {});
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+
+    return {
+      exchangeId: normalizeExchangeId(raw.exchangeId),
+      instrumentId: normalizeInstrumentId(raw.instrumentId),
+      side: normalizeSide(raw.side),
+      amountType: normalizeAmountType(raw.amountType),
+      feeRatePct: normalizeFeeRatePct(raw.feeRatePct),
+    };
+  }
+
+  function normalizeFavoriteMarket(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const exchangeId = normalizeExchangeId(raw.exchangeId);
+    const instrumentId = normalizeInstrumentId(raw.instrumentId);
+    if (!exchangeId || !instrumentId) return null;
+
+    return {
+      exchangeId,
+      instrumentId,
+      exchangeLabel: String(raw.exchangeLabel || exchangeId),
+      instrumentLabel: String(raw.instrumentLabel || instrumentId),
+      baseCurrency: String(raw.baseCurrency || instrumentId.split('-')[0] || ''),
+      quoteCurrency: String(raw.quoteCurrency || instrumentId.split('-')[1] || 'JPY'),
+      savedAt: raw.savedAt || new Date().toISOString(),
+    };
+  }
+
+  function readFavoriteMarkets() {
+    const raw = storageGet(FAVORITE_MARKETS_STORAGE_KEY, []);
+    if (!Array.isArray(raw)) return [];
+
+    const seen = new Set();
+    const favorites = [];
+    for (const item of raw) {
+      const favorite = normalizeFavoriteMarket(item);
+      if (!favorite) continue;
+      const key = favoriteKey(favorite.exchangeId, favorite.instrumentId);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      favorites.push(favorite);
+    }
+    return favorites.slice(0, MAX_FAVORITE_MARKETS);
+  }
+
   function readUrlState() {
     const params = new URLSearchParams(window.location.search);
     const amount = parseNumberInput(params.get('amount'));
@@ -108,10 +196,17 @@ document.addEventListener('DOMContentLoaded', () => {
       feeRatePct: Number.isFinite(feeRatePct) && feeRatePct >= 0 && feeRatePct <= 100
         ? feeRatePct
         : (Number.isFinite(feeRateDecimal) && feeRateDecimal >= 0 && feeRateDecimal <= 1 ? feeRateDecimal * 100 : null),
+      hasExchange: params.has('exchange') || params.has('exchangeId'),
+      hasInstrument: params.has('market') || params.has('instrument') || params.has('instrumentId'),
+      hasSide: params.has('side'),
+      hasAmountType: params.has('amountType'),
+      hasAmount: params.has('amount'),
+      hasFeeRate: params.has('feeRatePct') || params.has('feeRate') || params.has('feeRateDecimal'),
     };
   }
 
   const initialUrlState = readUrlState();
+  const savedSettings = readSavedSettings();
   const shouldRunInitialSimulation = initialUrlState.amount != null;
 
   function setShareStatus(message) {
@@ -123,6 +218,123 @@ document.addEventListener('DOMContentLoaded', () => {
         shareUrlStatus.textContent = '';
       }, 2400);
     }
+  }
+
+  function setSettingsStatus(message) {
+    if (!settingsSaveStatus) return;
+    settingsSaveStatus.textContent = message || 'このブラウザに保存';
+    if (settingsStatusTimer) clearTimeout(settingsStatusTimer);
+    if (message) {
+      settingsStatusTimer = setTimeout(() => {
+        settingsSaveStatus.textContent = 'このブラウザに保存';
+      }, 2400);
+    }
+  }
+
+  function favoriteKey(exchangeId, instrumentId) {
+    return `${normalizeExchangeId(exchangeId)}:${normalizeInstrumentId(instrumentId)}`;
+  }
+
+  function currentSettingsDraft() {
+    const exchange = getSelectedExchange();
+    const market = getSelectedMarket(exchange);
+    const feeRatePct = normalizeFeeRatePct(feeRateInput && feeRateInput.value);
+    const previous = readSavedSettings();
+
+    return {
+      ...previous,
+      exchangeId: exchange && exchange.id,
+      instrumentId: market && market.instrumentId,
+      side: normalizeSide(sideSelect && sideSelect.value) || 'buy',
+      amountType: normalizeAmountType(amountTypeSelect && amountTypeSelect.value) || 'base',
+      feeRatePct: feeRatePct == null ? previous.feeRatePct : feeRatePct,
+      savedAt: new Date().toISOString(),
+    };
+  }
+
+  function saveCurrentSettings(options = {}) {
+    const { statusMessage = null } = options;
+    const settings = currentSettingsDraft();
+    const ok = storageSet(SETTINGS_STORAGE_KEY, settings);
+    if (statusMessage) {
+      setSettingsStatus(ok ? statusMessage : '保存できませんでした');
+    }
+    return ok;
+  }
+
+  function saveFavoriteMarkets() {
+    return storageSet(FAVORITE_MARKETS_STORAGE_KEY, favoriteMarkets);
+  }
+
+  function renderFavoriteMarkets() {
+    if (!favoriteMarketList) return;
+    if (!favoriteMarkets || favoriteMarkets.length === 0) {
+      favoriteMarketList.innerHTML = '<span class="favorite-empty">お気に入り未登録</span>';
+      return;
+    }
+
+    const current = favoriteKey(
+      getSelectedExchange() && getSelectedExchange().id,
+      getSelectedMarket() && getSelectedMarket().instrumentId
+    );
+
+    favoriteMarketList.innerHTML = favoriteMarkets.map((favorite) => {
+      const key = favoriteKey(favorite.exchangeId, favorite.instrumentId);
+      const activeClass = key === current ? ' is-active' : '';
+      return `
+        <span class="favorite-item">
+          <button class="favorite-chip${activeClass}" type="button" data-favorite-key="${escapeHtml(key)}" title="${escapeHtml(favorite.exchangeLabel)} / ${escapeHtml(favorite.instrumentLabel)}">
+            ${escapeHtml(favorite.instrumentLabel)}
+            <span class="favorite-chip__exchange">${escapeHtml(favorite.exchangeLabel)}</span>
+          </button>
+          <button class="favorite-remove" type="button" data-favorite-remove="${escapeHtml(key)}" aria-label="${escapeHtml(favorite.instrumentLabel)} をお気に入りから削除">削除</button>
+        </span>
+      `;
+    }).join('');
+  }
+
+  function saveCurrentFavorite() {
+    const exchange = getSelectedExchange();
+    const market = getSelectedMarket(exchange);
+    if (!exchange || !market) return;
+
+    const key = favoriteKey(exchange.id, market.instrumentId);
+    const favorite = {
+      exchangeId: exchange.id,
+      instrumentId: market.instrumentId,
+      exchangeLabel: exchange.label || exchange.id,
+      instrumentLabel: market.label || market.instrumentId,
+      baseCurrency: market.baseCurrency || '',
+      quoteCurrency: market.quoteCurrency || 'JPY',
+      savedAt: new Date().toISOString(),
+    };
+    favoriteMarkets = [favorite]
+      .concat(favoriteMarkets.filter(item => favoriteKey(item.exchangeId, item.instrumentId) !== key))
+      .slice(0, MAX_FAVORITE_MARKETS);
+    saveFavoriteMarkets();
+    renderFavoriteMarkets();
+    saveCurrentSettings({ statusMessage: 'お気に入りに保存しました' });
+  }
+
+  function applyFavoriteMarket(key) {
+    const favorite = favoriteMarkets.find(item => favoriteKey(item.exchangeId, item.instrumentId) === key);
+    if (!favorite) return;
+
+    const exchange = exchanges.find(item => item.id === favorite.exchangeId);
+    if (!exchange || exchange.status !== 'active') {
+      setSettingsStatus('この取引所は現在選べません');
+      return;
+    }
+
+    if (exchangeSelect) exchangeSelect.value = exchange.id;
+    populateMarketSelect(exchange, favorite.instrumentId);
+    const market = getSelectedMarket(exchange);
+    ws.setMarket(exchange.id, market.instrumentId);
+    setMarketDisplay(exchange, market);
+    clearMarketState();
+    updateShareUrl();
+    saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
+    renderFavoriteMarkets();
   }
 
   function setSide(side) {
@@ -520,13 +732,19 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function applyInitialUrlState() {
-    if (initialUrlState.side) setSide(initialUrlState.side);
-    if (initialUrlState.amountType && amountTypeSelect) amountTypeSelect.value = initialUrlState.amountType;
-    if (initialUrlState.amount != null && amountInput) amountInput.value = formatNumberParam(initialUrlState.amount);
-    if (initialUrlState.feeRatePct != null && feeRateInput) feeRateInput.value = formatNumberParam(initialUrlState.feeRatePct);
+    const initialSide = initialUrlState.hasSide ? initialUrlState.side : savedSettings.side;
+    const initialAmountType = initialUrlState.hasAmountType ? initialUrlState.amountType : savedSettings.amountType;
+    const initialFeeRatePct = initialUrlState.hasFeeRate ? initialUrlState.feeRatePct : savedSettings.feeRatePct;
+    const initialExchangeId = initialUrlState.hasExchange ? initialUrlState.exchangeId : savedSettings.exchangeId;
+    const initialInstrumentId = initialUrlState.hasInstrument ? initialUrlState.instrumentId : savedSettings.instrumentId;
 
-    const nextExchangeId = initialUrlState.exchangeId || ws.exchangeId;
-    const nextInstrumentId = initialUrlState.instrumentId || ws.instrumentId;
+    if (initialSide) setSide(initialSide);
+    if (initialAmountType && amountTypeSelect) amountTypeSelect.value = initialAmountType;
+    if (initialUrlState.amount != null && amountInput) amountInput.value = formatNumberParam(initialUrlState.amount);
+    if (initialFeeRatePct != null && feeRateInput) feeRateInput.value = formatNumberParam(initialFeeRatePct);
+
+    const nextExchangeId = initialExchangeId || ws.exchangeId;
+    const nextInstrumentId = initialInstrumentId || ws.instrumentId;
     if (nextExchangeId || nextInstrumentId) {
       ws.setMarket(nextExchangeId, nextInstrumentId);
     }
@@ -1011,8 +1229,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await res.json();
-      const preferredExchangeId = initialUrlStateConsumed ? ws.exchangeId : (initialUrlState.exchangeId || ws.exchangeId);
-      const preferredInstrumentId = initialUrlStateConsumed ? ws.instrumentId : (initialUrlState.instrumentId || ws.instrumentId);
+      const preferredExchangeId = initialUrlStateConsumed
+        ? ws.exchangeId
+        : ((initialUrlState.hasExchange ? initialUrlState.exchangeId : savedSettings.exchangeId) || ws.exchangeId);
+      const preferredInstrumentId = initialUrlStateConsumed
+        ? ws.instrumentId
+        : ((initialUrlState.hasInstrument ? initialUrlState.instrumentId : savedSettings.instrumentId) || ws.instrumentId);
       populateExchangeSelect(data.exchanges, data.defaultExchangeId, preferredExchangeId);
       const exchange = getSelectedExchange();
       populateMarketSelect(exchange, preferredInstrumentId || exchange.defaultInstrumentId);
@@ -1022,6 +1244,7 @@ document.addEventListener('DOMContentLoaded', () => {
       exchangeListLoaded = true;
       initialUrlStateConsumed = true;
       updateShareUrl();
+      renderFavoriteMarkets();
       maybeRunInitialSimulation();
     } catch (err) {
       exchangeListLoaded = true;
@@ -1034,6 +1257,7 @@ document.addEventListener('DOMContentLoaded', () => {
   amountTypeSelect.addEventListener('change', () => {
     updateAmountUnit();
     updateShareUrl();
+    saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
   });
 
   // Side button toggle
@@ -1041,6 +1265,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       setSide(btn.dataset.side);
       updateShareUrl();
+      saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
     });
   });
 
@@ -1075,6 +1300,7 @@ document.addEventListener('DOMContentLoaded', () => {
       feeRate: feeRatePct / 100,
     };
     updateShareUrl();
+    saveCurrentSettings();
     loadVenueComparison();
     loadSalesReferenceComparison();
     scheduleComparisonRefresh();
@@ -1098,6 +1324,37 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshAlertsBtn.addEventListener('click', refreshAlerts);
   }
 
+  if (saveFavoriteBtn) {
+    saveFavoriteBtn.addEventListener('click', saveCurrentFavorite);
+  }
+
+  if (clearSettingsBtn) {
+    clearSettingsBtn.addEventListener('click', () => {
+      storageRemove(SETTINGS_STORAGE_KEY);
+      setSettingsStatus('次回は標準設定で開きます');
+    });
+  }
+
+  if (favoriteMarketList) {
+    favoriteMarketList.addEventListener('click', (event) => {
+      const target = event.target && event.target.closest
+        ? event.target.closest('[data-favorite-key], [data-favorite-remove]')
+        : null;
+      if (!target) return;
+
+      const removeKey = target.dataset.favoriteRemove;
+      if (removeKey) {
+        favoriteMarkets = favoriteMarkets.filter(item => favoriteKey(item.exchangeId, item.instrumentId) !== removeKey);
+        saveFavoriteMarkets();
+        renderFavoriteMarkets();
+        setSettingsStatus('お気に入りを削除しました');
+        return;
+      }
+
+      applyFavoriteMarket(target.dataset.favoriteKey);
+    });
+  }
+
   if (alertTbody) {
     alertTbody.addEventListener('click', (event) => {
       const button = event.target && event.target.closest
@@ -1112,7 +1369,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   amountInput.addEventListener('input', updateShareUrl);
-  feeRateInput.addEventListener('input', updateShareUrl);
+  feeRateInput.addEventListener('input', () => {
+    updateShareUrl();
+    saveCurrentSettings();
+  });
 
   amountInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') runSimulation();
@@ -1153,6 +1413,8 @@ document.addEventListener('DOMContentLoaded', () => {
       setMarketDisplay(exchange, market);
       clearMarketState();
       updateShareUrl();
+      saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
+      renderFavoriteMarkets();
     });
   }
 
@@ -1164,6 +1426,8 @@ document.addEventListener('DOMContentLoaded', () => {
       setMarketDisplay(exchange, market);
       clearMarketState();
       updateShareUrl();
+      saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
+      renderFavoriteMarkets();
     });
   }
 
@@ -1197,8 +1461,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   ws.on('exchanges', (data) => {
-    const preferredExchangeId = initialUrlStateConsumed ? ws.exchangeId : (initialUrlState.exchangeId || ws.exchangeId);
-    const preferredInstrumentId = initialUrlStateConsumed ? ws.instrumentId : (initialUrlState.instrumentId || ws.instrumentId);
+    const preferredExchangeId = initialUrlStateConsumed
+      ? ws.exchangeId
+      : ((initialUrlState.hasExchange ? initialUrlState.exchangeId : savedSettings.exchangeId) || ws.exchangeId);
+    const preferredInstrumentId = initialUrlStateConsumed
+      ? ws.instrumentId
+      : ((initialUrlState.hasInstrument ? initialUrlState.instrumentId : savedSettings.instrumentId) || ws.instrumentId);
     populateExchangeSelect(data.exchanges, data.defaultExchangeId, preferredExchangeId);
     const exchange = getSelectedExchange();
     populateMarketSelect(exchange, preferredInstrumentId || exchange.defaultInstrumentId);
@@ -1208,6 +1476,7 @@ document.addEventListener('DOMContentLoaded', () => {
     exchangeListLoaded = true;
     initialUrlStateConsumed = true;
     updateShareUrl();
+    renderFavoriteMarkets();
     maybeRunInitialSimulation();
   });
 
@@ -1228,6 +1497,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize
   applyInitialUrlState();
+  favoriteMarkets = readFavoriteMarkets();
+  renderFavoriteMarkets();
   loadLocalAlerts();
   syncAlertHelp();
   renderAlerts();
