@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- HEAD_META_INJECT -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
+  <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
+  <header class="topbar px-6 py-3">
+    <div class="brand-cluster">
+      <div class="brand-mark" aria-hidden="true">₿</div>
+      <div class="brand-copy min-w-0">
+        <h1 class="page-title">Japan クリプト インフォメーション</h1>
+        <div class="brand-subtitle">国内暗号資産 銘柄ページ</div>
+      </div>
+    </div>
+    <nav class="nav-menu" aria-label="ページ間ナビゲーション">
+      <a class="nav-link" href="/">板シミュレーター</a>
+      <a class="nav-link is-active" href="/markets" aria-current="page">銘柄ページ</a>
+      <a class="nav-link" href="/volume-share">出来高シェア</a>
+      <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
+    </nav>
+    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true">
+      <span class="badge badge--live">LIVE</span>
+      <span id="market-index-status" class="status-text">全銘柄</span>
+      <span class="text-xs text-gray-600 ml-2">掲載: <span id="market-index-visible-count" class="text-gray-400">__MARKET_COUNT__</span></span>
+    </div>
+  </header>
+
+  <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">銘柄ページ</h2>
+          <p class="text-xs text-gray-500 mt-1">板、出来高シェア、販売所スプレッド、取引所別比較を銘柄ごとに確認できます</p>
+        </div>
+        <span class="panel-kicker">Markets</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+        <div class="metric-row metric-row--hero"><span class="metric-label">掲載銘柄</span><span class="metric-value metric-value--hero">__MARKET_COUNT__</span></div>
+        <div class="metric-row metric-row--hero bid"><span class="metric-label">対応取引所</span><span class="metric-value metric-value--hero text-green-300">__EXCHANGE_COUNT__社</span></div>
+      </div>
+      <div class="filter-grid" aria-label="銘柄ページフィルター">
+        <label class="filter-control" for="market-index-search"><span>銘柄検索</span><input id="market-index-search" class="field font-mono" type="search" placeholder="BTC / XRP / bitbank"></label>
+        <label class="filter-control" for="market-index-exchange"><span>取引所</span><select id="market-index-exchange" class="field" aria-label="取引所で絞り込み">__MARKET_INDEX_EXCHANGE_OPTIONS__</select></label>
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-3">
+        <div>
+          <h2 class="panel-title">全銘柄</h2>
+          <p id="market-index-meta" class="text-xs text-gray-500 mt-1">国内取引所の対応銘柄を集計中</p>
+        </div>
+        <span class="panel-kicker">Directory</span>
+      </div>
+      <div id="market-index-grid" class="market-index-grid">
+        <!-- MARKET_INDEX_LIST -->
+      </div>
+      <p id="market-index-empty" class="text-center text-gray-500 py-8 hidden">該当する銘柄はありません</p>
+    </section>
+  </main>
+
+  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | 銘柄ページ</footer>
+
+  <script>window.MARKETS_INDEX = __MARKETS_INDEX_JSON__;</script>
+  <script src="/js/markets-index.js?v=markets-1"></script>
+</body>
+</html>

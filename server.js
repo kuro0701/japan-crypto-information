@@ -77,6 +77,11 @@ const SITEMAP_PAGES = [
     lastmod: fileLastmod(path.join(PUBLIC_DIR, 'sales-spread.html')),
     priority: '0.8',
   },
+  {
+    path: '/markets',
+    lastmod: fileLastmod(path.join(PUBLIC_DIR, 'markets.html')),
+    priority: '0.8',
+  },
 ];
 
 const volumeShareStore = new VolumeShareStore({
@@ -140,6 +145,10 @@ function marketPath(instrumentId) {
   return `/markets/${encodeURIComponent(instrumentId)}`;
 }
 
+function marketIndexPath() {
+  return '/markets';
+}
+
 function marketLabel(instrumentId, market = {}) {
   if (market.label) return market.label;
   return String(instrumentId || '').replace('-', '/');
@@ -178,22 +187,79 @@ function getMarketInfo(instrumentId) {
   };
 }
 
-function buildMarketSitemapPages() {
+function sortMarketsForIndex(markets) {
+  const featuredRank = new Map([
+    ['BTC-JPY', 0],
+    ['ETH-JPY', 1],
+    ['XRP-JPY', 2],
+    ['SOL-JPY', 3],
+  ]);
+
+  return markets.sort((a, b) => {
+    const aRank = featuredRank.has(a.instrumentId) ? featuredRank.get(a.instrumentId) : 100;
+    const bRank = featuredRank.has(b.instrumentId) ? featuredRank.get(b.instrumentId) : 100;
+    if (aRank !== bRank) return aRank - bRank;
+    if (b.exchangeCount !== a.exchangeCount) return b.exchangeCount - a.exchangeCount;
+    return a.instrumentId.localeCompare(b.instrumentId);
+  });
+}
+
+function buildMarketIndexModel() {
+  const publicExchanges = getPublicExchanges().filter(exchange => !exchange.status || exchange.status === 'active');
   const byInstrument = new Map();
-  for (const exchange of getPublicExchanges()) {
+
+  for (const exchange of publicExchanges) {
     for (const market of exchange.markets || []) {
       if (!market.instrumentId || (market.status && market.status !== 'active')) continue;
-      byInstrument.set(market.instrumentId, market);
+      const instrumentId = normalizeMarketInstrumentId(market.instrumentId);
+      if (!instrumentId) continue;
+
+      if (!byInstrument.has(instrumentId)) {
+        byInstrument.set(instrumentId, {
+          instrumentId,
+          label: marketLabel(instrumentId, market),
+          baseCurrency: market.baseCurrency || instrumentId.split('-')[0],
+          quoteCurrency: market.quoteCurrency || instrumentId.split('-')[1] || 'JPY',
+          path: marketPath(instrumentId),
+          exchanges: [],
+        });
+      }
+
+      byInstrument.get(instrumentId).exchanges.push({
+        id: exchange.id,
+        label: exchange.label || exchange.id,
+        fullName: exchange.fullName || exchange.label || exchange.id,
+      });
     }
   }
 
+  const markets = sortMarketsForIndex(Array.from(byInstrument.values()).map(market => ({
+    ...market,
+    exchangeCount: market.exchanges.length,
+    exchangeLabels: market.exchanges.map(exchange => exchange.label),
+  })));
+
+  return {
+    meta: {
+      generatedAt: new Date().toISOString(),
+      marketCount: markets.length,
+      exchangeCount: publicExchanges.length,
+    },
+    exchanges: publicExchanges.map(exchange => ({
+      id: exchange.id,
+      label: exchange.label || exchange.id,
+    })),
+    markets,
+  };
+}
+
+function buildMarketSitemapPages() {
   const lastmod = fileLastmod(path.join(PUBLIC_DIR, 'market.html'));
-  return Array.from(byInstrument.keys())
-    .sort()
-    .map(instrumentId => ({
-      path: marketPath(instrumentId),
+  return buildMarketIndexModel().markets
+    .map(market => ({
+      path: market.path,
       lastmod,
-      priority: instrumentId === 'BTC-JPY' || instrumentId === 'ETH-JPY' ? '0.7' : '0.6',
+      priority: market.instrumentId === 'BTC-JPY' || market.instrumentId === 'ETH-JPY' ? '0.7' : '0.6',
     }));
 }
 
@@ -381,12 +447,134 @@ function marketStructuredData(market, origin, description) {
         {
           '@type': 'ListItem',
           position: 2,
+          name: '銘柄ページ',
+          item: siteUrl(origin, marketIndexPath()),
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
           name: market.label,
           item: url,
         },
       ],
     },
   ];
+}
+
+function marketIndexStructuredData(model, origin, description) {
+  const url = siteUrl(origin, marketIndexPath());
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'CollectionPage',
+      name: '国内暗号資産 銘柄ページ一覧',
+      url,
+      description,
+      inLanguage: 'ja-JP',
+      isPartOf: {
+        '@type': 'WebSite',
+        name: 'Japan クリプト インフォメーション',
+        url: origin,
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: '国内暗号資産 銘柄ページ一覧',
+      numberOfItems: model.markets.length,
+      itemListElement: model.markets.map((market, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: market.label,
+        url: siteUrl(origin, market.path),
+      })),
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Japan クリプト インフォメーション',
+          item: siteUrl(origin, '/'),
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: '銘柄ページ',
+          item: url,
+        },
+      ],
+    },
+  ];
+}
+
+function renderMarketIndexCards(markets) {
+  if (!markets || markets.length === 0) {
+    return '<p class="text-center text-gray-500 py-8">銘柄データを準備中です</p>';
+  }
+
+  return markets.map((market) => {
+    const exchangeNames = market.exchangeLabels.join(' ');
+    const searchText = [
+      market.instrumentId,
+      market.label,
+      market.baseCurrency,
+      market.quoteCurrency,
+      exchangeNames,
+    ].join(' ').toLowerCase();
+    const exchangeIds = market.exchanges.map(exchange => exchange.id).join(' ');
+    const visibleExchanges = market.exchanges.slice(0, 5);
+    const hiddenCount = Math.max(0, market.exchanges.length - visibleExchanges.length);
+    const exchangeChips = visibleExchanges.map(exchange => (
+      `<span>${xmlEscape(exchange.label)}</span>`
+    )).join('');
+    const moreChip = hiddenCount > 0 ? `<span>+${hiddenCount}</span>` : '';
+
+    return [
+      `<a class="market-index-card" href="${xmlEscape(market.path)}" data-market-search="${xmlEscape(searchText)}" data-exchanges="${xmlEscape(exchangeIds)}">`,
+      '  <span class="market-index-card__topline">',
+      `    <span class="market-index-card__label">${xmlEscape(market.label)}</span>`,
+      `    <span class="market-index-card__count">${market.exchangeCount}社</span>`,
+      '  </span>',
+      `  <span class="market-index-card__id">${xmlEscape(market.instrumentId)}</span>`,
+      `  <span class="market-index-card__currencies">${xmlEscape(market.baseCurrency)} / ${xmlEscape(market.quoteCurrency)}</span>`,
+      `  <span class="market-index-card__exchanges">${exchangeChips}${moreChip}</span>`,
+      '</a>',
+    ].join('\n');
+  }).join('\n');
+}
+
+function renderMarketExchangeOptions(exchanges) {
+  return [
+    '<option value="__all__">すべて</option>',
+    ...exchanges.map(exchange => `<option value="${xmlEscape(exchange.id)}">${xmlEscape(exchange.label)}</option>`),
+  ].join('');
+}
+
+function renderMarketsIndexHtml(req) {
+  const origin = requestOrigin(req);
+  const model = buildMarketIndexModel();
+  const template = fs.readFileSync(path.join(PUBLIC_DIR, 'markets.html'), 'utf8');
+  const title = '国内暗号資産 銘柄ページ一覧｜Japan クリプト インフォメーション';
+  const description = 'BTC/JPY、ETH/JPY、XRP/JPYなど国内暗号資産取引所で扱う銘柄ページを一覧化。各銘柄の板、出来高シェア、販売所スプレッド、取引所別比較へ移動できます。';
+
+  return template
+    .replace(HEAD_META_INJECT, renderHeadMeta({
+      title,
+      description,
+      canonical: marketIndexPath(),
+      ogImage: '/ogp/default.png',
+      includeDefaultJsonLd: false,
+      structuredData: marketIndexStructuredData(model, origin, description),
+      siteOrigin: origin,
+    }))
+    .replace('__MARKETS_INDEX_JSON__', safeJsonForHtml(model))
+    .replaceAll('__MARKET_COUNT__', String(model.meta.marketCount))
+    .replaceAll('__EXCHANGE_COUNT__', String(model.meta.exchangeCount))
+    .replace('__MARKET_INDEX_EXCHANGE_OPTIONS__', renderMarketExchangeOptions(model.exchanges))
+    .replace('<!-- MARKET_INDEX_LIST -->', renderMarketIndexCards(model.markets));
 }
 
 function renderMarketHtml(req, market) {
@@ -418,6 +606,7 @@ function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/' || reqPath === '/index.html') return '/';
   if (reqPath === '/volume-share' || reqPath === '/volume-share.html') return '/volume-share';
   if (reqPath === '/sales-spread' || reqPath === '/sales-spread.html') return '/sales-spread';
+  if (reqPath === '/markets' || reqPath === '/markets.html') return '/markets';
   if (/^\/markets\/[A-Z0-9]+-[A-Z0-9]+$/i.test(reqPath)) return reqPath.toUpperCase();
   return null;
 }
@@ -509,6 +698,9 @@ app.get(['/sales-spread', '/sales-spread.html'], (req, res) => {
     { pageId: 'sales-spread' }
   ));
 });
+app.get(['/markets', '/markets.html'], (req, res) => {
+  res.type('html').send(renderMarketsIndexHtml(req));
+});
 app.get('/markets/:instrumentId', (req, res) => {
   const instrumentId = normalizeMarketInstrumentId(req.params.instrumentId);
   const market = getMarketInfo(instrumentId);
@@ -562,6 +754,9 @@ app.get('/api/exchanges', (_req, res) => {
     defaultExchangeId: DEFAULT_EXCHANGE_ID,
     exchanges: getPublicExchanges(),
   });
+});
+app.get('/api/markets', (_req, res) => {
+  res.json(buildMarketIndexModel());
 });
 
 function buildMarketOrderbookRows(market) {
