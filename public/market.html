@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- HEAD_META_INJECT -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
+  <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
+  <header class="topbar px-6 py-3">
+    <div class="brand-cluster">
+      <div class="brand-mark" aria-hidden="true">₿</div>
+      <div class="brand-copy min-w-0">
+        <h1 class="page-title" id="market-page-title">銘柄ページ</h1>
+        <div class="brand-subtitle" id="market-page-subtitle">国内取引所データ</div>
+      </div>
+    </div>
+    <nav class="nav-menu" aria-label="ページ間ナビゲーション">
+      <a class="nav-link" href="/">板シミュレーター</a>
+      <a class="nav-link" href="/volume-share">出来高シェア</a>
+      <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
+    </nav>
+    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true"><span class="badge badge--live">LIVE</span><span id="market-status" class="status-text">読み込み中</span><span class="text-xs text-gray-600 ml-2">更新: <span id="market-updated-at" class="text-gray-400">-</span></span></div>
+  </header>
+
+  <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title" id="market-hero-title">-</h2>
+          <p id="market-hero-meta" class="text-xs text-gray-500 mt-1">銘柄データを集計中</p>
+        </div>
+        <span class="panel-kicker">Market</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="metric-row metric-row--hero"><span class="metric-label">対応取引所</span><span id="market-exchange-count" class="metric-value metric-value--hero">-</span></div>
+        <div class="metric-row metric-row--hero bid"><span class="metric-label">最良Bid</span><span id="market-best-bid" class="metric-value metric-value--hero text-green-300">-</span></div>
+        <div class="metric-row metric-row--hero ask"><span class="metric-label">最良Ask</span><span id="market-best-ask" class="metric-value metric-value--hero text-red-300">-</span></div>
+      </div>
+    </section>
+
+    <div class="dashboard-grid dashboard-grid--left">
+      <section class="panel panel--dense">
+        <div class="panel-title-row mb-3">
+          <div>
+            <h2 class="panel-title">板</h2>
+            <p id="orderbook-meta" class="text-xs text-gray-500 mt-1">取引所を選んで板を確認</p>
+          </div>
+          <span class="panel-kicker">Order Book</span>
+        </div>
+        <label class="filter-control mb-3" for="market-board-exchange"><span>取引所</span><select id="market-board-exchange" class="field" aria-label="板表示取引所"></select></label>
+        <div class="chart-container history-chart-container">
+          <canvas id="depth-chart"></canvas>
+        </div>
+      </section>
+
+      <section class="panel panel--dense">
+        <div class="panel-title-row mb-3"><h2 class="panel-title">取引所別板比較</h2><span class="panel-kicker">Venues</span></div>
+        <div class="overflow-auto scrollbar-thin">
+          <table class="data-table data-table--cards text-xs">
+            <thead class="sticky"><tr><th class="text-left">取引所</th><th class="is-num text-right">Bid</th><th class="is-num text-right">Ask</th><th class="is-num text-right">Spread</th><th class="text-right">更新</th></tr></thead>
+            <tbody id="market-orderbook-tbody"><tr><td colspan="5" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-3">
+        <div>
+          <h2 class="panel-title">取引所別コスト比較</h2>
+          <p id="market-comparison-meta" class="text-xs text-gray-500 mt-1">比較条件を入力してください</p>
+        </div>
+        <span class="panel-kicker">Execution</span>
+      </div>
+      <div class="filter-grid mb-3" aria-label="比較条件">
+        <label class="filter-control" for="market-side"><span>売買</span><select id="market-side" class="field"><option value="buy">買い</option><option value="sell">売り</option></select></label>
+        <label class="filter-control" for="market-amount-type"><span>入力タイプ</span><select id="market-amount-type" class="field"><option value="jpy">金額 (JPY)</option><option value="base">数量</option></select></label>
+        <label class="filter-control" for="market-amount"><span>数量 / 金額</span><input id="market-amount" class="field font-mono" inputmode="decimal" value="100000"></label>
+        <label class="filter-control" for="market-fee-rate"><span>手数料率 (%)</span><input id="market-fee-rate" class="field font-mono" type="number" min="0" step="0.001" value="0.14"></label>
+      </div>
+      <div class="overflow-auto scrollbar-thin">
+        <table class="data-table data-table--cards text-xs">
+          <thead class="sticky"><tr><th class="is-num text-right">順位</th><th class="text-left">取引所</th><th class="is-num text-right">結果</th><th class="is-num text-right">VWAP</th><th class="is-num text-right">Impact</th><th class="text-left">判定</th></tr></thead>
+          <tbody id="market-comparison-tbody"><tr><td colspan="6" class="text-center text-gray-500 py-4">比較を取得中</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="dashboard-grid dashboard-grid--left">
+      <section class="panel panel--dense">
+        <div class="panel-title-row mb-3"><h2 class="panel-title">出来高シェア</h2><span class="panel-kicker">Volume</span></div>
+        <div class="overflow-auto scrollbar-thin">
+          <table class="data-table data-table--cards text-xs">
+            <thead class="sticky"><tr><th class="text-left">取引所</th><th class="is-num text-right">出来高</th><th class="is-num text-right">銘柄内シェア</th><th class="text-right">取得</th></tr></thead>
+            <tbody id="market-volume-tbody"><tr><td colspan="4" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel panel--dense">
+        <div class="panel-title-row mb-3"><h2 class="panel-title">販売所スプレッド</h2><span class="panel-kicker">Sales Spread</span></div>
+        <div class="overflow-auto scrollbar-thin">
+          <table class="data-table data-table--cards text-xs">
+            <thead class="sticky"><tr><th class="text-left">販売所</th><th class="is-num text-right">買値</th><th class="is-num text-right">売値</th><th class="is-num text-right">Spread</th><th class="text-right">取得</th></tr></thead>
+            <tbody id="market-sales-tbody"><tr><td colspan="5" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | <span id="market-footer-label">銘柄ページ</span></footer>
+
+  <script>window.MARKET_PAGE = __MARKET_PAGE_JSON__;</script>
+  <script src="/js/formatter.js?v=volume-1"></script>
+  <script src="/js/ws-client.js?v=volume-1"></script>
+  <script src="/js/chart.js?v=volume-1"></script>
+  <script src="/js/market-page.js?v=market-1"></script>
+</body>
+</html>

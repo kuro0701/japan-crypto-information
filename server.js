@@ -123,6 +123,80 @@ function siteUrl(origin, urlPath) {
   return `${origin}${urlPath.startsWith('/') ? urlPath : `/${urlPath}`}`;
 }
 
+function safeJsonForHtml(data) {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+}
+
+function normalizeMarketInstrumentId(value) {
+  const instrumentId = String(value || '').trim().toUpperCase();
+  if (!/^[A-Z0-9]+-[A-Z0-9]+$/.test(instrumentId)) return '';
+  return instrumentId;
+}
+
+function marketPath(instrumentId) {
+  return `/markets/${encodeURIComponent(instrumentId)}`;
+}
+
+function marketLabel(instrumentId, market = {}) {
+  if (market.label) return market.label;
+  return String(instrumentId || '').replace('-', '/');
+}
+
+function getMarketInfo(instrumentId) {
+  const normalizedInstrumentId = normalizeMarketInstrumentId(instrumentId);
+  if (!normalizedInstrumentId) return null;
+
+  const exchanges = [];
+  let firstMarket = null;
+
+  for (const exchange of getPublicExchanges()) {
+    const market = (exchange.markets || []).find(item => (
+      item.instrumentId === normalizedInstrumentId && (!item.status || item.status === 'active')
+    ));
+    if (!market) continue;
+    if (!firstMarket) firstMarket = market;
+    exchanges.push({
+      id: exchange.id,
+      label: exchange.label || exchange.id,
+      fullName: exchange.fullName || exchange.label || exchange.id,
+      dataSourceLabel: exchange.dataSourceLabel || '',
+      market,
+    });
+  }
+
+  if (exchanges.length === 0 || !firstMarket) return null;
+
+  return {
+    instrumentId: normalizedInstrumentId,
+    label: marketLabel(normalizedInstrumentId, firstMarket),
+    baseCurrency: firstMarket.baseCurrency || normalizedInstrumentId.split('-')[0],
+    quoteCurrency: firstMarket.quoteCurrency || normalizedInstrumentId.split('-')[1] || 'JPY',
+    exchanges,
+  };
+}
+
+function buildMarketSitemapPages() {
+  const byInstrument = new Map();
+  for (const exchange of getPublicExchanges()) {
+    for (const market of exchange.markets || []) {
+      if (!market.instrumentId || (market.status && market.status !== 'active')) continue;
+      byInstrument.set(market.instrumentId, market);
+    }
+  }
+
+  const lastmod = fileLastmod(path.join(PUBLIC_DIR, 'market.html'));
+  return Array.from(byInstrument.keys())
+    .sort()
+    .map(instrumentId => ({
+      path: marketPath(instrumentId),
+      lastmod,
+      priority: instrumentId === 'BTC-JPY' || instrumentId === 'ETH-JPY' ? '0.7' : '0.6',
+    }));
+}
+
 function rssDate(value, fallback = new Date()) {
   const date = new Date(value || fallback);
   if (Number.isNaN(date.getTime())) return new Date(fallback).toUTCString();
@@ -130,11 +204,13 @@ function rssDate(value, fallback = new Date()) {
 }
 
 function buildSitemapXml(origin) {
-  const pages = SITEMAP_PAGES.concat(listArticles().map(article => ({
-    path: article.path,
-    lastmod: article.updated,
-    priority: '0.6',
-  })));
+  const pages = SITEMAP_PAGES
+    .concat(buildMarketSitemapPages())
+    .concat(listArticles().map(article => ({
+      path: article.path,
+      lastmod: article.updated,
+      priority: '0.6',
+    })));
 
   const urls = pages.map(page => [
     '  <url>',
@@ -252,10 +328,97 @@ function renderArticleHtml(req, article) {
   });
 }
 
+function marketStructuredData(market, origin, description) {
+  const url = siteUrl(origin, marketPath(market.instrumentId));
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: `${market.label} 国内取引所データ`,
+      url,
+      description,
+      inLanguage: 'ja-JP',
+      about: {
+        '@type': 'Thing',
+        name: market.label,
+        identifier: market.instrumentId,
+      },
+      isPartOf: {
+        '@type': 'WebSite',
+        name: 'Japan クリプト インフォメーション',
+        url: origin,
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Dataset',
+      name: `${market.label} 国内暗号資産取引所データ`,
+      description,
+      url,
+      inLanguage: 'ja-JP',
+      isAccessibleForFree: true,
+      variableMeasured: [
+        '板情報',
+        '出来高シェア',
+        '販売所スプレッド',
+        '取引所別成行コスト',
+      ].map(name => ({
+        '@type': 'PropertyValue',
+        name,
+        valueReference: market.instrumentId,
+      })),
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Japan クリプト インフォメーション',
+          item: siteUrl(origin, '/'),
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: market.label,
+          item: url,
+        },
+      ],
+    },
+  ];
+}
+
+function renderMarketHtml(req, market) {
+  const origin = requestOrigin(req);
+  const template = fs.readFileSync(path.join(PUBLIC_DIR, 'market.html'), 'utf8');
+  const title = `${market.label} 板・出来高シェア・販売所スプレッド比較｜Japan クリプト インフォメーション`;
+  const description = `${market.label} の国内暗号資産取引所データを集約。板情報、出来高シェア、販売所スプレッド、取引所別の成行コストを1ページで確認できます。`;
+  const pageConfig = {
+    instrumentId: market.instrumentId,
+    label: market.label,
+    baseCurrency: market.baseCurrency,
+    quoteCurrency: market.quoteCurrency,
+  };
+
+  return template
+    .replace(HEAD_META_INJECT, renderHeadMeta({
+      title,
+      description,
+      canonical: marketPath(market.instrumentId),
+      ogImage: '/ogp/default.png',
+      includeDefaultJsonLd: false,
+      structuredData: marketStructuredData(market, origin, description),
+      siteOrigin: origin,
+    }))
+    .replace('__MARKET_PAGE_JSON__', safeJsonForHtml(pageConfig));
+}
+
 function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/' || reqPath === '/index.html') return '/';
   if (reqPath === '/volume-share' || reqPath === '/volume-share.html') return '/volume-share';
   if (reqPath === '/sales-spread' || reqPath === '/sales-spread.html') return '/sales-spread';
+  if (/^\/markets\/[A-Z0-9]+-[A-Z0-9]+$/i.test(reqPath)) return reqPath.toUpperCase();
   return null;
 }
 
@@ -346,6 +509,21 @@ app.get(['/sales-spread', '/sales-spread.html'], (req, res) => {
     { pageId: 'sales-spread' }
   ));
 });
+app.get('/markets/:instrumentId', (req, res) => {
+  const instrumentId = normalizeMarketInstrumentId(req.params.instrumentId);
+  const market = getMarketInfo(instrumentId);
+  if (!market) {
+    res.status(404).type('text/plain').send('Market not found');
+    return;
+  }
+
+  if (req.params.instrumentId !== instrumentId) {
+    res.redirect(301, marketPath(instrumentId));
+    return;
+  }
+
+  res.type('html').send(renderMarketHtml(req, market));
+});
 app.get('/articles/:slug', (req, res) => {
   const article = getArticle(req.params.slug);
   if (!article) {
@@ -384,6 +562,103 @@ app.get('/api/exchanges', (_req, res) => {
     defaultExchangeId: DEFAULT_EXCHANGE_ID,
     exchanges: getPublicExchanges(),
   });
+});
+
+function buildMarketOrderbookRows(market) {
+  return market.exchanges
+    .map((exchange) => {
+      const client = clientsByExchange.get(exchange.id);
+      if (client && typeof client.activateInstrument === 'function') {
+        client.activateInstrument(market.instrumentId);
+      }
+
+      const book = wsManager.latestBooks.get(wsManager.marketKey(exchange.id, market.instrumentId));
+      if (!book) {
+        return {
+          exchangeId: exchange.id,
+          exchangeLabel: exchange.label,
+          instrumentId: market.instrumentId,
+          instrumentLabel: market.label,
+          status: 'waiting',
+          message: '板データ待機中',
+        };
+      }
+
+      return {
+        ...book.toSummary(),
+        exchangeId: exchange.id,
+        exchangeLabel: exchange.label,
+        instrumentId: market.instrumentId,
+        instrumentLabel: market.label,
+        status: 'ready',
+      };
+    })
+    .sort((a, b) => {
+      if (a.status === 'ready' && b.status !== 'ready') return -1;
+      if (a.status !== 'ready' && b.status === 'ready') return 1;
+      const spreadDiff = Number(a.spreadPct ?? Infinity) - Number(b.spreadPct ?? Infinity);
+      if (spreadDiff !== 0) return spreadDiff;
+      return String(a.exchangeLabel).localeCompare(String(b.exchangeLabel), 'ja');
+    });
+}
+
+function buildMarketPageReport(instrumentId) {
+  const market = getMarketInfo(instrumentId);
+  if (!market) return null;
+
+  const volumeShare = volumeShareStore.getShare('1d');
+  const volumeQualityByExchange = new Map((volumeShare.quality || []).map(row => [row.exchangeId, row]));
+  const volumeRows = (volumeShare.rows || [])
+    .filter(row => row.instrumentId === market.instrumentId)
+    .map(row => ({
+      ...row,
+      lastFetchedAt: volumeQualityByExchange.get(row.exchangeId)?.lastFetchedAt || null,
+      dataKind: volumeQualityByExchange.get(row.exchangeId)?.dataKind || null,
+    }));
+
+  const salesReport = salesSpreadStore.getReport();
+  const salesRows = (salesReport.rows || [])
+    .filter(row => row.instrumentId === market.instrumentId);
+
+  return {
+    meta: {
+      generatedAt: new Date().toISOString(),
+    },
+    market: {
+      instrumentId: market.instrumentId,
+      label: market.label,
+      baseCurrency: market.baseCurrency,
+      quoteCurrency: market.quoteCurrency,
+    },
+    exchanges: market.exchanges.map(exchange => ({
+      id: exchange.id,
+      label: exchange.label,
+      fullName: exchange.fullName,
+      dataSourceLabel: exchange.dataSourceLabel,
+      market: exchange.market,
+    })),
+    orderbooks: buildMarketOrderbookRows(market),
+    volume: {
+      meta: volumeShare.meta,
+      rows: volumeRows,
+      quality: (volumeShare.quality || []).filter(row => market.exchanges.some(exchange => exchange.id === row.exchangeId)),
+    },
+    sales: {
+      meta: salesReport.meta,
+      rows: salesRows,
+      quality: (salesReport.quality || []).filter(row => salesRows.some(salesRow => salesRow.exchangeId === row.exchangeId)),
+    },
+  };
+}
+
+app.get('/api/markets/:instrumentId', (req, res) => {
+  const instrumentId = normalizeMarketInstrumentId(req.params.instrumentId);
+  const report = buildMarketPageReport(instrumentId);
+  if (!report) {
+    res.status(404).json({ error: 'Market not found' });
+    return;
+  }
+  res.json(report);
 });
 
 function parseRequestNumber(value) {
