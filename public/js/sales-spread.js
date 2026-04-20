@@ -63,6 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#39;');
   }
 
+  function marketPageUrl(instrumentId) {
+    const normalized = String(instrumentId || 'BTC-JPY').trim().toUpperCase();
+    return `/markets/${encodeURIComponent(normalized)}`;
+  }
+
   function sourceLabel(windowMeta) {
     if (!windowMeta) return '記録待ち';
     if (windowMeta.source === 'daily-snapshots') return `スプレッドスナップショット ${windowMeta.sampleSnapshotCount}件`;
@@ -285,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <tr class="border-b border-gray-800/60">
           <td data-label="銘柄">
-            <div class="font-bold text-gray-200">${escapeHtml(row.instrumentLabel)}</div>
+            <a class="market-link" href="${marketPageUrl(row.instrumentId)}">${escapeHtml(row.instrumentLabel)}</a>
             <div class="text-[10px] text-gray-500">${escapeHtml(row.currencyFullName || row.baseCurrency)}</div>
           </td>
           <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>

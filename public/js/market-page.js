@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+  const marketPageUrl = (value) => `/markets/${encodeURIComponent(String(value || instrumentId || 'BTC-JPY').toUpperCase())}`;
   const fmtPct = (value) => value == null || isNaN(value) ? '-' : `${Number(value).toFixed(2)}%`;
   const fmtDateTime = (value) => {
     if (!value) return '-';
@@ -78,11 +79,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updatePageLabels() {
     const label = marketLabel();
+    const navLink = $('market-page-nav-link');
     document.title = `${label} 国内取引所データ｜Japan クリプト インフォメーション`;
     setText('market-page-title', `${label} 銘柄ページ`);
     setText('market-page-subtitle', '板・出来高シェア・販売所スプレッド');
     setText('market-hero-title', `${label} 国内取引所データ`);
     setText('market-footer-label', `${label} 銘柄ページ`);
+    if (navLink) {
+      navLink.href = marketPageUrl(instrumentId);
+      navLink.title = `${label} 銘柄ページ`;
+    }
   }
 
   function populateBoardExchangeSelect() {

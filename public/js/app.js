@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBtn = document.getElementById('clear-btn');
   const copyShareUrlBtn = document.getElementById('copy-share-url-btn');
   const shareUrlStatus = document.getElementById('share-url-status');
+  const marketPageNavLink = document.getElementById('market-page-nav-link');
   const favoriteMarketList = document.getElementById('favorite-market-list');
   const saveFavoriteBtn = document.getElementById('save-favorite-btn');
   const clearSettingsBtn = document.getElementById('clear-settings-btn');
@@ -233,6 +234,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function favoriteKey(exchangeId, instrumentId) {
     return `${normalizeExchangeId(exchangeId)}:${normalizeInstrumentId(instrumentId)}`;
+  }
+
+  function marketPageUrl(instrumentId) {
+    const normalized = normalizeInstrumentId(instrumentId) || defaultMarket.instrumentId;
+    return `/markets/${encodeURIComponent(normalized)}`;
   }
 
   function currentSettingsDraft() {
@@ -725,6 +731,11 @@ document.addEventListener('DOMContentLoaded', () => {
     UI.setText('footer-instrument-label', market.label || market.instrumentId || '-');
     UI.setText('footer-source-label', exchange.dataSourceLabel || '-');
     UI.setMarketMeta(market);
+    if (marketPageNavLink) {
+      const label = market.label || market.instrumentId || defaultMarket.label;
+      marketPageNavLink.href = marketPageUrl(market.instrumentId);
+      marketPageNavLink.title = `${label} 銘柄ページ`;
+    }
     if (typeof setChartBaseCurrency === 'function') {
       setChartBaseCurrency(market.baseCurrency || 'BTC');
     }

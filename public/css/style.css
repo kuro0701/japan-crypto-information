@@ -178,6 +178,7 @@ body.terminal-body {
 .nav-menu {
   grid-area: nav;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   justify-self: center;
@@ -833,6 +834,18 @@ th {
   transform: translateX(0);
 }
 .data-table tbody tr:hover { background: var(--surface-3) !important; }
+
+.market-link {
+  color: var(--text-1) !important;
+  font-weight: 800;
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+.market-link:hover,
+.market-link:focus-visible {
+  color: var(--accent) !important;
+  text-decoration: underline;
+}
 
 .fill-side {
   display: inline-flex;

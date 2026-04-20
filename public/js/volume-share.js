@@ -49,6 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, '&#39;');
   }
 
+  function marketPageUrl(instrumentId) {
+    const normalized = String(instrumentId || 'BTC-JPY').trim().toUpperCase();
+    return `/markets/${encodeURIComponent(normalized)}`;
+  }
+
   function shareBar(sharePct) {
     const width = Math.max(0, Math.min(100, sharePct || 0));
     return `<div class="share-bar mt-1"><span style="width: ${width}%"></span></div>`;
@@ -275,7 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = rows.map((row, index) => `
       <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
-        <td class="font-bold text-gray-200" data-label="銘柄">${escapeHtml(row.instrumentLabel)}</td>
+        <td class="font-bold text-gray-200" data-label="銘柄">
+          <a class="market-link" href="${marketPageUrl(row.instrumentId)}">${escapeHtml(row.instrumentLabel)}</a>
+        </td>
         <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="出来高">
           ${fmtJpy(row.quoteVolume)}
