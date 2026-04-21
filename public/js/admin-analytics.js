@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const TOKEN_STORAGE_KEY = 'okjAnalyticsAdminToken';
   const WINDOW_LABELS = {
     '1d': '今日',
     '7d': '7日間',
@@ -8,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const ROUTE_LABELS = {
     '/': '板シミュレーター',
     '/volume-share': '出来高シェア',
+    '/sales-spread': '販売所スプレッド',
+    '/markets': '銘柄ページ一覧',
   };
   const DEVICE_LABELS = {
     desktop: 'デスクトップ',
@@ -16,10 +17,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   let selectedWindow = '7d';
-  let adminToken = localStorage.getItem(TOKEN_STORAGE_KEY) || '';
 
   const $ = (id) => document.getElementById(id);
   const num = (value) => Fmt.num(value || 0);
+  const input = $('admin-token-input');
+  const saveButton = $('save-token-btn');
+  const clearButton = $('clear-token-btn');
+
   const setText = (id, value) => {
     const el = $(id);
     if (el) el.textContent = value ?? '-';
@@ -65,26 +69,21 @@ document.addEventListener('DOMContentLoaded', () => {
     setText('analytics-status-live-label', `接続状態: ${text}`);
   }
 
+  function setAuthControlsDisabled(disabled) {
+    if (input) input.disabled = disabled;
+    if (saveButton) saveButton.disabled = disabled;
+    if (clearButton) clearButton.disabled = disabled;
+  }
+
   function showAuth(message) {
     const panel = $('auth-panel');
     if (panel) panel.classList.remove('hidden');
-    setText('auth-message', message || 'アクセス解析を見るにはトークンを入力してください');
+    setText('auth-message', message || 'アクセス解析を見るには管理トークンでログインしてください');
   }
 
   function hideAuth() {
     const panel = $('auth-panel');
     if (panel) panel.classList.add('hidden');
-  }
-
-  function readTokenFromUrl() {
-    const url = new URL(window.location.href);
-    const token = url.searchParams.get('token');
-    if (!token) return;
-
-    adminToken = token;
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    url.searchParams.delete('token');
-    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
   }
 
   function barRow(label, count, maxCount) {
@@ -137,6 +136,21 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
+  function clearDashboard(message = 'JST基準で集計中') {
+    setText('metric-pageviews', '-');
+    setText('metric-unique', '-');
+    setText('metric-ws-current', '-');
+    setText('metric-last-access', '-');
+    setText('analytics-updated-at', '-');
+    setText('analytics-meta', message);
+    renderBars('daily-bars', [], { empty: '認証後に表示されます' });
+    renderBars('hourly-bars', [], { empty: '認証後に表示されます' });
+    renderBars('route-bars', [], { empty: '認証後に表示されます' });
+    renderBars('device-bars', [], { empty: '認証後に表示されます' });
+    renderBars('referrer-bars', [], { empty: '認証後に表示されます' });
+    renderDailyTable([]);
+  }
+
   function render(data) {
     const meta = data.meta || {};
     const ws = data.ws || {};
@@ -169,26 +183,30 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDailyTable(data.days || []);
   }
 
+  async function readError(res) {
+    const data = await res.json().catch(() => ({}));
+    return data.error || '';
+  }
+
   async function loadAnalytics() {
     setStatus('読み込み中');
     try {
-      const headers = {};
-      if (adminToken) headers['x-admin-token'] = adminToken;
-
       const res = await fetch(`/api/admin/analytics?window=${encodeURIComponent(selectedWindow)}`, {
         cache: 'no-store',
-        headers,
+        credentials: 'same-origin',
       });
 
       if (res.status === 401) {
+        clearDashboard('管理セッションを確認してください');
         setStatus('認証待ち');
-        showAuth('トークンを確認してください');
+        showAuth('管理トークンを入力してログインしてください');
         return;
       }
       if (res.status === 503) {
-        const data = await res.json().catch(() => ({}));
+        const message = await readError(res) || '管理認証が未設定です';
+        clearDashboard(message);
         setStatus('未設定');
-        showAuth(data.error || 'ANALYTICS_ADMIN_TOKEN が未設定です');
+        showAuth(message);
         return;
       }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -199,6 +217,78 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       setStatus('取得失敗');
       setText('analytics-meta', err.message);
+    }
+  }
+
+  async function login() {
+    const token = (input && input.value.trim()) || '';
+    if (!token) {
+      setStatus('認証待ち');
+      showAuth('管理トークンを入力してください');
+      if (input) input.focus();
+      return;
+    }
+
+    setStatus('認証中');
+    setAuthControlsDisabled(true);
+    try {
+      const res = await fetch('/api/admin/session', {
+        method: 'POST',
+        cache: 'no-store',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      if (res.status === 400) {
+        setStatus('認証待ち');
+        showAuth((await readError(res)) || '管理トークンを入力してください');
+        return;
+      }
+      if (res.status === 401) {
+        setStatus('認証待ち');
+        showAuth('トークンを確認してください');
+        return;
+      }
+      if (res.status === 503) {
+        const message = await readError(res) || '管理認証が未設定です';
+        clearDashboard(message);
+        setStatus('未設定');
+        showAuth(message);
+        return;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      if (input) input.value = '';
+      await loadAnalytics();
+    } catch (err) {
+      setStatus('認証失敗');
+      setText('analytics-meta', err.message);
+      showAuth('ログインに失敗しました');
+    } finally {
+      setAuthControlsDisabled(false);
+    }
+  }
+
+  async function logout() {
+    setStatus('認証解除中');
+    setAuthControlsDisabled(true);
+    try {
+      await fetch('/api/admin/session', {
+        method: 'DELETE',
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+    } catch (_err) {
+      // Session cleanup is best-effort; the UI state is cleared locally either way.
+    } finally {
+      if (input) input.value = '';
+      clearDashboard('ログアウトしました');
+      setStatus('認証待ち');
+      showAuth('管理セッションを削除しました');
+      setAuthControlsDisabled(false);
     }
   }
 
@@ -214,31 +304,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  const input = $('admin-token-input');
-  if (input) input.value = adminToken;
-
-  const saveButton = $('save-token-btn');
-  if (saveButton) {
-    saveButton.addEventListener('click', () => {
-      adminToken = (input && input.value.trim()) || '';
-      if (adminToken) localStorage.setItem(TOKEN_STORAGE_KEY, adminToken);
-      loadAnalytics();
+  if (saveButton) saveButton.addEventListener('click', login);
+  if (clearButton) clearButton.addEventListener('click', logout);
+  if (input) {
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        login();
+      }
     });
   }
 
-  const clearButton = $('clear-token-btn');
-  if (clearButton) {
-    clearButton.addEventListener('click', () => {
-      adminToken = '';
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
-      if (input) input.value = '';
-      showAuth('保存済みトークンを削除しました');
-      loadAnalytics();
-    });
-  }
-
-  readTokenFromUrl();
-  if (input) input.value = adminToken;
+  clearDashboard();
+  showAuth('アクセス解析を見るには管理トークンでログインしてください');
   loadAnalytics();
   setInterval(loadAnalytics, 60000);
 });

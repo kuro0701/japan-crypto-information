@@ -41,15 +41,16 @@
     <section id="auth-panel" class="panel panel--dense hidden">
       <div class="panel-title-row mb-3">
         <div>
-          <h2 class="panel-title">管理トークン</h2>
-          <p id="auth-message" class="text-xs text-gray-500 mt-1">アクセス解析を見るにはトークンを入力してください</p>
+          <h2 class="panel-title">管理ログイン</h2>
+          <p id="auth-message" class="text-xs text-gray-500 mt-1">アクセス解析を見るには管理トークンでログインしてください</p>
         </div>
         <span class="panel-kicker">Admin</span>
       </div>
+      <p class="text-xs text-gray-600 mb-3">トークン送信後は URL や localStorage に保存せず、同一サイト専用のセッション Cookie で保持します。</p>
       <div class="flex flex-col md:flex-row gap-2">
-        <input id="admin-token-input" class="field flex-1 rounded px-3 py-2 text-sm font-mono" type="password" autocomplete="current-password" placeholder="ANALYTICS_ADMIN_TOKEN">
-        <button id="save-token-btn" class="btn btn-primary py-2.5 px-4 rounded-lg font-bold text-sm" type="button">接続</button>
-        <button id="clear-token-btn" class="btn btn-ghost py-2.5 px-4 rounded-lg text-sm" type="button">クリア</button>
+        <input id="admin-token-input" class="field flex-1 rounded px-3 py-2 text-sm font-mono" type="password" autocomplete="current-password" placeholder="管理トークン">
+        <button id="save-token-btn" class="btn btn-primary py-2.5 px-4 rounded-lg font-bold text-sm" type="button">ログイン</button>
+        <button id="clear-token-btn" class="btn btn-ghost py-2.5 px-4 rounded-lg text-sm" type="button">ログアウト</button>
       </div>
     </section>
 
@@ -102,6 +103,6 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | アクセス解析</footer>
 
   <script src="/js/formatter.js?v=analytics-1"></script>
-  <script src="/js/admin-analytics.js?v=analytics-1"></script>
+  <script src="/js/admin-analytics.js?v=analytics-2"></script>
 </body>
 </html>

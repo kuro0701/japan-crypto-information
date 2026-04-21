@@ -94,9 +94,25 @@ const analyticsStore = new AnalyticsStore({
   dataFilePath: path.join(DATA_DIR, 'analytics.json'),
   salt: process.env.ANALYTICS_SALT,
 });
-const analyticsAdminToken = process.env.ANALYTICS_ADMIN_TOKEN || '';
-const analyticsAdminTokenHash = process.env.ANALYTICS_ADMIN_TOKEN_HASH
-  || '59875027e31f7e785553fea0cbef84c4b36fa25b9c5d81c6bd1be2c53861c3b0';
+const analyticsAdminToken = String(process.env.ANALYTICS_ADMIN_TOKEN || '').trim();
+const analyticsAdminTokenHash = String(process.env.ANALYTICS_ADMIN_TOKEN_HASH || '').trim().toLowerCase();
+const ANALYTICS_ADMIN_SESSION_COOKIE = 'okjAnalyticsAdminSession';
+const ANALYTICS_ADMIN_SESSION_COOKIE_PATH = '/api/admin';
+const ANALYTICS_ADMIN_SESSION_TTL_MS = 1000 * 60 * 60 * 12;
+
+if (!analyticsAdminToken && !analyticsAdminTokenHash) {
+  throw new Error('ANALYTICS_ADMIN_TOKEN or ANALYTICS_ADMIN_TOKEN_HASH must be configured');
+}
+
+if (analyticsAdminTokenHash && !/^[a-f0-9]{64}$/.test(analyticsAdminTokenHash)) {
+  throw new Error('ANALYTICS_ADMIN_TOKEN_HASH must be a SHA-256 hex digest');
+}
+
+const analyticsAdminSessionSecret = sha256([
+  'analytics-admin-session',
+  analyticsAdminTokenHash || sha256(analyticsAdminToken),
+  process.env.ANALYTICS_SALT || '',
+].join(':'));
 
 function publicHtmlWithMeta(req, filePath, metaOptions) {
   const html = fs.readFileSync(filePath, 'utf8');
@@ -611,12 +627,113 @@ function normalizeAnalyticsRoute(reqPath) {
   return null;
 }
 
-function getRequestAdminToken(req) {
-  const authorization = req.get('authorization') || '';
-  if (authorization.toLowerCase().startsWith('bearer ')) {
-    return authorization.slice(7).trim();
+function parseCookieHeader(headerValue) {
+  const cookies = new Map();
+  for (const part of String(headerValue || '').split(';')) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const separatorIndex = trimmed.indexOf('=');
+    if (separatorIndex <= 0) continue;
+    const name = trimmed.slice(0, separatorIndex).trim();
+    const value = trimmed.slice(separatorIndex + 1).trim();
+    cookies.set(name, value);
   }
-  return req.get('x-admin-token') || req.query.token || '';
+  return cookies;
+}
+
+function shouldUseSecureCookies(req) {
+  if (req.secure) return true;
+  return requestOrigin(req).startsWith('https://');
+}
+
+function serializeCookie(name, value, options = {}) {
+  const segments = [`${name}=${value}`];
+  if (Number.isFinite(options.maxAge)) segments.push(`Max-Age=${Math.max(0, Math.floor(options.maxAge))}`);
+  if (options.path) segments.push(`Path=${options.path}`);
+  if (options.httpOnly) segments.push('HttpOnly');
+  if (options.secure) segments.push('Secure');
+  if (options.sameSite) segments.push(`SameSite=${options.sameSite}`);
+  if (options.expires instanceof Date) segments.push(`Expires=${options.expires.toUTCString()}`);
+  return segments.join('; ');
+}
+
+function analyticsAdminUnavailable(res) {
+  res.set('Cache-Control', 'no-store');
+  res.status(503).json({
+    error: 'ANALYTICS_ADMIN_TOKEN または ANALYTICS_ADMIN_TOKEN_HASH を設定してください',
+  });
+}
+
+function isValidAnalyticsAdminToken(requestToken) {
+  if (!requestToken) return false;
+  if (analyticsAdminToken && timingSafeEqualString(requestToken, analyticsAdminToken)) {
+    return true;
+  }
+  return analyticsAdminTokenHash
+    && timingSafeEqualString(sha256(requestToken), analyticsAdminTokenHash);
+}
+
+function signAnalyticsAdminSession(encodedPayload) {
+  return crypto
+    .createHmac('sha256', analyticsAdminSessionSecret)
+    .update(encodedPayload)
+    .digest('base64url');
+}
+
+function issueAnalyticsAdminSession(req, res) {
+  const payload = Buffer.from(JSON.stringify({
+    v: 1,
+    exp: Date.now() + ANALYTICS_ADMIN_SESSION_TTL_MS,
+  }), 'utf8').toString('base64url');
+  const signature = signAnalyticsAdminSession(payload);
+  res.setHeader('Set-Cookie', serializeCookie(
+    ANALYTICS_ADMIN_SESSION_COOKIE,
+    `${payload}.${signature}`,
+    {
+      httpOnly: true,
+      maxAge: ANALYTICS_ADMIN_SESSION_TTL_MS / 1000,
+      path: ANALYTICS_ADMIN_SESSION_COOKIE_PATH,
+      sameSite: 'Strict',
+      secure: shouldUseSecureCookies(req),
+    }
+  ));
+}
+
+function clearAnalyticsAdminSession(req, res) {
+  res.setHeader('Set-Cookie', serializeCookie(
+    ANALYTICS_ADMIN_SESSION_COOKIE,
+    '',
+    {
+      expires: new Date(0),
+      httpOnly: true,
+      maxAge: 0,
+      path: ANALYTICS_ADMIN_SESSION_COOKIE_PATH,
+      sameSite: 'Strict',
+      secure: shouldUseSecureCookies(req),
+    }
+  ));
+}
+
+function hasAnalyticsAdminSession(req) {
+  const cookieValue = parseCookieHeader(req.headers.cookie).get(ANALYTICS_ADMIN_SESSION_COOKIE);
+  if (!cookieValue) return false;
+
+  const separatorIndex = cookieValue.indexOf('.');
+  if (separatorIndex <= 0) return false;
+
+  const payload = cookieValue.slice(0, separatorIndex);
+  const signature = cookieValue.slice(separatorIndex + 1);
+  const expectedSignature = signAnalyticsAdminSession(payload);
+  if (!timingSafeEqualString(signature, expectedSignature)) return false;
+
+  try {
+    const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (session.v !== 1) return false;
+    if (!Number.isFinite(session.exp) || session.exp <= Date.now()) return false;
+    return true;
+  } catch (_err) {
+    return false;
+  }
 }
 
 function sha256(value) {
@@ -631,25 +748,20 @@ function timingSafeEqualString(a, b) {
 }
 
 function requireAnalyticsAdmin(req, res, next) {
-  const requestToken = getRequestAdminToken(req);
-  if (!requestToken) {
+  res.set('Cache-Control', 'no-store');
+  if (!analyticsAdminToken && !analyticsAdminTokenHash) {
+    analyticsAdminUnavailable(res);
+    return;
+  }
+
+  if (!hasAnalyticsAdminSession(req)) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
-
-  if (analyticsAdminToken && timingSafeEqualString(requestToken, analyticsAdminToken)) {
-    next();
-    return;
-  }
-
-  if (analyticsAdminTokenHash && timingSafeEqualString(sha256(requestToken), analyticsAdminTokenHash)) {
-    next();
-    return;
-  }
-
-  res.status(401).json({ error: 'Unauthorized' });
+  next();
 }
 
+app.use(express.json({ limit: '10kb' }));
 app.use((req, res, next) => {
   if (req.method !== 'GET') {
     next();
@@ -726,6 +838,7 @@ app.get('/articles/:slug', (req, res) => {
   res.type('html').send(renderArticleHtml(req, article));
 });
 app.get(['/admin/analytics', '/admin-analytics'], (_req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.sendFile(path.join(PUBLIC_DIR, 'admin-analytics.html'));
 });
 app.get('/sitemap.xml', (req, res) => {
@@ -746,7 +859,33 @@ app.get('/api/sales-spread', (_req, res) => {
 app.get('/api/sales-spread/history', (req, res) => {
   res.json(salesSpreadStore.getHistory(req.query.window || '30d'));
 });
+app.post('/api/admin/session', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (!analyticsAdminToken && !analyticsAdminTokenHash) {
+    analyticsAdminUnavailable(res);
+    return;
+  }
+
+  const requestToken = String(req.body?.token || '').trim();
+  if (!requestToken) {
+    res.status(400).json({ error: 'Token required' });
+    return;
+  }
+  if (!isValidAnalyticsAdminToken(requestToken)) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  issueAnalyticsAdminSession(req, res);
+  res.status(204).end();
+});
+app.delete('/api/admin/session', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  clearAnalyticsAdminSession(req, res);
+  res.status(204).end();
+});
 app.get('/api/admin/analytics', requireAnalyticsAdmin, (req, res) => {
+  res.set('Cache-Control', 'no-store');
   res.json(analyticsStore.getReport(req.query.window || '7d'));
 });
 app.get('/api/exchanges', (_req, res) => {

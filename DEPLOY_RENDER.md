@@ -30,9 +30,9 @@
 
 アクセス解析へのリンクは公開ページには出しません。管理画面は直URLで開き、APIはトークン必須です。
 
-本番で見る場合は `https://公開URL/admin/analytics?token=管理トークン` を開いてください。表示後はURLからトークンを外して使えます。
+本番で見る場合は `https://公開URL/admin/analytics` を開き、画面上で管理トークンを入力してログインしてください。トークンは URL や `localStorage` に保存せず、`HttpOnly` のセッション Cookie で保持します。
 
-Render の Environment には、訪問者の概算集計に使う `ANALYTICS_SALT` を設定してください。管理トークンを変更したい場合は `ANALYTICS_ADMIN_TOKEN` または `ANALYTICS_ADMIN_TOKEN_HASH` を設定します。
+Render の Environment には、訪問者の概算集計に使う `ANALYTICS_SALT` を設定してください。管理認証には `ANALYTICS_ADMIN_TOKEN` または `ANALYTICS_ADMIN_TOKEN_HASH` のどちらかが必須で、両方とも未設定だとサーバーは起動しません。
 
 ## 出来高・スプレッド履歴の保存
 
