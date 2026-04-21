@@ -111,29 +111,6 @@
     positionTooltip(button);
   }
 
-  function ensureBanner() {
-    const main = document.querySelector('main');
-    if (!main) return null;
-    let banner = main.querySelector('[data-beginner-banner]');
-    if (!banner) {
-      banner = document.createElement('section');
-      banner.className = 'beginner-banner';
-      banner.dataset.beginnerBanner = 'true';
-      banner.innerHTML = `
-        <div class="beginner-banner__title">初心者モード</div>
-        <div class="beginner-banner__body">? ボタンから用語の短い説明を開けます。数値は、まず比較の目安として見るのがおすすめです。</div>
-      `;
-      main.insertBefore(banner, main.firstChild);
-    }
-    return banner;
-  }
-
-  function syncBanner() {
-    const banner = ensureBanner();
-    if (!banner) return;
-    banner.hidden = !beginnerMode;
-  }
-
   function syncToggleButtons() {
     document.querySelectorAll('[data-beginner-toggle]').forEach((button) => {
       button.classList.toggle('is-active', beginnerMode);
@@ -148,7 +125,6 @@
   function syncMode() {
     document.body.classList.toggle('beginner-mode', beginnerMode);
     syncToggleButtons();
-    syncBanner();
   }
 
   function setMode(value) {
