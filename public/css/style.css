@@ -907,6 +907,31 @@ button:active { transform: scale(0.98); }
   border-spacing: 0;
 }
 
+.data-table--fixed {
+  table-layout: fixed;
+}
+
+.data-table--fixed thead {
+  display: table-header-group;
+}
+
+.data-table--fixed tbody {
+  display: table-row-group;
+}
+
+.data-table--fixed tr {
+  display: table-row;
+}
+
+.data-table--fixed :is(td, th) {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.data-table--fixed :is(td, th):first-child {
+  white-space: normal;
+}
+
 .data-table thead th,
 .data-table thead.sticky th {
   background: var(--surface-2);
@@ -950,23 +975,12 @@ th {
   transition: background-color 140ms ease;
 }
 .data-table tbody tr::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 2px;
-  background: var(--accent);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateX(-4px);
-  transition: opacity 140ms ease, transform 120ms ease;
-}
-.data-table tbody tr:hover::before {
-  opacity: 1;
-  transform: translateX(0);
+  content: none;
 }
 .data-table tbody tr:hover { background: var(--surface-3) !important; }
+.data-table tbody tr:hover > :first-child {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
 
 .market-link {
   color: var(--text-1) !important;
