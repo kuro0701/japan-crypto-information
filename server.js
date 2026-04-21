@@ -21,6 +21,7 @@ const WSManager = require('./lib/ws-manager');
 const VolumeShareStore = require('./lib/volume-share-store');
 const SalesSpreadStore = require('./lib/sales-spread-store');
 const AnalyticsStore = require('./lib/analytics-store');
+const { ensureDataDirHealth, resolveDataDir } = require('./lib/data-storage');
 const { calculateImpact, DEFAULT_FEE_RATE } = require('./lib/impact-calculator');
 const { renderHeadMeta } = require('./lib/head-meta');
 const { getArticle, listArticles } = require('./lib/content');
@@ -46,12 +47,21 @@ const {
 
 const app = express();
 app.set('trust proxy', 1);
-const DATA_DIR = process.env.DATA_DIR
-  ? path.resolve(process.env.DATA_DIR)
-  : path.join(__dirname, 'data');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const HEAD_META_INJECT = '<!-- HEAD_META_INJECT -->';
 const ARTICLE_JSON_LD_INJECT = '<!-- ARTICLE_JSON_LD_INJECT -->';
+const DATA_DIR = resolveDataDir({ projectRoot: __dirname });
+const DATA_FILES = Object.freeze({
+  volumeShare: path.join(DATA_DIR, 'volume-share-history.json'),
+  salesSpread: path.join(DATA_DIR, 'sales-spread-history.json'),
+  analytics: path.join(DATA_DIR, 'analytics.json'),
+});
+
+ensureDataDirHealth({
+  dataDirPath: DATA_DIR,
+  projectRoot: __dirname,
+  expectedFiles: Object.values(DATA_FILES),
+});
 
 function fileLastmod(filePath) {
   try {
@@ -85,13 +95,13 @@ const SITEMAP_PAGES = [
 ];
 
 const volumeShareStore = new VolumeShareStore({
-  dataFilePath: path.join(DATA_DIR, 'volume-share-history.json'),
+  dataFilePath: DATA_FILES.volumeShare,
 });
 const salesSpreadStore = new SalesSpreadStore({
-  dataFilePath: path.join(DATA_DIR, 'sales-spread-history.json'),
+  dataFilePath: DATA_FILES.salesSpread,
 });
 const analyticsStore = new AnalyticsStore({
-  dataFilePath: path.join(DATA_DIR, 'analytics.json'),
+  dataFilePath: DATA_FILES.analytics,
   salt: process.env.ANALYTICS_SALT,
 });
 const analyticsAdminToken = String(process.env.ANALYTICS_ADMIN_TOKEN || '').trim();

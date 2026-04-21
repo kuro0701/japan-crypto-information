@@ -2,14 +2,20 @@ services:
   - type: web
     name: japan-crypto-information
     runtime: node
-    plan: free
+    plan: starter
     region: singapore
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /healthz
     autoDeployTrigger: commit
+    disk:
+      name: history
+      mountPath: /var/data
+      sizeGB: 10
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
         value: 22.22.0
+      - key: DATA_DIR
+        value: /var/data

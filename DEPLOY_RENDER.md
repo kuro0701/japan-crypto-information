@@ -1,6 +1,6 @@
 # Render 公開手順
 
-このアプリは Node.js サーバーと WebSocket を使うため、Render の Web Service で公開します。
+このアプリは Node.js サーバーと WebSocket を使うため、Render の Web Service で公開します。本番運用では履歴保存のため Persistent Disk を前提にします。
 
 ## 事前準備
 
@@ -17,12 +17,15 @@
 設定値は以下です。
 
 - Service type: Web Service
-- Plan: Free
+- Plan: Starter
 - Region: Singapore
 - Build Command: `npm ci`
 - Start Command: `npm start`
 - Health Check Path: `/healthz`
 - Node.js: `22.22.0`
+- Persistent Disk: `10 GB`
+- Disk mount path: `/var/data`
+- `DATA_DIR`: `/var/data`
 
 公開URLは Render が `https://japan-crypto-information.onrender.com` のような `onrender.com` サブドメインを自動発行します。
 
@@ -36,16 +39,22 @@ Render の Environment には、訪問者の概算集計に使う `ANALYTICS_SAL
 
 ## 出来高・スプレッド履歴の保存
 
-出来高シェア、販売所スプレッド、アクセス解析の履歴は JSON ファイルに保存します。保存先は `DATA_DIR` で指定でき、未指定の場合はリポジトリ内の `data/` を使います。
+出来高シェア、販売所スプレッド、アクセス解析の履歴は JSON ファイルに保存します。ローカル開発では `DATA_DIR` 未設定時にリポジトリ内の `data/` を使いますが、本番 (`NODE_ENV=production`) では `DATA_DIR` の設定が必須です。
 
 出来高シェアは各取引所の24h出来高、販売所スプレッドは各販売所の現在価格差を、起動直後と定期更新のたびにスナップショットとして取得し、JSTの日付ごとに保存します。同じ日付の記録は最新のスナップショットで置き換えるため、Render が深夜にスリープしていても、次回起動時の取得分から7日/30日集計を積み上げられます。
 
-Render の Free Web Service はローカルファイルが永続化されません。デプロイ、再起動、スリープ復帰で `data/*.json` の実行時更新が消えるため、7日/30日集計を本番で積み上げるには Free ではなく、永続ディスクを使える有料インスタンスか外部DBが必要です。
+本番では Render の Persistent Disk を `/var/data` にマウントし、`DATA_DIR=/var/data` を設定します。これにより、デプロイや再起動のあとも JSON 履歴ファイルが保持され、7日/30日集計が消えません。
 
-Render の Persistent Disk を使う場合は、ディスクをマウントしたパスを Environment の `DATA_DIR` に設定してください。例: `/var/data`
+アプリは起動時に次の保存先健全性チェックを行います。
+
+1. `DATA_DIR` が本番で設定済みか
+2. `DATA_DIR` が絶対パスか
+3. `DATA_DIR` がアプリ配下のエフェメラル領域ではないか
+4. ディレクトリへの read/write/rename ができるか
+5. 既存 JSON ファイルが読み出し可能で、JSON として壊れていないか
 
 ## 無料枠の注意
 
-Free Web Service はアクセスがない状態が続くとスリープします。次回アクセス時は起動まで少し待つことがあります。さらに、実行中に書き込んだローカルファイルはスリープ、再起動、デプロイで失われるため、履歴集計の保存先には向きません。
+Free Web Service はアクセスがない状態が続くとスリープします。次回アクセス時は起動まで少し待つことがあります。さらに、実行中に書き込んだローカルファイルはスリープ、再起動、デプロイで失われるため、履歴集計の保存先には向きません。本番では Free を使わず、Starter 以上 + Persistent Disk を使ってください。
 
 板情報とシミュレーション結果は参考値です。一般公開する場合は、投資助言ではないことと、表示データの正確性・即時性を保証しないことを画面内にも明記してください。
