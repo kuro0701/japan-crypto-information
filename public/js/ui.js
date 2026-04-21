@@ -36,6 +36,13 @@ const UI = {
     return `${Fmt.num(value, 2)} ${this.market.quoteCurrency}`;
   },
 
+  termLabel(label, key) {
+    if (window.TermHelp && typeof window.TermHelp.inlineLabel === 'function') {
+      return window.TermHelp.inlineLabel(label, key);
+    }
+    return label;
+  },
+
   updateTicker(ticker) {
     if (!ticker) return;
     const baseVolume = ticker.baseVolume24h == null ? '-' : this.formatBase(ticker.baseVolume24h, true);
@@ -178,16 +185,16 @@ const UI = {
         <div class="text-xs text-gray-500 uppercase tracking-wider pt-2">約定結果</div>
         ${row(`約定${this.market.baseCurrency}数量`, this.formatBase(r.totalBTCFilled))}
         ${row(r.side === 'buy' ? '支払総額' : '受取総額', Fmt.jpy(r.totalJPYSpent), 'font-mono')}
-        ${row('VWAP (平均約定価格)', Fmt.jpy(r.vwap), 'text-white font-bold font-mono')}
+        ${row(this.termLabel('VWAP (平均約定価格)', 'vwap'), Fmt.jpy(r.vwap), 'text-white font-bold font-mono')}
         ${row('最悪約定価格', Fmt.jpy(r.worstPrice), 'font-mono')}
 
-        <div class="text-xs text-gray-500 uppercase tracking-wider pt-2">スリッページ</div>
+        <div class="text-xs text-gray-500 uppercase tracking-wider pt-2">${this.termLabel('スリッページ', 'slippage')}</div>
         ${row('Best比 (JPY)', Fmt.jpy(r.slippageFromBestJPY), slipClass(Math.abs(r.slippageFromBestPct)))}
         ${row('Best比 (%)', Fmt.pct(r.slippageFromBestPct), slipClass(Math.abs(r.slippageFromBestPct)))}
         ${row('Mid比 (%)', Fmt.pct(r.slippageFromMidPct), slipClass(Math.abs(r.slippageFromMidPct)))}
 
-        <div class="text-xs text-gray-500 uppercase tracking-wider pt-2">マーケットインパクト</div>
-        ${row('インパクト', Fmt.pct(r.marketImpactPct), slipClass(Math.abs(r.marketImpactPct)))}
+        <div class="text-xs text-gray-500 uppercase tracking-wider pt-2">${this.termLabel('マーケットインパクト', 'impact')}</div>
+        ${row(this.termLabel('インパクト', 'impact'), Fmt.pct(r.marketImpactPct), slipClass(Math.abs(r.marketImpactPct)))}
         ${row('価格レンジ', Fmt.jpy(r.priceRange), 'font-mono')}
         ${row('5%ガードまで', Fmt.pct(Math.max(0, r.remainingImpactToAutoCancelPct)), r.remainingImpactToAutoCancelPct <= 0 ? 'text-red-300 font-bold' : 'text-gray-200')}
         ${row('50%停止まで', Fmt.pct(Math.max(0, r.remainingImpactToCircuitBreakerPct)), r.remainingImpactToCircuitBreakerPct <= 0 ? 'text-red-300 font-bold' : 'text-gray-200')}
@@ -209,7 +216,7 @@ const UI = {
         <div class="text-xs text-gray-500 uppercase tracking-wider pt-2">手数料 (${Fmt.pct(r.feeRatePct)})</div>
         ${row('手数料', Fmt.jpy(r.feesJPY), 'font-mono')}
         ${row(`手数料込み実効${r.side === 'buy' ? 'コスト' : '受取額'}`, Fmt.jpy(r.effectiveCostJPY), 'text-white font-bold font-mono')}
-        ${row('実効VWAP', Fmt.jpy(r.effectiveVWAP), 'text-white font-bold font-mono')}
+        ${row(this.termLabel('実効VWAP', 'vwap'), Fmt.jpy(r.effectiveVWAP), 'text-white font-bold font-mono')}
       </div>
     `;
 

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=ui-3">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -27,12 +27,12 @@
       <a class="nav-link" href="/volume-share">出来高シェア</a>
       <a class="nav-link is-active" href="/sales-spread" aria-current="page">販売所スプレッド</a>
     </nav>
-    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true"><span class="sr-only">接続状態: ライブデータ取得中</span><span class="badge badge--live">LIVE</span><span id="spread-status" class="status-text">読み込み中</span><span class="text-xs text-gray-600 ml-2">更新: <span id="spread-updated-at" class="text-gray-400">-</span></span></div>
+    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true"><span class="sr-only">接続状態: ライブデータ取得中</span><span class="badge badge--live">LIVE</span><span id="spread-status" class="status-text">読み込み中</span><span class="text-xs text-gray-600 ml-2">更新: <span id="spread-updated-at" class="text-gray-400">-</span></span><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
   </header>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
     <section class="panel panel--dense">
-      <div class="panel-title-row mb-4"><div><h2 class="panel-title">販売所スプレッド</h2><p id="spread-meta" class="text-xs text-gray-500 mt-1">スプレッドスナップショットを集計中</p></div><span class="panel-kicker">Sales Spread</span></div>
+      <div class="panel-title-row mb-4"><div><div class="panel-title-with-help"><h2 class="panel-title">販売所スプレッド</h2><button class="term-help" type="button" data-term-key="sales-spread" aria-label="販売所スプレッド の説明を開く"><span aria-hidden="true">?</span></button></div><p id="spread-meta" class="text-xs text-gray-500 mt-1">スプレッドスナップショットを集計中</p></div><span class="panel-kicker">Sales Spread</span></div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         <div class="metric-row metric-row--hero bid"><span class="metric-label">最小スプレッド</span><span id="narrowest-spread" class="metric-value metric-value--market text-green-300">-</span></div>
         <div class="metric-row metric-row--hero ask"><span class="metric-label">最大スプレッド</span><span id="widest-spread" class="metric-value metric-value--market text-red-300">-</span></div>
@@ -89,6 +89,7 @@
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | 販売所価格はJPY建て、スプレッド率は仲値比です</footer>
 
+  <script src="/js/beginner-mode.js?v=1"></script>
   <script src="js/formatter.js?v=sales-spread-1"></script>
   <script src="js/sales-spread.js?v=sales-spread-9"></script>
 </body>

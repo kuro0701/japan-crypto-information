@@ -6,10 +6,11 @@
   <!-- HEAD_META_INJECT -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=ui-3">
   <script>
     tailwind.config = {
       theme: {
@@ -58,6 +59,7 @@
       <span id="status-text" class="status-text">切断</span>
       <span class="text-xs text-gray-600 ml-2">取得: <span id="source-label" class="text-gray-400">-</span></span>
       <span class="text-xs text-gray-600 ml-2">更新: <span id="book-timestamp" class="text-gray-400">-</span></span>
+      <button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button>
     </div>
   </header>
 
@@ -159,7 +161,10 @@
 
       <section class="panel panel--dense">
         <div class="panel-title-row">
-          <h2 class="panel-title">インパクト別 必要注文</h2>
+          <div class="panel-title-with-help">
+            <h2 class="panel-title">インパクト別 必要注文</h2>
+            <button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button>
+          </div>
           <span class="panel-kicker">Capacity</span>
         </div>
         <p class="text-xs text-gray-600 mb-3 mt-1">表示板でその変動率以内に収まる最大成行サイズ</p>
@@ -179,10 +184,16 @@
         </div>
       </section>
 
-      <section class="panel result-panel panel--dense">
+      <section id="simulation-export-panel" class="panel result-panel panel--dense">
         <div class="panel-title-row">
           <h2 class="panel-title">シミュレーション結果</h2>
-          <span class="panel-kicker">Execution</span>
+          <div class="panel-header-tools">
+            <div class="export-actions" data-export-actions>
+              <button class="btn btn-ghost export-btn" type="button" data-export-kind="simulation" data-export-format="csv">CSV保存</button>
+              <button class="btn btn-secondary export-btn" type="button" data-export-kind="simulation" data-export-format="image">画像保存/共有</button>
+            </div>
+            <span class="panel-kicker">Execution</span>
+          </div>
         </div>
         <div id="simulation-results" class="text-sm mt-2">
           <div class="text-gray-500 text-center py-8">シミュレーション未実行</div>
@@ -227,7 +238,10 @@
     <div class="flex-1 space-y-4 min-w-0">
       <section class="panel chart-panel panel--dense">
         <div class="panel-title-row">
-          <h2 class="panel-title">板深度チャート</h2>
+          <div class="panel-title-with-help">
+            <h2 class="panel-title">板深度チャート</h2>
+            <button class="term-help" type="button" data-term-key="orderbook" aria-label="板 の説明を開く"><span aria-hidden="true">?</span></button>
+          </div>
           <span class="panel-kicker">Order Book Curve</span>
         </div>
         <div class="chart-container mt-3">
@@ -235,13 +249,19 @@
         </div>
       </section>
 
-      <section class="panel panel--dense">
+      <section id="venue-comparison-panel" class="panel panel--dense">
         <div class="panel-title-row">
           <div>
             <h2 class="panel-title">取引所横断コスト比較</h2>
             <p id="venue-comparison-meta" class="text-xs text-gray-500 mt-1">シミュレーション実行後に比較します</p>
           </div>
-          <span class="panel-kicker">Best Venue</span>
+          <div class="panel-header-tools">
+            <div class="export-actions" data-export-actions>
+              <button class="btn btn-ghost export-btn" type="button" data-export-kind="venue-comparison" data-export-format="csv">CSV保存</button>
+              <button class="btn btn-secondary export-btn" type="button" data-export-kind="venue-comparison" data-export-format="image">画像保存/共有</button>
+            </div>
+            <span class="panel-kicker">Best Venue</span>
+          </div>
         </div>
         <div class="overflow-auto scrollbar-thin mt-3">
           <table class="data-table data-table--cards text-xs">
@@ -250,8 +270,8 @@
                 <th id="venue-col-rank" class="is-num text-right w-12">順位</th>
                 <th id="venue-col-exchange" class="text-left">取引所</th>
                 <th id="venue-col-effective" class="is-num text-right">実効コスト</th>
-                <th id="venue-col-vwap" class="is-num text-right">実効VWAP</th>
-                <th id="venue-col-impact" class="is-num text-right">Impact</th>
+                <th id="venue-col-vwap" class="is-num text-right"><span class="term-label">実効VWAP<button class="term-help" type="button" data-term-key="vwap" aria-label="VWAP の説明を開く"><span aria-hidden="true">?</span></button></span></th>
+                <th id="venue-col-impact" class="is-num text-right"><span class="term-label">Impact<button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button></span></th>
                 <th id="venue-col-status" class="text-left">判定</th>
                 <th id="venue-col-updated" class="text-right">更新</th>
               </tr>
@@ -263,13 +283,22 @@
         </div>
       </section>
 
-      <section class="panel panel--dense">
+      <section id="sales-reference-panel" class="panel panel--dense">
         <div class="panel-title-row">
           <div>
-            <h2 class="panel-title">販売所参考コスト比較</h2>
+            <div class="panel-title-with-help">
+              <h2 class="panel-title">販売所参考コスト比較</h2>
+              <button class="term-help" type="button" data-term-key="indicative-cost" aria-label="販売所参考値 の説明を開く"><span aria-hidden="true">?</span></button>
+            </div>
             <p id="sales-reference-meta" class="text-xs text-gray-500 mt-1">販売所は表示価格ベースの参考値です</p>
           </div>
-          <span class="panel-kicker">Indicative</span>
+          <div class="panel-header-tools">
+            <div class="export-actions" data-export-actions>
+              <button class="btn btn-ghost export-btn" type="button" data-export-kind="sales-reference" data-export-format="csv">CSV保存</button>
+              <button class="btn btn-secondary export-btn" type="button" data-export-kind="sales-reference" data-export-format="image">画像保存/共有</button>
+            </div>
+            <span class="panel-kicker">Indicative</span>
+          </div>
         </div>
         <p class="text-xs text-gray-600 mt-2">
           販売所は板情報がないため、表示価格が全数量に適用されると仮定した参考値です。実際の発注時には価格再提示、数量制限、約定拒否が発生する場合があります。
@@ -327,10 +356,11 @@
     成行取引リアルタイム板シミュレーター | 取引所: <span id="footer-exchange-label">OKJ</span> | 銘柄: <span id="footer-instrument-label">BTC/JPY</span> | データソース: <span id="footer-source-label">OKCoin Japan WebSocket + REST fallback</span>
   </footer>
 
+  <script src="/js/beginner-mode.js?v=1"></script>
   <script src="js/formatter.js?v=volume-1"></script>
   <script src="js/ws-client.js?v=volume-1"></script>
-  <script src="js/ui.js?v=volume-1"></script>
+  <script src="js/ui.js?v=volume-2"></script>
   <script src="js/chart.js?v=volume-1"></script>
-  <script src="js/app.js?v=volume-5"></script>
+  <script src="js/app.js?v=volume-7"></script>
 </body>
 </html>

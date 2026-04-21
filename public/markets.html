@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=ui-3">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -30,6 +30,7 @@
       <span class="badge badge--live">LIVE</span>
       <span id="market-index-status" class="status-text">全銘柄</span>
       <span class="text-xs text-gray-600 ml-2">掲載: <span id="market-index-visible-count" class="text-gray-400">__MARKET_COUNT__</span></span>
+      <button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button>
     </div>
   </header>
 
@@ -70,6 +71,7 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | 銘柄ページ</footer>
 
   <script>window.MARKETS_INDEX = __MARKETS_INDEX_JSON__;</script>
+  <script src="/js/beginner-mode.js?v=1"></script>
   <script src="/js/markets-index.js?v=markets-1"></script>
 </body>
 </html>

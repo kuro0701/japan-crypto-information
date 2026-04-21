@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let comparisonRefreshTimer = null;
   let comparisonAbortController = null;
   let salesReferenceAbortController = null;
+  let lastSimulationResult = null;
+  let lastVenueComparisonData = null;
+  let lastSalesReferenceData = null;
   const COMPARISON_REFRESH_MS = 10000;
   const defaultMarket = {
     instrumentId: 'BTC-JPY',
@@ -219,6 +222,393 @@ document.addEventListener('DOMContentLoaded', () => {
         shareUrlStatus.textContent = '';
       }, 2400);
     }
+  }
+
+  function ensureButtonDefaultLabel(button) {
+    if (!button) return '';
+    if (!button.dataset.defaultLabel) {
+      button.dataset.defaultLabel = (button.textContent || '').trim();
+    }
+    return button.dataset.defaultLabel;
+  }
+
+  function resetButtonLabel(button) {
+    if (!button) return;
+    const defaultLabel = ensureButtonDefaultLabel(button);
+    if (button.__labelTimer) clearTimeout(button.__labelTimer);
+    button.disabled = false;
+    button.textContent = defaultLabel;
+  }
+
+  function flashButtonLabel(button, label, duration = 1800) {
+    if (!button) return;
+    ensureButtonDefaultLabel(button);
+    if (button.__labelTimer) clearTimeout(button.__labelTimer);
+    button.disabled = false;
+    button.textContent = label;
+    button.__labelTimer = setTimeout(() => {
+      button.textContent = button.dataset.defaultLabel;
+    }, duration);
+  }
+
+  async function runExportAction(button, action) {
+    if (!button) return;
+    ensureButtonDefaultLabel(button);
+    if (button.__labelTimer) clearTimeout(button.__labelTimer);
+    button.disabled = true;
+    button.textContent = '出力中...';
+    try {
+      const outcome = await action();
+      flashButtonLabel(button, outcome === 'shared' ? '共有しました' : '保存しました');
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        resetButtonLabel(button);
+        return;
+      }
+      console.warn('Export failed:', err);
+      flashButtonLabel(button, '失敗', 2400);
+    }
+  }
+
+  function safeFilenamePart(value) {
+    return String(value || '')
+      .trim()
+      .replace(/[^A-Za-z0-9_-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '') || 'export';
+  }
+
+  function exportTimestamp(date = new Date()) {
+    const pad = (value) => String(value).padStart(2, '0');
+    return [
+      date.getFullYear(),
+      pad(date.getMonth() + 1),
+      pad(date.getDate()),
+      '-',
+      pad(date.getHours()),
+      pad(date.getMinutes()),
+      pad(date.getSeconds()),
+    ].join('');
+  }
+
+  function exportBaseFilename(prefix) {
+    const exchange = getSelectedExchange();
+    const market = getSelectedMarket(exchange);
+    const side = normalizeSide(sideSelect && sideSelect.value) || 'buy';
+    return [
+      safeFilenamePart(prefix),
+      safeFilenamePart(market && market.instrumentId),
+      safeFilenamePart(exchange && exchange.id),
+      safeFilenamePart(side),
+      exportTimestamp(),
+    ].join('-');
+  }
+
+  function csvEscape(value) {
+    if (value == null) return '';
+    const normalized = value instanceof Date ? value.toISOString() : String(value);
+    return /[",\r\n]/.test(normalized)
+      ? `"${normalized.replace(/"/g, '""')}"`
+      : normalized;
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function downloadCsv(filename, rows) {
+    const content = `\uFEFF${rows.map(row => row.map(csvEscape).join(',')).join('\r\n')}`;
+    downloadBlob(new Blob([content], { type: 'text/csv;charset=utf-8;' }), filename);
+    return 'saved';
+  }
+
+  function exportTargetTitle(kind) {
+    return {
+      simulation: 'シミュレーション結果',
+      'venue-comparison': '取引所横断コスト比較',
+      'sales-reference': '販売所参考コスト比較',
+    }[kind] || 'エクスポート';
+  }
+
+  function exportTargetElement(kind) {
+    return {
+      simulation: document.getElementById('simulation-export-panel'),
+      'venue-comparison': document.getElementById('venue-comparison-panel'),
+      'sales-reference': document.getElementById('sales-reference-panel'),
+    }[kind] || null;
+  }
+
+  function simulationCsvRows(result) {
+    const exchange = getSelectedExchange();
+    const market = getSelectedMarket(exchange);
+    const rows = [[
+      'section',
+      'key',
+      'label',
+      'value',
+      'index',
+      'price_jpy',
+      'quantity_base',
+      'subtotal_jpy',
+      'cumulative_base',
+      'cumulative_jpy',
+      'cumulative_impact_pct',
+      'orders',
+      'note',
+    ]];
+    const pushSummary = (key, label, value, note = '') => {
+      rows.push(['summary', key, label, value, '', '', '', '', '', '', '', '', note]);
+    };
+
+    pushSummary('generated_at', '生成日時', new Date().toISOString());
+    pushSummary('exchange_id', '取引所ID', exchange && exchange.id);
+    pushSummary('exchange', '取引所', exchange && exchange.label);
+    pushSummary('instrument_id', '銘柄ID', market && market.instrumentId);
+    pushSummary('instrument', '銘柄', market && market.label);
+    pushSummary('side', '売買', result.side === 'sell' ? 'sell' : 'buy');
+    pushSummary('amount_type', '入力タイプ', result.amountType);
+    pushSummary('requested_amount', '注文数量/金額', result.requestedAmount);
+    pushSummary('execution_status', '発注判定', result.executionStatus, result.executionStatusLabel || '');
+    pushSummary('recommended_action', '推奨アクション', result.recommendedAction);
+    pushSummary('book_timestamp', '板タイムスタンプ', result.bookTimestamp);
+    pushSummary('mid_price_jpy', '仲値', result.midPrice);
+    pushSummary('best_bid_jpy', '最良Bid', result.bestBid);
+    pushSummary('best_ask_jpy', '最良Ask', result.bestAsk);
+    pushSummary('spread_jpy', 'スプレッド', result.spread, result.spreadPct);
+    pushSummary('filled_base', '約定数量', result.totalBTCFilled, UI.market.baseCurrency);
+    pushSummary('filled_quote_jpy', result.side === 'buy' ? '支払総額' : '受取総額', result.totalJPYSpent, 'JPY');
+    pushSummary('vwap_jpy', 'VWAP', result.vwap, 'JPY');
+    pushSummary('worst_price_jpy', '最悪約定価格', result.worstPrice, 'JPY');
+    pushSummary('effective_cost_jpy', result.side === 'buy' ? '手数料込み実効コスト' : '手数料込み実効受取額', result.effectiveCostJPY, 'JPY');
+    pushSummary('effective_vwap_jpy', '実効VWAP', result.effectiveVWAP, 'JPY');
+    pushSummary('fees_jpy', '手数料', result.feesJPY, `feeRatePct=${result.feeRatePct}`);
+    pushSummary('slippage_from_best_pct', 'Best比スリッページ(%)', result.slippageFromBestPct);
+    pushSummary('slippage_from_mid_pct', 'Mid比スリッページ(%)', result.slippageFromMidPct);
+    pushSummary('market_impact_pct', 'マーケットインパクト(%)', result.marketImpactPct);
+    pushSummary('levels_consumed', '消費レベル数', result.levelsConsumed, `totalLevels=${result.totalLevelsAvailable}`);
+    pushSummary('orders_consumed', '消費注文数', result.ordersConsumed);
+    pushSummary('remaining_liquidity_base', '残存流動性', result.remainingLiquidityBTC, UI.market.baseCurrency);
+    pushSummary('remaining_liquidity_jpy', '残存流動性(JPY)', result.remainingLiquidityJPY, 'JPY');
+    pushSummary('insufficient', '流動性不足', result.insufficient ? 'true' : 'false');
+    pushSummary('shortfall_base', '不足数量', result.shortfallBTC, UI.market.baseCurrency);
+    pushSummary('shortfall_jpy', '不足金額', result.shortfallJPY, 'JPY');
+
+    (result.fills || []).forEach((fill, index) => {
+      rows.push([
+        'fills',
+        '',
+        '',
+        '',
+        index + 1,
+        fill.price,
+        fill.quantity,
+        fill.subtotalJPY,
+        fill.cumulativeBTC,
+        fill.cumulativeJPY,
+        fill.cumulativeImpactPct,
+        fill.orders,
+        fill.fullyConsumed ? 'fully_consumed' : 'partial_fill',
+      ]);
+    });
+
+    return rows;
+  }
+
+  function venueComparisonCsvRows(data) {
+    const meta = data && data.meta ? data.meta : {};
+    const rows = [[
+      'instrument_id',
+      'instrument',
+      'side',
+      'amount_type',
+      'amount',
+      'fee_rate_pct',
+      'generated_at',
+      'rank',
+      'exchange_id',
+      'exchange',
+      'status',
+      'status_label',
+      'source',
+      'total_base',
+      'effective_cost_jpy',
+      'effective_vwap_jpy',
+      'fees_jpy',
+      'market_impact_pct',
+      'slippage_from_best_pct',
+      'spread_pct',
+      'updated_at',
+      'note',
+    ]];
+
+    (data.rows || []).forEach((row) => {
+      const result = row.result || {};
+      const ready = row.status === 'ready' && row.result && !row.result.error;
+      rows.push([
+        meta.instrumentId || '',
+        getSelectedMarket().label || meta.instrumentId || '',
+        meta.side || '',
+        meta.amountType || '',
+        meta.amount ?? '',
+        Number.isFinite(Number(meta.feeRate)) ? Number(meta.feeRate) * 100 : '',
+        meta.generatedAt || '',
+        row.rank ?? '',
+        row.exchangeId || '',
+        row.exchangeLabel || '',
+        row.status || '',
+        ready ? (result.executionStatusLabel || '') : (row.message || ''),
+        row.source || '',
+        ready ? result.totalBTCFilled : '',
+        ready ? result.effectiveCostJPY : '',
+        ready ? result.effectiveVWAP : '',
+        ready ? result.feesJPY : '',
+        ready ? result.marketImpactPct : '',
+        ready ? result.slippageFromBestPct : '',
+        row.spreadPct ?? '',
+        row.timestamp || row.receivedAt || '',
+        ready ? (result.recommendedAction || '') : (row.message || ''),
+      ]);
+    });
+
+    return rows;
+  }
+
+  function salesReferenceCsvRows(data) {
+    const meta = data && data.meta ? data.meta : {};
+    const rows = [[
+      'instrument_id',
+      'instrument',
+      'side',
+      'amount_type',
+      'amount',
+      'fee_rate_pct',
+      'baseline_exchange',
+      'rank',
+      'exchange_id',
+      'exchange',
+      'status',
+      'display_price_jpy',
+      'total_base',
+      'effective_quote_jpy',
+      'disadvantage_jpy',
+      'delta_type',
+      'base_delta',
+      'spread_pct',
+      'risk_label',
+      'is_online',
+      'updated_at',
+      'note',
+    ]];
+
+    (data.rows || []).forEach((row) => {
+      const result = row.result || {};
+      const delta = row.delta || {};
+      const ready = row.status === 'ready' && row.result;
+      rows.push([
+        meta.instrumentId || '',
+        getSelectedMarket().label || meta.instrumentId || '',
+        meta.side || '',
+        meta.amountType || '',
+        meta.amount ?? '',
+        Number.isFinite(Number(meta.feeRate)) ? Number(meta.feeRate) * 100 : '',
+        meta.baselineExchangeLabel || '',
+        row.rank ?? '',
+        row.exchangeId || '',
+        row.exchangeLabel || '',
+        row.status || '',
+        ready ? result.price : '',
+        ready ? result.totalBase : '',
+        ready ? result.effectiveQuote : '',
+        delta.disadvantageJpy ?? '',
+        delta.type || '',
+        delta.baseDelta ?? '',
+        row.spreadPct ?? '',
+        row.riskLabel || '',
+        row.isOnline === false || row.isWidgetOpen === false ? 'false' : 'true',
+        row.priceTimestamp || row.capturedAt || '',
+        ready ? '' : (row.message || ''),
+      ]);
+    });
+
+    return rows;
+  }
+
+  async function exportImage(kind) {
+    const target = exportTargetElement(kind);
+    if (!target) {
+      throw new Error('エクスポート対象が見つかりません');
+    }
+    if (typeof html2canvas !== 'function') {
+      throw new Error('画像エクスポートのライブラリが読み込めていません');
+    }
+
+    const canvas = await html2canvas(target, {
+      backgroundColor: '#050816',
+      useCORS: true,
+      logging: false,
+      scale: Math.max(2, Math.min(3, window.devicePixelRatio || 1)),
+      onclone: (clonedDocument) => {
+        clonedDocument.querySelectorAll('[data-export-actions]').forEach((node) => {
+          node.style.display = 'none';
+        });
+        clonedDocument.querySelectorAll('.overflow-auto').forEach((node) => {
+          node.style.overflow = 'visible';
+          node.style.maxHeight = 'none';
+        });
+      },
+    });
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) {
+      throw new Error('画像を書き出せませんでした');
+    }
+
+    const filename = `${exportBaseFilename(kind)}.png`;
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], filename, { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: exportTargetTitle(kind),
+          files: [file],
+        });
+        return 'shared';
+      }
+    }
+
+    downloadBlob(blob, filename);
+    return 'saved';
+  }
+
+  function exportCsv(kind) {
+    if (kind === 'simulation') {
+      if (!lastSimulationResult || lastSimulationResult.error) {
+        throw new Error('シミュレーション結果がありません');
+      }
+      return downloadCsv(`${exportBaseFilename(kind)}.csv`, simulationCsvRows(lastSimulationResult));
+    }
+
+    if (kind === 'venue-comparison') {
+      if (!lastVenueComparisonData || !Array.isArray(lastVenueComparisonData.rows) || lastVenueComparisonData.rows.length === 0) {
+        throw new Error('比較表のデータがありません');
+      }
+      return downloadCsv(`${exportBaseFilename(kind)}.csv`, venueComparisonCsvRows(lastVenueComparisonData));
+    }
+
+    if (kind === 'sales-reference') {
+      if (!lastSalesReferenceData || !Array.isArray(lastSalesReferenceData.rows) || lastSalesReferenceData.rows.length === 0) {
+        throw new Error('販売所参考比較のデータがありません');
+      }
+      return downloadCsv(`${exportBaseFilename(kind)}.csv`, salesReferenceCsvRows(lastSalesReferenceData));
+    }
+
+    throw new Error('未対応のエクスポート種別です');
   }
 
   function setSettingsStatus(message) {
@@ -773,6 +1163,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function clearMarketState() {
     latestDepthData = null;
     latestMidPrice = null;
+    lastSimulationResult = null;
     setSimulationForChart(null);
     UI.clearMarketView();
     UI.clearSimulationView();
@@ -802,6 +1193,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function clearVenueComparison() {
     lastComparisonParams = null;
+    lastVenueComparisonData = null;
+    lastSalesReferenceData = null;
     stopComparisonRefresh();
     if (comparisonAbortController) {
       comparisonAbortController.abort();
@@ -868,6 +1261,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('venue-comparison-tbody');
     if (!tbody) return;
 
+    lastVenueComparisonData = data && typeof data === 'object' ? data : null;
     const meta = data && data.meta ? data.meta : {};
     const rows = Array.isArray(data && data.rows) ? data.rows : [];
     const sideLabel = meta.side === 'sell' ? '売り' : '買い';
@@ -1096,6 +1490,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('sales-reference-tbody');
     if (!tbody) return;
 
+    lastSalesReferenceData = data && typeof data === 'object' ? data : null;
     const meta = data && data.meta ? data.meta : {};
     const rows = Array.isArray(data && data.rows) ? data.rows : [];
     const market = getSelectedMarket();
@@ -1287,6 +1682,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const amount = parseNumberInput(amountInput.value);
 
     if (isNaN(amount) || amount <= 0) {
+      lastSimulationResult = null;
       document.getElementById('simulation-results').innerHTML =
         '<div class="text-yellow-400 text-center py-4">正の数値を入力してください</div>';
       return;
@@ -1294,6 +1690,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const feeRatePct = parseNumberInput(feeRateInput.value);
     if (isNaN(feeRatePct) || feeRatePct < 0 || feeRatePct > 100) {
+      lastSimulationResult = null;
       document.getElementById('simulation-results').innerHTML =
         '<div class="text-yellow-400 text-center py-4">手数料率は0%以上100%以下で入力してください</div>';
       return;
@@ -1322,6 +1719,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (copyShareUrlBtn) {
     copyShareUrlBtn.addEventListener('click', copyShareUrl);
   }
+
+  document.addEventListener('click', (event) => {
+    const button = event.target && event.target.closest
+      ? event.target.closest('[data-export-kind][data-export-format]')
+      : null;
+    if (!button) return;
+
+    const kind = button.dataset.exportKind;
+    const format = button.dataset.exportFormat;
+    runExportAction(button, () => (
+      format === 'image'
+        ? exportImage(kind)
+        : Promise.resolve(exportCsv(kind))
+    ));
+  });
 
   if (alertTypeSelect) {
     alertTypeSelect.addEventListener('change', syncAlertHelp);
@@ -1391,6 +1803,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   clearBtn.addEventListener('click', () => {
     ws.clearSimulation();
+    lastSimulationResult = null;
     setSimulationForChart(null);
     UI.clearSimulationView();
     clearVenueComparison();
@@ -1492,6 +1905,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   ws.on('simulation', (data) => {
+    lastSimulationResult = data && !data.error ? data : null;
     setSimulationForChart(data);
     UI.updateSimulationResults(data);
     UI.updateFillTable(data.fills || [], data.side);

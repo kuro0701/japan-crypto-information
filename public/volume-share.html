@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=ui-3">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -27,12 +27,12 @@
       <a class="nav-link is-active" href="/volume-share" aria-current="page">出来高シェア</a>
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
     </nav>
-    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true"><span class="sr-only">接続状態: ライブデータ取得中</span><span class="badge badge--live">LIVE</span><span id="share-status" class="status-text">読み込み中</span><span class="text-xs text-gray-600 ml-2">更新: <span id="share-updated-at" class="text-gray-400">-</span></span></div>
+    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true"><span class="sr-only">接続状態: ライブデータ取得中</span><span class="badge badge--live">LIVE</span><span id="share-status" class="status-text">読み込み中</span><span class="text-xs text-gray-600 ml-2">更新: <span id="share-updated-at" class="text-gray-400">-</span></span><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
   </header>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
     <section class="panel panel--dense">
-      <div class="panel-title-row mb-4"><div><h2 class="panel-title">出来高シェア</h2><p id="share-meta" class="text-xs text-gray-500 mt-1">24hスナップショットを集計中</p></div><span class="panel-kicker">Volume Share</span></div>
+      <div class="panel-title-row mb-4"><div><div class="panel-title-with-help"><h2 class="panel-title">出来高シェア</h2><button class="term-help" type="button" data-term-key="volume-share" aria-label="出来高シェア の説明を開く"><span aria-hidden="true">?</span></button></div><p id="share-meta" class="text-xs text-gray-500 mt-1">24hスナップショットを集計中</p></div><span class="panel-kicker">Volume Share</span></div>
       <div class="tab-group mb-4" role="tablist" aria-label="集計期間"><button class="btn btn-tab window-tab active" data-window="1d" type="button" role="tab" aria-selected="true">24時間</button><button class="btn btn-tab window-tab" data-window="7d" type="button" role="tab" aria-selected="false">7日間</button><button class="btn btn-tab window-tab" data-window="30d" type="button" role="tab" aria-selected="false">30日間</button></div>
       <div class="filter-grid mb-4" aria-label="出来高シェアフィルター">
         <label class="filter-control" for="volume-instrument-filter"><span>銘柄</span><select id="volume-instrument-filter" class="field" aria-label="銘柄で絞り込み"><option value="__all__">すべて</option></select></label>
@@ -115,6 +115,7 @@
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | 出来高はJPY換算です</footer>
 
+  <script src="/js/beginner-mode.js?v=1"></script>
   <script src="js/formatter.js?v=volume-share-1"></script>
   <script src="js/volume-share.js?v=volume-share-7"></script>
 </body>
