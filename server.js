@@ -51,11 +51,16 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const HEAD_META_INJECT = '<!-- HEAD_META_INJECT -->';
 const ARTICLE_JSON_LD_INJECT = '<!-- ARTICLE_JSON_LD_INJECT -->';
 const DATA_DIR = resolveDataDir({ projectRoot: __dirname });
+const DATA_DIR_CONFIGURED = Boolean(String(process.env.DATA_DIR || '').trim());
 const DATA_FILES = Object.freeze({
   volumeShare: path.join(DATA_DIR, 'volume-share-history.json'),
   salesSpread: path.join(DATA_DIR, 'sales-spread-history.json'),
   analytics: path.join(DATA_DIR, 'analytics.json'),
 });
+
+if (String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production' && !DATA_DIR_CONFIGURED) {
+  console.warn('[data-storage] DATA_DIR is not configured in production; falling back to the bundled data directory.');
+}
 
 ensureDataDirHealth({
   dataDirPath: DATA_DIR,
