@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-4">
+  <link rel="stylesheet" href="/css/style.css?v=ui-5">
   <script>
     tailwind.config = {
       theme: {
@@ -59,6 +59,8 @@
       <span id="status-text" class="status-text">切断</span>
       <span class="text-xs text-gray-600 ml-2">取得: <span id="source-label" class="text-gray-400">-</span></span>
       <span class="text-xs text-gray-600 ml-2">更新: <span id="book-timestamp" class="text-gray-400">-</span></span>
+      <span class="text-xs text-gray-600 ml-2">経過: <span id="book-age-label" class="text-gray-400">-</span></span>
+      <span id="book-freshness-badge" class="freshness-badge freshness-badge--stale ml-2" hidden>STALE</span>
       <button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button>
     </div>
   </header>
@@ -87,7 +89,8 @@
           </div>
           <div>
             <label class="metric-label block mb-1" for="fee-rate">手数料率 (%)</label>
-            <input id="fee-rate" type="number" min="0" step="0.001" value="0.14" class="field w-full rounded px-3 py-2 text-sm font-mono">
+            <input id="fee-rate" type="number" min="0" step="0.001" placeholder="既定値を使用" class="field w-full rounded px-3 py-2 text-sm font-mono">
+            <p id="fee-preset-hint" class="field-help mt-1">未入力なら選択中の取引所の既定 taker 手数料を使います。</p>
           </div>
         </div>
 
@@ -359,8 +362,8 @@
   <script src="/js/beginner-mode.js?v=2"></script>
   <script src="js/formatter.js?v=volume-1"></script>
   <script src="js/ws-client.js?v=volume-1"></script>
-  <script src="js/ui.js?v=volume-2"></script>
+  <script src="js/ui.js?v=volume-3"></script>
   <script src="js/chart.js?v=volume-1"></script>
-  <script src="js/app.js?v=volume-7"></script>
+  <script src="js/app.js?v=volume-8"></script>
 </body>
 </html>

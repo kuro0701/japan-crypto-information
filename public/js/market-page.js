@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedExchangeId = '';
   let comparisonTimer = null;
   let summaryTimer = null;
+  let freshnessTimer = null;
+  let lastComparisonData = null;
 
   const $ = (id) => document.getElementById(id);
   const setText = (id, value) => {
@@ -13,6 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (el) el.textContent = value ?? '-';
   };
   const parseNumberInput = (value) => parseFloat(String(value || '').replace(/,/g, ''));
+  const readOptionalFeeRatePct = (input) => {
+    const raw = input && input.value != null ? String(input.value).trim() : '';
+    if (!raw) return null;
+    const parsed = parseNumberInput(raw);
+    return Number.isFinite(parsed) ? parsed : NaN;
+  };
   const escapeHtml = (value) => String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -44,6 +52,81 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
   const marketLabel = () => (summary && summary.market && summary.market.label) || config.label || instrumentId;
+  const statusRank = (status) => ({
+    fresh: 0,
+    stale: 1,
+    waiting: 2,
+    error: 3,
+    unsupported: 4,
+  }[status] ?? 5);
+
+  const parseTimeValue = (value) => {
+    if (value == null || value === '') return null;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const parsed = Date.parse(String(value));
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const rowUpdatedAtMs = (row) => parseTimeValue(row && (row.updatedAt ?? row.receivedAt ?? row.timestamp));
+  const rowAgeMs = (row) => {
+    const updatedAt = rowUpdatedAtMs(row);
+    return updatedAt == null ? null : Math.max(0, Date.now() - updatedAt);
+  };
+  const rowAgeSeconds = (row) => {
+    const ageMs = rowAgeMs(row);
+    return ageMs == null ? null : Math.floor(ageMs / 1000);
+  };
+  const liveRowStatus = (row) => {
+    const baseStatus = String((row && row.status) || 'waiting');
+    if (baseStatus !== 'fresh' && baseStatus !== 'stale') return baseStatus;
+    if (baseStatus === 'stale') return 'stale';
+    const ageMs = rowAgeMs(row);
+    const staleAfterMs = Number(row && row.staleAfterMs);
+    if (ageMs != null && Number.isFinite(staleAfterMs) && staleAfterMs > 0 && ageMs > staleAfterMs) {
+      return 'stale';
+    }
+    return 'fresh';
+  };
+  const ageLabel = (row) => {
+    const seconds = rowAgeSeconds(row);
+    return seconds == null ? '-' : `${seconds}秒前`;
+  };
+  const updatedAtLabel = (row) => fmtTime((row && row.timestamp) || rowUpdatedAtMs(row));
+  const freshnessBadge = (status) => (
+    status === 'stale'
+      ? '<span class="freshness-badge freshness-badge--stale">STALE</span>'
+      : ''
+  );
+  const summarizeStatuses = (rows) => rows.reduce((acc, row) => {
+    const status = liveRowStatus(row);
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, { fresh: 0, stale: 0, waiting: 0, error: 0, unsupported: 0 });
+  const sortedOrderbookRows = () => ((summary && summary.orderbooks) || [])
+    .slice()
+    .sort((a, b) => {
+      const statusDiff = statusRank(liveRowStatus(a)) - statusRank(liveRowStatus(b));
+      if (statusDiff !== 0) return statusDiff;
+      const spreadDiff = Number(a.spreadPct ?? Infinity) - Number(b.spreadPct ?? Infinity);
+      if (spreadDiff !== 0) return spreadDiff;
+      return String(a.exchangeLabel || a.exchangeId).localeCompare(String(b.exchangeLabel || b.exchangeId), 'ja');
+    });
+
+  function updateFeePresetHint() {
+    const hint = $('market-fee-preset-hint');
+    const input = $('market-fee-rate');
+    if (!hint || !input) return;
+    const feeRatePct = readOptionalFeeRatePct(input);
+    if (feeRatePct == null) {
+      hint.textContent = '未入力なら各取引所の既定 taker 手数料を使って比較します。入力すると全取引所を同じ手数料率で比較します。';
+      return;
+    }
+    if (Number.isNaN(feeRatePct)) {
+      hint.textContent = '手数料率は0%以上100%以下で入力してください。';
+      return;
+    }
+    hint.textContent = `現在は ${feeRatePct}% を全取引所に手動適用しています。空に戻すと各取引所の既定手数料に戻ります。`;
+  }
 
   function priceDecimals(value) {
     const abs = Math.abs(Number(value));
@@ -77,6 +160,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return supportedExchanges().find(exchange => exchange.id === selectedExchangeId) || supportedExchanges()[0] || null;
   }
 
+  function selectedOrderbookRow() {
+    return ((summary && summary.orderbooks) || []).find(row => row.exchangeId === selectedExchangeId) || null;
+  }
+
   function updatePageLabels() {
     const label = marketLabel();
     const navLink = $('market-page-nav-link');
@@ -98,14 +185,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (exchanges.length === 0) return;
 
     if (!selectedExchangeId || !exchanges.some(exchange => exchange.id === selectedExchangeId)) {
-      const ready = (summary.orderbooks || []).find(row => row.status === 'ready');
-      selectedExchangeId = ready ? ready.exchangeId : exchanges[0].id;
+      const rows = sortedOrderbookRows();
+      const fresh = rows.find(row => liveRowStatus(row) === 'fresh');
+      const stale = rows.find(row => liveRowStatus(row) === 'stale');
+      selectedExchangeId = fresh ? fresh.exchangeId : (stale ? stale.exchangeId : exchanges[0].id);
     }
 
     select.innerHTML = exchanges.map(exchange => `
       <option value="${escapeHtml(exchange.id)}">${escapeHtml(exchange.label || exchange.id)}</option>
     `).join('');
     select.value = selectedExchangeId;
+  }
+
+  function updateSelectedOrderbookMeta() {
+    const exchange = selectedExchange();
+    if (!exchange) return;
+    const row = selectedOrderbookRow();
+    const status = liveRowStatus(row);
+    const source = row && row.source ? ` / ${String(row.source).toUpperCase()}` : '';
+    const stale = status === 'stale' ? ' / STALE' : '';
+    const updated = row && (status === 'fresh' || status === 'stale')
+      ? ` / 最終更新 ${ageLabel(row)}`
+      : '';
+    setText('orderbook-meta', `${exchange.label || exchange.id} / ${marketLabel()} の板${source}${stale}${updated}`);
   }
 
   function connectSelectedOrderbook() {
@@ -116,47 +218,58 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof setChartBaseCurrency === 'function') {
       setChartBaseCurrency((summary.market && summary.market.baseCurrency) || instrumentId.split('-')[0] || 'BTC');
     }
-    setText('orderbook-meta', `${exchange.label || exchange.id} / ${marketLabel()} の板`);
+    updateSelectedOrderbookMeta();
   }
 
   function renderHero() {
-    const rows = summary.orderbooks || [];
-    const readyRows = rows.filter(row => row.status === 'ready');
-    const bestBid = readyRows
+    const rows = sortedOrderbookRows();
+    const counts = summarizeStatuses(rows);
+    const freshRows = rows.filter(row => liveRowStatus(row) === 'fresh');
+    const bestBid = freshRows
       .filter(row => Number.isFinite(Number(row.bestBid)))
       .sort((a, b) => Number(b.bestBid) - Number(a.bestBid))[0];
-    const bestAsk = readyRows
+    const bestAsk = freshRows
       .filter(row => Number.isFinite(Number(row.bestAsk)))
       .sort((a, b) => Number(a.bestAsk) - Number(b.bestAsk))[0];
-    setText('market-status', readyRows.length > 0 ? '集計済み' : '板データ待機中');
+    let statusText = '板データ待機中';
+    if (counts.fresh > 0 && counts.stale > 0) statusText = '鮮度注意';
+    else if (counts.fresh > 0) statusText = '集計済み';
+    else if (counts.stale > 0) statusText = '鮮度切れ';
+    setText('market-status', statusText);
     setText('market-updated-at', fmtDateTime(summary.meta && summary.meta.generatedAt));
     setText('market-exchange-count', `${supportedExchanges().length}社`);
     setText('market-best-bid', bestBid ? `${bestBid.exchangeLabel} ${fmtJpyPrice(bestBid.bestBid)}` : '-');
     setText('market-best-ask', bestAsk ? `${bestAsk.exchangeLabel} ${fmtJpyPrice(bestAsk.bestAsk)}` : '-');
-    setText('market-hero-meta', `板 ${readyRows.length}/${supportedExchanges().length}社 | 出来高 ${summary.volume.rows.length}件 | 販売所 ${summary.sales.rows.length}件`);
+    setText('market-hero-meta', `板 新鮮 ${counts.fresh}社 / stale ${counts.stale}社 / 待機 ${counts.waiting}社 | 出来高 ${summary.volume.rows.length}件 | 販売所 ${summary.sales.rows.length}件`);
   }
 
   function renderOrderbookRows() {
     const tbody = $('market-orderbook-tbody');
     if (!tbody) return;
-    const rows = summary.orderbooks || [];
+    const rows = sortedOrderbookRows();
     if (rows.length === 0) {
       setEmpty('market-orderbook-tbody', 5, '対応取引所がありません');
       return;
     }
 
     tbody.innerHTML = rows.map(row => {
-      const ready = row.status === 'ready';
+      const status = liveRowStatus(row);
+      const hasBook = status === 'fresh' || status === 'stale';
+      const rowClass = status === 'stale' ? 'data-table__row--stale' : '';
       return `
-        <tr class="border-b border-gray-800/60">
+        <tr class="border-b border-gray-800/60 ${rowClass}">
           <td class="text-left" data-label="取引所">
             <div class="font-bold text-gray-200">${escapeHtml(row.exchangeLabel || row.exchangeId)}</div>
-            <div class="text-[10px] text-gray-500">${ready ? escapeHtml(String(row.source || '-').toUpperCase()) : escapeHtml(row.message || '板データ待機中')}</div>
+            <div class="text-[10px] text-gray-500">${hasBook ? escapeHtml(String(row.source || '-').toUpperCase()) : escapeHtml(row.message || '板データ待機中')}</div>
           </td>
-          <td class="is-num text-right font-mono text-green-300" data-label="Bid">${ready ? fmtJpyPrice(row.bestBid) : '-'}</td>
-          <td class="is-num text-right font-mono text-red-300" data-label="Ask">${ready ? fmtJpyPrice(row.bestAsk) : '-'}</td>
-          <td class="is-num text-right font-mono text-yellow-300" data-label="Spread">${ready ? fmtPct(row.spreadPct) : '-'}</td>
-          <td class="text-right font-mono text-gray-400" data-label="更新">${ready ? fmtTime(row.timestamp || row.receivedAt) : '-'}</td>
+          <td class="is-num text-right font-mono text-green-300" data-label="Bid">${hasBook ? fmtJpyPrice(row.bestBid) : '-'}</td>
+          <td class="is-num text-right font-mono text-red-300" data-label="Ask">${hasBook ? fmtJpyPrice(row.bestAsk) : '-'}</td>
+          <td class="is-num text-right font-mono text-yellow-300" data-label="Spread">${hasBook ? fmtPct(row.spreadPct) : '-'}</td>
+          <td class="text-right font-mono text-gray-400" data-label="更新">
+            <div>${hasBook ? escapeHtml(updatedAtLabel(row)) : '-'}</div>
+            <div class="text-[10px] text-gray-500">${hasBook ? escapeHtml(ageLabel(row)) : escapeHtml(row.message || '板データ待機中')}</div>
+            ${freshnessBadge(status)}
+          </td>
         </tr>
       `;
     }).join('');
@@ -214,10 +327,20 @@ document.addEventListener('DOMContentLoaded', () => {
   function comparisonStatusClass(status) {
     return {
       executable: 'text-green-300',
+      invalid_constraints: 'text-red-300',
       insufficient_liquidity: 'text-yellow-300',
       auto_cancel: 'text-yellow-300',
       circuit_breaker: 'text-red-300',
     }[status] || 'text-gray-300';
+  }
+
+  function comparisonReasonText(result) {
+    if (!result) return '';
+    const firstBlockingReason = Array.isArray(result.blockingReasons) ? result.blockingReasons[0] : '';
+    if (firstBlockingReason) return firstBlockingReason;
+    const firstConstraintNote = Array.isArray(result.constraintNotes) ? result.constraintNotes[0] : '';
+    if (firstConstraintNote) return firstConstraintNote;
+    return result.recommendedAction || '';
   }
 
   function comparisonAmountLabel(meta) {
@@ -230,8 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const side = $('market-side')?.value === 'sell' ? 'sell' : 'buy';
     const amountType = $('market-amount-type')?.value === 'base' ? 'base' : 'jpy';
     const amount = parseNumberInput($('market-amount')?.value);
-    const feeRatePct = parseNumberInput($('market-fee-rate')?.value);
-    if (!Number.isFinite(amount) || amount <= 0 || !Number.isFinite(feeRatePct) || feeRatePct < 0 || feeRatePct > 100) {
+    const feeRatePct = readOptionalFeeRatePct($('market-fee-rate'));
+    if (!Number.isFinite(amount) || amount <= 0 || Number.isNaN(feeRatePct) || (feeRatePct != null && (feeRatePct < 0 || feeRatePct > 100))) {
+      lastComparisonData = null;
       setEmpty('market-comparison-tbody', 6, '比較条件を確認してください');
       return;
     }
@@ -241,22 +365,27 @@ document.addEventListener('DOMContentLoaded', () => {
       side,
       amountType,
       amount: String(amount),
-      feeRate: String(feeRatePct / 100),
     });
+    if (feeRatePct != null) {
+      params.set('feeRate', String(feeRatePct / 100));
+    }
     try {
       const res = await fetch(`/api/market-impact-comparison?${params.toString()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       renderComparison(await res.json());
     } catch (err) {
+      lastComparisonData = null;
       setText('market-comparison-meta', err.message);
       setEmpty('market-comparison-tbody', 6, '比較の取得に失敗しました');
     }
   }
 
   function renderComparison(data) {
+    lastComparisonData = data && typeof data === 'object' ? data : null;
     const rows = Array.isArray(data && data.rows) ? data.rows : [];
     const meta = data.meta || {};
-    setText('market-comparison-meta', `${marketLabel()} | ${meta.side === 'sell' ? '売り' : '買い'} | ${comparisonAmountLabel(meta)} | 有効 ${meta.readyCount || 0}件 / 待機 ${meta.waitingCount || 0}件`);
+    const counts = summarizeStatuses(rows);
+    setText('market-comparison-meta', `${marketLabel()} | ${meta.side === 'sell' ? '売り' : '買い'} | ${comparisonAmountLabel(meta)} | 手数料 ${meta.feeRate == null ? '各取引所既定' : fmtPct(meta.feeRate * 100)} | 新鮮 ${counts.fresh || 0}件 / stale ${counts.stale || 0}件 / 待機 ${counts.waiting || 0}件`);
     if (rows.length === 0) {
       setEmpty('market-comparison-tbody', 6, '比較できる取引所がありません');
       return;
@@ -266,17 +395,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = $('market-comparison-tbody');
     tbody.innerHTML = rows.map(row => {
       const result = row.result || null;
-      const ready = row.status === 'ready' && result && !result.error;
+      const status = liveRowStatus(row);
+      const ready = status === 'fresh' && result && !result.error;
       const fixedQuote = meta.amountType === 'jpy';
       const value = ready
         ? (fixedQuote ? `${Fmt.baseCompact(result.totalBTCFilled)} ${(row.baseCurrency || '').toUpperCase()}` : Fmt.jpy(result.effectiveCostJPY))
         : '-';
       const vwap = ready ? Fmt.jpy(result.effectiveVWAP) : '-';
-      const statusText = ready ? (result.executionStatusLabel || '発注可能') : (row.message || '板データ待機中');
+      const statusText = ready
+        ? (result.executionStatusLabel || '発注可能')
+        : (status === 'stale' ? '板データが古いため比較停止' : (row.message || '板データ待機中'));
+      const statusSub = ready
+        ? comparisonReasonText(result)
+        : (status === 'fresh' || status === 'stale' ? `最終更新 ${ageLabel(row)}` : '');
       const valueClass = ready ? (isSell ? 'text-green-300' : 'text-red-300') : 'text-gray-500';
+      const statusClass = ready
+        ? comparisonStatusClass(result.executionStatus)
+        : (status === 'stale' ? 'text-yellow-300' : 'text-gray-500');
+      const rowClass = [
+        row.rank === 1 && ready ? 'data-table__row--rank-1' : '',
+        status === 'stale' ? 'data-table__row--stale' : '',
+      ].filter(Boolean).join(' ');
       return `
-        <tr class="border-b border-gray-800/60 ${row.rank === 1 && ready ? 'data-table__row--rank-1' : ''}">
-          <td class="is-num text-right font-mono text-gray-300" data-label="順位">${row.rank ? `#${row.rank}` : '-'}</td>
+        <tr class="border-b border-gray-800/60 ${rowClass}">
+          <td class="is-num text-right font-mono text-gray-300" data-label="順位">${ready && row.rank ? `#${row.rank}` : '-'}</td>
           <td class="text-left" data-label="取引所">
             <div class="font-bold text-gray-200">${escapeHtml(row.exchangeLabel || row.exchangeId)}</div>
             <div class="text-[10px] text-gray-500">${escapeHtml(String(row.source || '-').toUpperCase())}</div>
@@ -284,7 +426,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="is-num text-right font-mono ${valueClass}" data-label="結果">${value}</td>
           <td class="is-num text-right font-mono text-gray-300" data-label="VWAP">${vwap}</td>
           <td class="is-num text-right font-mono text-yellow-300" data-label="Impact">${ready ? fmtPct(result.marketImpactPct) : '-'}</td>
-          <td class="${ready ? comparisonStatusClass(result.executionStatus) : 'text-gray-500'}" data-label="判定">${escapeHtml(statusText)}</td>
+          <td class="${statusClass}" data-label="判定">
+            <div class="font-bold">${escapeHtml(statusText)}</div>
+            ${statusSub ? `<div class="text-[10px] text-gray-500">${escapeHtml(statusSub)}</div>` : ''}
+            ${freshnessBadge(status)}
+          </td>
         </tr>
       `;
     }).join('');
@@ -293,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderSummary(data) {
     summary = data;
     updatePageLabels();
+    updateFeePresetHint();
     populateBoardExchangeSelect();
     renderHero();
     renderOrderbookRows();
@@ -326,6 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!el) return;
     const eventName = el.tagName === 'SELECT' ? 'change' : 'input';
     el.addEventListener(eventName, () => {
+      if (id === 'market-fee-rate') updateFeePresetHint();
       if (comparisonTimer) clearTimeout(comparisonTimer);
       comparisonTimer = setTimeout(loadComparison, 250);
     });
@@ -336,17 +484,45 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   ws.on('orderbook', (data) => {
     if (!data || data.instrumentId !== instrumentId || data.exchangeId !== selectedExchangeId) return;
-    setText('orderbook-meta', `${data.exchange?.label || selectedExchangeId} / ${marketLabel()} / ${String(data.source || '').toUpperCase()}`);
+    if (summary && Array.isArray(summary.orderbooks)) {
+      const index = summary.orderbooks.findIndex(row => row.exchangeId === data.exchangeId && row.instrumentId === data.instrumentId);
+      if (index >= 0) {
+        summary.orderbooks[index] = {
+          ...summary.orderbooks[index],
+          ...data,
+          exchangeLabel: summary.orderbooks[index].exchangeLabel || data.exchange?.label || data.exchangeId,
+          instrumentLabel: summary.orderbooks[index].instrumentLabel || data.market?.label || data.instrumentId,
+          status: 'fresh',
+          freshnessStatus: 'fresh',
+          message: null,
+        };
+      }
+    }
+    updateSelectedOrderbookMeta();
     setChartBaseCurrency(data.market?.baseCurrency || (summary.market && summary.market.baseCurrency) || 'BTC');
     updateDepthChart(data.depthChart, data.midPrice);
+    if (summary) {
+      renderHero();
+      renderOrderbookRows();
+    }
   });
 
   initDepthChart();
+  updateFeePresetHint();
   loadSummary();
   ws.connect();
   summaryTimer = setInterval(loadSummary, 30000);
+  freshnessTimer = setInterval(() => {
+    if (summary) {
+      renderHero();
+      renderOrderbookRows();
+      updateSelectedOrderbookMeta();
+    }
+    if (lastComparisonData) renderComparison(lastComparisonData);
+  }, 1000);
   window.addEventListener('beforeunload', () => {
     if (summaryTimer) clearInterval(summaryTimer);
     if (comparisonTimer) clearTimeout(comparisonTimer);
+    if (freshnessTimer) clearInterval(freshnessTimer);
   });
 });

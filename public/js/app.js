@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let comparisonRefreshTimer = null;
   let comparisonAbortController = null;
   let salesReferenceAbortController = null;
+  let freshnessTimer = null;
   let lastSimulationResult = null;
   let lastVenueComparisonData = null;
   let lastSalesReferenceData = null;
@@ -17,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     baseCurrency: 'BTC',
     quoteCurrency: 'JPY',
     status: 'active',
+    takerFeeRate: null,
+    takerFeeNote: null,
   };
   let exchanges = [{
     id: 'okj',
@@ -35,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const amountTypeSelect = document.getElementById('amount-type');
   const amountInput = document.getElementById('amount-input');
   const feeRateInput = document.getElementById('fee-rate');
+  const feePresetHint = document.getElementById('fee-preset-hint');
   const simulateBtn = document.getElementById('simulate-btn');
   const clearBtn = document.getElementById('clear-btn');
   const copyShareUrlBtn = document.getElementById('copy-share-url-btn');
@@ -69,6 +73,18 @@ document.addEventListener('DOMContentLoaded', () => {
   let settingsStatusTimer = null;
 
   const parseNumberInput = (value) => parseFloat(String(value || '').replace(/,/g, ''));
+  const readOptionalFeeRatePct = (input) => {
+    const raw = input && input.value != null ? String(input.value).trim() : '';
+    if (!raw) return null;
+    const parsed = parseNumberInput(raw);
+    return Number.isFinite(parsed) ? parsed : NaN;
+  };
+  const formatFeeRatePct = (rate) => {
+    if (!Number.isFinite(Number(rate))) return '-';
+    const pct = Number(rate) * 100;
+    const digits = pct < 0.1 ? 3 : 2;
+    return `${Number(pct.toFixed(digits))}%`;
+  };
   const formatNumberParam = (value) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? String(Number(parsed.toPrecision(12))) : null;
@@ -93,6 +109,32 @@ document.addEventListener('DOMContentLoaded', () => {
       || markets.find(market => market.instrumentId === exchange.defaultInstrumentId)
       || markets[0];
   };
+  const marketFeePreset = (exchange = getSelectedExchange(), market = getSelectedMarket(exchange)) => {
+    const rate = Number.isFinite(Number(market && market.takerFeeRate))
+      ? Number(market.takerFeeRate)
+      : (Number.isFinite(Number(exchange && exchange.takerFeeRate)) ? Number(exchange.takerFeeRate) : null);
+    const note = (market && market.takerFeeNote) || (exchange && exchange.takerFeeNote) || '';
+    return { rate, note };
+  };
+  const updateFeePresetHint = (exchange = getSelectedExchange(), market = getSelectedMarket(exchange)) => {
+    if (!feeRateInput) return;
+    const preset = marketFeePreset(exchange, market);
+    const manualRatePct = readOptionalFeeRatePct(feeRateInput);
+    const presetLabel = preset.rate == null
+      ? '既定手数料情報なし'
+      : `${exchange.label || exchange.id} ${formatFeeRatePct(preset.rate)}${preset.note ? ` (${preset.note})` : ''}`;
+    feeRateInput.placeholder = preset.rate == null ? '既定値を使用' : `${formatFeeRatePct(preset.rate)} を使用`;
+    if (!feePresetHint) return;
+    if (manualRatePct == null) {
+      feePresetHint.textContent = `未入力なら選択中は ${presetLabel}、比較表は各取引所の既定 taker 手数料を使います。入力するとシミュレーションと比較表を同じ率で上書きします。`;
+      return;
+    }
+    if (Number.isNaN(manualRatePct)) {
+      feePresetHint.textContent = `未入力なら ${presetLabel} の taker 手数料を使います。`;
+      return;
+    }
+    feePresetHint.textContent = `入力中の ${manualRatePct}% を手動適用します。空に戻すと ${presetLabel} に戻ります。`;
+  };
   const normalizeAmountType = (value) => {
     const normalized = String(value || '').toLowerCase();
     if (normalized === 'jpy') return 'jpy';
@@ -105,6 +147,49 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const normalizeInstrumentId = (value) => String(value || '').trim().toUpperCase();
   const normalizeExchangeId = (value) => String(value || '').trim().toLowerCase();
+  const marketDataStatusRank = (status) => ({
+    fresh: 0,
+    stale: 1,
+    waiting: 2,
+    error: 3,
+    unsupported: 4,
+  }[status] ?? 5);
+  const liveMarketDataStatus = (row) => {
+    const baseStatus = String((row && row.status) || 'waiting');
+    if (baseStatus !== 'fresh' && baseStatus !== 'stale') return baseStatus;
+    if (baseStatus === 'stale') return 'stale';
+    const ageMs = UI.rowAgeMs(row);
+    const staleAfterMs = Number(row && row.staleAfterMs);
+    if (ageMs != null && Number.isFinite(staleAfterMs) && staleAfterMs > 0 && ageMs > staleAfterMs) {
+      return 'stale';
+    }
+    return 'fresh';
+  };
+  const marketDataAgeLabel = (row) => {
+    const seconds = UI.rowAgeSeconds(row);
+    return seconds == null ? '-' : `${seconds}秒前`;
+  };
+  const marketDataUpdatedAtLabel = (row) => {
+    const value = row && (row.timestamp || UI.rowUpdatedAtMs(row));
+    if (!value) return '-';
+    const date = typeof value === 'number' ? new Date(value) : new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleTimeString('ja-JP', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
+  const marketDataCounts = (rows) => (rows || []).reduce((acc, row) => {
+    const status = liveMarketDataStatus(row);
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, { fresh: 0, stale: 0, waiting: 0, error: 0, unsupported: 0 });
+  const freshnessBadgeHtml = (status) => (
+    status === 'stale'
+      ? '<span class="freshness-badge freshness-badge--stale">STALE</span>'
+      : ''
+  );
 
   function storageGet(key, fallback) {
     try {
@@ -450,19 +535,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     (data.rows || []).forEach((row) => {
       const result = row.result || {};
-      const ready = row.status === 'ready' && row.result && !row.result.error;
+      const status = liveMarketDataStatus(row);
+      const ready = status === 'fresh' && row.result && !row.result.error;
       rows.push([
         meta.instrumentId || '',
         getSelectedMarket().label || meta.instrumentId || '',
         meta.side || '',
         meta.amountType || '',
         meta.amount ?? '',
-        Number.isFinite(Number(meta.feeRate)) ? Number(meta.feeRate) * 100 : '',
+        ready ? result.feeRatePct : (Number.isFinite(Number(meta.feeRate)) ? Number(meta.feeRate) * 100 : ''),
         meta.generatedAt || '',
         row.rank ?? '',
         row.exchangeId || '',
         row.exchangeLabel || '',
-        row.status || '',
+        status,
         ready ? (result.executionStatusLabel || '') : (row.message || ''),
         row.source || '',
         ready ? result.totalBTCFilled : '',
@@ -472,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ready ? result.marketImpactPct : '',
         ready ? result.slippageFromBestPct : '',
         row.spreadPct ?? '',
-        row.timestamp || row.receivedAt || '',
+        row.updatedAt || row.timestamp || row.receivedAt || '',
         ready ? (result.recommendedAction || '') : (row.message || ''),
       ]);
     });
@@ -634,7 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function currentSettingsDraft() {
     const exchange = getSelectedExchange();
     const market = getSelectedMarket(exchange);
-    const feeRatePct = normalizeFeeRatePct(feeRateInput && feeRateInput.value);
+    const feeRatePct = normalizeFeeRatePct(readOptionalFeeRatePct(feeRateInput));
     const previous = readSavedSettings();
 
     return {
@@ -643,7 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
       instrumentId: market && market.instrumentId,
       side: normalizeSide(sideSelect && sideSelect.value) || 'buy',
       amountType: normalizeAmountType(amountTypeSelect && amountTypeSelect.value) || 'base',
-      feeRatePct: feeRatePct == null ? previous.feeRatePct : feeRatePct,
+      feeRatePct,
       savedAt: new Date().toISOString(),
     };
   }
@@ -748,7 +834,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const market = getSelectedMarket(exchange);
     const params = new URLSearchParams();
     const amount = parseNumberInput(amountInput.value);
-    const feeRatePct = parseNumberInput(feeRateInput.value);
+    const feeRatePct = readOptionalFeeRatePct(feeRateInput);
 
     params.set('exchange', exchange.id);
     params.set('market', market.instrumentId);
@@ -941,18 +1027,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (alert.type === 'slippage') {
       const amount = parseNumberInput(amountInput.value);
-      const feeRatePct = parseNumberInput(feeRateInput.value);
+      const feeRatePct = readOptionalFeeRatePct(feeRateInput);
       if (!Number.isFinite(amount) || amount <= 0) {
         return { error: '成行スリッページは数量または金額を入力してから追加してください' };
       }
-      if (!Number.isFinite(feeRatePct) || feeRatePct < 0 || feeRatePct > 100) {
+      if (Number.isNaN(feeRatePct) || (feeRatePct != null && (feeRatePct < 0 || feeRatePct > 100))) {
         return { error: '手数料率は0%以上100%以下で入力してください' };
       }
 
       alert.side = normalizeSide(sideSelect.value) || 'buy';
       alert.amountType = normalizeAmountType(amountTypeSelect.value) || 'base';
       alert.amount = amount;
-      alert.feeRate = feeRatePct / 100;
+      alert.feeRate = feeRatePct == null ? null : feeRatePct / 100;
     }
 
     return { alert };
@@ -1006,13 +1092,15 @@ document.addEventListener('DOMContentLoaded', () => {
       side: alert.side || 'buy',
       amountType: alert.amountType || 'base',
       amount: String(alert.amount),
-      feeRate: String(alert.feeRate ?? 0),
     });
+    if (alert.feeRate != null) {
+      params.set('feeRate', String(alert.feeRate));
+    }
     const res = await fetch(`/api/market-impact-comparison?${params.toString()}`, { cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const rows = (data.rows || [])
-      .filter(row => row.status === 'ready' && row.result && !row.result.error)
+      .filter(row => row.status === 'fresh' && row.result && !row.result.error)
       .map(row => ({
         row,
         value: Number(row.result.slippageFromBestPct),
@@ -1130,6 +1218,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setChartBaseCurrency(market.baseCurrency || 'BTC');
     }
     updateAmountUnit();
+    updateFeePresetHint(exchange, market);
   }
 
   function applyInitialUrlState() {
@@ -1237,24 +1326,30 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function comparisonUpdatedAtLabel(row) {
-    const value = row && (row.timestamp || row.receivedAt);
-    if (!value) return '-';
-    const date = typeof value === 'number' ? new Date(value) : new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    return marketDataUpdatedAtLabel(row);
+  }
+
+  function comparisonAgeLabel(row) {
+    return marketDataAgeLabel(row);
   }
 
   function comparisonStatusClass(status) {
     return {
       executable: 'text-green-300',
+      invalid_constraints: 'text-red-300',
       insufficient_liquidity: 'text-yellow-300',
       auto_cancel: 'text-yellow-300',
       circuit_breaker: 'text-red-300',
     }[status] || 'text-gray-300';
+  }
+
+  function comparisonReasonText(result) {
+    if (!result) return '';
+    const firstBlockingReason = Array.isArray(result.blockingReasons) ? result.blockingReasons[0] : '';
+    if (firstBlockingReason) return firstBlockingReason;
+    const firstConstraintNote = Array.isArray(result.constraintNotes) ? result.constraintNotes[0] : '';
+    if (firstConstraintNote) return firstConstraintNote;
+    return result.recommendedAction || '';
   }
 
   function renderVenueComparison(data) {
@@ -1264,6 +1359,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lastVenueComparisonData = data && typeof data === 'object' ? data : null;
     const meta = data && data.meta ? data.meta : {};
     const rows = Array.isArray(data && data.rows) ? data.rows : [];
+    const counts = marketDataCounts(rows);
     const sideLabel = meta.side === 'sell' ? '売り' : '買い';
     const market = getSelectedMarket();
     const effectiveHeader = document.getElementById('venue-col-effective');
@@ -1277,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     UI.setText(
       'venue-comparison-meta',
-      `${market.label || meta.instrumentId || '-'} | ${sideLabel} | ${comparisonAmountLabel(meta)} | 取得 ${comparisonGeneratedAtLabel(meta.generatedAt)} | 有効 ${meta.readyCount || 0}件 / 待機 ${meta.waitingCount || 0}件`
+      `${market.label || meta.instrumentId || '-'} | ${sideLabel} | ${comparisonAmountLabel(meta)} | 手数料 ${meta.feeRate == null ? '各取引所既定' : `${formatFeeRatePct(meta.feeRate)}`} | 取得 ${comparisonGeneratedAtLabel(meta.generatedAt)} | 新鮮 ${counts.fresh || 0}件 / stale ${counts.stale || 0}件 / 待機 ${counts.waiting || 0}件`
     );
 
     if (rows.length === 0) {
@@ -1288,14 +1384,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const isSell = meta.side === 'sell';
     tbody.innerHTML = rows.map(row => {
       const result = row.result || null;
-      const ready = row.status === 'ready' && result && !result.error;
-      const rankLabel = row.rank ? `#${row.rank}` : '-';
-      const rowClass = row.rank === 1 && ready ? 'data-table__row--rank-1' : '';
+      const status = liveMarketDataStatus(row);
+      const ready = status === 'fresh' && result && !result.error;
+      const rankLabel = ready && row.rank ? `#${row.rank}` : '-';
+      const rowClass = [
+        row.rank === 1 && ready ? 'data-table__row--rank-1' : '',
+        status === 'stale' ? 'data-table__row--stale' : '',
+      ].filter(Boolean).join(' ');
       const valueClass = isSell ? 'text-green-300' : 'text-red-300';
       const statusText = ready
         ? (result.executionStatusLabel || '発注可能')
-        : (row.message || '板データ待機中');
-      const statusClass = ready ? comparisonStatusClass(result.executionStatus) : 'text-gray-500';
+        : (status === 'stale' ? '板データが古いため比較停止' : (row.message || '板データ待機中'));
+      const statusClass = ready
+        ? comparisonStatusClass(result.executionStatus)
+        : (status === 'stale' ? 'text-yellow-300' : 'text-gray-500');
       const fixedQuoteAmount = meta.amountType === 'jpy';
       const effectiveValue = ready
         ? (fixedQuoteAmount ? UI.formatBase(result.totalBTCFilled, true) : Fmt.jpy(result.effectiveCostJPY))
@@ -1304,8 +1406,10 @@ document.addEventListener('DOMContentLoaded', () => {
         ? (isSell ? `受取 ${Fmt.jpy(result.effectiveCostJPY)}` : `支払 ${Fmt.jpy(result.effectiveCostJPY)}`)
         : '';
       const effectiveSub = ready
-        ? (fixedQuoteAmount ? fixedQuoteSub : `手数料 ${Fmt.jpy(result.feesJPY)}`)
-        : escapeHtml(row.status === 'unsupported' ? '未対応' : row.status === 'waiting' ? '取得待ち' : '計算不可');
+        ? (fixedQuoteAmount
+          ? `${fixedQuoteSub} / ${Fmt.pct(result.feeRatePct)}`
+          : `手数料 ${Fmt.jpy(result.feesJPY)} / ${Fmt.pct(result.feeRatePct)}`)
+        : escapeHtml(status === 'unsupported' ? '未対応' : status === 'waiting' ? '取得待ち' : status === 'stale' ? '鮮度切れ' : '計算不可');
       const vwapValue = ready ? Fmt.jpy(result.effectiveVWAP) : '-';
       const spreadLabel = row.spreadPct == null ? '-' : Fmt.pct(row.spreadPct);
       const impactValue = ready ? Fmt.pct(result.marketImpactPct) : '-';
@@ -1314,6 +1418,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const shortfall = ready && result.insufficient
         ? `<div class="text-[10px] text-yellow-500">流動性不足</div>`
         : '';
+      const constraintSub = ready && comparisonReasonText(result)
+        ? `<div class="text-[10px] text-gray-500">${escapeHtml(comparisonReasonText(result))}</div>`
+        : '';
+      const statusSub = status === 'stale'
+        ? '<div class="text-[10px] text-gray-500">比較対象から除外</div>'
+        : constraintSub;
+      const updatedSub = status === 'fresh' || status === 'stale'
+        ? `<div class="text-[10px] text-gray-500">${escapeHtml(comparisonAgeLabel(row))}</div>`
+        : `<div class="text-[10px] text-gray-500">${escapeHtml(row.message || '-')}</div>`;
 
       return `
         <tr class="border-b border-gray-800/60 ${rowClass}">
@@ -1336,9 +1449,14 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td headers="venue-col-status" class="${statusClass}" data-label="判定">
             <div class="font-bold">${escapeHtml(statusText)}</div>
+            ${statusSub}
             ${shortfall}
           </td>
-          <td headers="venue-col-updated" class="text-right font-mono text-gray-400" data-label="更新">${comparisonUpdatedAtLabel(row)}</td>
+          <td headers="venue-col-updated" class="text-right font-mono text-gray-400" data-label="更新">
+            <div>${escapeHtml(comparisonUpdatedAtLabel(row))}</div>
+            ${updatedSub}
+            ${freshnessBadgeHtml(status)}
+          </td>
         </tr>
       `;
     }).join('');
@@ -1353,8 +1471,10 @@ document.addEventListener('DOMContentLoaded', () => {
       side: lastComparisonParams.side,
       amountType: lastComparisonParams.amountType,
       amount: String(lastComparisonParams.amount),
-      feeRate: String(lastComparisonParams.feeRate),
     });
+    if (lastComparisonParams.feeRate != null) {
+      params.set('feeRate', String(lastComparisonParams.feeRate));
+    }
 
     if (comparisonAbortController) comparisonAbortController.abort();
     const controller = new AbortController();
@@ -1375,6 +1495,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       if (err.name === 'AbortError') return;
       if (!background) {
+        lastVenueComparisonData = null;
         UI.setText('venue-comparison-meta', err.message);
         setVenueComparisonEmpty('比較の取得に失敗しました');
       }
@@ -1433,9 +1554,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function salesDeltaLabel(row, meta) {
     const delta = row.delta;
     if (!delta) {
+      const baselineSub = meta.baselineStatus === 'stale'
+        ? '基準板が STALE のため停止中'
+        : (meta.baselineFresh ? '比較不可' : '取引所板待機中');
       return {
         value: '-',
-        sub: meta.baselineReady ? '比較不可' : '取引所板待機中',
+        sub: baselineSub,
         className: 'text-gray-500',
       };
     }
@@ -1495,12 +1619,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const rows = Array.isArray(data && data.rows) ? data.rows : [];
     const market = getSelectedMarket();
     const sideLabel = meta.side === 'sell' ? '売り' : '買い';
+    const baseline = data && data.baseline ? data.baseline : null;
+    const baselineStatus = baseline ? liveMarketDataStatus(baseline) : 'waiting';
+    const baselineFresh = Boolean(baseline && baselineStatus === 'fresh' && baseline.result && !baseline.result.error);
     const priceHeader = document.getElementById('sales-ref-col-price');
     if (priceHeader) priceHeader.textContent = meta.side === 'sell' ? '売値' : '買値';
+    const baselineLabel = baselineFresh
+      ? (meta.baselineExchangeLabel || '取引所板待機中')
+      : (baselineStatus === 'stale'
+        ? `${meta.baselineExchangeLabel || '取引所板'} (STALE)`
+        : '取引所板待機中');
 
     UI.setText(
       'sales-reference-meta',
-      `${market.label || meta.instrumentId || '-'} | ${sideLabel} | ${comparisonAmountLabel(meta)} | 基準 ${meta.baselineExchangeLabel || '取引所板待機中'} | 販売所 ${meta.saleRecordCount || 0}件`
+      `${market.label || meta.instrumentId || '-'} | ${sideLabel} | ${comparisonAmountLabel(meta)} | 手数料 ${meta.feeRate == null ? '各取引所既定' : `${formatFeeRatePct(meta.feeRate)}`} | 基準 ${baselineLabel} | 販売所 ${meta.saleRecordCount || 0}件`
     );
 
     if (rows.length === 0) {
@@ -1516,7 +1648,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const price = ready ? formatReferencePrice(result.price, row.quotePrecision) : '-';
       const spread = row.spreadPct == null ? '-' : Fmt.pct(row.spreadPct);
       const resultLabel = salesReferenceResultLabel(row, meta);
-      const deltaLabel = salesDeltaLabel(row, meta);
+      const deltaLabel = salesDeltaLabel(row, {
+        ...meta,
+        baselineFresh,
+        baselineStatus,
+      });
       const onlineLabel = row.isOnline === false || row.isWidgetOpen === false ? '販売停止の可能性' : '表示価格ベース';
 
       return `
@@ -1556,8 +1692,10 @@ document.addEventListener('DOMContentLoaded', () => {
       side: lastComparisonParams.side,
       amountType: lastComparisonParams.amountType,
       amount: String(lastComparisonParams.amount),
-      feeRate: String(lastComparisonParams.feeRate),
     });
+    if (lastComparisonParams.feeRate != null) {
+      params.set('feeRate', String(lastComparisonParams.feeRate));
+    }
 
     if (salesReferenceAbortController) salesReferenceAbortController.abort();
     const controller = new AbortController();
@@ -1578,6 +1716,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       if (err.name === 'AbortError') return;
       if (!background) {
+        lastSalesReferenceData = null;
         UI.setText('sales-reference-meta', err.message);
         setSalesReferenceEmpty('販売所参考比較の取得に失敗しました');
       }
@@ -1688,15 +1827,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const feeRatePct = parseNumberInput(feeRateInput.value);
-    if (isNaN(feeRatePct) || feeRatePct < 0 || feeRatePct > 100) {
+    const feeRatePct = readOptionalFeeRatePct(feeRateInput);
+    if (Number.isNaN(feeRatePct) || (feeRatePct != null && (feeRatePct < 0 || feeRatePct > 100))) {
       lastSimulationResult = null;
       document.getElementById('simulation-results').innerHTML =
         '<div class="text-yellow-400 text-center py-4">手数料率は0%以上100%以下で入力してください</div>';
       return;
     }
 
-    ws.simulate(side, amount, amountType, feeRatePct / 100, autoUpdate);
+    ws.simulate(side, amount, amountType, feeRatePct == null ? null : feeRatePct / 100, autoUpdate);
     const exchange = getSelectedExchange();
     const market = getSelectedMarket(exchange);
     lastComparisonParams = {
@@ -1705,7 +1844,7 @@ document.addEventListener('DOMContentLoaded', () => {
       side,
       amount,
       amountType,
-      feeRate: feeRatePct / 100,
+      feeRate: feeRatePct == null ? null : feeRatePct / 100,
     };
     updateShareUrl();
     saveCurrentSettings();
@@ -1793,6 +1932,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   amountInput.addEventListener('input', updateShareUrl);
   feeRateInput.addEventListener('input', () => {
+    updateFeePresetHint();
     updateShareUrl();
     saveCurrentSettings();
   });
@@ -1928,8 +2068,18 @@ document.addEventListener('DOMContentLoaded', () => {
   syncAlertHelp();
   renderAlerts();
   alertRefreshTimer = setInterval(refreshAlerts, ALERT_REFRESH_MS);
+  freshnessTimer = setInterval(() => {
+    UI.renderMarketFreshness();
+    if (lastVenueComparisonData) renderVenueComparison(lastVenueComparisonData);
+    if (lastSalesReferenceData) renderSalesReferenceComparison(lastSalesReferenceData);
+  }, 1000);
   initDepthChart();
   ws.connect();
   loadExchangesFromApi();
   refreshAlerts();
+  window.addEventListener('beforeunload', () => {
+    if (comparisonRefreshTimer) clearInterval(comparisonRefreshTimer);
+    if (alertRefreshTimer) clearInterval(alertRefreshTimer);
+    if (freshnessTimer) clearInterval(freshnessTimer);
+  });
 });

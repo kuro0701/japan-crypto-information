@@ -908,7 +908,56 @@ app.get('/api/markets', (_req, res) => {
   res.json(buildMarketIndexModel());
 });
 
+const ORDERBOOK_STALE_AFTER_MS = OrderBook.STALE_AFTER_MS || 15 * 1000;
+
+function marketDataStatusRank(status) {
+  return {
+    fresh: 0,
+    stale: 1,
+    waiting: 2,
+    error: 3,
+    unsupported: 4,
+  }[status] ?? 5;
+}
+
+function buildWaitingOrderbookState(baseFields, message = '板データ待機中') {
+  return {
+    ...baseFields,
+    status: 'waiting',
+    freshnessStatus: 'waiting',
+    message,
+    updatedAt: null,
+    ageMs: null,
+    ageSeconds: null,
+    staleAfterMs: ORDERBOOK_STALE_AFTER_MS,
+    timestamp: null,
+    receivedAt: null,
+    source: null,
+  };
+}
+
+function buildOrderbookStateRow(book, baseFields, options = {}) {
+  if (!book) {
+    return buildWaitingOrderbookState(baseFields, options.waitingMessage);
+  }
+
+  const summary = book.toSummary({
+    now: options.now,
+    staleAfterMs: ORDERBOOK_STALE_AFTER_MS,
+  });
+  const status = summary.freshnessStatus === 'stale' ? 'stale' : 'fresh';
+
+  return {
+    ...summary,
+    ...baseFields,
+    status,
+    freshnessStatus: status,
+    message: status === 'stale' ? (options.staleMessage || '板データが古い') : null,
+  };
+}
+
 function buildMarketOrderbookRows(market) {
+  const now = Date.now();
   return market.exchanges
     .map((exchange) => {
       const client = clientsByExchange.get(exchange.id);
@@ -917,29 +966,19 @@ function buildMarketOrderbookRows(market) {
       }
 
       const book = wsManager.latestBooks.get(wsManager.marketKey(exchange.id, market.instrumentId));
-      if (!book) {
-        return {
-          exchangeId: exchange.id,
-          exchangeLabel: exchange.label,
-          instrumentId: market.instrumentId,
-          instrumentLabel: market.label,
-          status: 'waiting',
-          message: '板データ待機中',
-        };
-      }
-
-      return {
-        ...book.toSummary(),
+      return buildOrderbookStateRow(book, {
         exchangeId: exchange.id,
         exchangeLabel: exchange.label,
         instrumentId: market.instrumentId,
         instrumentLabel: market.label,
-        status: 'ready',
-      };
+      }, {
+        now,
+        staleMessage: '板データが古い',
+      });
     })
     .sort((a, b) => {
-      if (a.status === 'ready' && b.status !== 'ready') return -1;
-      if (a.status !== 'ready' && b.status === 'ready') return 1;
+      const statusDiff = marketDataStatusRank(a.status) - marketDataStatusRank(b.status);
+      if (statusDiff !== 0) return statusDiff;
       const spreadDiff = Number(a.spreadPct ?? Infinity) - Number(b.spreadPct ?? Infinity);
       if (spreadDiff !== 0) return spreadDiff;
       return String(a.exchangeLabel).localeCompare(String(b.exchangeLabel), 'ja');
@@ -1016,10 +1055,16 @@ function normalizeComparisonAmountType(value) {
 }
 
 function compareExecutionStatusRank(row) {
-  if (!row || row.status !== 'ready' || !row.result) return 3;
+  if (!row || row.status !== 'fresh' || !row.result) return 5;
   if (row.result.executionStatus === 'executable') return 0;
-  if (row.result.executionStatus === 'insufficient_liquidity') return 1;
-  return 2;
+  if (row.result.executionStatus === 'invalid_constraints') return 1;
+  if (row.result.executionStatus === 'insufficient_liquidity') return 2;
+  if (row.result.executionStatus === 'auto_cancel') return 3;
+  return 4;
+}
+
+function isFreshComparisonRow(row) {
+  return Boolean(row && row.status === 'fresh' && row.result && !row.result.error);
 }
 
 function comparisonSortValue(row, side, amountType) {
@@ -1035,6 +1080,16 @@ function comparisonSortValue(row, side, amountType) {
 
 function sortComparisonRows(rows, side, amountType) {
   return rows.sort((a, b) => {
+    const aFresh = isFreshComparisonRow(a);
+    const bFresh = isFreshComparisonRow(b);
+    if (aFresh && !bFresh) return -1;
+    if (!aFresh && bFresh) return 1;
+    if (!aFresh && !bFresh) {
+      const stateDiff = marketDataStatusRank(a && a.status) - marketDataStatusRank(b && b.status);
+      if (stateDiff !== 0) return stateDiff;
+      return String(a.exchangeLabel || a.exchangeId).localeCompare(String(b.exchangeLabel || b.exchangeId), 'ja');
+    }
+
     const statusDiff = compareExecutionStatusRank(a) - compareExecutionStatusRank(b);
     if (statusDiff !== 0) return statusDiff;
 
@@ -1051,9 +1106,9 @@ function sortComparisonRows(rows, side, amountType) {
   });
 }
 
-function getBestReadyComparisonRow(comparison) {
+function getBestFreshComparisonRow(comparison) {
   return (comparison.rows || []).find(row => (
-    row.status === 'ready' && row.result && !row.result.error && row.rank === 1
+    row.status === 'fresh' && row.result && !row.result.error && row.rank === 1
   )) || null;
 }
 
@@ -1071,6 +1126,7 @@ function resultSummary(result) {
     effectiveCostJPY: result.effectiveCostJPY,
     effectiveVWAP: result.effectiveVWAP,
     feesJPY: result.feesJPY,
+    feeLabel: result.feeLabel,
     feeRatePct: result.feeRatePct,
     marketImpactPct: result.marketImpactPct,
     slippageFromBestPct: result.slippageFromBestPct,
@@ -1080,16 +1136,29 @@ function resultSummary(result) {
     totalLevelsAvailable: result.totalLevelsAvailable,
     executionStatus: result.executionStatus,
     executionStatusLabel: result.executionStatusLabel,
+    recommendedAction: result.recommendedAction,
     executableUnderGuards: result.executableUnderGuards,
     insufficient: result.insufficient,
     shortfallBTC: result.shortfallBTC,
     shortfallJPY: result.shortfallJPY,
+    constraintAdjusted: result.constraintAdjusted,
+    quantityRounded: result.quantityRounded,
+    priceAdjustedToTick: result.priceAdjustedToTick,
+    requestedBaseQuantity: result.requestedBaseQuantity,
+    roundedBaseQuantity: result.roundedBaseQuantity,
+    sizeRoundingDeltaBase: result.sizeRoundingDeltaBase,
+    sizeRoundingDeltaJPY: result.sizeRoundingDeltaJPY,
+    unusedQuoteJPY: result.unusedQuoteJPY,
+    blockingReasons: result.blockingReasons,
+    constraintNotes: result.constraintNotes,
+    constraintSummary: result.constraintSummary,
     bookTimestamp: result.bookTimestamp,
   };
 }
 
 function buildMarketImpactComparison({ instrumentId, side, amount, amountType, feeRate }) {
   const generatedAt = new Date().toISOString();
+  const now = Date.now();
   const rows = [];
   const publicExchanges = getPublicExchanges();
 
@@ -1116,38 +1185,31 @@ function buildMarketImpactComparison({ instrumentId, side, amount, amountType, f
     }
 
     const book = wsManager.latestBooks.get(wsManager.marketKey(exchange.id, instrumentId));
-    if (!book) {
-      rows.push({
-        exchangeId: exchange.id,
-        exchangeLabel: exchange.label || exchange.id,
-        instrumentId,
-        instrumentLabel: market.label || instrumentId,
-        baseCurrency: market.baseCurrency || null,
-        quoteCurrency: market.quoteCurrency || 'JPY',
-        status: 'waiting',
-        message: '板データ待機中',
-      });
-      continue;
-    }
-
-    const result = calculateImpact(side, amount, amountType, book, { feeRate });
-    rows.push({
+    const bookRow = buildOrderbookStateRow(book, {
       exchangeId: exchange.id,
       exchangeLabel: exchange.label || exchange.id,
       instrumentId,
       instrumentLabel: market.label || instrumentId,
       baseCurrency: market.baseCurrency || null,
       quoteCurrency: market.quoteCurrency || 'JPY',
-      status: result && result.error ? 'error' : 'ready',
+    }, {
+      now,
+      staleMessage: '板データが古いため比較から除外',
+    });
+
+    if (bookRow.status !== 'fresh') {
+      rows.push(bookRow);
+      continue;
+    }
+
+    const result = calculateImpact(side, amount, amountType, book, {
+      feeRate,
+      market,
+    });
+    rows.push({
+      ...bookRow,
+      status: result && result.error ? 'error' : 'fresh',
       message: result && result.error ? result.error : null,
-      source: book.source || 'rest',
-      receivedAt: book.receivedAt,
-      timestamp: book.timestamp,
-      bestBid: book.bestBid,
-      bestAsk: book.bestAsk,
-      midPrice: book.midPrice,
-      spread: book.spread,
-      spreadPct: book.spreadPct,
       result: resultSummary(result),
     });
   }
@@ -1155,13 +1217,29 @@ function buildMarketImpactComparison({ instrumentId, side, amount, amountType, f
   const sortedRows = sortComparisonRows(rows, side, amountType);
   let rank = 0;
   for (const row of sortedRows) {
-    if (row.status === 'ready' && row.result && !row.result.error) {
+    if (
+      row.status === 'fresh'
+      && row.result
+      && !row.result.error
+      && row.result.executionStatus === 'executable'
+    ) {
       rank += 1;
       row.rank = rank;
     } else {
       row.rank = null;
     }
   }
+
+  const freshCount = sortedRows.filter(row => row.status === 'fresh').length;
+  const readyCount = sortedRows.filter(row => (
+    row.status === 'fresh'
+    && row.result
+    && !row.result.error
+    && row.result.executionStatus === 'executable'
+  )).length;
+  const staleCount = sortedRows.filter(row => row.status === 'stale').length;
+  const waitingCount = sortedRows.filter(row => row.status === 'waiting').length;
+  const unsupportedCount = sortedRows.filter(row => row.status === 'unsupported').length;
 
   return {
     meta: {
@@ -1171,9 +1249,11 @@ function buildMarketImpactComparison({ instrumentId, side, amount, amountType, f
       amount,
       amountType,
       feeRate,
-      readyCount: sortedRows.filter(row => row.status === 'ready').length,
-      waitingCount: sortedRows.filter(row => row.status === 'waiting').length,
-      unsupportedCount: sortedRows.filter(row => row.status === 'unsupported').length,
+      freshCount,
+      staleCount,
+      waitingCount,
+      unsupportedCount,
+      readyCount,
     },
     rows: sortedRows,
   };
@@ -1183,7 +1263,8 @@ app.get('/api/market-impact-comparison', (req, res) => {
   const side = req.query.side === 'sell' ? 'sell' : 'buy';
   const amountType = normalizeComparisonAmountType(req.query.amountType);
   const amount = parseRequestNumber(req.query.amount);
-  const feeRate = parseRequestNumber(req.query.feeRate ?? DEFAULT_FEE_RATE);
+  const hasFeeRate = req.query.feeRate != null && req.query.feeRate !== '';
+  const feeRate = hasFeeRate ? parseRequestNumber(req.query.feeRate) : null;
   const instrumentId = String(req.query.instrumentId || DEFAULT_OKJ_INSTRUMENT_ID).toUpperCase();
 
   if (amount == null || amount <= 0) {
@@ -1191,7 +1272,7 @@ app.get('/api/market-impact-comparison', (req, res) => {
     return;
   }
 
-  if (feeRate == null || feeRate < 0 || feeRate > 1) {
+  if (hasFeeRate && (feeRate == null || feeRate < 0 || feeRate > 1)) {
     res.status(400).json({ error: 'feeRate は0以上1以下を指定してください' });
     return;
   }
@@ -1290,7 +1371,7 @@ function buildSalesReferenceComparison({ instrumentId, side, amount, amountType,
     amountType,
     feeRate,
   });
-  const baseline = getBestReadyComparisonRow(venueComparison);
+  const baseline = getBestFreshComparisonRow(venueComparison);
   const latestSalesRecords = salesSpreadStore.getLatestRecords()
     .filter(record => record.instrumentId === instrumentId);
 
@@ -1348,8 +1429,11 @@ function buildSalesReferenceComparison({ instrumentId, side, amount, amountType,
       saleRecordCount: sortedRows.length,
       baselineExchangeId: baseline ? baseline.exchangeId : null,
       baselineExchangeLabel: baseline ? baseline.exchangeLabel : null,
+      baselineFresh: Boolean(baseline),
       baselineReady: Boolean(baseline),
+      venueFreshCount: venueComparison.meta.freshCount,
       venueReadyCount: venueComparison.meta.readyCount,
+      venueStaleCount: venueComparison.meta.staleCount,
       refreshStatus: salesSpreadStore.refreshStatus,
       assumption: '販売所は板情報がないため、表示価格が全数量に適用されると仮定した参考値です。実際の発注時には価格再提示、数量制限、約定拒否が発生する場合があります。',
     },
@@ -1362,7 +1446,8 @@ app.get('/api/sales-reference-comparison', (req, res) => {
   const side = req.query.side === 'sell' ? 'sell' : 'buy';
   const amountType = normalizeComparisonAmountType(req.query.amountType);
   const amount = parseRequestNumber(req.query.amount);
-  const feeRate = parseRequestNumber(req.query.feeRate ?? DEFAULT_FEE_RATE);
+  const hasFeeRate = req.query.feeRate != null && req.query.feeRate !== '';
+  const feeRate = hasFeeRate ? parseRequestNumber(req.query.feeRate) : null;
   const instrumentId = String(req.query.instrumentId || DEFAULT_OKJ_INSTRUMENT_ID).toUpperCase();
 
   if (amount == null || amount <= 0) {
@@ -1370,7 +1455,7 @@ app.get('/api/sales-reference-comparison', (req, res) => {
     return;
   }
 
-  if (feeRate == null || feeRate < 0 || feeRate > 1) {
+  if (hasFeeRate && (feeRate == null || feeRate < 0 || feeRate > 1)) {
     res.status(400).json({ error: 'feeRate は0以上1以下を指定してください' });
     return;
   }

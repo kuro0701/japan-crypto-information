@@ -4,6 +4,7 @@ const UI = {
     quoteCurrency: 'JPY',
     label: 'BTC/JPY',
   },
+  latestOrderbook: null,
 
   setMarketMeta(market) {
     this.market = {
@@ -51,7 +52,51 @@ const UI = {
     this.setText('volume-24h-quote', this.formatQuote(ticker.quoteVolume24h));
   },
 
+  parseTimeValue(value) {
+    if (value == null || value === '') return null;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const parsed = Date.parse(String(value));
+    return Number.isFinite(parsed) ? parsed : null;
+  },
+
+  rowUpdatedAtMs(row) {
+    return this.parseTimeValue(row && (row.updatedAt ?? row.receivedAt ?? row.timestamp));
+  },
+
+  rowAgeMs(row) {
+    const updatedAt = this.rowUpdatedAtMs(row);
+    return updatedAt == null ? null : Math.max(0, Date.now() - updatedAt);
+  },
+
+  rowAgeSeconds(row) {
+    const ageMs = this.rowAgeMs(row);
+    return ageMs == null ? null : Math.floor(ageMs / 1000);
+  },
+
+  marketFreshnessStatus(row = this.latestOrderbook) {
+    const baseStatus = String((row && (row.freshnessStatus || row.status)) || 'waiting');
+    if (baseStatus !== 'fresh' && baseStatus !== 'stale') return baseStatus;
+    if (baseStatus === 'stale') return 'stale';
+    const ageMs = this.rowAgeMs(row);
+    const staleAfterMs = Number(row && row.staleAfterMs);
+    if (ageMs != null && Number.isFinite(staleAfterMs) && staleAfterMs > 0 && ageMs > staleAfterMs) {
+      return 'stale';
+    }
+    return 'fresh';
+  },
+
+  renderMarketFreshness() {
+    const seconds = this.rowAgeSeconds(this.latestOrderbook);
+    this.setText('book-age-label', seconds == null ? '-' : `${seconds}秒前`);
+
+    const badge = document.getElementById('book-freshness-badge');
+    if (badge) {
+      badge.hidden = this.marketFreshnessStatus() !== 'stale';
+    }
+  },
+
   updateMarketOverview(data) {
+    this.latestOrderbook = data || null;
     this.setText('mid-price', Fmt.jpy(data.midPrice));
     this.setText('best-bid', Fmt.jpy(data.bestBid));
     this.setText('best-ask', Fmt.jpy(data.bestAsk));
@@ -63,13 +108,15 @@ const UI = {
     this.setText('bid-depth-jpy', Fmt.jpyLarge(data.totalBidDepthJPY));
     this.setText('ask-levels', data.askLevels);
     this.setText('bid-levels', data.bidLevels);
-    this.setText('book-timestamp', Fmt.timestamp(data.timestamp));
+    this.setText('book-timestamp', Fmt.timestamp(data.timestamp || data.updatedAt));
     this.setText('source-label', data.source === 'websocket' ? 'WebSocket' : 'REST');
+    this.renderMarketFreshness();
     this.updateTicker(data.ticker);
     this.updateThresholdTable(data.impactThresholds);
   },
 
   clearMarketView() {
+    this.latestOrderbook = null;
     [
       'mid-price',
       'best-bid',
@@ -85,8 +132,11 @@ const UI = {
       'ask-levels',
       'bid-levels',
       'book-timestamp',
+      'book-age-label',
       'source-label',
     ].forEach(id => this.setText(id, '-'));
+    const badge = document.getElementById('book-freshness-badge');
+    if (badge) badge.hidden = true;
     this.updateThresholdTable(null);
   },
 
@@ -145,10 +195,18 @@ const UI = {
     const slipClass = (v) => v > 0.5 ? 'text-red-400 font-bold' : v > 0.1 ? 'text-yellow-400' : 'text-gray-200';
     const statusClass = {
       executable: 'bg-green-950/50 border-green-700 text-green-200',
+      invalid_constraints: 'bg-red-950/60 border-red-600 text-red-200',
       auto_cancel: 'bg-yellow-950/50 border-yellow-600 text-yellow-200',
       insufficient_liquidity: 'bg-yellow-950/50 border-yellow-600 text-yellow-200',
       circuit_breaker: 'bg-red-950/60 border-red-600 text-red-200',
     }[r.executionStatus] || 'bg-gray-800 border-gray-700 text-gray-200';
+    const constraintSummary = r.constraintSummary || {};
+    const formatScalar = (value, unit = '', maxDigits = 8) => {
+      if (value == null || isNaN(value)) return '-';
+      const digits = Math.min(Math.max(maxDigits, 0), 12);
+      const text = Number(value).toFixed(digits).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+      return unit ? `${text} ${unit}` : text;
+    };
     const row = (label, value, valueClass = '') => `
       <div class="flex justify-between gap-3">
         <span class="text-gray-400">${label}</span>
@@ -181,6 +239,15 @@ const UI = {
           <span class="text-gray-400">注文数量/金額</span>
           <span>${requestLabel}</span>
         </div>
+
+        <div class="text-xs text-gray-500 uppercase tracking-wider pt-2">実注文制約</div>
+        ${row('最小数量', constraintSummary.minSize == null ? '-' : this.formatBase(constraintSummary.minSize, true))}
+        ${row('数量刻み', constraintSummary.sizeIncrement == null ? '-' : this.formatBase(constraintSummary.sizeIncrement, true))}
+        ${row('価格刻み', constraintSummary.tickSize == null ? '-' : formatScalar(constraintSummary.tickSize, this.market.quoteCurrency || 'JPY', 8))}
+        ${row(r.amountType === 'jpy' ? '約定見込み数量' : '入力数量', r.requestedBaseQuantity == null ? '-' : this.formatBase(r.requestedBaseQuantity, true))}
+        ${row('丸め後数量', r.roundedBaseQuantity == null ? '-' : this.formatBase(r.roundedBaseQuantity, true), r.quantityRounded ? 'text-yellow-300 font-semibold' : '')}
+        ${row('丸め差分', r.sizeRoundingDeltaBase == null ? '-' : this.formatBase(r.sizeRoundingDeltaBase, true), r.sizeRoundingDeltaBase > 1e-10 ? 'text-yellow-300' : '')}
+        ${row('未使用予算', r.amountType === 'jpy' ? Fmt.jpy(r.unusedQuoteJPY) : '-', r.amountType === 'jpy' && r.unusedQuoteJPY > 0.5 ? 'text-yellow-300' : '')}
 
         <div class="text-xs text-gray-500 uppercase tracking-wider pt-2">約定結果</div>
         ${row(`約定${this.market.baseCurrency}数量`, this.formatBase(r.totalBTCFilled))}
@@ -219,6 +286,24 @@ const UI = {
         ${row(this.termLabel('実効VWAP', 'vwap'), Fmt.jpy(r.effectiveVWAP), 'text-white font-bold font-mono')}
       </div>
     `;
+
+    if (Array.isArray(r.blockingReasons) && r.blockingReasons.length > 0) {
+      html += `
+        <div class="mt-3 p-3 bg-red-950/60 border border-red-600 rounded text-red-200 text-sm">
+          <div class="font-bold mb-1">実行不可理由</div>
+          ${r.blockingReasons.map(reason => `<div class="result-note-line">${reason}</div>`).join('')}
+        </div>
+      `;
+    }
+
+    if (Array.isArray(r.constraintNotes) && r.constraintNotes.length > 0) {
+      html += `
+        <div class="mt-3 p-3 bg-gray-900/70 border border-gray-700 rounded text-gray-200 text-sm">
+          <div class="font-bold mb-1">制約メモ</div>
+          ${r.constraintNotes.map(note => `<div class="result-note-line">${note}</div>`).join('')}
+        </div>
+      `;
+    }
 
     if (r.insufficient) {
       const shortfall = r.amountType === 'jpy'

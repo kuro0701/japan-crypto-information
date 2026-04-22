@@ -586,6 +586,12 @@ input.field[inputmode="decimal"] {
   font-size: var(--fs-sm);
 }
 
+.field-help {
+  color: var(--text-4);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
 .favorite-settings {
   display: grid;
   gap: var(--sp-2);
@@ -1090,6 +1096,34 @@ th {
   border-radius: 999px;
   background: var(--bid);
   animation: pulse 1.4s ease-in-out infinite;
+}
+
+.freshness-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  margin-top: 4px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.freshness-badge--stale {
+  border-color: rgba(244, 201, 93, 0.34);
+  background: rgba(244, 201, 93, 0.12);
+  color: var(--warn);
+}
+
+.result-note-line + .result-note-line {
+  margin-top: 4px;
+}
+
+.data-table__row--stale {
+  background: rgba(244, 201, 93, 0.05);
 }
 
 .quality-badge {

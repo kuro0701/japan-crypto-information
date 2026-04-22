@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-4">
+  <link rel="stylesheet" href="/css/style.css?v=ui-5">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -94,8 +94,9 @@
         <label class="filter-control" for="market-side"><span>売買</span><select id="market-side" class="field"><option value="buy">買い</option><option value="sell">売り</option></select></label>
         <label class="filter-control" for="market-amount-type"><span>入力タイプ</span><select id="market-amount-type" class="field"><option value="jpy">金額 (JPY)</option><option value="base">数量</option></select></label>
         <label class="filter-control" for="market-amount"><span>数量 / 金額</span><input id="market-amount" class="field font-mono" inputmode="decimal" value="100000"></label>
-        <label class="filter-control" for="market-fee-rate"><span>手数料率 (%)</span><input id="market-fee-rate" class="field font-mono" type="number" min="0" step="0.001" value="0.14"></label>
+        <label class="filter-control" for="market-fee-rate"><span>手数料率 (%)</span><input id="market-fee-rate" class="field font-mono" type="number" min="0" step="0.001" placeholder="各取引所の既定値"></label>
       </div>
+      <p id="market-fee-preset-hint" class="field-help mb-3">未入力なら各取引所の既定 taker 手数料を使って比較します。</p>
       <div class="overflow-auto scrollbar-thin">
         <table class="data-table data-table--cards data-table--fixed data-table--market-comparison text-xs">
           <colgroup>
@@ -155,6 +156,6 @@
   <script src="/js/formatter.js?v=volume-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-3"></script>
+  <script src="/js/market-page.js?v=market-4"></script>
 </body>
 </html>
