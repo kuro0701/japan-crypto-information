@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const Api = window.AppApi;
+  const AppFmt = window.AppFormatters;
+  const AppUtil = window.AppUtils;
   const pagePoller = window.PagePoller.create();
   const WINDOW_LABELS = {
     '1d': '24時間',
@@ -21,43 +24,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const SHARE_REFRESH_MS = 60000;
   const VOLUME_HISTORY_REFRESH_MS = 600000;
 
-  const $ = (id) => document.getElementById(id);
-  const setText = (id, value) => {
-    const el = $(id);
-    if (el) el.textContent = value ?? '-';
-  };
-
+  const $ = AppUtil.byId;
+  const setText = AppUtil.setText;
+  const escapeHtml = AppUtil.escapeHtml;
+  const marketPageUrl = AppUtil.marketPageUrl;
+  const cssVar = AppUtil.cssVar;
+  const parseNumber = AppUtil.parseNumber;
   const fmtJpy = (value) => Fmt.jpyLarge(value);
-  const fmtPct = (value) => value == null || isNaN(value) ? '-' : `${value.toFixed(2)}%`;
-  const fmtDateTime = (value) => {
-    if (!value) return '-';
-    return new Date(value).toLocaleString('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  function parseNumber(value) {
-    const parsed = parseFloat(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function marketPageUrl(instrumentId) {
-    const normalized = String(instrumentId || 'BTC-JPY').trim().toUpperCase();
-    return `/markets/${encodeURIComponent(normalized)}`;
-  }
+  const fmtPct = AppFmt.pct;
+  const fmtDateTime = AppFmt.dateTime;
+  const shortDate = AppFmt.shortDate;
 
   function shareBar(sharePct) {
     const width = Math.max(0, Math.min(100, sharePct || 0));
@@ -114,18 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function chartColor(index) {
     return CHART_COLORS[index % CHART_COLORS.length];
-  }
-
-  function cssVar(name, fallback) {
-    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    return value || fallback;
-  }
-
-  function shortDate(value) {
-    if (!value) return '-';
-    const parts = String(value).split('-');
-    if (parts.length === 3) return `${parts[1]}/${parts[2]}`;
-    return String(value);
   }
 
   function uniqueOptions(rows, valueKey, labelKey) {
@@ -616,12 +580,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const controller = new AbortController();
     shareAbortController = controller;
     try {
-      const res = await fetch(`/api/volume-share?window=${encodeURIComponent(selectedWindow)}`, {
-        cache: 'no-store',
+      const data = await Api.fetchJson(`/api/volume-share?window=${encodeURIComponent(selectedWindow)}`, {
         signal: controller.signal,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      render(await res.json());
+      render(data);
     } catch (err) {
       if (err.name === 'AbortError') return;
       setText('share-status', '取得失敗');
@@ -642,12 +604,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const controller = new AbortController();
     volumeHistoryAbortController = controller;
     try {
-      const res = await fetch(`/api/volume-share/history?window=${encodeURIComponent(selectedHistoryWindow)}`, {
-        cache: 'no-store',
+      const data = await Api.fetchJson(`/api/volume-share/history?window=${encodeURIComponent(selectedHistoryWindow)}`, {
         signal: controller.signal,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
       volumeHistoryRows = data.rows || [];
       volumeHistoryMeta = data.meta || {};
       renderVolumeHistory();

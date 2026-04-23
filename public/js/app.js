@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const Api = window.AppApi;
+  const AppFmt = window.AppFormatters;
+  const AppUtil = window.AppUtils;
+  const MarketData = window.MarketDataUtils;
   const ws = new WSClient();
   const pagePoller = window.PagePoller.create();
   let latestDepthData = null;
@@ -73,7 +77,15 @@ document.addEventListener('DOMContentLoaded', () => {
   let favoriteMarkets = [];
   let settingsStatusTimer = null;
 
-  const parseNumberInput = (value) => parseFloat(String(value || '').replace(/,/g, ''));
+  const escapeHtml = AppUtil.escapeHtml;
+  const marketPageUrl = AppUtil.marketPageUrl;
+  const parseNumberInput = AppUtil.parseNumberInput;
+  const marketDataStatusRank = MarketData.statusRank;
+  const liveMarketDataStatus = MarketData.liveRowStatus;
+  const marketDataAgeLabel = MarketData.ageLabel;
+  const marketDataUpdatedAtLabel = MarketData.updatedAtLabel;
+  const marketDataCounts = MarketData.summarizeStatuses;
+  const freshnessBadgeHtml = MarketData.freshnessBadge;
   const readOptionalFeeRatePct = (input) => {
     const raw = input && input.value != null ? String(input.value).trim() : '';
     if (!raw) return null;
@@ -110,12 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
       label: '0.01 BTC の売り',
     },
   };
-  const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
   const skeletonLine = (width = '100%', className = '') => `<span class="skeleton-line${className ? ` ${className}` : ''}" style="width:${width}"></span>`;
   const skeletonCell = (widths, align = 'left') => `
     <span class="skeleton-cell${align === 'right' ? ' skeleton-cell--right' : ''}">
@@ -177,49 +183,6 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const normalizeInstrumentId = (value) => String(value || '').trim().toUpperCase();
   const normalizeExchangeId = (value) => String(value || '').trim().toLowerCase();
-  const marketDataStatusRank = (status) => ({
-    fresh: 0,
-    stale: 1,
-    waiting: 2,
-    error: 3,
-    unsupported: 4,
-  }[status] ?? 5);
-  const liveMarketDataStatus = (row) => {
-    const baseStatus = String((row && row.status) || 'waiting');
-    if (baseStatus !== 'fresh' && baseStatus !== 'stale') return baseStatus;
-    if (baseStatus === 'stale') return 'stale';
-    const ageMs = UI.rowAgeMs(row);
-    const staleAfterMs = Number(row && row.staleAfterMs);
-    if (ageMs != null && Number.isFinite(staleAfterMs) && staleAfterMs > 0 && ageMs > staleAfterMs) {
-      return 'stale';
-    }
-    return 'fresh';
-  };
-  const marketDataAgeLabel = (row) => {
-    const seconds = UI.rowAgeSeconds(row);
-    return seconds == null ? '-' : `${seconds}秒前`;
-  };
-  const marketDataUpdatedAtLabel = (row) => {
-    const value = row && (row.timestamp || UI.rowUpdatedAtMs(row));
-    if (!value) return '-';
-    const date = typeof value === 'number' ? new Date(value) : new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  };
-  const marketDataCounts = (rows) => (rows || []).reduce((acc, row) => {
-    const status = liveMarketDataStatus(row);
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, { fresh: 0, stale: 0, waiting: 0, error: 0, unsupported: 0 });
-  const freshnessBadgeHtml = (status) => (
-    status === 'stale'
-      ? '<span class="freshness-badge freshness-badge--stale">STALE</span>'
-      : ''
-  );
 
   function setBusy(id, busy) {
     const element = document.getElementById(id);
@@ -882,11 +845,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${normalizeExchangeId(exchangeId)}:${normalizeInstrumentId(instrumentId)}`;
   }
 
-  function marketPageUrl(instrumentId) {
-    const normalized = normalizeInstrumentId(instrumentId) || defaultMarket.instrumentId;
-    return `/markets/${encodeURIComponent(normalized)}`;
-  }
-
   function currentSettingsDraft() {
     const exchange = getSelectedExchange();
     const market = getSelectedMarket(exchange);
@@ -1106,14 +1064,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function formatAlertTime(value) {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    return AppFmt.time(value);
   }
 
   function alertAmountLabel(alert) {
@@ -1288,9 +1239,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (alert.feeRate != null) {
       params.set('feeRate', String(alert.feeRate));
     }
-    const res = await fetch(`/api/market-impact-comparison?${params.toString()}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await Api.fetchJson(`/api/market-impact-comparison?${params.toString()}`);
     const rows = (data.rows || [])
       .filter(row => row.status === 'fresh' && row.result && !row.result.error)
       .map(row => ({
@@ -1335,9 +1284,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let spreadError = null;
       if (localAlerts.some(alert => alert.type === 'spread')) {
         try {
-          const res = await fetch('/api/sales-spread', { cache: 'no-store' });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          spreadData = await res.json();
+          spreadData = await Api.fetchJson('/api/sales-spread');
         } catch (err) {
           spreadError = err;
         }
@@ -1531,14 +1478,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function comparisonGeneratedAtLabel(value) {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    return AppFmt.time(value);
   }
 
   function comparisonUpdatedAtLabel(row) {
@@ -1703,12 +1643,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const res = await fetch(`/api/market-impact-comparison?${params.toString()}`, {
-        cache: 'no-store',
+      const data = await Api.fetchJson(`/api/market-impact-comparison?${params.toString()}`, {
         signal: controller.signal,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      renderVenueComparison(await res.json());
+      renderVenueComparison(data);
     } catch (err) {
       if (err.name === 'AbortError') return;
       if (!background) {
@@ -1758,15 +1696,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function salesReferenceUpdatedAtLabel(row) {
-    const value = row && (row.priceTimestamp || row.capturedAt);
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    return AppFmt.time(row && (row.priceTimestamp || row.capturedAt));
   }
 
   function salesDeltaLabel(row, meta) {
@@ -1926,12 +1856,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const res = await fetch(`/api/sales-reference-comparison?${params.toString()}`, {
-        cache: 'no-store',
+      const data = await Api.fetchJson(`/api/sales-reference-comparison?${params.toString()}`, {
         signal: controller.signal,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      renderSalesReferenceComparison(await res.json());
+      renderSalesReferenceComparison(data);
     } catch (err) {
       if (err.name === 'AbortError') return;
       if (!background) {
@@ -1986,14 +1914,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadExchangesFromApi() {
     try {
-      const res = await fetch('/api/exchanges', { cache: 'no-store' });
-      if (!res.ok) {
-        exchangeListLoaded = true;
-        maybeRunInitialSimulation();
-        return;
-      }
-
-      const data = await res.json();
+      const data = await Api.fetchJson('/api/exchanges');
       const preferredExchangeId = initialUrlStateConsumed
         ? ws.exchangeId
         : ((initialUrlState.hasExchange ? initialUrlState.exchangeId : savedSettings.exchangeId) || ws.exchangeId);

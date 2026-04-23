@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const Api = window.AppApi;
+  const AppFmt = window.AppFormatters;
+  const AppUtil = window.AppUtils;
+  const MarketData = window.MarketDataUtils;
   const config = window.MARKET_PAGE || {};
   const instrumentId = String(config.instrumentId || '').toUpperCase();
   const ws = new WSClient();
@@ -11,99 +15,28 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastComparisonData = null;
   const SUMMARY_REFRESH_MS = 60000;
 
-  const $ = (id) => document.getElementById(id);
-  const setText = (id, value) => {
-    const el = $(id);
-    if (el) el.textContent = value ?? '-';
-  };
-  const parseNumberInput = (value) => parseFloat(String(value || '').replace(/,/g, ''));
+  const $ = AppUtil.byId;
+  const setText = AppUtil.setText;
+  const escapeHtml = AppUtil.escapeHtml;
+  const marketPageUrl = AppUtil.marketPageUrl;
+  const parseNumberInput = AppUtil.parseNumberInput;
+  const fmtPct = AppFmt.pct;
+  const fmtDateTime = AppFmt.dateTime;
+  const fmtTime = AppFmt.time;
+  const fmtJpyPrice = AppFmt.jpyPrice;
+  const statusRank = MarketData.statusRank;
+  const liveRowStatus = MarketData.liveRowStatus;
+  const ageLabel = MarketData.ageLabel;
+  const updatedAtLabel = MarketData.updatedAtLabel;
+  const summarizeStatuses = MarketData.summarizeStatuses;
+  const freshnessBadge = MarketData.freshnessBadge;
   const readOptionalFeeRatePct = (input) => {
     const raw = input && input.value != null ? String(input.value).trim() : '';
     if (!raw) return null;
     const parsed = parseNumberInput(raw);
     return Number.isFinite(parsed) ? parsed : NaN;
   };
-  const escapeHtml = (value) => String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-  const marketPageUrl = (value) => `/markets/${encodeURIComponent(String(value || instrumentId || 'BTC-JPY').toUpperCase())}`;
-  const fmtPct = (value) => value == null || isNaN(value) ? '-' : `${Number(value).toFixed(2)}%`;
-  const fmtDateTime = (value) => {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleString('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-  const fmtTime = (value) => {
-    if (!value) return '-';
-    const date = typeof value === 'number' ? new Date(value) : new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  };
   const marketLabel = () => (summary && summary.market && summary.market.label) || config.label || instrumentId;
-  const statusRank = (status) => ({
-    fresh: 0,
-    stale: 1,
-    waiting: 2,
-    error: 3,
-    unsupported: 4,
-  }[status] ?? 5);
-
-  const parseTimeValue = (value) => {
-    if (value == null || value === '') return null;
-    if (typeof value === 'number' && Number.isFinite(value)) return value;
-    const parsed = Date.parse(String(value));
-    return Number.isFinite(parsed) ? parsed : null;
-  };
-
-  const rowUpdatedAtMs = (row) => parseTimeValue(row && (row.updatedAt ?? row.receivedAt ?? row.timestamp));
-  const rowAgeMs = (row) => {
-    const updatedAt = rowUpdatedAtMs(row);
-    return updatedAt == null ? null : Math.max(0, Date.now() - updatedAt);
-  };
-  const rowAgeSeconds = (row) => {
-    const ageMs = rowAgeMs(row);
-    return ageMs == null ? null : Math.floor(ageMs / 1000);
-  };
-  const liveRowStatus = (row) => {
-    const baseStatus = String((row && row.status) || 'waiting');
-    if (baseStatus !== 'fresh' && baseStatus !== 'stale') return baseStatus;
-    if (baseStatus === 'stale') return 'stale';
-    const ageMs = rowAgeMs(row);
-    const staleAfterMs = Number(row && row.staleAfterMs);
-    if (ageMs != null && Number.isFinite(staleAfterMs) && staleAfterMs > 0 && ageMs > staleAfterMs) {
-      return 'stale';
-    }
-    return 'fresh';
-  };
-  const ageLabel = (row) => {
-    const seconds = rowAgeSeconds(row);
-    return seconds == null ? '-' : `${seconds}秒前`;
-  };
-  const updatedAtLabel = (row) => fmtTime((row && row.timestamp) || rowUpdatedAtMs(row));
-  const freshnessBadge = (status) => (
-    status === 'stale'
-      ? '<span class="freshness-badge freshness-badge--stale">STALE</span>'
-      : ''
-  );
-  const summarizeStatuses = (rows) => rows.reduce((acc, row) => {
-    const status = liveRowStatus(row);
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, { fresh: 0, stale: 0, waiting: 0, error: 0, unsupported: 0 });
   const sortedOrderbookRows = () => ((summary && summary.orderbooks) || [])
     .slice()
     .sort((a, b) => {
@@ -129,26 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     hint.textContent = `現在は ${feeRatePct}% を全取引所に手動適用しています。空に戻すと各取引所の既定手数料に戻ります。`;
   }
-
-  function priceDecimals(value) {
-    const abs = Math.abs(Number(value));
-    if (!Number.isFinite(abs)) return 0;
-    if (abs >= 1000) return 0;
-    if (abs >= 100) return 2;
-    if (abs >= 1) return 4;
-    return 8;
-  }
-
-  function fmtJpyPrice(value) {
-    if (value == null || isNaN(value)) return '-';
-    return new Intl.NumberFormat('ja-JP', {
-      style: 'currency',
-      currency: 'JPY',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: priceDecimals(value),
-    }).format(value);
-  }
-
   function setEmpty(tbodyId, colspan, message) {
     const tbody = $(tbodyId);
     if (tbody) tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-gray-500 py-4">${escapeHtml(message)}</td></tr>`;
@@ -378,12 +291,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const controller = new AbortController();
     comparisonAbortController = controller;
     try {
-      const res = await fetch(`/api/market-impact-comparison?${params.toString()}`, {
-        cache: 'no-store',
+      const data = await Api.fetchJson(`/api/market-impact-comparison?${params.toString()}`, {
         signal: controller.signal,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      renderComparison(await res.json());
+      renderComparison(data);
     } catch (err) {
       if (err.name === 'AbortError') return;
       lastComparisonData = null;
@@ -472,12 +383,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const controller = new AbortController();
     summaryAbortController = controller;
     try {
-      const res = await fetch(`/api/markets/${encodeURIComponent(instrumentId)}`, {
-        cache: 'no-store',
+      const data = await Api.fetchJson(`/api/markets/${encodeURIComponent(instrumentId)}`, {
         signal: controller.signal,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      renderSummary(await res.json());
+      renderSummary(data);
       void loadComparison();
     } catch (err) {
       if (err.name === 'AbortError') return;

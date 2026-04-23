@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const Api = window.AppApi;
+  const AppFmt = window.AppFormatters;
+  const AppUtil = window.AppUtils;
   const WINDOW_LABELS = {
     '1d': '今日',
     '7d': '7日間',
@@ -18,45 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let selectedWindow = '7d';
 
-  const $ = (id) => document.getElementById(id);
+  const $ = AppUtil.byId;
   const num = (value) => Fmt.num(value || 0);
+  const escapeHtml = AppUtil.escapeHtml;
+  const setText = AppUtil.setText;
+  const fmtDateTime = AppFmt.dateTime;
+  const fmtTime = (value) => AppFmt.time(value, { includeSeconds: false });
   const input = $('admin-token-input');
   const saveButton = $('save-token-btn');
   const clearButton = $('clear-token-btn');
-
-  const setText = (id, value) => {
-    const el = $(id);
-    if (el) el.textContent = value ?? '-';
-  };
-
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function fmtDateTime(value) {
-    if (!value) return '-';
-    return new Date(value).toLocaleString('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
-
-  function fmtTime(value) {
-    if (!value) return '-';
-    return new Date(value).toLocaleTimeString('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  }
 
   function labelFor(key, labels) {
     return labels[key] || key || '-';
@@ -183,16 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDailyTable(data.days || []);
   }
 
-  async function readError(res) {
-    const data = await res.json().catch(() => ({}));
-    return data.error || '';
-  }
-
   async function loadAnalytics() {
     setStatus('読み込み中');
     try {
-      const res = await fetch(`/api/admin/analytics?window=${encodeURIComponent(selectedWindow)}`, {
-        cache: 'no-store',
+      const res = await Api.request(`/api/admin/analytics?window=${encodeURIComponent(selectedWindow)}`, {
         credentials: 'same-origin',
       });
 
@@ -203,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (res.status === 503) {
-        const message = await readError(res) || '管理認証が未設定です';
+        const message = await Api.readError(res) || '管理認証が未設定です';
         clearDashboard(message);
         setStatus('未設定');
         showAuth(message);
@@ -232,9 +199,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setStatus('認証中');
     setAuthControlsDisabled(true);
     try {
-      const res = await fetch('/api/admin/session', {
+      const res = await Api.request('/api/admin/session', {
         method: 'POST',
-        cache: 'no-store',
         credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
@@ -244,7 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (res.status === 400) {
         setStatus('認証待ち');
-        showAuth((await readError(res)) || '管理トークンを入力してください');
+        showAuth((await Api.readError(res)) || '管理トークンを入力してください');
         return;
       }
       if (res.status === 401) {
@@ -253,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       if (res.status === 503) {
-        const message = await readError(res) || '管理認証が未設定です';
+        const message = await Api.readError(res) || '管理認証が未設定です';
         clearDashboard(message);
         setStatus('未設定');
         showAuth(message);
@@ -276,9 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setStatus('認証解除中');
     setAuthControlsDisabled(true);
     try {
-      await fetch('/api/admin/session', {
+      await Api.request('/api/admin/session', {
         method: 'DELETE',
-        cache: 'no-store',
         credentials: 'same-origin',
       });
     } catch (_err) {

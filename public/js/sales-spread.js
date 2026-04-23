@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const Api = window.AppApi;
+  const AppFmt = window.AppFormatters;
+  const AppUtil = window.AppUtils;
   const pagePoller = window.PagePoller.create();
   const WINDOW_LABELS = {
     '1d': '24h',
@@ -21,57 +24,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const SPREAD_REFRESH_MS = 60000;
   const SPREAD_HISTORY_REFRESH_MS = 600000;
 
-  const $ = (id) => document.getElementById(id);
-  const setText = (id, value) => {
-    const el = $(id);
-    if (el) el.textContent = value ?? '-';
-  };
-
-  const fmtPct = (value, decimals = 2) => value == null || isNaN(value) ? '-' : `${value.toFixed(decimals)}%`;
-  const fmtDateTime = (value) => {
-    if (!value) return '-';
-    return new Date(value).toLocaleString('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  function priceDecimals(value, precision) {
-    const abs = Math.abs(Number(value));
-    if (!Number.isFinite(abs)) return 0;
-    if (abs >= 1000) return 0;
-    if (abs >= 100) return Math.min(Math.max(precision ?? 1, 1), 2);
-    if (abs >= 1) return Math.min(Math.max(precision ?? 2, 2), 4);
-    return Math.min(Math.max(precision ?? 4, 4), 8);
-  }
-
-  function fmtJpyPrice(value, precision) {
-    if (value == null || isNaN(value)) return '-';
-    const decimals = priceDecimals(value, precision);
-    return new Intl.NumberFormat('ja-JP', {
-      style: 'currency',
-      currency: 'JPY',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: decimals,
-    }).format(value);
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  function marketPageUrl(instrumentId) {
-    const normalized = String(instrumentId || 'BTC-JPY').trim().toUpperCase();
-    return `/markets/${encodeURIComponent(normalized)}`;
-  }
+  const $ = AppUtil.byId;
+  const setText = AppUtil.setText;
+  const escapeHtml = AppUtil.escapeHtml;
+  const marketPageUrl = AppUtil.marketPageUrl;
+  const cssVar = AppUtil.cssVar;
+  const fmtPct = AppFmt.pct;
+  const fmtDateTime = AppFmt.dateTime;
+  const fmtJpyPrice = AppFmt.jpyPrice;
+  const shortDate = AppFmt.shortDate;
 
   function sourceLabel(windowMeta) {
     if (!windowMeta) return '記録待ち';
@@ -125,18 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function chartColor(index) {
     return CHART_COLORS[index % CHART_COLORS.length];
-  }
-
-  function cssVar(name, fallback) {
-    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    return value || fallback;
-  }
-
-  function shortDate(value) {
-    if (!value) return '-';
-    const parts = String(value).split('-');
-    if (parts.length === 3) return `${parts[1]}/${parts[2]}`;
-    return String(value);
   }
 
   function spreadCell(summary, precision) {
@@ -529,12 +478,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const controller = new AbortController();
     spreadAbortController = controller;
     try {
-      const res = await fetch('/api/sales-spread', {
-        cache: 'no-store',
+      const data = await Api.fetchJson('/api/sales-spread', {
         signal: controller.signal,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      render(await res.json());
+      render(data);
     } catch (err) {
       if (err.name === 'AbortError') return;
       setText('spread-status', '取得失敗');
@@ -555,12 +502,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const controller = new AbortController();
     spreadHistoryAbortController = controller;
     try {
-      const res = await fetch(`/api/sales-spread/history?window=${encodeURIComponent(selectedHistoryWindow)}`, {
-        cache: 'no-store',
+      const data = await Api.fetchJson(`/api/sales-spread/history?window=${encodeURIComponent(selectedHistoryWindow)}`, {
         signal: controller.signal,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
       spreadHistoryRows = data.rows || [];
       spreadHistoryMeta = data.meta || {};
       renderSpreadHistory();
