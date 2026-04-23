@@ -1961,14 +1961,126 @@ function scheduleSalesSpreadJobs() {
   scheduleDailySalesSpreadSnapshot();
 }
 
-const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
-server.listen(PORT, HOST, () => {
-  const displayHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
-  console.log(`成行取引リアルタイム板シミュレーター running on http://${displayHost}:${PORT} (${EXCHANGES.map(exchange => exchange.label).join(', ')})`);
-  for (const client of clientsByExchange.values()) {
-    client.start();
+let runtimeStartPromise = null;
+let runtimeStarted = false;
+let exchangeClientsStarted = false;
+let backgroundJobsStarted = false;
+
+function startRuntime(options = {}) {
+  if (runtimeStarted && server.listening) {
+    return Promise.resolve(server);
   }
-  scheduleVolumeShareJobs();
-  scheduleSalesSpreadJobs();
-});
+
+  if (runtimeStartPromise) {
+    return runtimeStartPromise;
+  }
+
+  const port = options.port ?? process.env.PORT ?? 3000;
+  const host = options.host ?? process.env.HOST ?? '0.0.0.0';
+  const startClients = options.startClients !== false;
+  const startJobs = options.startJobs !== false;
+  const shouldLog = options.log !== false;
+
+  runtimeStartPromise = new Promise((resolve, reject) => {
+    const handleError = (err) => {
+      runtimeStartPromise = null;
+      server.off('error', handleError);
+      reject(err);
+    };
+
+    server.once('error', handleError);
+    server.listen(port, host, () => {
+      server.off('error', handleError);
+      runtimeStarted = true;
+
+      const address = server.address();
+      const actualHost = typeof address === 'object' && address ? address.address : host;
+      const actualPort = typeof address === 'object' && address ? address.port : port;
+      const displayHost = actualHost === '0.0.0.0' || actualHost === '::' ? 'localhost' : actualHost;
+
+      if (shouldLog) {
+        console.log(`成行取引リアルタイム板シミュレーター running on http://${displayHost}:${actualPort} (${EXCHANGES.map(exchange => exchange.label).join(', ')})`);
+      }
+
+      if (startClients && !exchangeClientsStarted) {
+        for (const client of clientsByExchange.values()) {
+          client.start();
+        }
+        exchangeClientsStarted = true;
+      }
+
+      if (startJobs && !backgroundJobsStarted) {
+        scheduleVolumeShareJobs();
+        scheduleSalesSpreadJobs();
+        backgroundJobsStarted = true;
+      }
+
+      resolve(server);
+    });
+  });
+
+  return runtimeStartPromise;
+}
+
+function stopRuntime() {
+  const stopExchangeClients = () => {
+    if (!exchangeClientsStarted) return;
+    for (const client of clientsByExchange.values()) {
+      if (typeof client.stop === 'function') {
+        client.stop();
+      }
+    }
+    exchangeClientsStarted = false;
+  };
+
+  runtimeStarted = false;
+  runtimeStartPromise = null;
+  backgroundJobsStarted = false;
+  stopExchangeClients();
+
+  return new Promise((resolve, reject) => {
+    wsManager.wss.close();
+
+    if (!server.listening) {
+      resolve();
+      return;
+    }
+
+    server.close((err) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+module.exports = {
+  app,
+  server,
+  startRuntime,
+  stopRuntime,
+  stores: {
+    analyticsStore,
+    salesSpreadStore,
+    volumeShareStore,
+  },
+  wsManager,
+  helpers: {
+    buildMarketImpactComparison,
+    buildMarketPageReport,
+    buildSalesReferenceComparison,
+    normalizeComparisonAmountType,
+    parseRequestNumber,
+    sortComparisonRows,
+    sortSalesReferenceRows,
+  },
+};
+
+if (require.main === module) {
+  startRuntime().catch((err) => {
+    console.error('[server] Failed to start:', err);
+    process.exitCode = 1;
+  });
+}
