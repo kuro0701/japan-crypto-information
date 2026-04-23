@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -7,11 +8,14 @@ const { createTempDir, removeTempDir } = require('../helpers/temp-dir');
 
 test('AnalyticsStore aggregates route, visitor, referrer, device, and websocket stats', (t) => {
   const tempDir = createTempDir('okj-analytics-store-');
-  t.after(() => removeTempDir(tempDir));
 
   const store = new AnalyticsStore({
     dataFilePath: path.join(tempDir, 'analytics.json'),
     salt: 'test-salt',
+  });
+  t.after(() => {
+    store.dispose();
+    removeTempDir(tempDir);
   });
 
   store.data.days = {
@@ -55,4 +59,44 @@ test('AnalyticsStore aggregates route, visitor, referrer, device, and websocket 
   assert.equal(report.devices[0].key, 'desktop');
   assert.equal(report.devices[0].count, 3);
   assert.equal(report.days.length, 2);
+});
+
+test('AnalyticsStore batches disk writes while keeping in-memory counters current', async (t) => {
+  const tempDir = createTempDir('okj-analytics-store-batch-');
+
+  const dataFilePath = path.join(tempDir, 'analytics.json');
+  const store = new AnalyticsStore({
+    dataFilePath,
+    salt: 'test-salt',
+    flushDelayMs: 20,
+  });
+  t.after(() => {
+    store.dispose();
+    removeTempDir(tempDir);
+  });
+
+  const req = {
+    headers: {
+      host: 'example.com',
+      'user-agent': 'UnitTest/1.0',
+      referer: '',
+    },
+    ip: '127.0.0.1',
+  };
+
+  store.trackPageView(req, '/');
+  store.trackPageView(req, '/markets/BTC-JPY');
+
+  const report = store.getReport('7d');
+  assert.equal(report.meta.totalPageViews, 2);
+  assert.equal(fs.existsSync(dataFilePath), false);
+
+  await new Promise(resolve => setTimeout(resolve, 60));
+
+  assert.equal(fs.existsSync(dataFilePath), true);
+  const saved = JSON.parse(fs.readFileSync(dataFilePath, 'utf8'));
+  const savedDay = Object.values(saved.days)[0];
+  assert.equal(savedDay.pageViews, 2);
+  assert.equal(savedDay.routes['/'], 1);
+  assert.equal(savedDay.routes['/markets/BTC-JPY'], 1);
 });

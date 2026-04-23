@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const pagePoller = window.PagePoller.create();
   const WINDOW_LABELS = {
     '1d': '24h',
     '7d': '7日',
@@ -14,7 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let spreadHistoryRows = [];
   let spreadHistoryMeta = {};
   let spreadHistoryChart = null;
+  let spreadAbortController = null;
+  let spreadHistoryAbortController = null;
   const CHART_COLORS = ['#35e0a5', '#ff6b70', '#35c8d2', '#f4c95d', '#dbe7df', '#ff9f7e', '#9ad46a'];
+  const SPREAD_REFRESH_MS = 60000;
+  const SPREAD_HISTORY_REFRESH_MS = 600000;
 
   const $ = (id) => document.getElementById(id);
   const setText = (id, value) => {
@@ -517,23 +522,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadSpread() {
     setText('spread-status', '読み込み中');
+    if (spreadAbortController) {
+      spreadAbortController.abort();
+      spreadAbortController = null;
+    }
+    const controller = new AbortController();
+    spreadAbortController = controller;
     try {
       const res = await fetch('/api/sales-spread', {
         cache: 'no-store',
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       render(await res.json());
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setText('spread-status', '取得失敗');
       setText('spread-meta', err.message);
+    } finally {
+      if (spreadAbortController === controller) {
+        spreadAbortController = null;
+      }
     }
   }
 
   async function loadSpreadHistory() {
     setText('spread-history-meta', '日次スナップショットを読み込み中');
+    if (spreadHistoryAbortController) {
+      spreadHistoryAbortController.abort();
+      spreadHistoryAbortController = null;
+    }
+    const controller = new AbortController();
+    spreadHistoryAbortController = controller;
     try {
       const res = await fetch(`/api/sales-spread/history?window=${encodeURIComponent(selectedHistoryWindow)}`, {
         cache: 'no-store',
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -541,9 +565,24 @@ document.addEventListener('DOMContentLoaded', () => {
       spreadHistoryMeta = data.meta || {};
       renderSpreadHistory();
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setText('spread-history-meta', err.message);
+    } finally {
+      if (spreadHistoryAbortController === controller) {
+        spreadHistoryAbortController = null;
+      }
     }
   }
+
+  const spreadRefreshTask = pagePoller.createTask({
+    intervalMs: SPREAD_REFRESH_MS,
+    callback: loadSpread,
+  });
+
+  const spreadHistoryRefreshTask = pagePoller.createTask({
+    intervalMs: SPREAD_HISTORY_REFRESH_MS,
+    callback: loadSpreadHistory,
+  });
 
   const filterInput = $('spread-filter');
   if (filterInput) {
@@ -585,6 +624,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initSpreadHistoryChart();
   loadSpread();
   loadSpreadHistory();
-  setInterval(loadSpread, 60000);
-  setInterval(loadSpreadHistory, 300000);
+  spreadRefreshTask.start({ immediate: false });
+  spreadHistoryRefreshTask.start({ immediate: false });
+  window.addEventListener('beforeunload', () => {
+    pagePoller.dispose();
+    if (spreadAbortController) spreadAbortController.abort();
+    if (spreadHistoryAbortController) spreadHistoryAbortController.abort();
+  });
 });

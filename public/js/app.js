@@ -1,13 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
   const ws = new WSClient();
+  const pagePoller = window.PagePoller.create();
   let latestDepthData = null;
   let latestMidPrice = null;
   let autoUpdate = true;
   let lastComparisonParams = null;
-  let comparisonRefreshTimer = null;
   let comparisonAbortController = null;
   let salesReferenceAbortController = null;
-  let freshnessTimer = null;
   let lastSimulationResult = null;
   let lastVenueComparisonData = null;
   let lastSalesReferenceData = null;
@@ -69,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let pendingQuickPresetRun = false;
   let shareStatusTimer = null;
   let localAlerts = [];
-  let alertRefreshTimer = null;
   let alertRefreshRunning = false;
   let lastAlertRefreshAt = null;
   let favoriteMarkets = [];
@@ -1370,6 +1368,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const comparisonRefreshTask = pagePoller.createTask({
+    intervalMs: COMPARISON_REFRESH_MS,
+    callback: async () => {
+      if (!autoUpdate || !lastComparisonParams) return;
+      await Promise.all([
+        loadVenueComparison({ background: true }),
+        loadSalesReferenceComparison({ background: true }),
+      ]);
+    },
+  });
+
+  const alertRefreshTask = pagePoller.createTask({
+    intervalMs: ALERT_REFRESH_MS,
+    callback: refreshAlerts,
+  });
+
+  const freshnessTask = pagePoller.createTask({
+    intervalMs: 1000,
+    callback: () => {
+      UI.renderMarketFreshness();
+      if (lastVenueComparisonData) renderVenueComparison(lastVenueComparisonData);
+      if (lastSalesReferenceData) renderSalesReferenceComparison(lastSalesReferenceData);
+    },
+  });
+
   function addCurrentAlert() {
     const draft = currentAlertDraft();
     if (draft.error) {
@@ -1471,10 +1494,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function stopComparisonRefresh() {
-    if (comparisonRefreshTimer) {
-      clearInterval(comparisonRefreshTimer);
-      comparisonRefreshTimer = null;
-    }
+    comparisonRefreshTask.stop();
   }
 
   function clearVenueComparison() {
@@ -1501,10 +1521,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function scheduleComparisonRefresh() {
     stopComparisonRefresh();
     if (!autoUpdate || !lastComparisonParams) return;
-    comparisonRefreshTimer = setInterval(() => {
-      loadVenueComparison({ background: true });
-      loadSalesReferenceComparison({ background: true });
-    }, COMPARISON_REFRESH_MS);
+    comparisonRefreshTask.start({ immediate: false });
   }
 
   function comparisonAmountLabel(params) {
@@ -2312,12 +2329,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadLocalAlerts();
   syncAlertHelp();
   renderAlerts();
-  alertRefreshTimer = setInterval(refreshAlerts, ALERT_REFRESH_MS);
-  freshnessTimer = setInterval(() => {
-    UI.renderMarketFreshness();
-    if (lastVenueComparisonData) renderVenueComparison(lastVenueComparisonData);
-    if (lastSalesReferenceData) renderSalesReferenceComparison(lastSalesReferenceData);
-  }, 1000);
+  alertRefreshTask.start({ immediate: false });
+  freshnessTask.start({ immediate: false });
   setOverviewLoadingState();
   setThresholdLoading();
   setChartLoading(true);
@@ -2326,8 +2339,10 @@ document.addEventListener('DOMContentLoaded', () => {
   loadExchangesFromApi();
   refreshAlerts();
   window.addEventListener('beforeunload', () => {
-    if (comparisonRefreshTimer) clearInterval(comparisonRefreshTimer);
-    if (alertRefreshTimer) clearInterval(alertRefreshTimer);
-    if (freshnessTimer) clearInterval(freshnessTimer);
+    pagePoller.dispose();
+    if (comparisonAbortController) comparisonAbortController.abort();
+    if (salesReferenceAbortController) salesReferenceAbortController.abort();
+    if (shareStatusTimer) clearTimeout(shareStatusTimer);
+    if (settingsStatusTimer) clearTimeout(settingsStatusTimer);
   });
 });

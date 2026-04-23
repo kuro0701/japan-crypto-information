@@ -2,12 +2,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const config = window.MARKET_PAGE || {};
   const instrumentId = String(config.instrumentId || '').toUpperCase();
   const ws = new WSClient();
+  const pagePoller = window.PagePoller.create();
   let summary = null;
   let selectedExchangeId = '';
   let comparisonTimer = null;
-  let summaryTimer = null;
-  let freshnessTimer = null;
+  let summaryAbortController = null;
+  let comparisonAbortController = null;
   let lastComparisonData = null;
+  const SUMMARY_REFRESH_MS = 60000;
 
   const $ = (id) => document.getElementById(id);
   const setText = (id, value) => {
@@ -354,6 +356,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const amountType = $('market-amount-type')?.value === 'base' ? 'base' : 'jpy';
     const amount = parseNumberInput($('market-amount')?.value);
     const feeRatePct = readOptionalFeeRatePct($('market-fee-rate'));
+    if (comparisonAbortController) {
+      comparisonAbortController.abort();
+      comparisonAbortController = null;
+    }
     if (!Number.isFinite(amount) || amount <= 0 || Number.isNaN(feeRatePct) || (feeRatePct != null && (feeRatePct < 0 || feeRatePct > 100))) {
       lastComparisonData = null;
       setEmpty('market-comparison-tbody', 6, '比較条件を確認してください');
@@ -369,14 +375,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (feeRatePct != null) {
       params.set('feeRate', String(feeRatePct / 100));
     }
+    const controller = new AbortController();
+    comparisonAbortController = controller;
     try {
-      const res = await fetch(`/api/market-impact-comparison?${params.toString()}`, { cache: 'no-store' });
+      const res = await fetch(`/api/market-impact-comparison?${params.toString()}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       renderComparison(await res.json());
     } catch (err) {
+      if (err.name === 'AbortError') return;
       lastComparisonData = null;
       setText('market-comparison-meta', err.message);
       setEmpty('market-comparison-tbody', 6, '比較の取得に失敗しました');
+    } finally {
+      if (comparisonAbortController === controller) {
+        comparisonAbortController = null;
+      }
     }
   }
 
@@ -449,16 +465,47 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadSummary() {
+    if (summaryAbortController) {
+      summaryAbortController.abort();
+      summaryAbortController = null;
+    }
+    const controller = new AbortController();
+    summaryAbortController = controller;
     try {
-      const res = await fetch(`/api/markets/${encodeURIComponent(instrumentId)}`, { cache: 'no-store' });
+      const res = await fetch(`/api/markets/${encodeURIComponent(instrumentId)}`, {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       renderSummary(await res.json());
-      loadComparison();
+      void loadComparison();
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setText('market-status', '取得失敗');
       setText('market-hero-meta', err.message);
+    } finally {
+      if (summaryAbortController === controller) {
+        summaryAbortController = null;
+      }
     }
   }
+
+  const summaryRefreshTask = pagePoller.createTask({
+    intervalMs: SUMMARY_REFRESH_MS,
+    callback: loadSummary,
+  });
+
+  const freshnessTask = pagePoller.createTask({
+    intervalMs: 1000,
+    callback: () => {
+      if (summary) {
+        renderHero();
+        renderOrderbookRows();
+        updateSelectedOrderbookMeta();
+      }
+      if (lastComparisonData) renderComparison(lastComparisonData);
+    },
+  });
 
   const boardSelect = $('market-board-exchange');
   if (boardSelect) {
@@ -511,18 +558,12 @@ document.addEventListener('DOMContentLoaded', () => {
   updateFeePresetHint();
   loadSummary();
   ws.connect();
-  summaryTimer = setInterval(loadSummary, 30000);
-  freshnessTimer = setInterval(() => {
-    if (summary) {
-      renderHero();
-      renderOrderbookRows();
-      updateSelectedOrderbookMeta();
-    }
-    if (lastComparisonData) renderComparison(lastComparisonData);
-  }, 1000);
+  summaryRefreshTask.start({ immediate: false });
+  freshnessTask.start({ immediate: false });
   window.addEventListener('beforeunload', () => {
-    if (summaryTimer) clearInterval(summaryTimer);
+    pagePoller.dispose();
     if (comparisonTimer) clearTimeout(comparisonTimer);
-    if (freshnessTimer) clearInterval(freshnessTimer);
+    if (summaryAbortController) summaryAbortController.abort();
+    if (comparisonAbortController) comparisonAbortController.abort();
   });
 });

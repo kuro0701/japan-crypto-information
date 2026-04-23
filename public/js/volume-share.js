@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const pagePoller = window.PagePoller.create();
   const WINDOW_LABELS = {
     '1d': '24時間',
     '7d': '7日間',
@@ -14,7 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
   let volumeHistoryMeta = {};
   let volumeShareHistoryChart = null;
   let volumeRankHistoryChart = null;
+  let shareAbortController = null;
+  let volumeHistoryAbortController = null;
   const CHART_COLORS = ['#35e0a5', '#ff6b70', '#35c8d2', '#f4c95d', '#dbe7df', '#ff9f7e', '#9ad46a'];
+  const SHARE_REFRESH_MS = 60000;
+  const VOLUME_HISTORY_REFRESH_MS = 600000;
 
   const $ = (id) => document.getElementById(id);
   const setText = (id, value) => {
@@ -604,23 +609,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadShare() {
     setText('share-status', '読み込み中');
+    if (shareAbortController) {
+      shareAbortController.abort();
+      shareAbortController = null;
+    }
+    const controller = new AbortController();
+    shareAbortController = controller;
     try {
       const res = await fetch(`/api/volume-share?window=${encodeURIComponent(selectedWindow)}`, {
         cache: 'no-store',
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       render(await res.json());
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setText('share-status', '取得失敗');
       setText('share-meta', err.message);
+    } finally {
+      if (shareAbortController === controller) {
+        shareAbortController = null;
+      }
     }
   }
 
   async function loadVolumeHistory() {
     setText('volume-history-meta', '日次スナップショットを読み込み中');
+    if (volumeHistoryAbortController) {
+      volumeHistoryAbortController.abort();
+      volumeHistoryAbortController = null;
+    }
+    const controller = new AbortController();
+    volumeHistoryAbortController = controller;
     try {
       const res = await fetch(`/api/volume-share/history?window=${encodeURIComponent(selectedHistoryWindow)}`, {
         cache: 'no-store',
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -628,10 +652,25 @@ document.addEventListener('DOMContentLoaded', () => {
       volumeHistoryMeta = data.meta || {};
       renderVolumeHistory();
     } catch (err) {
+      if (err.name === 'AbortError') return;
       setText('volume-history-meta', err.message);
       setText('volume-rank-meta', '取得失敗');
+    } finally {
+      if (volumeHistoryAbortController === controller) {
+        volumeHistoryAbortController = null;
+      }
     }
   }
+
+  const shareRefreshTask = pagePoller.createTask({
+    intervalMs: SHARE_REFRESH_MS,
+    callback: loadShare,
+  });
+
+  const volumeHistoryRefreshTask = pagePoller.createTask({
+    intervalMs: VOLUME_HISTORY_REFRESH_MS,
+    callback: loadVolumeHistory,
+  });
 
   document.querySelectorAll('[data-window]').forEach(button => {
     button.addEventListener('click', () => {
@@ -676,6 +715,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initVolumeHistoryCharts();
   loadShare();
   loadVolumeHistory();
-  setInterval(loadShare, 60000);
-  setInterval(loadVolumeHistory, 300000);
+  shareRefreshTask.start({ immediate: false });
+  volumeHistoryRefreshTask.start({ immediate: false });
+  window.addEventListener('beforeunload', () => {
+    pagePoller.dispose();
+    if (shareAbortController) shareAbortController.abort();
+    if (volumeHistoryAbortController) volumeHistoryAbortController.abort();
+  });
 });
