@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearBtn = document.getElementById('clear-btn');
   const copyShareUrlBtn = document.getElementById('copy-share-url-btn');
   const shareUrlStatus = document.getElementById('share-url-status');
+  const quickstartStatus = document.getElementById('quickstart-status');
   const marketPageNavLink = document.getElementById('market-page-nav-link');
   const favoriteMarketList = document.getElementById('favorite-market-list');
   const saveFavoriteBtn = document.getElementById('save-favorite-btn');
@@ -54,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const addAlertBtn = document.getElementById('add-alert-btn');
   const refreshAlertsBtn = document.getElementById('refresh-alerts-btn');
   const alertTbody = document.getElementById('alert-tbody');
+  const depthChartContainer = document.getElementById('depth-chart-container');
   const autoUpdateCheck = document.getElementById('auto-update');
   const amountUnit = document.getElementById('amount-unit');
   const SETTINGS_STORAGE_KEY = 'okj.simulatorSettings.v1';
@@ -64,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let exchangeListLoaded = false;
   let initialUrlStateConsumed = false;
   let initialSimulationRun = false;
+  let pendingQuickPresetRun = false;
   let shareStatusTimer = null;
   let localAlerts = [];
   let alertRefreshTimer = null;
@@ -89,12 +92,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? String(Number(parsed.toPrecision(12))) : null;
   };
+  const QUICK_PRESETS = {
+    'buy-jpy-100000': {
+      side: 'buy',
+      amountType: 'jpy',
+      amount: '100000',
+      label: '10万円の買い',
+    },
+    'buy-base-0.01': {
+      side: 'buy',
+      amountType: 'base',
+      amount: '0.01',
+      label: '0.01 BTC の買い',
+    },
+    'sell-base-0.01': {
+      side: 'sell',
+      amountType: 'base',
+      amount: '0.01',
+      label: '0.01 BTC の売り',
+    },
+  };
   const escapeHtml = (value) => String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+  const skeletonLine = (width = '100%', className = '') => `<span class="skeleton-line${className ? ` ${className}` : ''}" style="width:${width}"></span>`;
+  const skeletonCell = (widths, align = 'left') => `
+    <span class="skeleton-cell${align === 'right' ? ' skeleton-cell--right' : ''}">
+      ${widths.map((item) => {
+        const config = typeof item === 'string' ? { width: item, className: '' } : item;
+        return skeletonLine(config.width, config.className || '');
+      }).join('')}
+    </span>
+  `;
   const getMarkets = (exchange) => (exchange && Array.isArray(exchange.markets) && exchange.markets.length > 0)
     ? exchange.markets
     : [defaultMarket];
@@ -190,6 +222,146 @@ document.addEventListener('DOMContentLoaded', () => {
       ? '<span class="freshness-badge freshness-badge--stale">STALE</span>'
       : ''
   );
+
+  function setBusy(id, busy) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
+
+  function setHtml(id, html) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.innerHTML = html;
+  }
+
+  function setQuickstartStatus(message) {
+    if (!quickstartStatus) return;
+    quickstartStatus.textContent = message || '';
+  }
+
+  function setChartLoading(isLoading) {
+    if (!depthChartContainer) return;
+    depthChartContainer.classList.toggle('is-loading', Boolean(isLoading));
+    depthChartContainer.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+  }
+
+  function setOverviewLoadingState() {
+    const rows = [
+      ['mid-price', [{ width: '72%', className: 'skeleton-line--hero' }]],
+      ['best-bid', ['54%']],
+      ['best-ask', ['58%']],
+      ['spread-jpy', ['40%']],
+      ['spread-pct', [{ width: '52%', className: 'skeleton-line--sm' }]],
+      ['volume-24h-base', ['46%']],
+      ['volume-24h-quote', ['62%']],
+      ['ask-volume', ['44%']],
+      ['bid-volume', ['44%']],
+      ['ask-depth-jpy', ['56%']],
+      ['bid-depth-jpy', ['56%']],
+      ['ask-levels', ['30%']],
+      ['bid-levels', ['30%']],
+    ];
+
+    rows.forEach(([id, widths]) => {
+      setHtml(id, skeletonCell(widths, 'right'));
+    });
+  }
+
+  function setThresholdLoading() {
+    const tbody = document.getElementById('threshold-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = Array.from({ length: 4 }, () => `
+      <tr class="table-skeleton-row">
+        <td headers="threshold-col-impact" class="is-num text-right" data-label="変動">${skeletonCell([{ width: '42%', className: 'skeleton-line--sm' }], 'right')}</td>
+        <td headers="threshold-col-buy" class="is-num text-right" data-label="買い">${skeletonCell(['56%', '72%', '48%'], 'right')}</td>
+        <td headers="threshold-col-sell" class="is-num text-right" data-label="売り">${skeletonCell(['56%', '72%', '48%'], 'right')}</td>
+      </tr>
+    `).join('');
+  }
+
+  function setSimulationLoading() {
+    setBusy('simulation-export-panel', true);
+    setHtml('simulation-results', `
+      <div class="space-y-3">
+        <div class="skeleton-block">
+          ${skeletonLine('34%')}
+          ${skeletonLine('82%', 'skeleton-line--sm')}
+        </div>
+        <div class="skeleton-block">
+          <div class="skeleton-block__row">
+            ${skeletonCell(['34%'])}
+            ${skeletonCell(['58%'], 'right')}
+          </div>
+          <div class="skeleton-block__row">
+            ${skeletonCell(['30%'])}
+            ${skeletonCell(['64%'], 'right')}
+          </div>
+          <div class="skeleton-block__row">
+            ${skeletonCell(['36%'])}
+            ${skeletonCell(['52%'], 'right')}
+          </div>
+          <div class="skeleton-block__row">
+            ${skeletonCell(['28%'])}
+            ${skeletonCell(['60%'], 'right')}
+          </div>
+        </div>
+      </div>
+    `);
+  }
+
+  function setFillLoading() {
+    const tbody = document.getElementById('fill-tbody');
+    if (!tbody) return;
+    setBusy('fill-tbody', true);
+    tbody.innerHTML = Array.from({ length: 4 }, () => `
+      <tr class="table-skeleton-row">
+        <td headers="fill-col-side" data-label="方向">${skeletonCell(['46%'])}</td>
+        <td headers="fill-col-idx" class="is-num text-right" data-label="#">${skeletonCell(['26%'], 'right')}</td>
+        <td headers="fill-col-price" class="is-num text-right" data-label="約定価格">${skeletonCell(['58%'], 'right')}</td>
+        <td headers="fill-quantity-header" class="is-num text-right" data-label="数量">${skeletonCell(['48%'], 'right')}</td>
+        <td headers="fill-col-subtotal" class="is-num text-right" data-label="小計">${skeletonCell(['54%'], 'right')}</td>
+        <td headers="fill-col-cum-base" class="is-num text-right" data-label="累計数量">${skeletonCell(['52%'], 'right')}</td>
+        <td headers="fill-col-cum-quote" class="is-num text-right" data-label="累計金額">${skeletonCell(['54%'], 'right')}</td>
+        <td headers="fill-col-impact" class="is-num text-right" data-label="累計Impact">${skeletonCell(['36%'], 'right')}</td>
+        <td headers="fill-col-orders" class="is-num text-right" data-label="注文数">${skeletonCell(['30%'], 'right')}</td>
+      </tr>
+    `).join('');
+  }
+
+  function setVenueComparisonLoading() {
+    const tbody = document.getElementById('venue-comparison-tbody');
+    if (!tbody) return;
+    setBusy('venue-comparison-panel', true);
+    tbody.innerHTML = Array.from({ length: 4 }, () => `
+      <tr class="table-skeleton-row">
+        <td headers="venue-col-rank" class="is-num text-right" data-label="順位">${skeletonCell(['28%'], 'right')}</td>
+        <td headers="venue-col-exchange" data-label="取引所">${skeletonCell(['52%', '36%'])}</td>
+        <td headers="venue-col-effective" class="is-num text-right" data-label="実効コスト">${skeletonCell(['58%', '46%'], 'right')}</td>
+        <td headers="venue-col-vwap" class="is-num text-right" data-label="実効VWAP">${skeletonCell(['52%', '34%'], 'right')}</td>
+        <td headers="venue-col-impact" class="is-num text-right" data-label="Impact">${skeletonCell(['34%', '28%'], 'right')}</td>
+        <td headers="venue-col-status" data-label="判定">${skeletonCell(['62%', '48%'])}</td>
+        <td headers="venue-col-updated" class="text-right" data-label="更新">${skeletonCell(['42%', '30%'], 'right')}</td>
+      </tr>
+    `).join('');
+  }
+
+  function setSalesReferenceLoading() {
+    const tbody = document.getElementById('sales-reference-tbody');
+    if (!tbody) return;
+    setBusy('sales-reference-panel', true);
+    tbody.innerHTML = Array.from({ length: 4 }, () => `
+      <tr class="table-skeleton-row">
+        <td headers="sales-ref-col-rank" class="is-num text-right" data-label="順位">${skeletonCell(['28%'], 'right')}</td>
+        <td headers="sales-ref-col-exchange" data-label="販売所">${skeletonCell(['48%', '34%'])}</td>
+        <td headers="sales-ref-col-price" class="is-num text-right" data-label="表示価格">${skeletonCell(['52%', '30%'], 'right')}</td>
+        <td headers="sales-ref-col-result" class="is-num text-right" data-label="参考結果">${skeletonCell(['58%', '46%'], 'right')}</td>
+        <td headers="sales-ref-col-delta" class="is-num text-right" data-label="最良取引所との差">${skeletonCell(['54%', '36%'], 'right')}</td>
+        <td headers="sales-ref-col-risk" data-label="注意">${skeletonCell(['42%', '38%'])}</td>
+        <td headers="sales-ref-col-updated" class="text-right" data-label="更新">${skeletonCell(['40%'], 'right')}</td>
+      </tr>
+    `).join('');
+  }
 
   function storageGet(key, fallback) {
     try {
@@ -819,6 +991,28 @@ document.addEventListener('DOMContentLoaded', () => {
     renderFavoriteMarkets();
   }
 
+  function applyQuickPreset(presetId) {
+    const preset = QUICK_PRESETS[presetId];
+    if (!preset) return;
+
+    setSide(preset.side);
+    if (amountTypeSelect) amountTypeSelect.value = preset.amountType;
+    updateAmountUnit();
+    if (amountInput) amountInput.value = preset.amount;
+    updateShareUrl();
+    saveCurrentSettings();
+
+    if (!ws.ws || ws.ws.readyState !== WebSocket.OPEN) {
+      pendingQuickPresetRun = true;
+      setQuickstartStatus(`${preset.label} をセットしました。接続でき次第そのまま比較を始めます。`);
+      return;
+    }
+
+    pendingQuickPresetRun = false;
+    setQuickstartStatus(`${preset.label} で比較を始めます。次は「取引所横断コスト比較」の1位を見てください。`);
+    runSimulation();
+  }
+
   function setSide(side) {
     const normalized = normalizeSide(side) || 'buy';
     if (sideSelect) sideSelect.value = normalized;
@@ -1255,8 +1449,11 @@ document.addEventListener('DOMContentLoaded', () => {
     lastSimulationResult = null;
     setSimulationForChart(null);
     UI.clearMarketView();
+    setOverviewLoadingState();
+    setThresholdLoading();
     UI.clearSimulationView();
     clearVenueComparison();
+    setChartLoading(true);
     ws.clearSimulation();
     if (depthChart) {
       depthChart.data.datasets.forEach(dataset => {
@@ -1293,6 +1490,8 @@ document.addEventListener('DOMContentLoaded', () => {
       salesReferenceAbortController.abort();
       salesReferenceAbortController = null;
     }
+    setBusy('venue-comparison-panel', false);
+    setBusy('sales-reference-panel', false);
     UI.setText('venue-comparison-meta', 'シミュレーション実行後に比較します');
     UI.setText('sales-reference-meta', '販売所は表示価格ベースの参考値です');
     setVenueComparisonEmpty('シミュレーション結果なし');
@@ -1356,6 +1555,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('venue-comparison-tbody');
     if (!tbody) return;
 
+    setBusy('venue-comparison-panel', false);
     lastVenueComparisonData = data && typeof data === 'object' ? data : null;
     const meta = data && data.meta ? data.meta : {};
     const rows = Array.isArray(data && data.rows) ? data.rows : [];
@@ -1482,7 +1682,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!background) {
       UI.setText('venue-comparison-meta', '比較を取得中');
-      setVenueComparisonEmpty('比較を取得中');
+      setVenueComparisonLoading();
     }
 
     try {
@@ -1496,6 +1696,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (err.name === 'AbortError') return;
       if (!background) {
         lastVenueComparisonData = null;
+        setBusy('venue-comparison-panel', false);
         UI.setText('venue-comparison-meta', err.message);
         setVenueComparisonEmpty('比較の取得に失敗しました');
       }
@@ -1614,6 +1815,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.getElementById('sales-reference-tbody');
     if (!tbody) return;
 
+    setBusy('sales-reference-panel', false);
     lastSalesReferenceData = data && typeof data === 'object' ? data : null;
     const meta = data && data.meta ? data.meta : {};
     const rows = Array.isArray(data && data.rows) ? data.rows : [];
@@ -1703,7 +1905,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!background) {
       UI.setText('sales-reference-meta', '販売所参考比較を取得中');
-      setSalesReferenceEmpty('販売所参考比較を取得中');
+      setSalesReferenceLoading();
     }
 
     try {
@@ -1717,6 +1919,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (err.name === 'AbortError') return;
       if (!background) {
         lastSalesReferenceData = null;
+        setBusy('sales-reference-panel', false);
         UI.setText('sales-reference-meta', err.message);
         setSalesReferenceEmpty('販売所参考比較の取得に失敗しました');
       }
@@ -1800,6 +2003,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Update unit label on amount type change
   amountTypeSelect.addEventListener('change', () => {
+    pendingQuickPresetRun = false;
     updateAmountUnit();
     updateShareUrl();
     saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
@@ -1808,6 +2012,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Side button toggle
   document.querySelectorAll('[data-side]').forEach(btn => {
     btn.addEventListener('click', () => {
+      pendingQuickPresetRun = false;
       setSide(btn.dataset.side);
       updateShareUrl();
       saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
@@ -1821,6 +2026,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const amount = parseNumberInput(amountInput.value);
 
     if (isNaN(amount) || amount <= 0) {
+      setBusy('simulation-export-panel', false);
+      setBusy('fill-tbody', false);
       lastSimulationResult = null;
       document.getElementById('simulation-results').innerHTML =
         '<div class="text-yellow-400 text-center py-4">正の数値を入力してください</div>';
@@ -1829,12 +2036,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const feeRatePct = readOptionalFeeRatePct(feeRateInput);
     if (Number.isNaN(feeRatePct) || (feeRatePct != null && (feeRatePct < 0 || feeRatePct > 100))) {
+      setBusy('simulation-export-panel', false);
+      setBusy('fill-tbody', false);
       lastSimulationResult = null;
       document.getElementById('simulation-results').innerHTML =
         '<div class="text-yellow-400 text-center py-4">手数料率は0%以上100%以下で入力してください</div>';
       return;
     }
 
+    if (!ws.ws || ws.ws.readyState !== WebSocket.OPEN) {
+      setBusy('simulation-export-panel', false);
+      setBusy('fill-tbody', false);
+      lastSimulationResult = null;
+      document.getElementById('simulation-results').innerHTML =
+        '<div class="text-yellow-400 text-center py-4">板データへ接続中です。数秒待ってからもう一度実行してください</div>';
+      return;
+    }
+
+    pendingQuickPresetRun = false;
+    setSimulationLoading();
+    setFillLoading();
     ws.simulate(side, amount, amountType, feeRatePct == null ? null : feeRatePct / 100, autoUpdate);
     const exchange = getSelectedExchange();
     const market = getSelectedMarket(exchange);
@@ -1854,6 +2075,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   simulateBtn.addEventListener('click', runSimulation);
+
+  document.querySelectorAll('[data-quick-preset]').forEach((button) => {
+    button.addEventListener('click', () => {
+      applyQuickPreset(button.dataset.quickPreset);
+    });
+  });
 
   if (copyShareUrlBtn) {
     copyShareUrlBtn.addEventListener('click', copyShareUrl);
@@ -1930,8 +2157,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  amountInput.addEventListener('input', updateShareUrl);
+  amountInput.addEventListener('input', () => {
+    pendingQuickPresetRun = false;
+    updateShareUrl();
+  });
   feeRateInput.addEventListener('input', () => {
+    pendingQuickPresetRun = false;
     updateFeePresetHint();
     updateShareUrl();
     saveCurrentSettings();
@@ -1942,10 +2173,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   clearBtn.addEventListener('click', () => {
+    pendingQuickPresetRun = false;
     ws.clearSimulation();
     lastSimulationResult = null;
     setSimulationForChart(null);
     UI.clearSimulationView();
+    setBusy('simulation-export-panel', false);
+    setBusy('fill-tbody', false);
     clearVenueComparison();
     if (depthChart) {
       depthChart.data.datasets[2].data = [];
@@ -1970,6 +2204,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (exchangeSelect) {
     populateExchangeSelect(exchanges, 'okj');
     exchangeSelect.addEventListener('change', () => {
+      pendingQuickPresetRun = false;
       const exchange = getSelectedExchange();
       populateMarketSelect(exchange, exchange.defaultInstrumentId);
       const market = getSelectedMarket(exchange);
@@ -1984,6 +2219,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (marketSelect) {
     marketSelect.addEventListener('change', () => {
+      pendingQuickPresetRun = false;
       const exchange = getSelectedExchange();
       const market = getSelectedMarket(exchange);
       ws.setMarket(exchange.id, market.instrumentId);
@@ -1998,6 +2234,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // WebSocket handlers
   ws.on('connected', () => {
     UI.setConnectionStatus('connected');
+    if (pendingQuickPresetRun) {
+      pendingQuickPresetRun = false;
+      setQuickstartStatus('接続できたので比較を始めます。次は「取引所横断コスト比較」の1位を見てください。');
+      runSimulation();
+      return;
+    }
     maybeRunInitialSimulation();
   });
   ws.on('disconnected', () => UI.setConnectionStatus('disconnected'));
@@ -2009,6 +2251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.exchange || data.market) {
       setMarketDisplay(data.exchange || getSelectedExchange(), data.market || getSelectedMarket());
     }
+    setChartLoading(false);
     UI.updateMarketOverview(data);
     latestDepthData = data.depthChart;
     latestMidPrice = data.midPrice;
@@ -2045,6 +2288,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   ws.on('simulation', (data) => {
+    setBusy('simulation-export-panel', false);
+    setBusy('fill-tbody', false);
     lastSimulationResult = data && !data.error ? data : null;
     setSimulationForChart(data);
     UI.updateSimulationResults(data);
@@ -2073,6 +2318,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lastVenueComparisonData) renderVenueComparison(lastVenueComparisonData);
     if (lastSalesReferenceData) renderSalesReferenceComparison(lastSalesReferenceData);
   }, 1000);
+  setOverviewLoadingState();
+  setThresholdLoading();
+  setChartLoading(true);
   initDepthChart();
   ws.connect();
   loadExchangesFromApi();

@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-5">
+  <link rel="stylesheet" href="/css/style.css?v=ui-6">
   <script>
     tailwind.config = {
       theme: {
@@ -66,11 +66,28 @@
   </header>
 
   <main id="main" class="dashboard-shell index-shell flex flex-col lg:flex-row gap-4 p-4 max-w-[1920px] mx-auto">
-    <div class="w-full lg:w-[var(--col-left)] flex-shrink-0 space-y-4">
-      <section class="panel control-panel panel--dense">
+    <div class="index-column index-column--primary w-full lg:w-[var(--col-left)] flex-shrink-0 space-y-4">
+      <section class="panel control-panel panel--dense index-priority-1">
         <div class="panel-title-row">
           <h2 class="panel-title">シミュレーション設定</h2>
           <span class="panel-kicker">Market Order</span>
+        </div>
+
+        <div class="quickstart-panel mt-3 mb-4">
+          <div class="quickstart-panel__header">
+            <div>
+              <p class="quickstart-panel__eyebrow">最初の30秒</p>
+              <h3 class="quickstart-panel__title">迷ったらこの3つから試す</h3>
+              <p class="quickstart-panel__copy">押すと数量と売買をセットして、そのまま比較まで実行します。次は「取引所横断コスト比較」の1位を見ればOKです。</p>
+            </div>
+            <span class="quickstart-panel__badge">初回プリセット</span>
+          </div>
+          <div class="quickstart-panel__actions">
+            <button class="btn btn-primary px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="buy-jpy-100000">10万円を買ってみる</button>
+            <button class="btn btn-secondary px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="buy-base-0.01">0.01 BTC を買う</button>
+            <button class="btn btn-ghost px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="sell-base-0.01">0.01 BTC を売る</button>
+          </div>
+          <p id="quickstart-status" class="quickstart-panel__status" role="status" aria-live="polite">まずは 10万円を買ってみる から始めると、比較の違いが見やすいです。</p>
         </div>
 
         <input type="hidden" id="side-select" value="buy">
@@ -79,19 +96,12 @@
           <button data-side="sell" class="btn btn-toggle text-sm" type="button" aria-pressed="false"><span aria-hidden="true">▼</span><span>売り (SELL)</span></button>
         </div>
 
-        <div class="grid grid-cols-2 gap-2 mb-3">
-          <div>
-            <label class="metric-label block mb-1" for="amount-type">入力タイプ</label>
-            <select id="amount-type" class="field w-full rounded px-3 py-2 text-sm">
-              <option id="amount-type-base-option" value="base">数量 (BTC)</option>
-              <option value="jpy">金額 (JPY)</option>
-            </select>
-          </div>
-          <div>
-            <label class="metric-label block mb-1" for="fee-rate">手数料率 (%)</label>
-            <input id="fee-rate" type="number" min="0" step="0.001" placeholder="既定値を使用" class="field w-full rounded px-3 py-2 text-sm font-mono">
-            <p id="fee-preset-hint" class="field-help mt-1">未入力なら選択中の取引所の既定 taker 手数料を使います。</p>
-          </div>
+        <div class="mb-3">
+          <label class="metric-label block mb-1" for="amount-type">入力タイプ</label>
+          <select id="amount-type" class="field w-full rounded px-3 py-2 text-sm">
+            <option id="amount-type-base-option" value="base">数量 (BTC)</option>
+            <option value="jpy">金額 (JPY)</option>
+          </select>
         </div>
 
         <div class="mb-3">
@@ -99,18 +109,6 @@
           <div class="flex items-center gap-2">
             <input id="amount-input" type="text" inputmode="decimal" placeholder="1.0" class="field amount-field flex-1 rounded px-3 py-2 text-lg">
             <span id="amount-unit" class="text-sm text-gray-400 w-10">BTC</span>
-          </div>
-        </div>
-
-        <div class="favorite-settings mb-3">
-          <div class="favorite-settings__header">
-            <span>お気に入り・初期設定</span>
-            <span id="settings-save-status">このブラウザに保存</span>
-          </div>
-          <div id="favorite-market-list" class="favorite-market-list" aria-label="お気に入り銘柄"></div>
-          <div class="favorite-settings__actions">
-            <button id="save-favorite-btn" class="btn btn-secondary px-3 py-2 rounded-lg text-xs" type="button">今の銘柄を保存</button>
-            <button id="clear-settings-btn" class="btn btn-ghost px-3 py-2 rounded-lg text-xs" type="button">初期設定リセット</button>
           </div>
         </div>
 
@@ -122,26 +120,52 @@
           <p id="share-url-status" class="col-span-2 text-xs text-gray-500 min-h-[1.25rem]" role="status" aria-live="polite"></p>
         </div>
 
-        <div class="mt-3 flex items-center gap-2">
-          <input id="auto-update" type="checkbox" checked class="rounded bg-gray-800 border-gray-600">
-          <label for="auto-update" class="metric-label">板更新時に自動再計算</label>
-        </div>
+        <details class="inline-disclosure mt-4">
+          <summary>
+            <span>詳細設定・保存</span>
+            <span class="inline-disclosure__meta">手数料 / お気に入り / 自動更新</span>
+          </summary>
+          <div class="inline-disclosure__content">
+            <div>
+              <label class="metric-label block mb-1" for="fee-rate">手数料率 (%)</label>
+              <input id="fee-rate" type="number" min="0" step="0.001" placeholder="既定値を使用" class="field w-full rounded px-3 py-2 text-sm font-mono">
+              <p id="fee-preset-hint" class="field-help mt-1">未入力なら選択中の取引所の既定 taker 手数料を使います。</p>
+            </div>
 
-        <div class="mt-3 grid grid-cols-1 gap-2 text-xs">
-          <div class="callout callout--warn">
-            <span class="callout-icon" aria-hidden="true">!</span>
-            <div class="callout-title">注文ガード</div>
-            <div class="callout-body">5%以上で自動キャンセル</div>
+            <div class="favorite-settings">
+              <div class="favorite-settings__header">
+                <span>お気に入り・初期設定</span>
+                <span id="settings-save-status">このブラウザに保存</span>
+              </div>
+              <div id="favorite-market-list" class="favorite-market-list" aria-label="お気に入り銘柄"></div>
+              <div class="favorite-settings__actions">
+                <button id="save-favorite-btn" class="btn btn-secondary px-3 py-2 rounded-lg text-xs" type="button">今の銘柄を保存</button>
+                <button id="clear-settings-btn" class="btn btn-ghost px-3 py-2 rounded-lg text-xs" type="button">初期設定リセット</button>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input id="auto-update" type="checkbox" checked class="rounded bg-gray-800 border-gray-600">
+              <label for="auto-update" class="metric-label">板更新時に自動再計算</label>
+            </div>
+
+            <div class="grid grid-cols-1 gap-2 text-xs">
+              <div class="callout callout--warn">
+                <span class="callout-icon" aria-hidden="true">!</span>
+                <div class="callout-title">注文ガード</div>
+                <div class="callout-body">5%以上で自動キャンセル</div>
+              </div>
+              <div class="callout callout--danger">
+                <span class="callout-icon" aria-hidden="true">▲</span>
+                <div class="callout-title">サーキット</div>
+                <div class="callout-body">上下50%で停止想定</div>
+              </div>
+            </div>
           </div>
-          <div class="callout callout--danger">
-            <span class="callout-icon" aria-hidden="true">▲</span>
-            <div class="callout-title">サーキット</div>
-            <div class="callout-body">上下50%で停止想定</div>
-          </div>
-        </div>
+        </details>
       </section>
 
-      <section class="panel panel--dense">
+      <section class="panel panel--dense index-priority-6">
         <div class="panel-title-row">
           <h2 class="panel-title">マーケット概要</h2>
           <span class="panel-kicker">Live Depth</span>
@@ -162,7 +186,7 @@
         </div>
       </section>
 
-      <section class="panel panel--dense">
+      <section class="panel panel--dense index-priority-7">
         <div class="panel-title-row">
           <div class="panel-title-with-help">
             <h2 class="panel-title">インパクト別 必要注文</h2>
@@ -187,7 +211,7 @@
         </div>
       </section>
 
-      <section id="simulation-export-panel" class="panel result-panel panel--dense">
+      <section id="simulation-export-panel" class="panel result-panel panel--dense index-priority-3">
         <div class="panel-title-row">
           <h2 class="panel-title">シミュレーション結果</h2>
           <div class="panel-header-tools">
@@ -203,7 +227,7 @@
         </div>
       </section>
 
-      <section class="panel panel--dense">
+      <section class="panel panel--dense index-priority-9">
         <div class="panel-title-row">
           <div>
             <h2 class="panel-title">ローカルアラート</h2>
@@ -238,8 +262,8 @@
       </section>
     </div>
 
-    <div class="flex-1 space-y-4 min-w-0">
-      <section class="panel chart-panel panel--dense">
+    <div class="index-column index-column--secondary flex-1 space-y-4 min-w-0">
+      <section class="panel chart-panel panel--dense index-priority-2">
         <div class="panel-title-row">
           <div class="panel-title-with-help">
             <h2 class="panel-title">板深度チャート</h2>
@@ -247,12 +271,23 @@
           </div>
           <span class="panel-kicker">Order Book Curve</span>
         </div>
-        <div class="chart-container mt-3">
+        <div id="depth-chart-container" class="chart-container is-loading mt-3" aria-busy="true">
+          <div id="depth-chart-skeleton" class="chart-skeleton" aria-hidden="true">
+            <span class="skeleton-line chart-skeleton__line chart-skeleton__line--title"></span>
+            <div class="chart-skeleton__grid">
+              <span class="chart-skeleton__bar" style="height: 34%"></span>
+              <span class="chart-skeleton__bar" style="height: 58%"></span>
+              <span class="chart-skeleton__bar" style="height: 42%"></span>
+              <span class="chart-skeleton__bar" style="height: 78%"></span>
+              <span class="chart-skeleton__bar" style="height: 64%"></span>
+              <span class="chart-skeleton__bar" style="height: 46%"></span>
+            </div>
+          </div>
           <canvas id="depth-chart"></canvas>
         </div>
       </section>
 
-      <section id="venue-comparison-panel" class="panel panel--dense">
+      <section id="venue-comparison-panel" class="panel panel--dense index-priority-4">
         <div class="panel-title-row">
           <div>
             <h2 class="panel-title">取引所横断コスト比較</h2>
@@ -286,14 +321,15 @@
         </div>
       </section>
 
-      <section id="sales-reference-panel" class="panel panel--dense">
+      <section id="sales-reference-panel" class="panel panel--dense index-priority-5">
         <div class="panel-title-row">
           <div>
             <div class="panel-title-with-help">
               <h2 class="panel-title">販売所参考コスト比較</h2>
               <button class="term-help" type="button" data-term-key="indicative-cost" aria-label="販売所参考値 の説明を開く"><span aria-hidden="true">?</span></button>
+              <span class="reference-badge">参考値</span>
             </div>
-            <p id="sales-reference-meta" class="text-xs text-gray-500 mt-1">販売所は表示価格ベースの参考値です</p>
+            <p id="sales-reference-meta" class="reference-meta text-xs mt-1">販売所は表示価格ベースの参考値です</p>
           </div>
           <div class="panel-header-tools">
             <div class="export-actions" data-export-actions>
@@ -303,9 +339,17 @@
             <span class="panel-kicker">Indicative</span>
           </div>
         </div>
-        <p class="text-xs text-gray-600 mt-2">
-          販売所は板情報がないため、表示価格が全数量に適用されると仮定した参考値です。実際の発注時には価格再提示、数量制限、約定拒否が発生する場合があります。
-        </p>
+        <details class="inline-disclosure mt-2">
+          <summary>
+            <span>参考値の前提と注意点</span>
+            <span class="inline-disclosure__meta">実約定とは差が出る場合があります</span>
+          </summary>
+          <div class="inline-disclosure__content">
+            <p class="text-xs text-gray-600">
+              販売所は板情報がないため、表示価格が全数量に適用されると仮定した参考値です。実際の発注時には価格再提示、数量制限、約定拒否が発生する場合があります。
+            </p>
+          </div>
+        </details>
         <div class="overflow-auto scrollbar-thin mt-3">
           <table class="data-table data-table--cards text-xs">
             <thead class="sticky top-0 bg-gray-900">
@@ -326,7 +370,7 @@
         </div>
       </section>
 
-      <section class="panel panel--dense">
+      <section class="panel panel--dense index-priority-8">
         <div class="panel-title-row">
           <h2 class="panel-title">約定明細</h2>
           <span class="panel-kicker">Fills</span>
@@ -364,6 +408,6 @@
   <script src="js/ws-client.js?v=volume-1"></script>
   <script src="js/ui.js?v=volume-3"></script>
   <script src="js/chart.js?v=volume-1"></script>
-  <script src="js/app.js?v=volume-8"></script>
+  <script src="js/app.js?v=volume-9"></script>
 </body>
 </html>
