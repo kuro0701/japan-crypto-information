@@ -6,7 +6,7 @@ const OrderBook = require('../../lib/orderbook');
 const { createTempDir, removeTempDir } = require('../helpers/temp-dir');
 
 const SERVER_PATH = path.resolve(__dirname, '../../server.js');
-const TEST_ENV_KEYS = ['ANALYTICS_ADMIN_TOKEN', 'ANALYTICS_ADMIN_TOKEN_HASH', 'DATA_DIR', 'NODE_ENV'];
+const TEST_ENV_KEYS = ['ANALYTICS_ADMIN_TOKEN', 'ANALYTICS_ADMIN_TOKEN_HASH', 'DATA_DIR', 'DATABASE_URL', 'NODE_ENV'];
 
 function volumeRecord(exchangeId, exchangeLabel, instrumentId, quoteVolume24h, capturedAt) {
   return {
@@ -97,6 +97,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   process.env.ANALYTICS_ADMIN_TOKEN = 'test-token';
   delete process.env.ANALYTICS_ADMIN_TOKEN_HASH;
   process.env.DATA_DIR = tempDir;
+  delete process.env.DATABASE_URL;
   process.env.NODE_ENV = 'test';
 
   delete require.cache[SERVER_PATH];

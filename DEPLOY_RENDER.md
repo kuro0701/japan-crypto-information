@@ -1,6 +1,6 @@
 # Render 公開手順
 
-このアプリは Node.js サーバーと WebSocket を使うため、Render の Web Service で公開します。本番運用では履歴保存のため Persistent Disk を前提にします。
+このアプリは Node.js サーバーと WebSocket を使うため、Render の Web Service で公開します。履歴保存は `Persistent Disk` または `Neon Postgres` のどちらでも運用できます。
 
 ## 事前準備
 
@@ -14,6 +14,8 @@
 2. このリポジトリを選択する。
 3. `render.yaml` の内容を確認して `Apply` する。
 
+このリポジトリの `render.yaml` は、アクセス解析も永続化できるように Persistent Disk 付きの設定を維持しています。Neon にスナップショット履歴を逃がすだけなら、Disk はあとで任意に外せます。
+
 設定値は以下です。
 
 - Service type: Web Service
@@ -23,9 +25,10 @@
 - Start Command: `npm start`
 - Health Check Path: `/healthz`
 - Node.js: `22.22.0`
-- Persistent Disk: `10 GB`
-- Disk mount path: `/var/data`
-- `DATA_DIR`: `/var/data`
+- Persistent Disk: 任意
+- Disk mount path: `/var/data` (`DATA_DIR` を使う場合)
+- `DATA_DIR`: `/var/data` (アクセス解析や JSON fallback を永続化したい場合)
+- `DATABASE_URL`: Neon の接続文字列 (出来高シェア / 販売所スプレッドの履歴を Neon に保存する場合)
 
 公開URLは Render が `https://japan-crypto-information.onrender.com` のような `onrender.com` サブドメインを自動発行します。
 
@@ -39,22 +42,24 @@ Render の Environment には、訪問者の概算集計に使う `ANALYTICS_SAL
 
 ## 出来高・スプレッド履歴の保存
 
-出来高シェア、販売所スプレッド、アクセス解析の履歴は JSON ファイルに保存します。ローカル開発では `DATA_DIR` 未設定時にリポジトリ内の `data/` を使いますが、本番 (`NODE_ENV=production`) では `DATA_DIR` の設定が必須です。
+出来高シェアと販売所スプレッドの履歴は `DATABASE_URL` を設定すると Neon Postgres に保存され、未設定時は JSON ファイルに保存します。アクセス解析は引き続き JSON ファイルに保存します。ローカル開発では `DATA_DIR` 未設定時にリポジトリ内の `data/` を使います。
 
 出来高シェアは各取引所の24h出来高、販売所スプレッドは各販売所の現在価格差を、起動直後と定期更新のたびにスナップショットとして取得し、JSTの日付ごとに保存します。同じ日付の記録は最新のスナップショットで置き換えるため、Render が深夜にスリープしていても、次回起動時の取得分から7日/30日集計を積み上げられます。
 
-本番では Render の Persistent Disk を `/var/data` にマウントし、`DATA_DIR=/var/data` を設定します。これにより、デプロイや再起動のあとも JSON 履歴ファイルが保持され、7日/30日集計が消えません。
+Neon を使う場合は、Render の Environment に Neon の接続文字列を `DATABASE_URL` として設定してください。接続文字列は Neon Dashboard の `Connect` から取得でき、`postgresql://.../dbname?sslmode=require` の形式です。
+
+Persistent Disk を使う場合は Render のディスクを `/var/data` にマウントし、`DATA_DIR=/var/data` を設定します。これにより、アクセス解析や JSON fallback がデプロイや再起動のあとも保持されます。
 
 アプリは起動時に次の保存先健全性チェックを行います。
 
-1. `DATA_DIR` が本番で設定済みか
-2. `DATA_DIR` が絶対パスか
-3. `DATA_DIR` がアプリ配下のエフェメラル領域ではないか
-4. ディレクトリへの read/write/rename ができるか
+1. `DATABASE_URL` がある場合は、Neon に接続できるか
+2. `DATA_DIR` を使う場合は絶対パスか
+3. `DATA_DIR` を使う場合はアプリ配下のエフェメラル領域ではないか
+4. `DATA_DIR` を使う場合はディレクトリへの read/write/rename ができるか
 5. 既存 JSON ファイルが読み出し可能で、JSON として壊れていないか
 
 ## 無料枠の注意
 
-Free Web Service はアクセスがない状態が続くとスリープします。次回アクセス時は起動まで少し待つことがあります。さらに、実行中に書き込んだローカルファイルはスリープ、再起動、デプロイで失われるため、履歴集計の保存先には向きません。本番では Free を使わず、Starter 以上 + Persistent Disk を使ってください。
+Free Web Service はアクセスがない状態が続くとスリープします。次回アクセス時は起動まで少し待つことがあります。実行中に書き込んだローカルファイルはスリープ、再起動、デプロイで失われるため、JSON 保存を使う場合は Persistent Disk が必要です。Neon に履歴を保存する構成なら、スナップショット履歴は Render のローカルファイルに依存しません。
 
 板情報とシミュレーション結果は参考値です。一般公開する場合は、投資助言ではないことと、表示データの正確性・即時性を保証しないことを画面内にも明記してください。

@@ -20,6 +20,7 @@ const WSManager = require('./lib/ws-manager');
 const VolumeShareStore = require('./lib/volume-share-store');
 const SalesSpreadStore = require('./lib/sales-spread-store');
 const AnalyticsStore = require('./lib/analytics-store');
+const { NeonStateStore } = require('./lib/neon-state-store');
 const { ensureDataDirHealth, resolveDataDir } = require('./lib/data-storage');
 const { calculateImpact } = require('./lib/impact-calculator');
 const { renderHeadMeta } = require('./lib/head-meta');
@@ -52,6 +53,8 @@ const { createSiteContentService } = require('./lib/server/site-content-service'
 const app = express();
 app.set('trust proxy', 1);
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
+const USE_NEON_SNAPSHOT_STORAGE = Boolean(DATABASE_URL);
 const DATA_DIR = resolveDataDir({ projectRoot: __dirname });
 const DATA_DIR_CONFIGURED = Boolean(String(process.env.DATA_DIR || '').trim());
 const DATA_FILES = Object.freeze({
@@ -59,6 +62,9 @@ const DATA_FILES = Object.freeze({
   salesSpread: path.join(DATA_DIR, 'sales-spread-history.json'),
   analytics: path.join(DATA_DIR, 'analytics.json'),
 });
+const EXPECTED_DATA_FILES = USE_NEON_SNAPSHOT_STORAGE
+  ? [DATA_FILES.analytics]
+  : Object.values(DATA_FILES);
 
 if (String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production' && !DATA_DIR_CONFIGURED) {
   console.warn('[data-storage] DATA_DIR is not configured in production; falling back to the bundled data directory.');
@@ -67,7 +73,7 @@ if (String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production' && 
 ensureDataDirHealth({
   dataDirPath: DATA_DIR,
   projectRoot: __dirname,
-  expectedFiles: Object.values(DATA_FILES),
+  expectedFiles: EXPECTED_DATA_FILES,
 });
 
 function fileLastmod(filePath) {
@@ -106,16 +112,29 @@ const SITEMAP_PAGES = [
   },
 ];
 
+const snapshotStateStore = USE_NEON_SNAPSHOT_STORAGE
+  ? new NeonStateStore({ connectionString: DATABASE_URL })
+  : null;
 const volumeShareStore = new VolumeShareStore({
-  dataFilePath: DATA_FILES.volumeShare,
+  dataFilePath: USE_NEON_SNAPSHOT_STORAGE ? null : DATA_FILES.volumeShare,
+  seedFilePath: DATA_FILES.volumeShare,
+  persistence: snapshotStateStore,
+  persistenceKey: 'volume-share',
 });
 const salesSpreadStore = new SalesSpreadStore({
-  dataFilePath: DATA_FILES.salesSpread,
+  dataFilePath: USE_NEON_SNAPSHOT_STORAGE ? null : DATA_FILES.salesSpread,
+  seedFilePath: DATA_FILES.salesSpread,
+  persistence: snapshotStateStore,
+  persistenceKey: 'sales-spread',
 });
 const analyticsStore = new AnalyticsStore({
   dataFilePath: DATA_FILES.analytics,
   salt: process.env.ANALYTICS_SALT,
 });
+const storesReadyPromise = Promise.all([
+  volumeShareStore.initializePersistence(),
+  salesSpreadStore.initializePersistence(),
+]);
 const ANALYTICS_ADMIN_SESSION_COOKIE = 'okjAnalyticsAdminSession';
 const ANALYTICS_ADMIN_SESSION_COOKIE_PATH = '/api/admin';
 const ANALYTICS_ADMIN_SESSION_TTL_MS = 1000 * 60 * 60 * 12;
@@ -702,42 +721,50 @@ function startRuntime(options = {}) {
   const startJobs = options.startJobs !== false;
   const shouldLog = options.log !== false;
 
-  runtimeStartPromise = new Promise((resolve, reject) => {
-    const handleError = (err) => {
-      runtimeStartPromise = null;
-      server.off('error', handleError);
-      reject(err);
-    };
+  runtimeStartPromise = (async () => {
+    await storesReadyPromise;
 
-    server.once('error', handleError);
-    server.listen(port, host, () => {
-      server.off('error', handleError);
-      runtimeStarted = true;
+    return new Promise((resolve, reject) => {
+      const handleError = (err) => {
+        runtimeStartPromise = null;
+        server.off('error', handleError);
+        reject(err);
+      };
 
-      const address = server.address();
-      const actualHost = typeof address === 'object' && address ? address.address : host;
-      const actualPort = typeof address === 'object' && address ? address.port : port;
-      const displayHost = actualHost === '0.0.0.0' || actualHost === '::' ? 'localhost' : actualHost;
+      server.once('error', handleError);
+      server.listen(port, host, () => {
+        server.off('error', handleError);
+        runtimeStarted = true;
 
-      if (shouldLog) {
-        console.log(`成行取引リアルタイム板シミュレーター running on http://${displayHost}:${actualPort} (${EXCHANGES.map(exchange => exchange.label).join(', ')})`);
-      }
+        const address = server.address();
+        const actualHost = typeof address === 'object' && address ? address.address : host;
+        const actualPort = typeof address === 'object' && address ? address.port : port;
+        const displayHost = actualHost === '0.0.0.0' || actualHost === '::' ? 'localhost' : actualHost;
 
-      if (startClients && !exchangeClientsStarted) {
-        for (const client of clientsByExchange.values()) {
-          client.start();
+        if (shouldLog) {
+          const storageLabel = USE_NEON_SNAPSHOT_STORAGE ? 'snapshot history: Neon' : 'snapshot history: JSON';
+          console.log(`成行取引リアルタイム板シミュレーター running on http://${displayHost}:${actualPort} (${EXCHANGES.map(exchange => exchange.label).join(', ')}; ${storageLabel})`);
         }
-        exchangeClientsStarted = true;
-      }
 
-      if (startJobs && !backgroundJobsStarted) {
-        scheduleVolumeShareJobs();
-        scheduleSalesSpreadJobs();
-        backgroundJobsStarted = true;
-      }
+        if (startClients && !exchangeClientsStarted) {
+          for (const client of clientsByExchange.values()) {
+            client.start();
+          }
+          exchangeClientsStarted = true;
+        }
 
-      resolve(server);
+        if (startJobs && !backgroundJobsStarted) {
+          scheduleVolumeShareJobs();
+          scheduleSalesSpreadJobs();
+          backgroundJobsStarted = true;
+        }
+
+        resolve(server);
+      });
     });
+  })().catch((err) => {
+    runtimeStartPromise = null;
+    throw err;
   });
 
   return runtimeStartPromise;
@@ -759,7 +786,10 @@ function stopRuntime() {
   backgroundJobsStarted = false;
   stopExchangeClients();
 
-  return new Promise((resolve, reject) => {
+  return Promise.all([
+    volumeShareStore.flushPersistence(),
+    salesSpreadStore.flushPersistence(),
+  ]).then(() => new Promise((resolve, reject) => {
     wsManager.wss.close();
 
     if (!server.listening) {
@@ -774,7 +804,7 @@ function stopRuntime() {
       }
       resolve();
     });
-  });
+  }));
 }
 
 module.exports = {
