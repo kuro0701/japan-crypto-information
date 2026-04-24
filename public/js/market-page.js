@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function updatePageLabels() {
     const label = marketLabel();
     const navLink = $('market-page-nav-link');
-    document.title = `${label} 板・出来高シェア・販売所スプレッド比較｜Japan クリプト インフォメーション`;
+    document.title = `${label} 板・出来高シェア・販売所スプレッド比較｜国内暗号資産取引所ナビ`;
     setText('market-page-title', `${label} 銘柄ページ`);
     setText('market-page-subtitle', '板・出来高シェア・販売所スプレッド');
     setText('market-hero-title', `${label} 国内取引所データ`);

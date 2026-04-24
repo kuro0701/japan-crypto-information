@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
-  <title id="title">Japan クリプト インフォメーション</title>
+  <title id="title">国内暗号資産取引所ナビ</title>
   <desc id="desc">日本の暗号資産取引所データを可視化するサイトのOGP画像</desc>
   <defs>
     <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -22,8 +22,8 @@
   <circle cx="118" cy="92" r="42" fill="#f4c95d"/>
   <circle cx="118" cy="92" r="34" fill="#111111"/>
   <text x="118" y="113" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="700" fill="#f4c95d">₿</text>
-  <text x="178" y="83" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800" fill="#f2f7f4">Japan クリプト</text>
-  <text x="178" y="119" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800" fill="#c9d3cd">インフォメーション</text>
+  <text x="178" y="83" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800" fill="#f2f7f4">国内暗号資産</text>
+  <text x="178" y="119" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800" fill="#c9d3cd">取引所ナビ</text>
   <rect x="88" y="172" width="1024" height="1" fill="#c8dcd2" opacity="0.18"/>
   <text x="88" y="262" font-family="Inter, Arial, sans-serif" font-size="60" font-weight="800" fill="#f2f7f4">暗号資産取引所データを</text>
   <text x="88" y="337" font-family="Inter, Arial, sans-serif" font-size="60" font-weight="800" fill="#f2f7f4">見やすく、比べやすく。</text>
