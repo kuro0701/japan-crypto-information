@@ -81,6 +81,15 @@ async function fetchJson(baseUrl, route) {
   };
 }
 
+async function fetchText(baseUrl, route) {
+  const response = await fetch(new URL(route, baseUrl));
+  const body = await response.text();
+  return {
+    status: response.status,
+    body,
+  };
+}
+
 test('major public APIs return seeded test data over HTTP', async (t) => {
   const tempDir = createTempDir('okj-smoke-');
   const previousEnv = new Map(TEST_ENV_KEYS.map((key) => [key, process.env[key]]));
@@ -155,6 +164,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(health.status, 200);
   assert.equal(health.body.status, 'ok');
 
+  const homePage = await fetchText(baseUrl, '/');
+  assert.equal(homePage.status, 200);
+  assert.ok(homePage.body.includes('/markets?q={search_term_string}'));
+
   const exchanges = await fetchJson(baseUrl, '/api/exchanges');
   assert.equal(exchanges.status, 200);
   assert.equal(exchanges.body.defaultExchangeId, 'okj');
@@ -169,6 +182,21 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(marketPage.body.market.instrumentId, 'BTC-JPY');
   const okjOrderbook = marketPage.body.orderbooks.find((row) => row.exchangeId === 'okj');
   assert.equal(okjOrderbook.status, 'fresh');
+
+  const marketHtml = await fetchText(baseUrl, '/markets/BTC-JPY');
+  assert.equal(marketHtml.status, 200);
+  assert.ok(marketHtml.body.includes('次に見る'));
+  assert.ok(marketHtml.body.includes('/volume-share?instrumentId=BTC-JPY'));
+  assert.ok(marketHtml.body.includes('/sales-spread?instrumentId=BTC-JPY'));
+  assert.ok(marketHtml.body.includes('/articles/about'));
+  assert.ok(marketHtml.body.includes('データ定義と免責'));
+  assert.ok(marketHtml.body.includes('免責とデータ取得'));
+
+  const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
+  assert.equal(volumeSharePage.status, 200);
+
+  const salesSpreadPage = await fetchText(baseUrl, '/sales-spread?instrumentId=BTC-JPY');
+  assert.equal(salesSpreadPage.status, 200);
 
   const volumeShare = await fetchJson(baseUrl, '/api/volume-share?window=7d');
   assert.equal(volumeShare.status, 200);

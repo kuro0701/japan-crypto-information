@@ -34,6 +34,57 @@ document.addEventListener('DOMContentLoaded', () => {
   const fmtPct = AppFmt.pct;
   const fmtDateTime = AppFmt.dateTime;
   const shortDate = AppFmt.shortDate;
+  const WINDOW_VALUES = new Set(Object.keys(WINDOW_LABELS));
+
+  function normalizeWindow(value, fallback) {
+    return WINDOW_VALUES.has(value) ? value : fallback;
+  }
+
+  function normalizeInstrumentId(value) {
+    const normalized = String(value || '').trim().toUpperCase();
+    return /^[A-Z0-9]+-[A-Z0-9]+$/.test(normalized) ? normalized : ALL_VALUE;
+  }
+
+  function normalizeExchangeId(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized || ALL_VALUE;
+  }
+
+  function readInitialState() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      window: normalizeWindow(params.get('window'), '1d'),
+      instrumentId: normalizeInstrumentId(params.get('instrumentId') || params.get('instrument') || params.get('market')),
+      exchangeId: normalizeExchangeId(params.get('exchange') || params.get('exchangeId')),
+      historyWindow: normalizeWindow(params.get('historyWindow'), '30d'),
+    };
+  }
+
+  function writeUrlState() {
+    const params = new URLSearchParams();
+    if (selectedWindow !== '1d') params.set('window', selectedWindow);
+    if (selectedInstrument !== ALL_VALUE) params.set('instrumentId', selectedInstrument);
+    if (selectedExchange !== ALL_VALUE) params.set('exchange', selectedExchange);
+    if (selectedHistoryWindow !== '30d') params.set('historyWindow', selectedHistoryWindow);
+    const nextUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+    window.history.replaceState(null, '', nextUrl);
+  }
+
+  function syncTabButtons(selector, datasetKey, activeValue) {
+    document.querySelectorAll(selector).forEach((button) => {
+      const isActive = (button.dataset[datasetKey] || '') === activeValue;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  }
+
+  const initialState = readInitialState();
+  selectedWindow = initialState.window;
+  selectedInstrument = initialState.instrumentId;
+  selectedExchange = initialState.exchangeId;
+  selectedHistoryWindow = initialState.historyWindow;
 
   function shareBar(sharePct) {
     const width = Math.max(0, Math.min(100, sharePct || 0));
@@ -333,6 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderInstrumentRows(filtered.rows, emptyMessage);
     renderQualityRows(latestData.quality || []);
     renderVolumeHistory();
+    writeUrlState();
   }
 
   function render(data) {
@@ -633,12 +685,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('[data-window]').forEach(button => {
     button.addEventListener('click', () => {
-      selectedWindow = button.dataset.window || '1d';
-      document.querySelectorAll('[data-window]').forEach(item => {
-        const isActive = item === button;
-        item.classList.toggle('active', isActive);
-        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
-      });
+      selectedWindow = normalizeWindow(button.dataset.window, '1d');
+      syncTabButtons('[data-window]', 'window', selectedWindow);
       loadShare();
     });
   });
@@ -661,16 +709,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('[data-volume-history-window]').forEach(button => {
     button.addEventListener('click', () => {
-      selectedHistoryWindow = button.dataset.volumeHistoryWindow || '30d';
-      document.querySelectorAll('[data-volume-history-window]').forEach(item => {
-        const isActive = item === button;
-        item.classList.toggle('active', isActive);
-        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
-      });
+      selectedHistoryWindow = normalizeWindow(button.dataset.volumeHistoryWindow, '30d');
+      syncTabButtons('[data-volume-history-window]', 'volumeHistoryWindow', selectedHistoryWindow);
       loadVolumeHistory();
     });
   });
 
+  syncTabButtons('[data-window]', 'window', selectedWindow);
+  syncTabButtons('[data-volume-history-window]', 'volumeHistoryWindow', selectedHistoryWindow);
+  writeUrlState();
   initVolumeHistoryCharts();
   loadShare();
   loadVolumeHistory();

@@ -33,6 +33,69 @@ document.addEventListener('DOMContentLoaded', () => {
   const fmtDateTime = AppFmt.dateTime;
   const fmtJpyPrice = AppFmt.jpyPrice;
   const shortDate = AppFmt.shortDate;
+  const HISTORY_WINDOW_VALUES = new Set(Object.keys(WINDOW_LABELS));
+
+  function normalizeHistoryWindow(value) {
+    return HISTORY_WINDOW_VALUES.has(value) ? value : '30d';
+  }
+
+  function normalizeInstrumentId(value) {
+    const normalized = String(value || '').trim().toUpperCase();
+    return /^[A-Z0-9]+-[A-Z0-9]+$/.test(normalized) ? normalized : '';
+  }
+
+  function normalizeExchangeId(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized || ALL_VALUE;
+  }
+
+  function instrumentIdFromText(value) {
+    return normalizeInstrumentId(String(value || '').replace(/\//g, '-'));
+  }
+
+  function readInitialState() {
+    const params = new URLSearchParams(window.location.search);
+    const instrumentId = normalizeInstrumentId(params.get('instrumentId') || params.get('instrument') || params.get('market'));
+    const historyInstrumentId = normalizeInstrumentId(params.get('historyInstrument'));
+    const query = String(params.get('q') || '').trim();
+
+    return {
+      filterText: query || instrumentId,
+      exchangeId: normalizeExchangeId(params.get('exchange') || params.get('exchangeId')),
+      historyWindow: normalizeHistoryWindow(params.get('historyWindow')),
+      historyInstrumentId: historyInstrumentId || instrumentId || 'BTC-JPY',
+    };
+  }
+
+  function writeUrlState() {
+    const params = new URLSearchParams();
+    const filterInstrumentId = instrumentIdFromText(filterText);
+    if (filterInstrumentId) params.set('instrumentId', filterInstrumentId);
+    else if (filterText) params.set('q', filterText);
+    if (selectedExchange !== ALL_VALUE) params.set('exchange', selectedExchange);
+    if (selectedHistoryInstrument && selectedHistoryInstrument !== 'BTC-JPY') {
+      params.set('historyInstrument', selectedHistoryInstrument);
+    }
+    if (selectedHistoryWindow !== '30d') params.set('historyWindow', selectedHistoryWindow);
+    const nextUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+    window.history.replaceState(null, '', nextUrl);
+  }
+
+  function syncHistoryWindowButtons() {
+    document.querySelectorAll('[data-spread-history-window]').forEach((button) => {
+      const isActive = (button.dataset.spreadHistoryWindow || '') === selectedHistoryWindow;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  }
+
+  const initialState = readInitialState();
+  filterText = initialState.filterText;
+  selectedExchange = initialState.exchangeId;
+  selectedHistoryWindow = initialState.historyWindow;
+  selectedHistoryInstrument = initialState.historyInstrumentId;
 
   function sourceLabel(windowMeta) {
     if (!windowMeta) return '記録待ち';
@@ -178,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const needle = filterText.toLowerCase();
     return [
       row.instrumentLabel,
+      row.instrumentId,
       row.baseCurrency,
       row.currencyFullName,
       row.exchangeLabel,
@@ -333,6 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMeta(rows);
     renderRows(rows);
     renderQualityRows(latestMeta.quality || []);
+    writeUrlState();
   }
 
   function render(data) {
@@ -467,6 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'spread-history-meta',
       `${instrumentLabel} | ${range} | ${series.length > 0 ? `${series.length}系列` : '該当なし'} | ${historySourceLabel(spreadHistoryMeta)}`
     );
+    writeUrlState();
   }
 
   async function loadSpread() {
@@ -530,6 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const filterInput = $('spread-filter');
   if (filterInput) {
+    filterInput.value = filterText;
     filterInput.addEventListener('input', () => {
       filterText = filterInput.value.trim();
       renderView();
@@ -547,12 +614,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('[data-spread-history-window]').forEach(button => {
     button.addEventListener('click', () => {
-      selectedHistoryWindow = button.dataset.spreadHistoryWindow || '30d';
-      document.querySelectorAll('[data-spread-history-window]').forEach(item => {
-        const isActive = item === button;
-        item.classList.toggle('active', isActive);
-        item.setAttribute('aria-selected', isActive ? 'true' : 'false');
-      });
+      selectedHistoryWindow = normalizeHistoryWindow(button.dataset.spreadHistoryWindow);
+      syncHistoryWindowButtons();
       loadSpreadHistory();
     });
   });
@@ -565,6 +628,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  syncHistoryWindowButtons();
+  writeUrlState();
   initSpreadHistoryChart();
   loadSpread();
   loadSpreadHistory();

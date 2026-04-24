@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-5">
+  <link rel="stylesheet" href="/css/style.css?v=ui-6">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -43,6 +43,19 @@
         <div class="metric-row metric-row--hero"><span class="metric-label">対応取引所</span><span id="market-exchange-count" class="metric-value metric-value--hero">-</span></div>
         <div class="metric-row metric-row--hero bid"><span class="metric-label">最良Bid</span><span id="market-best-bid" class="metric-value metric-value--hero text-green-300">-</span></div>
         <div class="metric-row metric-row--hero ask"><span class="metric-label">最良Ask</span><span id="market-best-ask" class="metric-value metric-value--hero text-red-300">-</span></div>
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">次に見る</h2>
+          <p class="text-xs text-gray-500 mt-1">検索流入後に、この銘柄を軸に比較ページや補足記事へ続けて移動できます</p>
+        </div>
+        <span class="panel-kicker">Next</span>
+      </div>
+      <div class="market-context-grid market-context-grid--links">
+        <!-- MARKET_JOURNEY_LINKS -->
       </div>
     </section>
 
@@ -147,6 +160,22 @@
         </div>
       </section>
     </div>
+
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">データ定義と免責</h2>
+          <p class="text-xs text-gray-500 mt-1">数値の意味と前提を先に確認してから比較できます</p>
+        </div>
+        <span class="panel-kicker">Context</span>
+      </div>
+      <div class="market-context-grid">
+        <div class="market-definition-list">
+          <!-- MARKET_DATA_DEFINITIONS -->
+        </div>
+        <!-- MARKET_DISCLAIMER -->
+      </div>
+    </section>
   </main>
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">Japan クリプト インフォメーション | <span id="market-footer-label">銘柄ページ</span></footer>
@@ -161,6 +190,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-6"></script>
+  <script src="/js/market-page.js?v=market-7"></script>
 </body>
 </html>
