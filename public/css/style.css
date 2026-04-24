@@ -1618,6 +1618,12 @@ th {
   z-index: 1;
 }
 
+.home-hero__content {
+  display: grid;
+  align-content: start;
+  gap: var(--sp-4);
+}
+
 .home-eyebrow {
   margin: 0 0 var(--sp-3);
   color: var(--accent);
@@ -1627,23 +1633,79 @@ th {
   text-transform: uppercase;
 }
 
+.home-hero__header {
+  display: grid;
+  gap: var(--sp-3);
+}
+
 .home-hero__headline {
   margin: 0;
-  max-width: 14ch;
+  display: grid;
+  gap: clamp(2px, 0.4vw, 7px);
+  max-width: none;
   color: var(--text-1);
-  font-size: clamp(32px, 5vw, 58px);
+  font-size: clamp(30px, 4.35vw, 64px);
   font-weight: 800;
-  line-height: 1.04;
+  line-height: 0.94;
   letter-spacing: -0.03em !important;
+}
+
+.home-hero__headline-line {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
   text-wrap: balance;
 }
 
+.home-hero__headline-line + .home-hero__headline-line {
+  margin-top: 0;
+}
+
+.home-hero__headline-line--accent {
+  color: #fff4c8;
+  text-shadow: 0 0 24px rgba(244, 201, 93, 0.14);
+}
+
+.home-hero__summary {
+  max-width: 24ch;
+  margin: 0;
+  color: var(--text-2);
+  font-size: clamp(17px, 1.8vw, 23px);
+  font-weight: 600;
+  line-height: 1.45;
+  text-wrap: balance;
+}
+
+.home-hero__signal-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.home-hero__signal-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 11px;
+  border: 1px solid rgba(244, 201, 93, 0.18);
+  border-radius: 999px;
+  background: rgba(244, 201, 93, 0.08);
+  color: #f0df9b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .home-hero__lede {
-  max-width: 720px;
-  margin: var(--sp-4) 0 0;
+  max-width: 760px;
+  margin: 0;
   color: var(--text-2);
   font-size: 15px;
   line-height: 1.85;
+}
+
+.home-hero__lede strong {
+  color: var(--text-1);
+  font-weight: 700;
 }
 
 .home-hero__actions {
@@ -2021,6 +2083,13 @@ th {
   .home-hero__headline {
     max-width: none;
     font-size: 30px;
+    gap: 2px;
+    line-height: 0.98;
+  }
+
+  .home-hero__summary {
+    max-width: none;
+    font-size: 17px;
   }
 
   .home-hero__actions {
