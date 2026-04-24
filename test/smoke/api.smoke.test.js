@@ -200,6 +200,13 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketHtml.body.includes('データ定義と免責'));
   assert.ok(marketHtml.body.includes('免責とデータ取得'));
 
+  const exchangeHtml = await fetchText(baseUrl, '/exchanges/okj');
+  assert.equal(exchangeHtml.status, 200);
+  assert.ok(exchangeHtml.body.includes('取引所詳細'));
+  assert.ok(exchangeHtml.body.includes('OKCoin Japan'));
+  assert.ok(exchangeHtml.body.includes('/simulator?exchange=okj&amp;market=BTC-JPY'));
+  assert.ok(exchangeHtml.body.includes('/#campaign-policy'));
+
   const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
   assert.equal(volumeSharePage.status, 200);
 

@@ -35,6 +35,11 @@
     return `/markets/${encodeURIComponent(normalized)}`;
   }
 
+  function exchangePageUrl(exchangeId) {
+    const normalized = String(exchangeId || '').trim().toLowerCase();
+    return `/exchanges/${encodeURIComponent(normalized || 'okj')}`;
+  }
+
   function cssVar(name, fallback) {
     const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return value || fallback;
@@ -44,6 +49,7 @@
     byId,
     cssVar,
     escapeHtml,
+    exchangePageUrl,
     marketPageUrl,
     parseNumber,
     parseNumberInput: parseNumber,

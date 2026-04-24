@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- HEAD_META_INJECT -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=ui-8">
+</head>
+<body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
+  <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
+  <header class="topbar px-6 py-3">
+    <div class="brand-cluster">
+      <div class="brand-mark" aria-hidden="true">₿</div>
+      <div class="brand-copy min-w-0">
+        <h1 class="page-title">取引所詳細</h1>
+        <div class="brand-subtitle">手数料・取扱銘柄・キャンペーン確認</div>
+      </div>
+    </div>
+    <nav class="nav-menu" aria-label="ページ間ナビゲーション">
+      <a class="nav-link" href="/">ホーム</a>
+      <a class="nav-link" href="/simulator">板シミュレーター</a>
+      <a class="nav-link" href="/markets">銘柄ページ</a>
+      <a class="nav-link" href="/volume-share">出来高シェア</a>
+      <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
+    </nav>
+    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true">
+      <span class="badge badge--live">Guide</span>
+      <span class="status-text">比較の次に確認</span>
+      <span class="text-xs text-gray-600 ml-2">取引所: <span class="text-gray-400">__EXCHANGE_LABEL__</span></span>
+    </div>
+  </header>
+
+  <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1600px] mx-auto">
+    <section class="panel panel--dense simulator-intro-card">
+      <div class="simulator-intro-card__header">
+        <div>
+          <p class="simulator-intro-card__eyebrow">Exchange Detail</p>
+          <h2 class="simulator-intro-card__title">__EXCHANGE_NAME__ の確認ポイント</h2>
+        </div>
+        <span class="simulator-intro-card__badge">詳細導線</span>
+      </div>
+      <p class="simulator-intro-card__copy">__EXCHANGE_LEDE__</p>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="metric-row metric-row--hero"><span class="metric-label">既定 taker 手数料</span><span class="metric-value metric-value--hero">__EXCHANGE_FEE_LABEL__</span></div>
+        <div class="metric-row metric-row--hero bid"><span class="metric-label">取扱銘柄数</span><span class="metric-value metric-value--hero text-green-300">__EXCHANGE_MARKET_COUNT__</span></div>
+        <div class="metric-row metric-row--hero"><span class="metric-label">基準銘柄</span><span class="metric-value metric-value--hero">__EXCHANGE_DEFAULT_MARKET__</span></div>
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">次に見る</h2>
+          <p class="text-xs text-gray-500 mt-1">この取引所を基準にシミュレーターへ戻るか、銘柄ページやキャンペーン掲載方針へ進めます</p>
+        </div>
+        <span class="panel-kicker">Next</span>
+      </div>
+      <div class="market-context-grid market-context-grid--links">
+        <!-- EXCHANGE_JOURNEY_LINKS -->
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">このページで見ること</h2>
+          <p class="text-xs text-gray-500 mt-1">シミュレーターで差が出た理由を、手数料・銘柄カバレッジ・キャンペーン確認導線に分けて整理しています</p>
+        </div>
+        <span class="panel-kicker">Context</span>
+      </div>
+      <div class="market-context-grid">
+        <div class="market-definition-list">
+          <!-- EXCHANGE_SUMMARY_CARDS -->
+        </div>
+        <!-- EXCHANGE_DISCLAIMER -->
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">取扱銘柄からそのまま比較する</h2>
+          <p class="text-xs text-gray-500 mt-1">各銘柄を押すと、この取引所を選んだ状態の板シミュレーターへ移動します</p>
+        </div>
+        <span class="panel-kicker">Markets</span>
+      </div>
+      <div class="exchange-market-grid">
+        <!-- EXCHANGE_MARKET_LINKS -->
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | __EXCHANGE_NAME__</footer>
+</body>
+</html>

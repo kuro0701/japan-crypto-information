@@ -37,6 +37,61 @@ const UI = {
     return `${Fmt.num(value, 2)} ${this.market.quoteCurrency}`;
   },
 
+  impactRiskMeta(impactPct) {
+    const impact = Math.abs(Number(impactPct));
+    if (!Number.isFinite(impact)) {
+      return {
+        label: '判定待ち',
+        tone: 'caution',
+        thresholdLabel: 'Impact 判定待ち',
+        guidance: '板データが揃うと危険度を表示します。',
+      };
+    }
+
+    if (impact < 0.1) {
+      return {
+        label: '通常',
+        tone: 'normal',
+        thresholdLabel: 'Impact 0.1%未満',
+        guidance: '通常の成行注文として扱える水準です。',
+      };
+    }
+
+    if (impact < 0.5) {
+      return {
+        label: 'やや注意',
+        tone: 'caution',
+        thresholdLabel: 'Impact 0.1〜0.5%',
+        guidance: '板は消費しています。注文サイズを少し意識したい水準です。',
+      };
+    }
+
+    if (impact < 1.0) {
+      return {
+        label: '分割注文を検討',
+        tone: 'warning',
+        thresholdLabel: 'Impact 0.5〜1.0%',
+        guidance: '複数回に分けるか、板の厚い取引所へ回す検討余地があります。',
+      };
+    }
+
+    if (impact < 5.0) {
+      return {
+        label: '成行注文は非推奨',
+        tone: 'danger',
+        thresholdLabel: 'Impact 1.0%以上',
+        guidance: 'このサイズの成行はコスト悪化が大きく、指値や分割が無難です。',
+      };
+    }
+
+    return {
+      label: 'このサイズの成行注文は危険',
+      tone: 'critical',
+      thresholdLabel: 'Impact 5.0%以上',
+      guidance: '板を大きく崩す可能性があり、成行のまま出すのは避けたい水準です。',
+    };
+  },
+
   termLabel(label, key) {
     if (window.TermHelp && typeof window.TermHelp.inlineLabel === 'function') {
       return window.TermHelp.inlineLabel(label, key);
@@ -191,6 +246,7 @@ const UI = {
 
     const sideLabel = r.side === 'buy' ? '買い (Ask消費)' : '売り (Bid消費)';
     const sideClass = r.side === 'buy' ? 'text-red-400' : 'text-green-400';
+    const risk = this.impactRiskMeta(r.marketImpactPct);
 
     const slipClass = (v) => v > 0.5 ? 'text-red-400 font-bold' : v > 0.1 ? 'text-yellow-400' : 'text-gray-200';
     const statusClass = {
@@ -229,6 +285,18 @@ const UI = {
             <span class="font-bold text-right">${r.executionStatusLabel}</span>
           </div>
           <div class="mt-1 text-xs opacity-90">${r.recommendedAction}</div>
+        </div>
+
+        <div class="decision-summary-card">
+          <div class="decision-summary-card__header">
+            <div>
+              <p class="decision-summary-card__eyebrow">Risk</p>
+              <h3 class="decision-summary-card__title">Impact ベースの危険度</h3>
+            </div>
+            <span class="risk-badge risk-badge--${risk.tone}">${risk.label}</span>
+          </div>
+          <p class="decision-summary-card__lead">${Fmt.pct(r.marketImpactPct)} / ${risk.thresholdLabel}</p>
+          <p class="decision-summary-card__body">${risk.guidance}</p>
         </div>
 
         <div class="flex justify-between items-center border-b border-gray-700 pb-2">

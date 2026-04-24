@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-7">
+  <link rel="stylesheet" href="/css/style.css?v=ui-8">
   <script>
     tailwind.config = {
       theme: {
@@ -67,7 +67,36 @@
     </div>
   </header>
 
-  <main id="main" class="dashboard-shell index-shell flex flex-col lg:flex-row gap-4 p-4 max-w-[1920px] mx-auto">
+  <main id="main" class="dashboard-shell index-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
+    <section class="panel panel--dense simulator-intro-card index-priority-0 w-full">
+      <div class="simulator-intro-card__header">
+        <div>
+          <p class="simulator-intro-card__eyebrow">Decision Support</p>
+          <h2 class="simulator-intro-card__title">このページで「どう判断すべきか」まで見られます</h2>
+        </div>
+        <span class="simulator-intro-card__badge">最優先</span>
+      </div>
+      <p class="simulator-intro-card__copy">
+        このページでは、国内取引所の板情報をもとに、成行注文を出した場合の想定約定価格・スリッページ・実効コストをシミュレーションできます。
+        実行後は、危険度、取引所ごとの差、次に見るべき詳細ページまでまとめて確認できます。
+      </p>
+      <div class="simulator-intro-card__points" aria-label="このページで分かること">
+        <div class="simulator-intro-point">
+          <strong>約定コスト</strong>
+          <span>想定VWAP、手数料込み実効コスト、最悪約定価格</span>
+        </div>
+        <div class="simulator-intro-point">
+          <strong>危険度</strong>
+          <span>Impact を5段階で判定し、分割注文の要否を判断</span>
+        </div>
+        <div class="simulator-intro-point">
+          <strong>比較先</strong>
+          <span>どの取引所が有利か、OKJとの差がどの程度かを自然文で要約</span>
+        </div>
+      </div>
+    </section>
+
+    <div class="simulator-layout flex flex-col lg:flex-row gap-4">
     <div class="index-column index-column--primary w-full lg:w-[var(--col-left)] flex-shrink-0 space-y-4">
       <section class="panel control-panel panel--dense index-priority-1">
         <div class="panel-title-row">
@@ -78,18 +107,18 @@
         <div class="quickstart-panel mt-3 mb-4">
           <div class="quickstart-panel__header">
             <div>
-              <p class="quickstart-panel__eyebrow">最初の30秒</p>
-              <h3 class="quickstart-panel__title">迷ったらこの3つから試す</h3>
-              <p class="quickstart-panel__copy">押すと数量と売買をセットして、そのまま比較まで実行します。次は「取引所横断コスト比較」の1位を見ればOKです。</p>
+              <p class="quickstart-panel__eyebrow">初心者向けプリセット</p>
+              <h3 class="quickstart-panel__title">まずはこの3パターンで差を見ます</h3>
+              <p class="quickstart-panel__copy">押すと銘柄・売買・数量をまとめてセットし、そのまま比較まで実行します。初回は BTC 10万円買い、その次に BTC 0.01 売り、ETH 100万円買いの順だと違いが読み取りやすいです。</p>
             </div>
-            <span class="quickstart-panel__badge">初回プリセット</span>
+            <span class="quickstart-panel__badge">目立つ入口</span>
           </div>
           <div class="quickstart-panel__actions">
-            <button class="btn btn-primary px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="buy-jpy-100000">10万円を買ってみる</button>
-            <button class="btn btn-secondary px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="buy-base-0.01">0.01 BTC を買う</button>
-            <button class="btn btn-ghost px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="sell-base-0.01">0.01 BTC を売る</button>
+            <button class="btn btn-primary px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="buy-btc-jpy-100000">10万円分の BTC を買う</button>
+            <button class="btn btn-secondary px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="sell-btc-base-0.01">0.01 BTC を売る</button>
+            <button class="btn btn-secondary px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="buy-eth-jpy-1000000">100万円分の ETH を買う</button>
           </div>
-          <p id="quickstart-status" class="quickstart-panel__status" role="status" aria-live="polite">まずは 10万円を買ってみる から始めると、比較の違いが見やすいです。</p>
+          <p id="quickstart-status" class="quickstart-panel__status" role="status" aria-live="polite">まずは 10万円分の BTC を買う から始めると、比較の違いが見やすいです。</p>
         </div>
 
         <input type="hidden" id="side-select" value="buy">
@@ -223,6 +252,17 @@
             </div>
             <span class="panel-kicker">Execution</span>
           </div>
+        </div>
+        <div id="simulation-decision-summary" class="decision-summary-card mt-3">
+          <div class="decision-summary-card__header">
+            <div>
+              <p class="decision-summary-card__eyebrow">Judgement</p>
+              <h3 class="decision-summary-card__title">この条件での判断</h3>
+            </div>
+            <span class="decision-summary-badge decision-summary-badge--idle">未実行</span>
+          </div>
+          <p class="decision-summary-card__lead">シミュレーションを実行すると、最適な取引所、OKJとの差、Impactベースの危険度をここで自然文で要約します。</p>
+          <p class="decision-summary-card__body">まずは初心者向けプリセットを押すか、数量を入れて実行してください。</p>
         </div>
         <div id="simulation-results" class="text-sm mt-2">
           <div class="text-gray-500 text-center py-8">シミュレーション未実行</div>
@@ -399,6 +439,7 @@
         </div>
       </section>
     </div>
+    </div>
   </main>
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">
@@ -407,14 +448,14 @@
 
   <script src="/js/beginner-mode.js?v=2"></script>
   <script src="js/formatter.js?v=volume-1"></script>
-  <script src="js/app-utils.js?v=app-utils-1"></script>
+  <script src="js/app-utils.js?v=app-utils-2"></script>
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/market-data-utils.js?v=market-data-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
   <script src="js/ws-client.js?v=volume-1"></script>
-  <script src="js/ui.js?v=volume-3"></script>
+  <script src="js/ui.js?v=volume-4"></script>
   <script src="js/chart.js?v=volume-1"></script>
-  <script src="js/app.js?v=volume-11"></script>
+  <script src="js/app.js?v=volume-12"></script>
 </body>
 </html>

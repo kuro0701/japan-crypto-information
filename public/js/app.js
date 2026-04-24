@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let comparisonAbortController = null;
   let salesReferenceAbortController = null;
   let lastSimulationResult = null;
+  let lastSimulationError = null;
   let lastVenueComparisonData = null;
   let lastSalesReferenceData = null;
   const COMPARISON_REFRESH_MS = 10000;
@@ -70,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let initialUrlStateConsumed = false;
   let initialSimulationRun = false;
   let pendingQuickPresetRun = false;
+  let pendingQuickPresetId = null;
   let shareStatusTimer = null;
   let localAlerts = [];
   let alertRefreshRunning = false;
@@ -86,6 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const marketDataUpdatedAtLabel = MarketData.updatedAtLabel;
   const marketDataCounts = MarketData.summarizeStatuses;
   const freshnessBadgeHtml = MarketData.freshnessBadge;
+  const exchangePageUrl = AppUtil.exchangePageUrl;
   const readOptionalFeeRatePct = (input) => {
     const raw = input && input.value != null ? String(input.value).trim() : '';
     if (!raw) return null;
@@ -103,23 +106,26 @@ document.addEventListener('DOMContentLoaded', () => {
     return Number.isFinite(parsed) ? String(Number(parsed.toPrecision(12))) : null;
   };
   const QUICK_PRESETS = {
-    'buy-jpy-100000': {
+    'buy-btc-jpy-100000': {
       side: 'buy',
       amountType: 'jpy',
       amount: '100000',
-      label: '10万円の買い',
+      instrumentId: 'BTC-JPY',
+      label: '10万円分の BTC を買う',
     },
-    'buy-base-0.01': {
-      side: 'buy',
-      amountType: 'base',
-      amount: '0.01',
-      label: '0.01 BTC の買い',
-    },
-    'sell-base-0.01': {
+    'sell-btc-base-0.01': {
       side: 'sell',
       amountType: 'base',
       amount: '0.01',
-      label: '0.01 BTC の売り',
+      instrumentId: 'BTC-JPY',
+      label: '0.01 BTC を売る',
+    },
+    'buy-eth-jpy-1000000': {
+      side: 'buy',
+      amountType: 'jpy',
+      amount: '1000000',
+      instrumentId: 'ETH-JPY',
+      label: '100万円分の ETH を買う',
     },
   };
   const skeletonLine = (width = '100%', className = '') => `<span class="skeleton-line${className ? ` ${className}` : ''}" style="width:${width}"></span>`;
@@ -199,6 +205,287 @@ document.addEventListener('DOMContentLoaded', () => {
   function setQuickstartStatus(message) {
     if (!quickstartStatus) return;
     quickstartStatus.textContent = message || '';
+  }
+
+  function joinJapaneseList(values) {
+    const items = Array.from(new Set((values || []).filter(Boolean)));
+    if (items.length === 0) return '';
+    if (items.length === 1) return items[0];
+    if (items.length === 2) return `${items[0]}と${items[1]}`;
+    return `${items.slice(0, -1).join('、')}と${items[items.length - 1]}`;
+  }
+
+  function renderDecisionSummaryCard({
+    status = 'idle',
+    badgeLabel = '未実行',
+    badgeTone = 'idle',
+    lead = '',
+    body = '',
+    chips = [],
+    actionHref = '',
+    actionLabel = '',
+  } = {}) {
+    const panel = document.getElementById('simulation-decision-summary');
+    if (!panel) return;
+
+    const chipHtml = chips.map((chip) => {
+      if (!chip || !chip.label) return '';
+      if (chip.type === 'risk') {
+        return `<span class="risk-badge risk-badge--${escapeHtml(chip.tone || 'caution')}">${escapeHtml(chip.label)}</span>`;
+      }
+      return `<span class="decision-summary-chip">${escapeHtml(chip.label)}</span>`;
+    }).filter(Boolean).join('');
+
+    const actionsHtml = actionHref
+      ? `<div class="decision-summary-card__actions"><a class="btn btn-secondary px-3 py-2.5 rounded-lg text-sm" href="${escapeHtml(actionHref)}">${escapeHtml(actionLabel || '詳細を見る')}</a></div>`
+      : '';
+
+    panel.className = `decision-summary-card mt-3${status === 'loading' ? ' decision-summary-card--loading' : ''}${status === 'error' ? ' decision-summary-card--error' : ''}`;
+    panel.innerHTML = `
+      <div class="decision-summary-card__header">
+        <div>
+          <p class="decision-summary-card__eyebrow">Judgement</p>
+          <h3 class="decision-summary-card__title">この条件での判断</h3>
+        </div>
+        <span class="decision-summary-badge decision-summary-badge--${escapeHtml(badgeTone)}">${escapeHtml(badgeLabel)}</span>
+      </div>
+      <p class="decision-summary-card__lead">${escapeHtml(lead)}</p>
+      <p class="decision-summary-card__body">${escapeHtml(body)}</p>
+      ${chipHtml ? `<div class="decision-summary-card__chips">${chipHtml}</div>` : ''}
+      ${actionsHtml}
+    `;
+  }
+
+  function resetDecisionSummary() {
+    renderDecisionSummaryCard({
+      status: 'idle',
+      badgeLabel: '未実行',
+      badgeTone: 'idle',
+      lead: 'シミュレーションを実行すると、最適な取引所と危険度をここで要約します。',
+      body: 'まずは初心者向けプリセットを押すか、数量を入れて実行してください。',
+    });
+  }
+
+  function setDecisionSummaryLoading() {
+    const exchange = getSelectedExchange();
+    const market = getSelectedMarket(exchange);
+    renderDecisionSummaryCard({
+      status: 'loading',
+      badgeLabel: '比較中',
+      badgeTone: 'loading',
+      lead: `${market.label || market.instrumentId || '-'} の比較を更新しています。`,
+      body: '現在の板を使って、最適な取引所と危険度を組み立てています。',
+      chips: [
+        { label: `${exchange.label || exchange.id} / ${market.label || market.instrumentId || '-'}` },
+      ],
+    });
+  }
+
+  function setDecisionSummaryError(message) {
+    renderDecisionSummaryCard({
+      status: 'error',
+      badgeLabel: '要確認',
+      badgeTone: 'error',
+      lead: '判断サマリーを更新できませんでした。',
+      body: message || '入力条件や接続状態を確認してください。',
+    });
+  }
+
+  function freshVenueComparisonRows(data = lastVenueComparisonData) {
+    const rows = Array.isArray(data && data.rows) ? data.rows : [];
+    return rows.filter((row) => {
+      const result = row && row.result;
+      return liveMarketDataStatus(row) === 'fresh' && result && !result.error;
+    });
+  }
+
+  function executableVenueComparisonRows(data = lastVenueComparisonData) {
+    return freshVenueComparisonRows(data)
+      .filter(row => row.result && row.result.executionStatus === 'executable');
+  }
+
+  function pickSummaryReferenceRow(bestRow, rows, preferredExchangeId) {
+    if (!bestRow || !Array.isArray(rows)) return null;
+    const candidates = rows.filter(row => row.exchangeId !== bestRow.exchangeId);
+    if (candidates.length === 0) return null;
+    return candidates.find(row => row.exchangeId === 'okj')
+      || candidates.find(row => row.exchangeId === preferredExchangeId)
+      || candidates[0];
+  }
+
+  function decisionLeadText(meta, bestRow) {
+    if (!bestRow) return 'この条件での比較結果を準備中です。';
+    const exchangeLabel = bestRow.exchangeLabel || bestRow.exchangeId;
+    const fixedQuote = meta && meta.amountType === 'jpy';
+    const isSell = meta && meta.side === 'sell';
+
+    if (fixedQuote && !isSell) {
+      return `この条件では、最も多く ${UI.market.baseCurrency} を取得できるのは ${exchangeLabel} です。`;
+    }
+    if (fixedQuote && isSell) {
+      return `この条件では、指定金額を満たすのに必要数量が最も少ないのは ${exchangeLabel} です。`;
+    }
+    if (isSell) {
+      return `この条件では、最も実効受取額が高いのは ${exchangeLabel} です。`;
+    }
+    return `この条件では、最も実効コストが低いのは ${exchangeLabel} です。`;
+  }
+
+  function summaryReasonLabels(bestRow, referenceRow) {
+    if (!bestRow || !referenceRow || !bestRow.result || !referenceRow.result) {
+      return '板の厚みとスプレッド';
+    }
+
+    const reasons = [];
+    const spreadGap = Number(referenceRow.spreadPct) - Number(bestRow.spreadPct);
+    const impactGap = Number(referenceRow.result.marketImpactPct) - Number(bestRow.result.marketImpactPct);
+    const feeGap = Number(referenceRow.result.feeRatePct) - Number(bestRow.result.feeRatePct);
+
+    if (Number.isFinite(impactGap) && Math.abs(impactGap) >= 0.05) reasons.push('板の厚み');
+    if (Number.isFinite(spreadGap) && Math.abs(spreadGap) >= 0.01) reasons.push('スプレッド');
+    if (Number.isFinite(feeGap) && Math.abs(feeGap) >= 0.01) reasons.push('手数料');
+
+    return joinJapaneseList(reasons) || '板の厚みとスプレッド';
+  }
+
+  function comparisonDifferenceText(meta, bestRow, referenceRow) {
+    if (!meta || !bestRow || !referenceRow || !bestRow.result || !referenceRow.result) return '';
+    const referenceLabel = referenceRow.exchangeLabel || referenceRow.exchangeId;
+    const fixedQuote = meta.amountType === 'jpy';
+    const isSell = meta.side === 'sell';
+
+    if (fixedQuote && !isSell) {
+      const diff = Number(bestRow.result.totalBTCFilled) - Number(referenceRow.result.totalBTCFilled);
+      if (!Number.isFinite(diff) || Math.abs(diff) < 1e-10) return `${referenceLabel}と取得数量はほぼ同水準です`;
+      const direction = diff > 0 ? '多く取得できます' : '少なくなります';
+      return `${referenceLabel}より約${UI.formatBase(Math.abs(diff), true)}${direction}`;
+    }
+
+    if (fixedQuote && isSell) {
+      const diff = Number(referenceRow.result.totalBTCFilled) - Number(bestRow.result.totalBTCFilled);
+      if (!Number.isFinite(diff) || Math.abs(diff) < 1e-10) return `${referenceLabel}と必要数量はほぼ同水準です`;
+      const direction = diff > 0 ? '少ない数量で済みます' : '多い数量が必要です';
+      return `${referenceLabel}より約${UI.formatBase(Math.abs(diff), true)}${direction}`;
+    }
+
+    if (!fixedQuote && !isSell) {
+      const diff = Number(referenceRow.result.effectiveCostJPY) - Number(bestRow.result.effectiveCostJPY);
+      if (!Number.isFinite(diff) || Math.abs(diff) < 0.5) return `${referenceLabel}と実効コストはほぼ同水準です`;
+      return `${referenceLabel}との差は約${Fmt.jpy(Math.abs(diff))}です`;
+    }
+
+    const diff = Number(bestRow.result.effectiveCostJPY) - Number(referenceRow.result.effectiveCostJPY);
+    if (!Number.isFinite(diff) || Math.abs(diff) < 0.5) return `${referenceLabel}と実効受取額はほぼ同水準です`;
+    return `${referenceLabel}より約${Fmt.jpy(Math.abs(diff))}受取額が多くなります`;
+  }
+
+  function updateDecisionSummary() {
+    if (lastSimulationError) {
+      setDecisionSummaryError(lastSimulationError);
+      return;
+    }
+
+    if (!lastSimulationResult) {
+      if (lastComparisonParams) {
+        setDecisionSummaryLoading();
+        return;
+      }
+      resetDecisionSummary();
+      return;
+    }
+
+    const exchange = getSelectedExchange();
+    const market = getSelectedMarket(exchange);
+    const risk = UI.impactRiskMeta(lastSimulationResult.marketImpactPct);
+    const meta = (lastVenueComparisonData && lastVenueComparisonData.meta) || lastComparisonParams || {};
+    const freshRows = freshVenueComparisonRows(lastVenueComparisonData);
+    const executableRows = executableVenueComparisonRows(lastVenueComparisonData);
+
+    if (!lastVenueComparisonData || freshRows.length === 0) {
+      renderDecisionSummaryCard({
+        status: 'loading',
+        badgeLabel: '比較中',
+        badgeTone: 'loading',
+        lead: `${exchange.label || exchange.id} の Impact は ${Fmt.pct(lastSimulationResult.marketImpactPct)} で、危険度は「${risk.label}」です。`,
+        body: '他取引所の板が揃い次第、最も有利な取引所と差分をここに要約します。',
+        chips: [
+          { type: 'risk', label: `危険度 ${risk.label}`, tone: risk.tone },
+          { label: `${market.label || market.instrumentId || '-'} / ${meta.side === 'sell' ? '売り' : '買い'}` },
+        ],
+        actionHref: exchangePageUrl(exchange.id),
+        actionLabel: 'この取引所の手数料・取扱銘柄・キャンペーンを見る',
+      });
+      return;
+    }
+
+    const rowsForSummary = executableRows.length > 0 ? executableRows : freshRows;
+    const bestRow = rowsForSummary[0] || null;
+    const referenceRow = pickSummaryReferenceRow(bestRow, rowsForSummary, exchange.id);
+    const bestLabel = bestRow && (bestRow.exchangeLabel || bestRow.exchangeId);
+    const bestRisk = bestRow && bestRow.result ? UI.impactRiskMeta(bestRow.result.marketImpactPct) : null;
+
+    let lead = '';
+    let body = '';
+
+    if (executableRows.length > 0 && bestRow) {
+      lead = decisionLeadText(meta, bestRow);
+      if (referenceRow) {
+        body = `${comparisonDifferenceText(meta, bestRow, referenceRow)}。主な差分は${summaryReasonLabels(bestRow, referenceRow)}です。`;
+      } else {
+        body = `${bestLabel} がこの条件で最もバランスよく約定できる候補です。`;
+      }
+    } else if (bestRow) {
+      lead = 'この条件では、どの取引所でも成行を積極的には勧めにくい状況です。';
+      body = `${bestLabel} が相対的にはましですが、${bestRisk ? bestRisk.label : '要注意'}の水準です。無理な成行より、分割や指値の検討が無難です。`;
+    }
+
+    body = `${body} 現在見ている ${exchange.label || exchange.id} は Impact ${Fmt.pct(lastSimulationResult.marketImpactPct)} で、危険度は「${risk.label}」です。`;
+
+    renderDecisionSummaryCard({
+      status: 'ready',
+      badgeLabel: executableRows.length > 0 ? '比較済み' : '要注意',
+      badgeTone: executableRows.length > 0 ? 'ready' : 'error',
+      lead,
+      body,
+      chips: [
+        { type: 'risk', label: `危険度 ${risk.label}`, tone: risk.tone },
+        { label: `${market.label || market.instrumentId || '-'} / ${meta.side === 'sell' ? '売り' : '買い'}` },
+        bestLabel ? { label: executableRows.length > 0 ? `1位 ${bestLabel}` : `候補 ${bestLabel}` } : null,
+      ].filter(Boolean),
+      actionHref: exchangePageUrl((bestRow && bestRow.exchangeId) || exchange.id),
+      actionLabel: 'この取引所の手数料・取扱銘柄・キャンペーンを見る',
+    });
+  }
+
+  function findExchangeForInstrument(instrumentId, preferredExchangeId = (getSelectedExchange() && getSelectedExchange().id)) {
+    const normalizedInstrumentId = normalizeInstrumentId(instrumentId);
+    if (!normalizedInstrumentId) return null;
+
+    const activeExchanges = exchanges.filter(exchange => !exchange.status || exchange.status === 'active');
+    const supportsInstrument = (exchange) => getMarkets(exchange)
+      .some(market => market.instrumentId === normalizedInstrumentId && (!market.status || market.status === 'active'));
+
+    return activeExchanges.find(exchange => exchange.id === preferredExchangeId && supportsInstrument(exchange))
+      || activeExchanges.find(exchange => supportsInstrument(exchange))
+      || null;
+  }
+
+  function applyPresetMarketSelection(instrumentId) {
+    const exchange = findExchangeForInstrument(instrumentId);
+    if (!exchange) return false;
+
+    if (exchangeSelect) {
+      exchangeSelect.value = exchange.id;
+    }
+    populateMarketSelect(exchange, instrumentId);
+    const market = getSelectedMarket(exchange);
+    if (!market || market.instrumentId !== instrumentId) return false;
+
+    ws.setMarket(exchange.id, market.instrumentId);
+    setMarketDisplay(exchange, market);
+    clearMarketState();
+    renderFavoriteMarkets();
+    return true;
   }
 
   function setChartLoading(isLoading) {
@@ -929,6 +1216,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function applyFavoriteMarket(key) {
     const favorite = favoriteMarkets.find(item => favoriteKey(item.exchangeId, item.instrumentId) === key);
     if (!favorite) return;
+    pendingQuickPresetRun = false;
+    pendingQuickPresetId = null;
 
     const exchange = exchanges.find(item => item.id === favorite.exchangeId);
     if (!exchange || exchange.status !== 'active') {
@@ -951,20 +1240,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const preset = QUICK_PRESETS[presetId];
     if (!preset) return;
 
+    pendingQuickPresetId = presetId;
     setSide(preset.side);
     if (amountTypeSelect) amountTypeSelect.value = preset.amountType;
-    updateAmountUnit();
     if (amountInput) amountInput.value = preset.amount;
+
+    if (preset.instrumentId && !applyPresetMarketSelection(preset.instrumentId)) {
+      updateAmountUnit();
+      updateShareUrl();
+      saveCurrentSettings();
+      setQuickstartStatus(`${preset.label} を予約しました。銘柄一覧が揃い次第、この条件で比較を始めます。`);
+      return;
+    }
+
+    updateAmountUnit();
     updateShareUrl();
     saveCurrentSettings();
 
     if (!ws.ws || ws.ws.readyState !== WebSocket.OPEN) {
       pendingQuickPresetRun = true;
+      pendingQuickPresetId = presetId;
       setQuickstartStatus(`${preset.label} をセットしました。接続でき次第そのまま比較を始めます。`);
       return;
     }
 
     pendingQuickPresetRun = false;
+    pendingQuickPresetId = null;
     setQuickstartStatus(`${preset.label} で比較を始めます。次は「取引所横断コスト比較」の1位を見てください。`);
     runSimulation();
   }
@@ -1417,11 +1718,13 @@ document.addEventListener('DOMContentLoaded', () => {
     latestDepthData = null;
     latestMidPrice = null;
     lastSimulationResult = null;
+    lastSimulationError = null;
     setSimulationForChart(null);
     UI.clearMarketView();
     setOverviewLoadingState();
     setThresholdLoading();
     UI.clearSimulationView();
+    resetDecisionSummary();
     clearVenueComparison();
     setChartLoading(true);
     ws.clearSimulation();
@@ -1463,6 +1766,7 @@ document.addEventListener('DOMContentLoaded', () => {
     UI.setText('sales-reference-meta', '販売所は表示価格ベースの参考値です');
     setVenueComparisonEmpty('シミュレーション結果なし');
     setSalesReferenceEmpty('シミュレーション結果なし');
+    updateDecisionSummary();
   }
 
   function scheduleComparisonRefresh() {
@@ -1535,6 +1839,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (rows.length === 0) {
       setVenueComparisonEmpty('比較できる取引所がありません');
+      updateDecisionSummary();
       return;
     }
 
@@ -1570,8 +1875,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const vwapValue = ready ? Fmt.jpy(result.effectiveVWAP) : '-';
       const spreadLabel = row.spreadPct == null ? '-' : Fmt.pct(row.spreadPct);
       const impactValue = ready ? Fmt.pct(result.marketImpactPct) : '-';
-      const impactSub = ready ? `Best比 ${Fmt.pct(result.slippageFromBestPct)}` : '-';
+      const risk = ready ? UI.impactRiskMeta(result.marketImpactPct) : null;
+      const impactSub = ready
+        ? `${risk ? `<span class="risk-badge risk-badge--${escapeHtml(risk.tone)}">${escapeHtml(risk.label)}</span>` : ''}<div class="text-[10px] text-gray-500 mt-1">Best比 ${Fmt.pct(result.slippageFromBestPct)}</div>`
+        : '-';
       const sourceLabel = row.source === 'websocket' ? 'WS' : row.source ? String(row.source).toUpperCase() : '-';
+      const exchangeDetailLink = exchangePageUrl(row.exchangeId);
       const shortfall = ready && result.insufficient
         ? `<div class="text-[10px] text-yellow-500">流動性不足</div>`
         : '';
@@ -1591,6 +1900,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td headers="venue-col-exchange" class="text-left" data-label="取引所">
             <div class="font-bold text-gray-200">${escapeHtml(row.exchangeLabel || row.exchangeId)}</div>
             <div class="text-[10px] text-gray-500">${escapeHtml(row.instrumentLabel || row.instrumentId)} / ${escapeHtml(sourceLabel)}</div>
+            <div class="text-[10px] mt-1"><a class="comparison-row-link" href="${escapeHtml(exchangeDetailLink)}">手数料・銘柄・キャンペーン</a></div>
           </td>
           <td headers="venue-col-effective" class="is-num text-right font-mono ${ready ? valueClass : 'text-gray-500'}" data-label="${fixedQuoteAmount ? (isSell ? '必要数量' : '取得数量') : (isSell ? '実効受取' : '実効コスト')}">
             <div>${effectiveValue}</div>
@@ -1617,6 +1927,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>
       `;
     }).join('');
+    updateDecisionSummary();
   }
 
   async function loadVenueComparison(options = {}) {
@@ -1654,6 +1965,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setBusy('venue-comparison-panel', false);
         UI.setText('venue-comparison-meta', err.message);
         setVenueComparisonEmpty('比較の取得に失敗しました');
+        updateDecisionSummary();
       }
     } finally {
       if (comparisonAbortController === controller) {
@@ -1931,6 +2243,13 @@ document.addEventListener('DOMContentLoaded', () => {
       initialUrlStateConsumed = true;
       updateShareUrl();
       renderFavoriteMarkets();
+      if (pendingQuickPresetId && ws.ws && ws.ws.readyState === WebSocket.OPEN) {
+        const nextPresetId = pendingQuickPresetId;
+        pendingQuickPresetRun = false;
+        pendingQuickPresetId = null;
+        applyQuickPreset(nextPresetId);
+        return;
+      }
       maybeRunInitialSimulation();
     } catch (err) {
       exchangeListLoaded = true;
@@ -1942,6 +2261,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update unit label on amount type change
   amountTypeSelect.addEventListener('change', () => {
     pendingQuickPresetRun = false;
+    pendingQuickPresetId = null;
     updateAmountUnit();
     updateShareUrl();
     saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
@@ -1951,6 +2271,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-side]').forEach(btn => {
     btn.addEventListener('click', () => {
       pendingQuickPresetRun = false;
+      pendingQuickPresetId = null;
       setSide(btn.dataset.side);
       updateShareUrl();
       saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
@@ -1967,8 +2288,10 @@ document.addEventListener('DOMContentLoaded', () => {
       setBusy('simulation-export-panel', false);
       setBusy('fill-tbody', false);
       lastSimulationResult = null;
+      lastSimulationError = '正の数値を入力してください';
       document.getElementById('simulation-results').innerHTML =
         '<div class="text-yellow-400 text-center py-4">正の数値を入力してください</div>';
+      updateDecisionSummary();
       return;
     }
 
@@ -1977,8 +2300,10 @@ document.addEventListener('DOMContentLoaded', () => {
       setBusy('simulation-export-panel', false);
       setBusy('fill-tbody', false);
       lastSimulationResult = null;
+      lastSimulationError = '手数料率は0%以上100%以下で入力してください';
       document.getElementById('simulation-results').innerHTML =
         '<div class="text-yellow-400 text-center py-4">手数料率は0%以上100%以下で入力してください</div>';
+      updateDecisionSummary();
       return;
     }
 
@@ -1986,13 +2311,21 @@ document.addEventListener('DOMContentLoaded', () => {
       setBusy('simulation-export-panel', false);
       setBusy('fill-tbody', false);
       lastSimulationResult = null;
+      lastSimulationError = '板データへ接続中です。数秒待ってからもう一度実行してください';
       document.getElementById('simulation-results').innerHTML =
         '<div class="text-yellow-400 text-center py-4">板データへ接続中です。数秒待ってからもう一度実行してください</div>';
+      updateDecisionSummary();
       return;
     }
 
     pendingQuickPresetRun = false;
+    pendingQuickPresetId = null;
+    lastSimulationResult = null;
+    lastSimulationError = null;
+    lastVenueComparisonData = null;
+    lastSalesReferenceData = null;
     setSimulationLoading();
+    setDecisionSummaryLoading();
     setFillLoading();
     ws.simulate(side, amount, amountType, feeRatePct == null ? null : feeRatePct / 100, autoUpdate);
     const exchange = getSelectedExchange();
@@ -2097,10 +2430,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   amountInput.addEventListener('input', () => {
     pendingQuickPresetRun = false;
+    pendingQuickPresetId = null;
     updateShareUrl();
   });
   feeRateInput.addEventListener('input', () => {
     pendingQuickPresetRun = false;
+    pendingQuickPresetId = null;
     updateFeePresetHint();
     updateShareUrl();
     saveCurrentSettings();
@@ -2112,12 +2447,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   clearBtn.addEventListener('click', () => {
     pendingQuickPresetRun = false;
+    pendingQuickPresetId = null;
     ws.clearSimulation();
     lastSimulationResult = null;
+    lastSimulationError = null;
     setSimulationForChart(null);
     UI.clearSimulationView();
     setBusy('simulation-export-panel', false);
     setBusy('fill-tbody', false);
+    resetDecisionSummary();
     clearVenueComparison();
     if (depthChart) {
       depthChart.data.datasets[2].data = [];
@@ -2143,6 +2481,7 @@ document.addEventListener('DOMContentLoaded', () => {
     populateExchangeSelect(exchanges, 'okj');
     exchangeSelect.addEventListener('change', () => {
       pendingQuickPresetRun = false;
+      pendingQuickPresetId = null;
       const exchange = getSelectedExchange();
       populateMarketSelect(exchange, exchange.defaultInstrumentId);
       const market = getSelectedMarket(exchange);
@@ -2158,6 +2497,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (marketSelect) {
     marketSelect.addEventListener('change', () => {
       pendingQuickPresetRun = false;
+      pendingQuickPresetId = null;
       const exchange = getSelectedExchange();
       const market = getSelectedMarket(exchange);
       ws.setMarket(exchange.id, market.instrumentId);
@@ -2172,6 +2512,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // WebSocket handlers
   ws.on('connected', () => {
     UI.setConnectionStatus('connected');
+    if (pendingQuickPresetId && exchangeListLoaded) {
+      const nextPresetId = pendingQuickPresetId;
+      pendingQuickPresetRun = false;
+      pendingQuickPresetId = null;
+      applyQuickPreset(nextPresetId);
+      return;
+    }
     if (pendingQuickPresetRun) {
       pendingQuickPresetRun = false;
       setQuickstartStatus('接続できたので比較を始めます。次は「取引所横断コスト比較」の1位を見てください。');
@@ -2222,6 +2569,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initialUrlStateConsumed = true;
     updateShareUrl();
     renderFavoriteMarkets();
+    if (pendingQuickPresetId && ws.ws && ws.ws.readyState === WebSocket.OPEN) {
+      const nextPresetId = pendingQuickPresetId;
+      pendingQuickPresetRun = false;
+      pendingQuickPresetId = null;
+      applyQuickPreset(nextPresetId);
+      return;
+    }
     maybeRunInitialSimulation();
   });
 
@@ -2229,9 +2583,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setBusy('simulation-export-panel', false);
     setBusy('fill-tbody', false);
     lastSimulationResult = data && !data.error ? data : null;
+    lastSimulationError = data && data.error ? data.error : null;
     setSimulationForChart(data);
     UI.updateSimulationResults(data);
     UI.updateFillTable(data.fills || [], data.side);
+    updateDecisionSummary();
     if (latestDepthData) {
       updateDepthChart(latestDepthData, latestMidPrice);
     }
