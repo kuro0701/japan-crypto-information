@@ -609,13 +609,18 @@ body.terminal-body {
   display: grid;
   gap: 8px;
   min-width: 0;
+  width: 100%;
   padding: var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: rgba(8, 11, 8, 0.44);
+  text-align: left;
+  justify-items: start;
+  cursor: pointer;
 }
 
-.window-guide-card.is-active {
+.window-guide-card.is-active,
+.window-guide-card[aria-pressed="true"] {
   border-color: rgba(53, 200, 210, 0.36);
   background:
     radial-gradient(circle at top right, rgba(53, 200, 210, 0.1), transparent 40%),

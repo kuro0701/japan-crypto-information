@@ -82,3 +82,33 @@ test('VolumeShareStore falls back to latest records when no history snapshots ex
   assert.equal(history.rows.length, 1);
   assert.equal(history.rows[0].quoteVolume, 250);
 });
+
+test('VolumeShareStore supports extended history windows for longer comparisons', (t) => {
+  const tempDir = createTempDir('okj-volume-store-90d-');
+  t.after(() => removeTempDir(tempDir));
+
+  const store = new VolumeShareStore({
+    dataFilePath: path.join(tempDir, 'volume-share-history.json'),
+  });
+
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 100, '2026-04-20T00:00:00.000Z'),
+  ], {
+    capturedAt: '2026-04-20T00:00:00.000Z',
+    volumeDateJst: '2026-04-20',
+    reason: 'test',
+  });
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 200, '2026-04-21T00:00:00.000Z'),
+  ], {
+    capturedAt: '2026-04-21T00:00:00.000Z',
+    volumeDateJst: '2026-04-21',
+    reason: 'test',
+  });
+
+  const history = store.getHistory('90d');
+  assert.equal(history.meta.windowKey, '90d');
+  assert.equal(history.meta.windowDays, 90);
+  assert.equal(history.meta.historySnapshotCount, 2);
+  assert.equal(history.rows.length, 2);
+});

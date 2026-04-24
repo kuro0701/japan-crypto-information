@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-8">
+  <link rel="stylesheet" href="/css/style.css?v=ui-9">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -88,7 +88,7 @@
           <p id="instrument-count-meta" class="volume-kpi-card__meta">フィルター後の件数</p>
         </article>
         <article class="volume-kpi-card">
-          <span class="volume-kpi-card__label">前日比</span>
+          <span id="daily-change-label" class="volume-kpi-card__label">前日比</span>
           <strong id="daily-change" class="volume-kpi-card__value">-</strong>
           <p id="daily-change-meta" class="volume-kpi-card__meta">直近日次スナップショット比</p>
         </article>
@@ -130,18 +130,18 @@
         <span class="panel-kicker">Window Guide</span>
       </div>
       <div class="window-guide-grid">
-        <article class="window-guide-card is-active" data-window-guide="1d">
+        <button class="window-guide-card is-active" type="button" data-window-guide="1d" aria-pressed="true">
           <span class="window-guide-card__label">24時間</span>
           <p class="window-guide-card__body">直近の勢いを見る</p>
-        </article>
-        <article class="window-guide-card" data-window-guide="7d">
+        </button>
+        <button class="window-guide-card" type="button" data-window-guide="7d" aria-pressed="false">
           <span class="window-guide-card__label">7日間</span>
           <p class="window-guide-card__body">一時的なブレをならして見る</p>
-        </article>
-        <article class="window-guide-card" data-window-guide="30d">
+        </button>
+        <button class="window-guide-card" type="button" data-window-guide="30d" aria-pressed="false">
           <span class="window-guide-card__label">30日間</span>
           <p class="window-guide-card__body">普段の流動性を見る</p>
-        </article>
+        </button>
       </div>
       <div class="volume-caution-stack mt-4">
         <div class="callout callout--warn">
@@ -234,6 +234,6 @@
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/volume-share.js?v=volume-share-11"></script>
+  <script src="js/volume-share.js?v=volume-share-12"></script>
 </body>
 </html>

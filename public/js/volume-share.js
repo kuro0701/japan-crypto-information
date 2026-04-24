@@ -13,7 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     '7d': '一時的なブレをならして見る',
     '30d': '普段の流動性を見る',
   };
+  const PERIOD_COMPARISON_LABELS = {
+    '1d': '前日比',
+    '7d': '前7日比',
+    '30d': '前30日比',
+  };
   const ALL_VALUE = '__all__';
+  const HISTORY_FETCH_WINDOW = '90d';
   let selectedWindow = '1d';
   let selectedInstrument = ALL_VALUE;
   let selectedExchange = ALL_VALUE;
@@ -46,10 +52,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const fmtDateTime = AppFmt.dateTime;
   const shortDate = AppFmt.shortDate;
   const WINDOW_VALUES = new Set(Object.keys(WINDOW_LABELS));
+  const HISTORY_WINDOW_VALUES = new Set(['7d', '30d']);
   const KPI_TONE_CLASSES = ['is-positive', 'is-caution', 'is-danger'];
 
   function normalizeWindow(value, fallback) {
     return WINDOW_VALUES.has(value) ? value : fallback;
+  }
+
+  function normalizeHistoryWindow(value, fallback) {
+    return HISTORY_WINDOW_VALUES.has(value) ? value : fallback;
   }
 
   function normalizeInstrumentId(value) {
@@ -68,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window: normalizeWindow(params.get('window'), '1d'),
       instrumentId: normalizeInstrumentId(params.get('instrumentId') || params.get('instrument') || params.get('market')),
       exchangeId: normalizeExchangeId(params.get('exchange') || params.get('exchangeId')),
-      historyWindow: normalizeWindow(params.get('historyWindow'), '30d'),
+      historyWindow: normalizeHistoryWindow(params.get('historyWindow'), '30d'),
     };
   }
 
@@ -90,6 +101,13 @@ document.addEventListener('DOMContentLoaded', () => {
       button.classList.toggle('active', isActive);
       button.setAttribute('aria-selected', isActive ? 'true' : 'false');
     });
+  }
+
+  function activateWindow(nextWindow) {
+    selectedWindow = normalizeWindow(nextWindow, '1d');
+    syncTabButtons('[data-window]', 'window', selectedWindow);
+    updateWindowGuide();
+    loadShare();
   }
 
   const initialState = readInitialState();
@@ -379,6 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-window-guide]').forEach((card) => {
       const isActive = (card.dataset.windowGuide || '') === selectedWindow;
       card.classList.toggle('is-active', isActive);
+      card.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
   }
 
@@ -551,30 +570,77 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(([date, totalQuoteVolume]) => ({ date, totalQuoteVolume }));
   }
 
-  function dailyChangeMeta() {
+  function historyRowsForWindow(windowKey) {
+    const targetDays = {
+      '7d': 7,
+      '30d': 30,
+    }[windowKey];
+    if (!targetDays) return volumeHistoryRows.slice();
+
+    const dates = Array.from(new Set(volumeHistoryRows.map(row => row.date).filter(Boolean))).sort();
+    const targetDateSet = new Set(dates.slice(-targetDays));
+    return volumeHistoryRows.filter(row => targetDateSet.has(row.date));
+  }
+
+  function comparisonMetaForWindow(windowKey, filteredTotalQuoteVolume) {
     const totals = buildDailyTotals();
-    if (totals.length < 2) {
+    const comparisonLabel = PERIOD_COMPARISON_LABELS[windowKey] || '前期間比';
+
+    if (windowKey === '1d') {
+      const previous = totals[totals.length - 1];
+      if (!previous || !(previous.totalQuoteVolume > 0)) {
+        return {
+          label: comparisonLabel,
+          value: '-',
+          detail: '前日データ待ち',
+          tone: '',
+        };
+      }
+
+      const diff = Number(filteredTotalQuoteVolume || 0) - previous.totalQuoteVolume;
       return {
+        label: comparisonLabel,
+        value: formatSignedPercent((diff / previous.totalQuoteVolume) * 100),
+        detail: `${formatSignedJpy(diff)} | 前日 ${shortDate(previous.date)} 比`,
+        tone: diff > 0 ? 'is-positive' : diff < 0 ? 'is-danger' : '',
+      };
+    }
+
+    const periodDays = {
+      '7d': 7,
+      '30d': 30,
+    }[windowKey];
+
+    if (!periodDays || totals.length < periodDays * 2) {
+      return {
+        label: comparisonLabel,
         value: '-',
-        detail: '前日データ待ち',
+        detail: `${comparisonLabel}の比較期間待ち`,
         tone: '',
       };
     }
 
-    const current = totals[totals.length - 1];
-    const previous = totals[totals.length - 2];
-    if (!(previous.totalQuoteVolume > 0)) {
+    const previousPeriod = totals.slice(-(periodDays * 2), -periodDays);
+    const currentPeriod = totals.slice(-periodDays);
+    const previousTotal = previousPeriod.reduce((sum, row) => sum + (Number(row.totalQuoteVolume) || 0), 0);
+    const currentTotal = Number.isFinite(Number(filteredTotalQuoteVolume))
+      ? Number(filteredTotalQuoteVolume)
+      : currentPeriod.reduce((sum, row) => sum + (Number(row.totalQuoteVolume) || 0), 0);
+
+    if (!(previousTotal > 0)) {
       return {
+        label: comparisonLabel,
         value: '-',
-        detail: `${shortDate(current.date)} vs ${shortDate(previous.date)}`,
+        detail: `${comparisonLabel}の比較期間待ち`,
         tone: 'is-caution',
       };
     }
 
-    const diff = current.totalQuoteVolume - previous.totalQuoteVolume;
+    const diff = currentTotal - previousTotal;
     return {
-      value: formatSignedPercent((diff / previous.totalQuoteVolume) * 100),
-      detail: `${formatSignedJpy(diff)} | ${shortDate(current.date)} vs ${shortDate(previous.date)}`,
+      label: comparisonLabel,
+      value: formatSignedPercent((diff / previousTotal) * 100),
+      detail: `${formatSignedJpy(diff)} | ${shortDate(currentPeriod[0].date)} - ${shortDate(currentPeriod[currentPeriod.length - 1].date)} vs ${shortDate(previousPeriod[0].date)} - ${shortDate(previousPeriod[previousPeriod.length - 1].date)}`,
       tone: diff > 0 ? 'is-positive' : diff < 0 ? 'is-danger' : '',
     };
   }
@@ -602,7 +668,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const top3 = topThreeShare(filtered.exchanges);
     const concentration = concentrationMeta(top3, filtered.exchanges.length);
     const reliability = reliabilityMeta(qualityRows, filtered, meta.latestCapturedAt || meta.generatedAt);
-    const dailyChange = dailyChangeMeta();
+    const dailyChange = comparisonMetaForWindow(meta.windowKey || selectedWindow, filtered.totalQuoteVolume);
     const instrumentLabel = selectedOptionLabel('volume-instrument-filter', '全銘柄');
     const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '全取引所');
 
@@ -624,6 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setKpiValue('instrument-count', formatCount(filtered.instruments.length, '銘柄'));
     setText('instrument-count-meta', selectedExchange !== ALL_VALUE ? `${exchangeLabel} の取扱銘柄数` : 'フィルター後の銘柄数');
 
+    setText('daily-change-label', dailyChange.label);
     setKpiValue('daily-change', dailyChange.value, dailyChange.tone);
     setText('daily-change-meta', dailyChange.detail);
 
@@ -692,8 +759,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const dailyChangeText = summaryParts.dailyChange.value !== '-'
-      ? `直近日次の総出来高は前日比 ${summaryParts.dailyChange.value} です。`
-      : '直近日次の前日比はまだ計算できません。';
+      ? `${summaryParts.dailyChange.label} は ${summaryParts.dailyChange.value} です。`
+      : `${summaryParts.dailyChange.label} はまだ計算できません。`;
     const note = `${dailyChangeText} 大きめの注文を出す場合は、板シミュレーターで実効コストも確認してください。`;
 
     setText('volume-summary-lead', lead);
@@ -863,10 +930,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function buildVolumeHistorySeries() {
-    const dates = Array.from(new Set(volumeHistoryRows.map(row => row.date).filter(Boolean))).sort();
+    const scopedRows = historyRowsForWindow(selectedHistoryWindow);
+    const dates = Array.from(new Set(scopedRows.map(row => row.date).filter(Boolean))).sort();
     const daily = new Map();
 
-    for (const row of volumeHistoryRows) {
+    for (const row of scopedRows) {
       if (!row.date || !historyInstrumentMatches(row)) continue;
       const quoteVolume = parseNumber(row.quoteVolume);
       if (quoteVolume == null || quoteVolume < 0) continue;
@@ -979,8 +1047,8 @@ document.addEventListener('DOMContentLoaded', () => {
     volumeRankHistoryChart.options.scales.y.suggestedMax = Math.max(3, maxRank);
     volumeRankHistoryChart.update('none');
 
-    const range = volumeHistoryMeta.earliestVolumeDateJst && volumeHistoryMeta.latestVolumeDateJst
-      ? `${volumeHistoryMeta.earliestVolumeDateJst} - ${volumeHistoryMeta.latestVolumeDateJst}`
+    const range = dates.length > 0
+      ? `${dates[0]} - ${dates[dates.length - 1]}`
       : '履歴データ待ち';
     const instrumentLabel = selectedOptionLabel('volume-instrument-filter', '全銘柄');
     const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '上位取引所');
@@ -1026,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const controller = new AbortController();
     volumeHistoryAbortController = controller;
     try {
-      const data = await Api.fetchJson(`/api/volume-share/history?window=${encodeURIComponent(selectedHistoryWindow)}`, {
+      const data = await Api.fetchJson(`/api/volume-share/history?window=${encodeURIComponent(HISTORY_FETCH_WINDOW)}`, {
         signal: controller.signal,
       });
       volumeHistoryRows = data.rows || [];
@@ -1059,9 +1127,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('[data-window]').forEach(button => {
     button.addEventListener('click', () => {
-      selectedWindow = normalizeWindow(button.dataset.window, '1d');
-      syncTabButtons('[data-window]', 'window', selectedWindow);
-      loadShare();
+      activateWindow(button.dataset.window);
+    });
+  });
+
+  document.querySelectorAll('[data-window-guide]').forEach(button => {
+    button.addEventListener('click', () => {
+      activateWindow(button.dataset.windowGuide);
     });
   });
 
@@ -1083,9 +1155,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('[data-volume-history-window]').forEach(button => {
     button.addEventListener('click', () => {
-      selectedHistoryWindow = normalizeWindow(button.dataset.volumeHistoryWindow, '30d');
+      selectedHistoryWindow = normalizeHistoryWindow(button.dataset.volumeHistoryWindow, '30d');
       syncTabButtons('[data-volume-history-window]', 'volumeHistoryWindow', selectedHistoryWindow);
-      loadVolumeHistory();
+      renderVolumeHistory();
+      writeUrlState();
     });
   });
 
