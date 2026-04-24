@@ -1,12 +1,14 @@
 # 国内暗号資産取引所ナビ
-> 日本の暗号資産取引所のリアルタイム板情報・出来高・スプレッドをデータで可視化するツールサイト。
+> 国内暗号資産取引所の板・出来高・販売所スプレッド・手数料を比較し、どこで買うと実質コストが低いかを確認するためのサイト。
 
 ## Pages
-- [成行注文シミュレーター](https://japan-crypto-information.onrender.com/): 国内暗号資産取引所のリアルタイム板情報を使い、成行注文の執行価格・スリッページ・マーケットインパクトをシミュレーションできます。
-- [出来高シェア](https://japan-crypto-information.onrender.com/volume-share): 国内主要取引所のBTC・ETH他銘柄の出来高シェアを日次・週次・月次で確認できます。
-- [販売所スプレッド](https://japan-crypto-information.onrender.com/sales-spread): 国内販売所の買値・売値スプレッドをリアルタイム比較し、実効コスト差を確認できます。
+- [ホーム](https://japan-crypto-information.onrender.com/): 初心者向け導線、中級者向けツール導線、人気ページ、データ取得元、免責をまとめた比較ホームです。
+- [成行注文シミュレーター](https://japan-crypto-information.onrender.com/simulator): 国内暗号資産取引所のリアルタイム板を使い、成行注文の執行価格・スリッページ・マーケットインパクトを比較できます。
+- [出来高シェア](https://japan-crypto-information.onrender.com/volume-share): 国内主要取引所の BTC・ETH 他銘柄の出来高シェアを日次・週次・月次で確認できます。
+- [販売所スプレッド](https://japan-crypto-information.onrender.com/sales-spread): 国内販売所の買値・売値スプレッドを比較し、販売所と取引所の実効コスト差を確認できます。
+- [銘柄ページ一覧](https://japan-crypto-information.onrender.com/markets): 銘柄別に取引所比較ページへ移動できます。
 
 ## Data endpoints
-- /api/exchanges: 対応取引所・銘柄一覧
-- /api/volume-share: 出来高シェア履歴
-- /api/sales-spread: 販売所スプレッド履歴
+- `/api/exchanges`: 対応取引所・銘柄一覧
+- `/api/volume-share`: 出来高シェア集計
+- `/api/sales-spread`: 販売所スプレッド集計

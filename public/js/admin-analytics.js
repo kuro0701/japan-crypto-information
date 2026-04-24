@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
     '30d': '30日間',
   };
   const ROUTE_LABELS = {
-    '/': '板シミュレーター',
+    '/': 'ホーム',
+    '/simulator': '板シミュレーター',
     '/volume-share': '出来高シェア',
     '/sales-spread': '販売所スプレッド',
     '/markets': '銘柄ページ一覧',

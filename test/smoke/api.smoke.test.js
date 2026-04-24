@@ -167,6 +167,13 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const homePage = await fetchText(baseUrl, '/');
   assert.equal(homePage.status, 200);
   assert.ok(homePage.body.includes('/markets?q={search_term_string}'));
+  assert.ok(homePage.body.includes('国内暗号資産取引所の板・スプレッド・手数料・キャンペーンを比較し'));
+  assert.ok(homePage.body.includes('/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000'));
+
+  const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
+  assert.equal(simulatorPage.status, 200);
+  assert.ok(simulatorPage.body.includes('成行取引リアルタイム板シミュレーター'));
+  assert.ok(simulatorPage.body.includes('app.js?v='));
 
   const exchanges = await fetchJson(baseUrl, '/api/exchanges');
   assert.equal(exchanges.status, 200);
@@ -186,6 +193,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const marketHtml = await fetchText(baseUrl, '/markets/BTC-JPY');
   assert.equal(marketHtml.status, 200);
   assert.ok(marketHtml.body.includes('次に見る'));
+  assert.ok(marketHtml.body.includes('/simulator?market=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/volume-share?instrumentId=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/sales-spread?instrumentId=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/articles/about'));

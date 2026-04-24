@@ -1,3 +1,4 @@
+const fs = require('fs');
 const http = require('http');
 const express = require('express');
 const path = require('path');
@@ -84,6 +85,11 @@ const SITEMAP_PAGES = [
     priority: '1.0',
   },
   {
+    path: '/simulator',
+    lastmod: fileLastmod(path.join(PUBLIC_DIR, 'simulator.html')),
+    priority: '0.9',
+  },
+  {
     path: '/volume-share',
     lastmod: fileLastmod(path.join(PUBLIC_DIR, 'volume-share.html')),
     priority: '0.8',
@@ -131,6 +137,7 @@ const siteContentService = createSiteContentService({
 
 function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/' || reqPath === '/index.html') return '/';
+  if (reqPath === '/simulator' || reqPath === '/simulator.html') return '/simulator';
   if (reqPath === '/volume-share' || reqPath === '/volume-share.html') return '/volume-share';
   if (reqPath === '/sales-spread' || reqPath === '/sales-spread.html') return '/sales-spread';
   if (reqPath === '/markets' || reqPath === '/markets.html') return '/markets';

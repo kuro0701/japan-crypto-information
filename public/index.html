@@ -5,21 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- HEAD_META_INJECT -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-6">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { mono: ['"JetBrains Mono"', 'Consolas', 'monospace'] }
-        }
-      }
-    }
-  </script>
+  <link rel="stylesheet" href="/css/style.css?v=ui-7">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -28,391 +17,295 @@
     <div class="brand-cluster">
       <div class="brand-mark" aria-hidden="true">₿</div>
       <div class="brand-copy min-w-0">
-        <h1 class="page-title">成行取引リアルタイム板シミュレーター</h1>
+        <h1 class="page-title">国内暗号資産取引所ナビ</h1>
+        <div class="brand-subtitle">板・スプレッド・手数料の比較ホーム</div>
       </div>
-      <div class="exchange-switcher">
-        <label for="exchange-select">取引所</label>
-        <select id="exchange-select" class="field exchange-select" aria-label="取引所">
-          <option value="okj" selected>OKJ</option>
-        </select>
-      </div>
-      <div class="market-switcher">
-        <label for="market-select">銘柄</label>
-        <select id="market-select" class="field market-select" aria-label="銘柄">
-          <option value="BTC-JPY" selected>BTC/JPY</option>
-        </select>
-      </div>
-      <span id="instrument-label" class="instrument-pill text-xs">BTC/JPY</span>
     </div>
-
     <nav class="nav-menu" aria-label="ページ間ナビゲーション">
-      <a class="nav-link is-active" href="/" aria-current="page">板シミュレーター</a>
+      <a class="nav-link is-active" href="/" aria-current="page">ホーム</a>
+      <a class="nav-link" href="/simulator">板シミュレーター</a>
       <a class="nav-link" href="/markets">銘柄ページ</a>
       <a class="nav-link" href="/volume-share">出来高シェア</a>
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
     </nav>
-
-    <div class="status-cluster">
-      <div id="status-dot" class="status-dot w-3 h-3 rounded-full bg-red-500" role="status" aria-live="polite" aria-atomic="true">
-        <span id="status-live-label" class="sr-only">接続状態: 切断</span>
-      </div>
-      <span id="status-text" class="status-text">切断</span>
-      <span class="text-xs text-gray-600 ml-2">取得: <span id="source-label" class="text-gray-400">-</span></span>
-      <span class="text-xs text-gray-600 ml-2">更新: <span id="book-timestamp" class="text-gray-400">-</span></span>
-      <span class="text-xs text-gray-600 ml-2">経過: <span id="book-age-label" class="text-gray-400">-</span></span>
-      <span id="book-freshness-badge" class="freshness-badge freshness-badge--stale ml-2" hidden>STALE</span>
-      <button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button>
+    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true">
+      <span class="badge badge--live">HOME</span>
+      <span class="status-text">比較ホーム</span>
+      <span class="text-xs text-gray-600 ml-2">板: リアルタイム</span>
+      <span class="text-xs text-gray-600 ml-2">集計: 毎時更新</span>
     </div>
   </header>
 
-  <main id="main" class="dashboard-shell index-shell flex flex-col lg:flex-row gap-4 p-4 max-w-[1920px] mx-auto">
-    <div class="index-column index-column--primary w-full lg:w-[var(--col-left)] flex-shrink-0 space-y-4">
-      <section class="panel control-panel panel--dense index-priority-1">
-        <div class="panel-title-row">
-          <h2 class="panel-title">シミュレーション設定</h2>
-          <span class="panel-kicker">Market Order</span>
+  <main id="main" class="dashboard-shell home-shell flex flex-col gap-4 p-4 max-w-[1440px] mx-auto">
+    <section class="panel panel--dense home-hero">
+      <div class="home-hero__content">
+        <p class="home-eyebrow">Domestic Crypto Cost Navigator</p>
+        <h2 class="home-hero__headline">国内暗号資産取引所の板・スプレッド・手数料・キャンペーンを比較し、どこで買うと実質コストが低いかを確認できるサイト</h2>
+        <p class="home-hero__lede">販売所の表示価格だけでなく、板の厚み、taker 手数料、出来高シェアまで合わせて見て、実際に近い買いコストを比べるための入口ページです。まずは人気の比較導線から入り、必要になったら板シミュレーターや銘柄ページで詳しく確認できます。</p>
+        <div class="home-hero__actions">
+          <a class="btn btn-primary px-4 py-3 rounded-lg font-bold text-sm" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">10万円分のBTCをすぐ比べる</a>
+          <a class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/markets/BTC-JPY">BTC/JPY の比較ページへ</a>
         </div>
-
-        <div class="quickstart-panel mt-3 mb-4">
-          <div class="quickstart-panel__header">
-            <div>
-              <p class="quickstart-panel__eyebrow">最初の30秒</p>
-              <h3 class="quickstart-panel__title">迷ったらこの3つから試す</h3>
-              <p class="quickstart-panel__copy">押すと数量と売買をセットして、そのまま比較まで実行します。次は「取引所横断コスト比較」の1位を見ればOKです。</p>
-            </div>
-            <span class="quickstart-panel__badge">初回プリセット</span>
-          </div>
-          <div class="quickstart-panel__actions">
-            <button class="btn btn-primary px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="buy-jpy-100000">10万円を買ってみる</button>
-            <button class="btn btn-secondary px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="buy-base-0.01">0.01 BTC を買う</button>
-            <button class="btn btn-ghost px-3 py-2.5 rounded-lg text-sm" type="button" data-quick-preset="sell-base-0.01">0.01 BTC を売る</button>
-          </div>
-          <p id="quickstart-status" class="quickstart-panel__status" role="status" aria-live="polite">まずは 10万円を買ってみる から始めると、比較の違いが見やすいです。</p>
+        <div class="home-highlight-grid">
+          <article class="home-highlight-card">
+            <span class="home-highlight-card__label">板と実効コスト</span>
+            <strong class="home-highlight-card__title">WebSocket ベースでリアルタイム比較</strong>
+            <p class="home-highlight-card__body">OKJ、Coincheck、bitFlyer、bitbank、GMOコイン、Binance Japan、BitTrade の公開板を横断して確認できます。</p>
+          </article>
+          <article class="home-highlight-card">
+            <span class="home-highlight-card__label">出来高と流動性</span>
+            <strong class="home-highlight-card__title">24h出来高を毎時更新</strong>
+            <p class="home-highlight-card__body">どの取引所に流動性が集まっているかを、24h集計とJST日次スナップショットで追えます。</p>
+          </article>
+          <article class="home-highlight-card">
+            <span class="home-highlight-card__label">販売所との比較</span>
+            <strong class="home-highlight-card__title">スプレッドと既定手数料を同時確認</strong>
+            <p class="home-highlight-card__body">販売所スプレッドと取引所の taker 手数料を並べて見て、見かけより高い買いコストを避けやすくします。</p>
+          </article>
         </div>
+      </div>
 
-        <input type="hidden" id="side-select" value="buy">
-        <div class="grid grid-cols-2 gap-2 mt-3 mb-3">
-          <button data-side="buy" class="btn btn-toggle is-active text-sm" type="button" aria-pressed="true"><span aria-hidden="true">▲</span><span>買い (BUY)</span></button>
-          <button data-side="sell" class="btn btn-toggle text-sm" type="button" aria-pressed="false"><span aria-hidden="true">▼</span><span>売り (SELL)</span></button>
+      <aside class="home-hero__rail" aria-labelledby="home-journey-title">
+        <div class="home-hero__rail-header">
+          <p class="home-eyebrow">Start Here</p>
+          <h3 id="home-journey-title" class="home-rail-title">最初のホーム導線</h3>
+          <p class="home-rail-copy">まずはこの5つから入れば、主要な比較軸をひと通り確認できます。</p>
         </div>
+        <ol class="home-journey-list">
+          <li>
+            <a class="home-journey-card" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
+              <span class="home-journey-card__index">1</span>
+              <span class="home-journey-card__body">
+                <strong>10万円分のBTCを買うならどこが安い？</strong>
+                <span>板シミュレーターを BTC/JPY・10万円買いで開きます。</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a class="home-journey-card" href="/sales-spread?instrumentId=BTC-JPY">
+              <span class="home-journey-card__index">2</span>
+              <span class="home-journey-card__body">
+                <strong>販売所スプレッドを比較する</strong>
+                <span>販売所の買値と売値の開きを BTC から確認します。</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a class="home-journey-card" href="/volume-share?instrumentId=BTC-JPY">
+              <span class="home-journey-card__index">3</span>
+              <span class="home-journey-card__body">
+                <strong>出来高シェアを見る</strong>
+                <span>流動性がどこに集まっているかを 24h ベースで見ます。</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a class="home-journey-card" href="/markets?q=BTC">
+              <span class="home-journey-card__index">4</span>
+              <span class="home-journey-card__body">
+                <strong>銘柄別に取引所を比較する</strong>
+                <span>BTC 以外の銘柄も含めて、対応取引所を一覧から辿れます。</span>
+              </span>
+            </a>
+          </li>
+          <li>
+            <a class="home-journey-card home-journey-card--muted" href="#campaign-policy">
+              <span class="home-journey-card__index">5</span>
+              <span class="home-journey-card__body">
+                <strong>キャンペーンを確認する</strong>
+                <span>キャンペーン比較は準備中です。表記方針と掲載ルールを先に公開しています。</span>
+              </span>
+            </a>
+          </li>
+        </ol>
+      </aside>
+    </section>
 
-        <div class="mb-3">
-          <label class="metric-label block mb-1" for="amount-type">入力タイプ</label>
-          <select id="amount-type" class="field w-full rounded px-3 py-2 text-sm">
-            <option id="amount-type-base-option" value="base">数量 (BTC)</option>
-            <option value="jpy">金額 (JPY)</option>
-          </select>
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">このサイトでできること</h2>
+          <p class="text-xs text-gray-500 mt-1">買う前に知りたい「どこが安いか」「どこに流動性があるか」を、用途別に分けて確認できます。</p>
         </div>
+        <span class="panel-kicker">Overview</span>
+      </div>
+      <div class="home-capability-grid">
+        <article class="home-capability-card">
+          <h3>実効コストを横並びで比較</h3>
+          <p>板シミュレーターで、成行注文の想定約定価格、VWAP、スリッページ、マーケットインパクトを比較できます。</p>
+        </article>
+        <article class="home-capability-card">
+          <h3>販売所の見かけの安さを検証</h3>
+          <p>販売所の買値と売値の差を見て、取引所で買うより高くなっていないかを確認できます。</p>
+        </article>
+        <article class="home-capability-card">
+          <h3>流動性の集中先を確認</h3>
+          <p>出来高シェアから、どの取引所に売買が集まりやすいかを日次・週次・月次で追えます。</p>
+        </article>
+        <article class="home-capability-card">
+          <h3>銘柄ごとに比較ページへ遷移</h3>
+          <p>BTC だけでなく、ETH や XRP などの銘柄ごとに、板・出来高・スプレッドをまとめて確認できます。</p>
+        </article>
+      </div>
+    </section>
 
-        <div class="mb-3">
-          <label class="metric-label block mb-1" for="amount-input">数量 / 金額</label>
-          <div class="flex items-center gap-2">
-            <input id="amount-input" type="text" inputmode="decimal" placeholder="1.0" class="field amount-field flex-1 rounded px-3 py-2 text-lg">
-            <span id="amount-unit" class="text-sm text-gray-400 w-10">BTC</span>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <button id="simulate-btn" class="btn btn-primary col-span-2 py-2.5 rounded-lg font-bold text-sm" type="button">シミュレーション実行</button>
-          <button id="clear-btn" class="btn btn-ghost justify-self-start px-3 py-2.5 rounded-lg text-sm" type="button">クリア</button>
-          <button id="copy-share-url-btn" class="btn btn-secondary justify-self-end px-3 py-2.5 rounded-lg text-sm" type="button">URLコピー</button>
-          <a id="market-page-nav-link" class="btn btn-ghost col-span-2 px-3 py-2.5 rounded-lg text-sm" href="/markets/BTC-JPY">選択中の銘柄ページ</a>
-          <p id="share-url-status" class="col-span-2 text-xs text-gray-500 min-h-[1.25rem]" role="status" aria-live="polite"></p>
-        </div>
-
-        <details class="inline-disclosure mt-4">
-          <summary>
-            <span>詳細設定・保存</span>
-            <span class="inline-disclosure__meta">手数料 / お気に入り / 自動更新</span>
-          </summary>
-          <div class="inline-disclosure__content">
-            <div>
-              <label class="metric-label block mb-1" for="fee-rate">手数料率 (%)</label>
-              <input id="fee-rate" type="number" min="0" step="0.001" placeholder="既定値を使用" class="field w-full rounded px-3 py-2 text-sm font-mono">
-              <p id="fee-preset-hint" class="field-help mt-1">未入力なら選択中の取引所の既定 taker 手数料を使います。</p>
-            </div>
-
-            <div class="favorite-settings">
-              <div class="favorite-settings__header">
-                <span>お気に入り・初期設定</span>
-                <span id="settings-save-status">このブラウザに保存</span>
-              </div>
-              <div id="favorite-market-list" class="favorite-market-list" aria-label="お気に入り銘柄"></div>
-              <div class="favorite-settings__actions">
-                <button id="save-favorite-btn" class="btn btn-secondary px-3 py-2 rounded-lg text-xs" type="button">今の銘柄を保存</button>
-                <button id="clear-settings-btn" class="btn btn-ghost px-3 py-2 rounded-lg text-xs" type="button">初期設定リセット</button>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <input id="auto-update" type="checkbox" checked class="rounded bg-gray-800 border-gray-600">
-              <label for="auto-update" class="metric-label">板更新時に自動再計算</label>
-            </div>
-
-            <div class="grid grid-cols-1 gap-2 text-xs">
-              <div class="callout callout--warn">
-                <span class="callout-icon" aria-hidden="true">!</span>
-                <div class="callout-title">注文ガード</div>
-                <div class="callout-body">5%以上で自動キャンセル</div>
-              </div>
-              <div class="callout callout--danger">
-                <span class="callout-icon" aria-hidden="true">▲</span>
-                <div class="callout-title">サーキット</div>
-                <div class="callout-body">上下50%で停止想定</div>
-              </div>
-            </div>
-          </div>
-        </details>
-      </section>
-
-      <section class="panel panel--dense index-priority-6">
-        <div class="panel-title-row">
-          <h2 class="panel-title">マーケット概要</h2>
-          <span class="panel-kicker">Live Depth</span>
-        </div>
-        <div class="space-y-2 text-sm mt-3">
-          <div class="metric-row metric-row--hero"><span class="metric-label">仲値 (Mid)</span><span id="mid-price" class="metric-value metric-value--hero">-</span></div>
-          <div class="metric-row bid"><span class="metric-label">最良買気配 (Bid)</span><span id="best-bid" class="metric-value text-green-400">-</span></div>
-          <div class="metric-row ask"><span class="metric-label">最良売気配 (Ask)</span><span id="best-ask" class="metric-value text-red-400">-</span></div>
-          <div class="metric-row"><span class="metric-label">スプレッド</span><span class="metric-value"><span id="spread-jpy">-</span> <span id="spread-pct" class="text-gray-500 text-xs">(-)</span></span></div>
-          <div class="metric-row"><span id="volume-24h-label" class="metric-label">24h取引量</span><span id="volume-24h-base" class="metric-value">-</span></div>
-          <div class="metric-row"><span id="volume-24h-quote-label" class="metric-label">24h売買代金</span><span id="volume-24h-quote" class="metric-value">-</span></div>
-          <div class="metric-row"><span id="ask-volume-label" class="metric-label">Ask板数量</span><span id="ask-volume" class="metric-value">-</span></div>
-          <div class="metric-row"><span id="bid-volume-label" class="metric-label">Bid板数量</span><span id="bid-volume" class="metric-value">-</span></div>
-          <div class="metric-row"><span class="metric-label">Ask板金額</span><span id="ask-depth-jpy" class="metric-value">-</span></div>
-          <div class="metric-row"><span class="metric-label">Bid板金額</span><span id="bid-depth-jpy" class="metric-value">-</span></div>
-          <div class="metric-row"><span class="metric-label">Ask板レベル</span><span id="ask-levels" class="metric-value">-</span></div>
-          <div class="metric-row"><span class="metric-label">Bid板レベル</span><span id="bid-levels" class="metric-value">-</span></div>
-        </div>
-      </section>
-
-      <section class="panel panel--dense index-priority-7">
-        <div class="panel-title-row">
-          <div class="panel-title-with-help">
-            <h2 class="panel-title">インパクト別 必要注文</h2>
-            <button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button>
-          </div>
-          <span class="panel-kicker">Capacity</span>
-        </div>
-        <p class="text-xs text-gray-600 mb-3 mt-1">表示板でその変動率以内に収まる最大成行サイズ</p>
-        <div class="overflow-auto scrollbar-thin">
-          <table class="data-table data-table--cards text-xs">
-            <thead class="sticky top-0">
-              <tr>
-                <th id="threshold-col-impact" class="is-num text-right">変動</th>
-                <th id="threshold-col-buy" class="is-num text-right text-red-300">買い</th>
-                <th id="threshold-col-sell" class="is-num text-right text-green-300">売り</th>
-              </tr>
-            </thead>
-            <tbody id="threshold-tbody">
-              <tr><td colspan="3" class="text-center text-gray-500 py-4">板データ待機中</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="simulation-export-panel" class="panel result-panel panel--dense index-priority-3">
-        <div class="panel-title-row">
-          <h2 class="panel-title">シミュレーション結果</h2>
-          <div class="panel-header-tools">
-            <div class="export-actions" data-export-actions>
-              <button class="btn btn-ghost export-btn" type="button" data-export-kind="simulation" data-export-format="csv">CSV保存</button>
-              <button class="btn btn-secondary export-btn" type="button" data-export-kind="simulation" data-export-format="image">画像保存/共有</button>
-            </div>
-            <span class="panel-kicker">Execution</span>
-          </div>
-        </div>
-        <div id="simulation-results" class="text-sm mt-2">
-          <div class="text-gray-500 text-center py-8">シミュレーション未実行</div>
-        </div>
-      </section>
-
-      <section class="panel panel--dense index-priority-9">
-        <div class="panel-title-row">
+    <div class="home-dual-grid">
+      <section class="panel panel--dense">
+        <div class="panel-title-row mb-4">
           <div>
-            <h2 class="panel-title">ローカルアラート</h2>
-            <p id="alert-meta" class="text-xs text-gray-500 mt-1">このブラウザに保存します</p>
+            <h2 class="panel-title">初心者向け導線</h2>
+            <p class="text-xs text-gray-500 mt-1">まずは比較結果をすぐ見たい人向けのショートカットです。</p>
           </div>
-          <span class="panel-kicker">Watchlist</span>
+          <span class="panel-kicker">Beginner</span>
         </div>
-        <div class="filter-grid mt-3" aria-label="アラート条件">
-          <label class="filter-control" for="alert-type"><span>種類</span><select id="alert-type" class="field"><option value="spread">販売所スプレッド</option><option value="slippage">成行スリッページ</option></select></label>
-          <label class="filter-control" for="alert-threshold"><span>しきい値 (%)</span><input id="alert-threshold" class="field font-mono" type="number" min="0" step="0.1" value="3"></label>
+        <div class="home-link-grid">
+          <a class="home-link-card" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
+            <span class="home-link-card__eyebrow">Cost Check</span>
+            <strong class="home-link-card__title">10万円で BTC を買う比較</strong>
+            <span class="home-link-card__description">入力済みの状態で板シミュレーターを開き、どこが安いかをそのまま確認します。</span>
+          </a>
+          <a class="home-link-card" href="/sales-spread?instrumentId=BTC-JPY">
+            <span class="home-link-card__eyebrow">Spread</span>
+            <strong class="home-link-card__title">販売所スプレッド比較</strong>
+            <span class="home-link-card__description">まずは販売所の価格差を見て、販売所で買うべきかをざっくり判断できます。</span>
+          </a>
+          <a class="home-link-card" href="/articles/about">
+            <span class="home-link-card__eyebrow">Guide</span>
+            <strong class="home-link-card__title">データの見方と免責</strong>
+            <span class="home-link-card__description">公開API由来の参考値であること、投資助言ではないことを先に確認できます。</span>
+          </a>
         </div>
-        <p id="alert-help" class="text-xs text-gray-600 mt-2">現在の銘柄で、販売所スプレッドがしきい値以下になったら点灯します。</p>
-        <div class="grid grid-cols-2 gap-2 mt-3">
-          <button id="add-alert-btn" class="btn btn-secondary px-3 py-2.5 rounded-lg text-sm" type="button">今の条件を追加</button>
-          <button id="refresh-alerts-btn" class="btn btn-ghost px-3 py-2.5 rounded-lg text-sm" type="button">判定更新</button>
+      </section>
+
+      <section class="panel panel--dense">
+        <div class="panel-title-row mb-4">
+          <div>
+            <h2 class="panel-title">中級者向けツール導線</h2>
+            <p class="text-xs text-gray-500 mt-1">比較条件を細かく触りたいときは、ここから各ツールへ進めます。</p>
+          </div>
+          <span class="panel-kicker">Tools</span>
         </div>
-        <div class="overflow-auto scrollbar-thin mt-3">
-          <table class="data-table data-table--cards text-xs">
-            <thead class="sticky top-0 bg-gray-900">
-              <tr>
-                <th class="text-left">条件</th>
-                <th class="is-num text-right">最新</th>
-                <th class="text-left">状態</th>
-                <th class="text-right">操作</th>
-              </tr>
-            </thead>
-            <tbody id="alert-tbody">
-              <tr><td colspan="4" class="text-center text-gray-500 py-4">アラート未登録</td></tr>
-            </tbody>
-          </table>
+        <div class="home-link-grid">
+          <a class="home-link-card" href="/simulator">
+            <span class="home-link-card__eyebrow">Simulator</span>
+            <strong class="home-link-card__title">板シミュレーター</strong>
+            <span class="home-link-card__description">売買方向、金額、数量、手数料を指定して、実効コストを比較できます。</span>
+          </a>
+          <a class="home-link-card" href="/markets">
+            <span class="home-link-card__eyebrow">Markets</span>
+            <strong class="home-link-card__title">銘柄ページ一覧</strong>
+            <span class="home-link-card__description">銘柄ごとに対応取引所を見つけ、板・出来高・スプレッドの詳細比較へ移動できます。</span>
+          </a>
+          <a class="home-link-card" href="/volume-share">
+            <span class="home-link-card__eyebrow">Liquidity</span>
+            <strong class="home-link-card__title">出来高シェア分析</strong>
+            <span class="home-link-card__description">取引所全体の流動性や、銘柄別の集中先を期間ごとに比較できます。</span>
+          </a>
         </div>
       </section>
     </div>
 
-    <div class="index-column index-column--secondary flex-1 space-y-4 min-w-0">
-      <section class="panel chart-panel panel--dense index-priority-2">
-        <div class="panel-title-row">
-          <div class="panel-title-with-help">
-            <h2 class="panel-title">板深度チャート</h2>
-            <button class="term-help" type="button" data-term-key="orderbook" aria-label="板 の説明を開く"><span aria-hidden="true">?</span></button>
-          </div>
-          <span class="panel-kicker">Order Book Curve</span>
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">人気ページへのリンク</h2>
+          <p class="text-xs text-gray-500 mt-1">検索やSNSで見られやすいページへすぐ移動できます。</p>
         </div>
-        <div id="depth-chart-container" class="chart-container is-loading mt-3" aria-busy="true">
-          <div id="depth-chart-skeleton" class="chart-skeleton" aria-hidden="true">
-            <span class="skeleton-line chart-skeleton__line chart-skeleton__line--title"></span>
-            <div class="chart-skeleton__grid">
-              <span class="chart-skeleton__bar" style="height: 34%"></span>
-              <span class="chart-skeleton__bar" style="height: 58%"></span>
-              <span class="chart-skeleton__bar" style="height: 42%"></span>
-              <span class="chart-skeleton__bar" style="height: 78%"></span>
-              <span class="chart-skeleton__bar" style="height: 64%"></span>
-              <span class="chart-skeleton__bar" style="height: 46%"></span>
-            </div>
-          </div>
-          <canvas id="depth-chart"></canvas>
+        <span class="panel-kicker">Popular</span>
+      </div>
+      <div class="home-popular-grid">
+        <a class="home-popular-link" href="/markets/BTC-JPY">
+          <strong>BTC/JPY 銘柄ページ</strong>
+          <span>板・出来高・販売所スプレッド・実効コストを1ページで確認</span>
+        </a>
+        <a class="home-popular-link" href="/markets/ETH-JPY">
+          <strong>ETH/JPY 銘柄ページ</strong>
+          <span>ETH を扱う国内取引所の比較ページへ直接移動</span>
+        </a>
+        <a class="home-popular-link" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
+          <strong>BTC 10万円買い比較</strong>
+          <span>入力済みの比較条件で、どこが安いかを即確認</span>
+        </a>
+        <a class="home-popular-link" href="/volume-share?instrumentId=BTC-JPY&window=30d">
+          <strong>BTC 出来高シェア</strong>
+          <span>30日推移で流動性の集中先を確認</span>
+        </a>
+        <a class="home-popular-link" href="/sales-spread?instrumentId=BTC-JPY&historyWindow=30d">
+          <strong>BTC 販売所スプレッド</strong>
+          <span>30日平均まで含めて販売所の広さを比較</span>
+        </a>
+        <a class="home-popular-link" href="/articles/about">
+          <strong>サイトについて</strong>
+          <span>データ取得元、運営ポリシー、免責事項を確認</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="panel panel--dense" aria-labelledby="data-policy-title">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 id="data-policy-title" class="panel-title">データ取得元・更新頻度</h2>
+          <p class="text-xs text-gray-500 mt-1">何をどこから取得しているかと、どのくらいの頻度で更新しているかを先に公開します。</p>
         </div>
+        <span class="panel-kicker">Sources</span>
+      </div>
+      <div class="home-source-grid">
+        <article class="home-source-card">
+          <h3>板と成行シミュレーション</h3>
+          <dl>
+            <div><dt>取得元</dt><dd>各取引所の公開 WebSocket と REST fallback</dd></div>
+            <div><dt>対象</dt><dd>OKJ / Coincheck / bitFlyer / bitbank / GMOコイン / Binance Japan / BitTrade</dd></div>
+            <div><dt>更新</dt><dd>板更新ごとに反映、鮮度目安は約15秒</dd></div>
+          </dl>
+        </article>
+        <article class="home-source-card">
+          <h3>出来高シェア</h3>
+          <dl>
+            <div><dt>取得元</dt><dd>各取引所の公開 ticker / 24h volume API</dd></div>
+            <div><dt>更新</dt><dd>サーバー側で毎時更新、履歴は JST 日次スナップショット</dd></div>
+            <div><dt>補足</dt><dd>比較しやすいよう JPY 換算で集計</dd></div>
+          </dl>
+        </article>
+        <article class="home-source-card">
+          <h3>販売所スプレッド</h3>
+          <dl>
+            <div><dt>取得元</dt><dd>各社の公開 API と公開価格ページ</dd></div>
+            <div><dt>更新</dt><dd>サーバー側で毎時更新、ページ側は約60秒ごとに再取得</dd></div>
+            <div><dt>対象</dt><dd>OKJ / Coincheck / bitFlyer / bitbank / GMOコイン / BitTrade</dd></div>
+          </dl>
+        </article>
+        <article class="home-source-card">
+          <h3>手数料とキャンペーン</h3>
+          <dl>
+            <div><dt>取得元</dt><dd>各取引所の公開手数料表、公式キャンペーン告知</dd></div>
+            <div><dt>更新</dt><dd>手数料は仕様変更時に更新、キャンペーン比較は準備中</dd></div>
+            <div><dt>補足</dt><dd>シミュレーターでは既定 taker 手数料を基準にし、手動上書きも可能</dd></div>
+          </dl>
+        </article>
+      </div>
+    </section>
+
+    <div class="home-disclosure-grid">
+      <section id="campaign-policy" class="panel panel--dense home-disclosure-card">
+        <div class="panel-title-row mb-3">
+          <h2 class="panel-title">PR / アフィリエイト表記</h2>
+          <span class="panel-kicker">Disclosure</span>
+        </div>
+        <p>提携リンクや広告を掲載する場合は、PR / 広告 / アフィリエイトであることをページ上で明示します。広告の有無で、板・スプレッド・手数料・出来高の比較ロジックや並び順を変更しない方針です。</p>
+        <p class="mt-3">キャンペーン比較はこの表記ルールを固めたうえで公開します。現時点では、キャンペーンを推したいページではなく、比較条件を先に理解するためのホームとして整理しています。</p>
       </section>
 
-      <section id="venue-comparison-panel" class="panel panel--dense index-priority-4">
-        <div class="panel-title-row">
-          <div>
-            <h2 class="panel-title">取引所横断コスト比較</h2>
-            <p id="venue-comparison-meta" class="text-xs text-gray-500 mt-1">シミュレーション実行後に比較します</p>
-          </div>
-          <div class="panel-header-tools">
-            <div class="export-actions" data-export-actions>
-              <button class="btn btn-ghost export-btn" type="button" data-export-kind="venue-comparison" data-export-format="csv">CSV保存</button>
-              <button class="btn btn-secondary export-btn" type="button" data-export-kind="venue-comparison" data-export-format="image">画像保存/共有</button>
-            </div>
-            <span class="panel-kicker">Best Venue</span>
-          </div>
+      <section class="panel panel--dense home-disclosure-card">
+        <div class="panel-title-row mb-3">
+          <h2 class="panel-title">投資助言ではありません</h2>
+          <span class="panel-kicker">Risk</span>
         </div>
-        <div class="overflow-auto scrollbar-thin mt-3">
-          <table class="data-table data-table--cards text-xs">
-            <thead class="sticky top-0 bg-gray-900">
-              <tr>
-                <th id="venue-col-rank" class="is-num text-right w-12">順位</th>
-                <th id="venue-col-exchange" class="text-left">取引所</th>
-                <th id="venue-col-effective" class="is-num text-right">実効コスト</th>
-                <th id="venue-col-vwap" class="is-num text-right"><span class="term-label">実効VWAP<button class="term-help" type="button" data-term-key="vwap" aria-label="VWAP の説明を開く"><span aria-hidden="true">?</span></button></span></th>
-                <th id="venue-col-impact" class="is-num text-right"><span class="term-label">Impact<button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button></span></th>
-                <th id="venue-col-status" class="text-left">判定</th>
-                <th id="venue-col-updated" class="text-right">更新</th>
-              </tr>
-            </thead>
-            <tbody id="venue-comparison-tbody">
-              <tr><td colspan="7" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section id="sales-reference-panel" class="panel panel--dense index-priority-5">
-        <div class="panel-title-row">
-          <div>
-            <div class="panel-title-with-help">
-              <h2 class="panel-title">販売所参考コスト比較</h2>
-              <button class="term-help" type="button" data-term-key="indicative-cost" aria-label="販売所参考値 の説明を開く"><span aria-hidden="true">?</span></button>
-              <span class="reference-badge">参考値</span>
-            </div>
-            <p id="sales-reference-meta" class="reference-meta text-xs mt-1">販売所は表示価格ベースの参考値です</p>
-          </div>
-          <div class="panel-header-tools">
-            <div class="export-actions" data-export-actions>
-              <button class="btn btn-ghost export-btn" type="button" data-export-kind="sales-reference" data-export-format="csv">CSV保存</button>
-              <button class="btn btn-secondary export-btn" type="button" data-export-kind="sales-reference" data-export-format="image">画像保存/共有</button>
-            </div>
-            <span class="panel-kicker">Indicative</span>
-          </div>
-        </div>
-        <details class="inline-disclosure mt-2">
-          <summary>
-            <span>参考値の前提と注意点</span>
-            <span class="inline-disclosure__meta">実約定とは差が出る場合があります</span>
-          </summary>
-          <div class="inline-disclosure__content">
-            <p class="text-xs text-gray-600">
-              販売所は板情報がないため、表示価格が全数量に適用されると仮定した参考値です。実際の発注時には価格再提示、数量制限、約定拒否が発生する場合があります。
-            </p>
-          </div>
-        </details>
-        <div class="overflow-auto scrollbar-thin mt-3">
-          <table class="data-table data-table--cards text-xs">
-            <thead class="sticky top-0 bg-gray-900">
-              <tr>
-                <th id="sales-ref-col-rank" class="is-num text-right w-12">順位</th>
-                <th id="sales-ref-col-exchange" class="text-left">販売所</th>
-                <th id="sales-ref-col-price" class="is-num text-right">表示価格</th>
-                <th id="sales-ref-col-result" class="is-num text-right">参考結果</th>
-                <th id="sales-ref-col-delta" class="is-num text-right">最良取引所との差</th>
-                <th id="sales-ref-col-risk" class="text-left">注意</th>
-                <th id="sales-ref-col-updated" class="text-right">更新</th>
-              </tr>
-            </thead>
-            <tbody id="sales-reference-tbody">
-              <tr><td colspan="7" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="panel panel--dense index-priority-8">
-        <div class="panel-title-row">
-          <h2 class="panel-title">約定明細</h2>
-          <span class="panel-kicker">Fills</span>
-        </div>
-        <div class="overflow-auto max-h-[400px] scrollbar-thin mt-3">
-          <table class="data-table data-table--cards text-xs">
-            <thead class="sticky top-0 bg-gray-900">
-              <tr>
-                <th id="fill-col-side" class="text-left">方向</th>
-                <th id="fill-col-idx" class="is-num text-right w-12">#</th>
-                <th id="fill-col-price" class="is-num text-right">約定価格</th>
-                <th id="fill-quantity-header" class="is-num text-right">数量 (BTC)</th>
-                <th id="fill-col-subtotal" class="is-num text-right">小計 (JPY)</th>
-                <th id="fill-col-cum-base" class="is-num text-right">累計数量</th>
-                <th id="fill-col-cum-quote" class="is-num text-right">累計金額</th>
-                <th id="fill-col-impact" class="is-num text-right">累計Impact</th>
-                <th id="fill-col-orders" class="is-num text-right">注文数</th>
-              </tr>
-            </thead>
-            <tbody id="fill-tbody">
-              <tr><td colspan="9" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>
-            </tbody>
-          </table>
-        </div>
+        <p>このサイトは投資助言を目的としたものではありません。表示している価格、出来高、スプレッド、手数料は公開情報をもとに機械的に整理した参考値であり、実際の約定価格、約定可否、損益を保証するものではありません。</p>
+        <p class="mt-3">最終的な取引判断は、各取引所の公式画面、注文条件、手数料、最小発注数量、入出金条件、リスク説明を必ず確認したうえで行ってください。</p>
       </section>
     </div>
   </main>
 
-  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">
-    成行取引リアルタイム板シミュレーター | 取引所: <span id="footer-exchange-label">OKJ</span> | 銘柄: <span id="footer-instrument-label">BTC/JPY</span> | データソース: <span id="footer-source-label">OKCoin Japan WebSocket + REST fallback</span>
-  </footer>
-
-  <script src="/js/beginner-mode.js?v=2"></script>
-  <script src="js/formatter.js?v=volume-1"></script>
-  <script src="js/app-utils.js?v=app-utils-1"></script>
-  <script src="js/app-formatters.js?v=app-formatters-1"></script>
-  <script src="js/app-api.js?v=app-api-1"></script>
-  <script src="js/market-data-utils.js?v=market-data-1"></script>
-  <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/ws-client.js?v=volume-1"></script>
-  <script src="js/ui.js?v=volume-3"></script>
-  <script src="js/chart.js?v=volume-1"></script>
-  <script src="js/app.js?v=volume-11"></script>
+  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | ホーム</footer>
 </body>
 </html>
