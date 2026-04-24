@@ -30,7 +30,7 @@ URL: https://japan-crypto-information.onrender.com/simulator
 
 URL: https://japan-crypto-information.onrender.com/volume-share
 
-出来高シェアは、国内主要取引所の BTC・ETH 他銘柄の出来高シェアを日次・週次・月次で可視化するページです。取引所別シェア、銘柄別シェア、総出来高、首位取引所を確認できます。
+出来高シェアは、国内主要取引所の BTC・ETH 他銘柄の出来高シェアを JPY 換算で日次・週次・月次に可視化するページです。取引所別シェア、銘柄別シェア、総出来高、首位取引所、上位集中度、データ信頼度を確認でき、流動性の偏りを判断するために使えます。
 
 出来高は JPY 換算で表示されます。サーバー側では各取引所の 24 時間 ticker / volume API をもとに毎時更新し、履歴は JST 基準の日次スナップショットとして保存します。
 
