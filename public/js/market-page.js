@@ -87,6 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setText('market-page-subtitle', '板・出来高シェア・販売所スプレッド');
     setText('market-hero-title', `${label} 国内取引所データ`);
     setText('market-footer-label', `${label} 銘柄ページ`);
+    setText('market-summary-title', `${label} 比較サマリー`);
     if (navLink) {
       navLink.href = marketPageUrl(instrumentId);
       navLink.title = `${label} 銘柄ページ`;
@@ -156,6 +157,58 @@ document.addEventListener('DOMContentLoaded', () => {
     setText('market-best-bid', bestBid ? `${bestBid.exchangeLabel} ${fmtJpyPrice(bestBid.bestBid)}` : '-');
     setText('market-best-ask', bestAsk ? `${bestAsk.exchangeLabel} ${fmtJpyPrice(bestAsk.bestAsk)}` : '-');
     setText('market-hero-meta', `板 新鮮 ${counts.fresh}社 / stale ${counts.stale}社 / 待機 ${counts.waiting}社 | 出来高 ${summary.volume.rows.length}件 | 販売所 ${summary.sales.rows.length}件`);
+  }
+
+  function setSnapshotMetric(key, value, meta) {
+    setText(`market-summary-${key}`, value);
+    setText(`market-summary-${key}-meta`, meta);
+  }
+
+  function renderSnapshot(snapshotData) {
+    const snapshot = snapshotData && typeof snapshotData === 'object' ? snapshotData : null;
+    const defaultExchangeCount = supportedExchanges().length;
+    const amount = snapshot && snapshot.comparisonAmount ? Number(snapshot.comparisonAmount.amount) : NaN;
+    const freshnessNote = snapshot && snapshot.boardFreshness === 'stale'
+      ? '現在は stale 板を含む参考値です'
+      : '板は fresh データを優先して集計しています';
+    const assumption = Number.isFinite(amount)
+      ? `${fmtJpyPrice(amount)}買い / 各取引所既定 taker / ${freshnessNote}`
+      : `10万円買い / 各取引所既定 taker / ${freshnessNote}`;
+    setText('market-summary-assumption', assumption);
+
+    setSnapshotMetric('exchange-count', `${snapshot && Number.isFinite(Number(snapshot.exchangeCount)) ? Number(snapshot.exchangeCount) : defaultExchangeCount}社`, '国内現物の対応数');
+    setSnapshotMetric(
+      'best-ask',
+      snapshot && snapshot.bestAsk ? fmtJpyPrice(snapshot.bestAsk.price) : 'データ待ち',
+      snapshot && snapshot.bestAsk ? snapshot.bestAsk.exchangeLabel : '板データ待ち'
+    );
+    setSnapshotMetric(
+      'best-bid',
+      snapshot && snapshot.bestBid ? fmtJpyPrice(snapshot.bestBid.price) : 'データ待ち',
+      snapshot && snapshot.bestBid ? snapshot.bestBid.exchangeLabel : '板データ待ち'
+    );
+    setSnapshotMetric(
+      'thickest-book',
+      snapshot && snapshot.thickestBook ? snapshot.thickestBook.exchangeLabel : 'データ待ち',
+      snapshot && snapshot.thickestBook ? `可視板厚 ${Fmt.jpyLarge(snapshot.thickestBook.visibleDepthJPY)}` : 'Bid + Ask 可視深さ'
+    );
+    setSnapshotMetric(
+      'cheapest-buy',
+      snapshot && snapshot.cheapestBuy ? snapshot.cheapestBuy.exchangeLabel : 'データ待ち',
+      snapshot && snapshot.cheapestBuy
+        ? `${snapshot.cheapestBuy.executionStatusLabel || '参考値'} / 実効VWAP ${fmtJpyPrice(snapshot.cheapestBuy.effectiveVWAP)}`
+        : '買い / 100,000円 / 既定手数料'
+    );
+    setSnapshotMetric(
+      'tightest-sales',
+      snapshot && snapshot.tightestSalesSpread ? snapshot.tightestSalesSpread.exchangeLabel : 'データ待ち',
+      snapshot && snapshot.tightestSalesSpread ? fmtPct(snapshot.tightestSalesSpread.spreadPct) : '販売所データ待ち'
+    );
+    setSnapshotMetric(
+      'top-volume',
+      snapshot && snapshot.topVolume ? snapshot.topVolume.exchangeLabel : 'データ待ち',
+      snapshot && snapshot.topVolume ? `24h出来高 ${Fmt.jpyLarge(snapshot.topVolume.quoteVolume)}` : '出来高データ待ち'
+    );
   }
 
   function renderOrderbookRows() {
@@ -368,6 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePageLabels();
     updateFeePresetHint();
     populateBoardExchangeSelect();
+    renderSnapshot(summary && summary.snapshot);
     renderHero();
     renderOrderbookRows();
     renderVolumeRows();

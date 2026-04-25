@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-7">
+  <link rel="stylesheet" href="/css/style.css?v=ui-9">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -50,13 +50,40 @@
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
+          <h2 class="panel-title">この銘柄の要点</h2>
+          <p class="text-xs text-gray-500 mt-1">検索流入後に最初に見たい説明文と比較サマリーを、ページ冒頭にまとめています</p>
+        </div>
+        <span class="panel-kicker">Summary</span>
+      </div>
+      <div class="market-insight-grid">
+        <!-- MARKET_OVERVIEW_CARD -->
+        <!-- MARKET_COMPARISON_SUMMARY_CARD -->
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
           <h2 class="panel-title">次に見る</h2>
-          <p class="text-xs text-gray-500 mt-1">検索流入後に、この銘柄を軸に比較ページや補足記事へ続けて移動できます</p>
+          <p class="text-xs text-gray-500 mt-1">この銘柄を軸に、板シミュレーション・販売所スプレッド・出来高・取引所確認へ続けて移動できます</p>
         </div>
         <span class="panel-kicker">Next</span>
       </div>
       <div class="market-context-grid market-context-grid--links">
         <!-- MARKET_JOURNEY_LINKS -->
+      </div>
+    </section>
+
+    <section id="market-supported-exchanges" class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">この銘柄を扱う取引所</h2>
+          <p class="text-xs text-gray-500 mt-1">各取引所の詳細ページから、手数料・取扱銘柄・キャンペーン確認の入口へ進めます</p>
+        </div>
+        <span class="panel-kicker">Exchanges</span>
+      </div>
+      <div class="market-context-grid market-context-grid--links">
+        <!-- MARKET_SUPPORTED_EXCHANGE_LINKS -->
       </div>
     </section>
 
@@ -191,6 +218,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-7"></script>
+  <script src="/js/market-page.js?v=market-8"></script>
 </body>
 </html>

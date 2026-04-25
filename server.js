@@ -266,6 +266,9 @@ const marketDataService = createMarketDataService({
   volumeShareStore,
   wsManager,
 });
+siteContentService.setMarketPageSnapshotLoader((instrumentId) => marketDataService.buildMarketPageSnapshot(
+  siteContentService.getMarketInfo(instrumentId)
+));
 
 registerPageRoutes(app, {
   publicDir: PUBLIC_DIR,

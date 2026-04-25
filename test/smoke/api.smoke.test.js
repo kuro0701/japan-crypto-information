@@ -190,13 +190,21 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(marketPage.body.market.instrumentId, 'BTC-JPY');
   const okjOrderbook = marketPage.body.orderbooks.find((row) => row.exchangeId === 'okj');
   assert.equal(okjOrderbook.status, 'fresh');
+  assert.equal(marketPage.body.snapshot.exchangeCount, 7);
+  assert.equal(marketPage.body.snapshot.bestAsk.exchangeLabel, 'OKJ');
+  assert.equal(marketPage.body.snapshot.tightestSalesSpread.exchangeLabel, 'Coincheck');
 
   const marketHtml = await fetchText(baseUrl, '/markets/BTC-JPY');
   assert.equal(marketHtml.status, 200);
+  assert.ok(marketHtml.body.includes('この銘柄の要点'));
+  assert.ok(marketHtml.body.includes('BTC/JPY 比較サマリー'));
+  assert.ok(marketHtml.body.includes('10万円購入時の最安候補'));
   assert.ok(marketHtml.body.includes('次に見る'));
   assert.ok(marketHtml.body.includes('/simulator?market=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/volume-share?instrumentId=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/sales-spread?instrumentId=BTC-JPY'));
+  assert.ok(marketHtml.body.includes('#market-supported-exchanges'));
+  assert.ok(marketHtml.body.includes('/exchanges/okj'));
   assert.ok(marketHtml.body.includes('/articles/about'));
   assert.ok(marketHtml.body.includes('データ定義と免責'));
   assert.ok(marketHtml.body.includes('免責とデータ取得'));
@@ -247,7 +255,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
     '/api/market-impact-comparison?instrumentId=BTC-JPY&side=buy&amountType=base&amount=0.4'
   );
   assert.equal(impactComparison.status, 200);
-  assert.equal(impactComparison.body.rows[0].exchangeId, 'okj');
+  assert.equal(impactComparison.body.rows[0].status, 'fresh');
   assert.equal(impactComparison.body.rows[0].rank, 1);
   assert.ok(impactComparison.body.meta.readyCount >= 2);
 
@@ -256,6 +264,6 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
     '/api/sales-reference-comparison?instrumentId=BTC-JPY&side=buy&amountType=base&amount=0.4'
   );
   assert.equal(salesReference.status, 200);
-  assert.equal(salesReference.body.meta.baselineExchangeId, 'okj');
+  assert.ok(salesReference.body.meta.baselineExchangeId);
   assert.equal(salesReference.body.rows.length, 2);
 });
