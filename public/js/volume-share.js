@@ -128,6 +128,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return '最新24h収集値';
   }
 
+  function provisionalSnapshotNote(meta, latestKey, countKey) {
+    if (!meta) return '';
+    const latestDate = meta[latestKey];
+    const count = Number(meta[countKey]) || 0;
+    if (!latestDate) return '';
+    return count > 1
+      ? `暫定 ${latestDate} を含む ${count}件あり`
+      : `暫定 ${latestDate} あり`;
+  }
+
   const API_STATUS_LABELS = {
     success: '成功',
     partial: '一部失敗',
@@ -809,9 +819,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateRange = meta.earliestVolumeDateJst && meta.latestVolumeDateJst
       ? `${meta.earliestVolumeDateJst} - ${meta.latestVolumeDateJst}`
       : '最新収集値';
+    const provisionalNote = provisionalSnapshotNote(meta, 'latestProvisionalVolumeDateJst', 'provisionalDailySnapshotCount');
     setText(
       'share-meta',
-      `${label} | ${sourceLabel(meta)} | ${dateRange} | ${visibleCountLabel}`
+      [label, sourceLabel(meta), dateRange, visibleCountLabel, provisionalNote].filter(Boolean).join(' | ')
     );
 
     const summaryParts = renderKpis(filtered, meta, latestData.quality || []);
@@ -997,17 +1008,26 @@ document.addEventListener('DOMContentLoaded', () => {
         .slice(0, 6);
     }
 
+    const coverageNotes = series
+      .map((item) => {
+        const firstDate = dates.find(date => item.shareByDate.has(date) || item.rankByDate.has(date));
+        if (!firstDate || firstDate === dates[0]) return null;
+        return `${item.label} は ${firstDate} から`;
+      })
+      .filter(Boolean);
+
     return {
       dates,
       series,
       maxRank,
+      coverageNotes,
     };
   }
 
   function renderVolumeHistory() {
     if (!volumeShareHistoryChart || !volumeRankHistoryChart) return;
 
-    const { dates, series, maxRank } = buildVolumeHistorySeries();
+    const { dates, series, maxRank, coverageNotes } = buildVolumeHistorySeries();
     const labels = dates.map(shortDate);
     const shareDatasets = series.map((item, index) => {
       const color = chartColor(index);
@@ -1053,12 +1073,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const instrumentLabel = selectedOptionLabel('volume-instrument-filter', '全銘柄');
     const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '上位取引所');
     const seriesLabel = series.length > 0 ? `${series.length}系列` : '該当なし';
+    const provisionalNote = provisionalSnapshotNote(volumeHistoryMeta, 'latestProvisionalVolumeDateJst', 'provisionalDailySnapshotCount');
 
     setText(
       'volume-history-meta',
-      `${instrumentLabel} | ${exchangeLabel} | ${range} | ${seriesLabel} | ${historySourceLabel(volumeHistoryMeta)}`
+      [instrumentLabel, exchangeLabel, range, seriesLabel, historySourceLabel(volumeHistoryMeta), provisionalNote].filter(Boolean).join(' | ')
     );
-    setText('volume-rank-meta', series.length > 0 ? `最大 ${maxRank}位までの日次順位` : '順位データ待ち');
+    const coverageNote = coverageNotes.length > 0 ? `途中追加: ${coverageNotes.slice(0, 2).join(' / ')}` : '';
+    setText(
+      'volume-rank-meta',
+      series.length > 0
+        ? [`最大 ${maxRank}位までの日次順位`, coverageNote].filter(Boolean).join(' | ')
+        : '順位データ待ち'
+    );
   }
 
   async function loadShare() {

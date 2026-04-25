@@ -109,6 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return '記録待ち';
   }
 
+  function provisionalSnapshotNote(meta, latestKey, countKey) {
+    if (!meta) return '';
+    const latestDate = meta[latestKey];
+    const count = Number(meta[countKey]) || 0;
+    if (!latestDate) return '';
+    return count > 1
+      ? `暫定 ${latestDate} を含む ${count}件あり`
+      : `暫定 ${latestDate} あり`;
+  }
+
   const API_STATUS_LABELS = {
     success: '成功',
     partial: '一部失敗',
@@ -779,10 +789,16 @@ document.addEventListener('DOMContentLoaded', () => {
       ? `${windows['30d'].earliestSpreadDateJst} - ${windows['30d'].latestSpreadDateJst}`
       : '最新収集値';
     const visibleCountLabel = hasActiveFilters() ? `${rows.length}/${allRows.length}件` : `${allRows.length}件`;
+    const provisionalNote = provisionalSnapshotNote(latestMeta, 'latestProvisionalSpreadDateJst', 'provisionalDailySnapshotCount');
 
     setText(
       'spread-meta',
-      `${Object.keys(WINDOW_LABELS).map(key => `${WINDOW_LABELS[key]} ${sourceLabel(windows[key])}`).join(' | ')} | ${range30d} | ${visibleCountLabel}`
+      [
+        `${Object.keys(WINDOW_LABELS).map(key => `${WINDOW_LABELS[key]} ${sourceLabel(windows[key])}`).join(' | ')}`,
+        range30d,
+        visibleCountLabel,
+        provisionalNote,
+      ].filter(Boolean).join(' | ')
     );
   }
 
@@ -924,9 +940,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const range = spreadHistoryMeta.earliestSpreadDateJst && spreadHistoryMeta.latestSpreadDateJst
       ? `${spreadHistoryMeta.earliestSpreadDateJst} - ${spreadHistoryMeta.latestSpreadDateJst}`
       : '履歴データ待ち';
+    const provisionalNote = provisionalSnapshotNote(spreadHistoryMeta, 'latestProvisionalSpreadDateJst', 'provisionalDailySnapshotCount');
     setText(
       'spread-history-meta',
-      `${instrumentLabel} | ${range} | ${series.length > 0 ? `${series.length}系列` : '該当なし'} | ${historySourceLabel(spreadHistoryMeta)}`
+      [instrumentLabel, range, series.length > 0 ? `${series.length}系列` : '該当なし', historySourceLabel(spreadHistoryMeta), provisionalNote].filter(Boolean).join(' | ')
     );
     writeUrlState();
   }

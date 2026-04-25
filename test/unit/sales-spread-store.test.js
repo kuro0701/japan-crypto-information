@@ -105,11 +105,19 @@ test('SalesSpreadStore excludes provisional current-day snapshots from multi-day
 
   const report = store.getReport({ now: '2026-04-25T12:00:00.000+09:00' });
   assert.equal(report.meta.availableDailySnapshotCount, 1);
+  assert.equal(report.meta.totalDailySnapshotCount, 2);
+  assert.equal(report.meta.provisionalDailySnapshotCount, 1);
+  assert.equal(report.meta.latestRecordedSpreadDateJst, '2026-04-25');
+  assert.equal(report.meta.latestProvisionalSpreadDateJst, '2026-04-25');
   assert.equal(report.meta.windows['7d'].sampleSnapshotCount, 1);
   assert.equal(report.rows[0].averages['7d'].spreadPct, 1);
 
   const history = store.getHistory('30d', { now: '2026-04-25T12:00:00.000+09:00' });
   assert.equal(history.meta.availableDailySnapshotCount, 1);
+  assert.equal(history.meta.totalDailySnapshotCount, 2);
+  assert.equal(history.meta.provisionalDailySnapshotCount, 1);
+  assert.equal(history.meta.latestRecordedSpreadDateJst, '2026-04-25');
+  assert.equal(history.meta.latestProvisionalSpreadDateJst, '2026-04-25');
   assert.equal(history.meta.historySnapshotCount, 1);
   assert.deepEqual(history.rows.map(row => row.date), ['2026-04-24']);
 });
