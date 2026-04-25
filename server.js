@@ -26,6 +26,12 @@ const { calculateImpact } = require('./lib/impact-calculator');
 const { renderHeadMeta } = require('./lib/head-meta');
 const { getArticle, listArticles } = require('./lib/content');
 const {
+  CORE_SALES_SNAPSHOT_EXCHANGE_IDS,
+  CORE_VOLUME_SNAPSHOT_EXCHANGE_IDS,
+  buildSnapshotCoverage,
+  shouldCaptureSnapshot,
+} = require('./lib/snapshot-coverage');
+const {
   DEFAULT_EXCHANGE_ID,
   DEFAULT_OKJ_INSTRUMENT_ID,
   COINCHECK_EXCHANGE_ID,
@@ -163,6 +169,7 @@ function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/sales-spread' || reqPath === '/sales-spread.html') return '/sales-spread';
   if (reqPath === '/markets' || reqPath === '/markets.html') return '/markets';
   if (/^\/markets\/[A-Z0-9]+-[A-Z0-9]+$/i.test(reqPath)) return reqPath.toUpperCase();
+  if (/^\/exchanges\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
   return null;
 }
 
@@ -399,6 +406,7 @@ async function refreshAllVolumeTickers(source = 'scheduled') {
     const capturedAt = new Date();
     const records = [];
     const errors = [];
+    const exchangeRecordCounts = new Map();
     volumeShareStore.setRefreshStatus({
       running: true,
       startedAt: capturedAt.toISOString(),
@@ -410,6 +418,7 @@ async function refreshAllVolumeTickers(source = 'scheduled') {
       const client = clientsByExchange.get(exchange.id);
       if (!client || typeof client.fetchTicker !== 'function') continue;
 
+      let capturedCountForExchange = 0;
       for (const market of exchange.markets || []) {
         if (market.status && market.status !== 'active') continue;
 
@@ -423,7 +432,10 @@ async function refreshAllVolumeTickers(source = 'scheduled') {
               instrumentId: rawTicker.instrument_id || rawTicker.instrumentId || market.instrumentId,
             });
             const record = volumeShareStore.buildRecord(ticker, exchange, market, capturedAt);
-            if (record) records.push(record);
+            if (record) {
+              records.push(record);
+              capturedCountForExchange += 1;
+            }
           }
         } catch (err) {
           errors.push({
@@ -435,7 +447,17 @@ async function refreshAllVolumeTickers(source = 'scheduled') {
 
         await sleep(TICKER_FETCH_DELAY_MS);
       }
+
+      exchangeRecordCounts.set(exchange.id, capturedCountForExchange);
+      if (capturedCountForExchange === 0) {
+        errors.push({
+          exchangeId: exchange.id,
+          message: 'No ticker records captured for this refresh window.',
+        });
+      }
     }
+
+    const snapshotCoverage = buildSnapshotCoverage(records, CORE_VOLUME_SNAPSHOT_EXCHANGE_IDS);
 
     if (records.length > 0) {
       volumeShareStore.replaceLatest(records, source, {
@@ -455,6 +477,8 @@ async function refreshAllVolumeTickers(source = 'scheduled') {
       capturedAt: capturedAt.toISOString(),
       records,
       errors,
+      exchangeRecordCounts: Object.fromEntries(exchangeRecordCounts),
+      missingRequiredExchangeIds: snapshotCoverage.missingRequiredExchangeIds,
     };
   })().finally(() => {
     volumeRefreshPromise = null;
@@ -469,6 +493,7 @@ async function refreshSalesSpreadRecords(source = 'scheduled') {
   salesSpreadRefreshPromise = (async () => {
     const capturedAt = new Date();
     const errors = [];
+    const exchangeRecordCounts = new Map();
     salesSpreadStore.setRefreshStatus({
       running: true,
       startedAt: capturedAt.toISOString(),
@@ -514,17 +539,31 @@ async function refreshSalesSpreadRecords(source = 'scheduled') {
       try {
         const exchange = getPublicExchangeById(sourceConfig.exchangeId, sourceConfig.label);
         const currencies = await sourceConfig.client.fetchCurrencies();
+        let capturedCountForExchange = 0;
         for (const item of currencies) {
           const record = salesSpreadStore.buildRecord(item, exchange, capturedAt);
-          if (record) records.push(record);
+          if (record) {
+            records.push(record);
+            capturedCountForExchange += 1;
+          }
+        }
+        exchangeRecordCounts.set(sourceConfig.exchangeId, capturedCountForExchange);
+        if (capturedCountForExchange === 0) {
+          errors.push({
+            exchangeId: sourceConfig.exchangeId,
+            message: 'No sales spread records captured for this refresh window.',
+          });
         }
       } catch (err) {
+        exchangeRecordCounts.set(sourceConfig.exchangeId, 0);
         errors.push({
           exchangeId: sourceConfig.exchangeId,
           message: err.message,
         });
       }
     }
+
+    const snapshotCoverage = buildSnapshotCoverage(records, CORE_SALES_SNAPSHOT_EXCHANGE_IDS);
 
     if (records.length > 0) {
       salesSpreadStore.replaceLatest(records, source, {
@@ -544,6 +583,8 @@ async function refreshSalesSpreadRecords(source = 'scheduled') {
       capturedAt: capturedAt.toISOString(),
       records,
       errors,
+      exchangeRecordCounts: Object.fromEntries(exchangeRecordCounts),
+      missingRequiredExchangeIds: snapshotCoverage.missingRequiredExchangeIds,
     };
   })().finally(() => {
     salesSpreadRefreshPromise = null;
@@ -553,7 +594,14 @@ async function refreshSalesSpreadRecords(source = 'scheduled') {
 }
 
 function captureVolumeSnapshotFromResult(result, reason, options = {}) {
-  if (!result || result.records.length === 0) return null;
+  const snapshotDecision = shouldCaptureSnapshot(result, CORE_VOLUME_SNAPSHOT_EXCHANGE_IDS);
+  if (!snapshotDecision.allowed) {
+    if (!result || !Array.isArray(result.records) || result.records.length === 0) return null;
+    console.warn(
+      `[Volume Share] Skipped ${reason} snapshot because required exchanges were missing: ${snapshotDecision.missingRequiredExchangeIds.join(', ')}`
+    );
+    return null;
+  }
   const capturedAt = new Date(result.capturedAt);
   const volumeDateJst = options.volumeDateJst || VolumeShareStore.getJstDate(capturedAt);
 
@@ -585,7 +633,14 @@ async function captureDailySalesSpreadSnapshot(reason = 'jst-midnight') {
 }
 
 function captureSalesSpreadSnapshotFromResult(result, reason, options = {}) {
-  if (!result || result.records.length === 0) return null;
+  const snapshotDecision = shouldCaptureSnapshot(result, CORE_SALES_SNAPSHOT_EXCHANGE_IDS);
+  if (!snapshotDecision.allowed) {
+    if (!result || !Array.isArray(result.records) || result.records.length === 0) return null;
+    console.warn(
+      `[Sales Spread] Skipped ${reason} snapshot because required exchanges were missing: ${snapshotDecision.missingRequiredExchangeIds.join(', ')}`
+    );
+    return null;
+  }
   const capturedAt = new Date(result.capturedAt);
   const spreadDateJst = options.spreadDateJst || SalesSpreadStore.getJstDate(capturedAt);
 

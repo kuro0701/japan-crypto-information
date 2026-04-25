@@ -37,7 +37,10 @@
 
   function exchangePageUrl(exchangeId) {
     const normalized = String(exchangeId || '').trim().toLowerCase();
-    return `/exchanges/${encodeURIComponent(normalized || 'okj')}`;
+    const slug = ({
+      gmo: 'gmo-coin',
+    })[normalized] || normalized || 'okj';
+    return `/exchanges/${encodeURIComponent(slug)}`;
   }
 
   function cssVar(name, fallback) {

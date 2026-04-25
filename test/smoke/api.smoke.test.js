@@ -221,8 +221,20 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(exchangeHtml.status, 200);
   assert.ok(exchangeHtml.body.includes('取引所詳細'));
   assert.ok(exchangeHtml.body.includes('OKCoin Japan'));
+  assert.ok(exchangeHtml.body.includes('板取引対応銘柄'));
+  assert.ok(exchangeHtml.body.includes('販売所対応銘柄'));
+  assert.ok(exchangeHtml.body.includes('公式リンク / 紹介リンク'));
   assert.ok(exchangeHtml.body.includes('/simulator?exchange=okj&amp;market=BTC-JPY'));
   assert.ok(exchangeHtml.body.includes('/#campaign-policy'));
+
+  const gmoLegacy = await fetch(new URL('/exchanges/gmo', baseUrl), { redirect: 'manual' });
+  assert.equal(gmoLegacy.status, 301);
+  assert.equal(gmoLegacy.headers.get('location'), '/exchanges/gmo-coin');
+
+  const gmoHtml = await fetchText(baseUrl, '/exchanges/gmo-coin');
+  assert.equal(gmoHtml.status, 200);
+  assert.ok(gmoHtml.body.includes('GMO Coin'));
+  assert.ok(gmoHtml.body.includes('キャンペーン・プログラム一覧を公式で確認'));
 
   const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
   assert.equal(volumeSharePage.status, 200);
