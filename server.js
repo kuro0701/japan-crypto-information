@@ -29,7 +29,6 @@ const {
   CORE_SALES_SNAPSHOT_EXCHANGE_IDS,
   CORE_VOLUME_SNAPSHOT_EXCHANGE_IDS,
   buildSnapshotCoverage,
-  shouldCaptureSnapshot,
 } = require('./lib/snapshot-coverage');
 const {
   DEFAULT_EXCHANGE_ID,
@@ -594,13 +593,12 @@ async function refreshSalesSpreadRecords(source = 'scheduled') {
 }
 
 function captureVolumeSnapshotFromResult(result, reason, options = {}) {
-  const snapshotDecision = shouldCaptureSnapshot(result, CORE_VOLUME_SNAPSHOT_EXCHANGE_IDS);
-  if (!snapshotDecision.allowed) {
-    if (!result || !Array.isArray(result.records) || result.records.length === 0) return null;
+  if (!result || !Array.isArray(result.records) || result.records.length === 0) return null;
+  const snapshotCoverage = buildSnapshotCoverage(result.records, CORE_VOLUME_SNAPSHOT_EXCHANGE_IDS);
+  if (!snapshotCoverage.isComplete) {
     console.warn(
-      `[Volume Share] Skipped ${reason} snapshot because required exchanges were missing: ${snapshotDecision.missingRequiredExchangeIds.join(', ')}`
+      `[Volume Share] Capturing partial ${reason} snapshot because required exchanges were missing: ${snapshotCoverage.missingRequiredExchangeIds.join(', ')}`
     );
-    return null;
   }
   const capturedAt = new Date(result.capturedAt);
   const volumeDateJst = options.volumeDateJst || VolumeShareStore.getJstDate(capturedAt);
@@ -613,6 +611,8 @@ function captureVolumeSnapshotFromResult(result, reason, options = {}) {
     capturedAt: result.capturedAt,
     reason,
     volumeDateJst,
+    capturedExchangeIds: snapshotCoverage.capturedExchangeIds,
+    missingRequiredExchangeIds: snapshotCoverage.missingRequiredExchangeIds,
   });
 }
 
@@ -633,13 +633,12 @@ async function captureDailySalesSpreadSnapshot(reason = 'jst-midnight') {
 }
 
 function captureSalesSpreadSnapshotFromResult(result, reason, options = {}) {
-  const snapshotDecision = shouldCaptureSnapshot(result, CORE_SALES_SNAPSHOT_EXCHANGE_IDS);
-  if (!snapshotDecision.allowed) {
-    if (!result || !Array.isArray(result.records) || result.records.length === 0) return null;
+  if (!result || !Array.isArray(result.records) || result.records.length === 0) return null;
+  const snapshotCoverage = buildSnapshotCoverage(result.records, CORE_SALES_SNAPSHOT_EXCHANGE_IDS);
+  if (!snapshotCoverage.isComplete) {
     console.warn(
-      `[Sales Spread] Skipped ${reason} snapshot because required exchanges were missing: ${snapshotDecision.missingRequiredExchangeIds.join(', ')}`
+      `[Sales Spread] Capturing partial ${reason} snapshot because required exchanges were missing: ${snapshotCoverage.missingRequiredExchangeIds.join(', ')}`
     );
-    return null;
   }
   const capturedAt = new Date(result.capturedAt);
   const spreadDateJst = options.spreadDateJst || SalesSpreadStore.getJstDate(capturedAt);
@@ -652,6 +651,8 @@ function captureSalesSpreadSnapshotFromResult(result, reason, options = {}) {
     capturedAt: result.capturedAt,
     reason,
     spreadDateJst,
+    capturedExchangeIds: snapshotCoverage.capturedExchangeIds,
+    missingRequiredExchangeIds: snapshotCoverage.missingRequiredExchangeIds,
   });
 }
 

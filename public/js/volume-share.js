@@ -138,6 +138,16 @@ document.addEventListener('DOMContentLoaded', () => {
       : `暫定 ${latestDate} あり`;
   }
 
+  function partialSnapshotNote(meta, latestKey, countKey) {
+    if (!meta) return '';
+    const latestDate = meta[latestKey];
+    const count = Number(meta[countKey]) || 0;
+    if (!latestDate || count < 1) return '';
+    return count > 1
+      ? `欠損あり ${latestDate} まで ${count}件`
+      : `欠損あり ${latestDate}`;
+  }
+
   const API_STATUS_LABELS = {
     success: '成功',
     partial: '一部失敗',
@@ -820,9 +830,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ? `${meta.earliestVolumeDateJst} - ${meta.latestVolumeDateJst}`
       : '最新収集値';
     const provisionalNote = provisionalSnapshotNote(meta, 'latestProvisionalVolumeDateJst', 'provisionalDailySnapshotCount');
+    const partialNote = partialSnapshotNote(meta, 'latestPartialVolumeDateJst', 'partialDailySnapshotCount');
     setText(
       'share-meta',
-      [label, sourceLabel(meta), dateRange, visibleCountLabel, provisionalNote].filter(Boolean).join(' | ')
+      [label, sourceLabel(meta), dateRange, visibleCountLabel, provisionalNote, partialNote].filter(Boolean).join(' | ')
     );
 
     const summaryParts = renderKpis(filtered, meta, latestData.quality || []);
@@ -1074,10 +1085,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '上位取引所');
     const seriesLabel = series.length > 0 ? `${series.length}系列` : '該当なし';
     const provisionalNote = provisionalSnapshotNote(volumeHistoryMeta, 'latestProvisionalVolumeDateJst', 'provisionalDailySnapshotCount');
+    const partialNote = partialSnapshotNote(volumeHistoryMeta, 'latestPartialVolumeDateJst', 'partialDailySnapshotCount');
 
     setText(
       'volume-history-meta',
-      [instrumentLabel, exchangeLabel, range, seriesLabel, historySourceLabel(volumeHistoryMeta), provisionalNote].filter(Boolean).join(' | ')
+      [instrumentLabel, exchangeLabel, range, seriesLabel, historySourceLabel(volumeHistoryMeta), provisionalNote, partialNote].filter(Boolean).join(' | ')
     );
     const coverageNote = coverageNotes.length > 0 ? `途中追加: ${coverageNotes.slice(0, 2).join(' / ')}` : '';
     setText(

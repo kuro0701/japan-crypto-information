@@ -154,3 +154,37 @@ test('VolumeShareStore excludes provisional current-day snapshots from history w
   assert.equal(share.meta.latestProvisionalVolumeDateJst, '2026-04-25');
   assert.equal(share.meta.totalQuoteVolume, 100);
 });
+
+test('VolumeShareStore tracks partial snapshot coverage without dropping history', (t) => {
+  const tempDir = createTempDir('okj-volume-store-partial-');
+  t.after(() => removeTempDir(tempDir));
+
+  const store = new VolumeShareStore({
+    dataFilePath: path.join(tempDir, 'volume-share-history.json'),
+  });
+
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 100, '2026-04-24T15:05:00.000Z'),
+    volumeRecord('coincheck', 'BTC-JPY', 200, '2026-04-24T15:05:00.000Z'),
+  ], {
+    capturedAt: '2026-04-24T15:05:00.000Z',
+    volumeDateJst: '2026-04-24',
+    reason: 'jst-midnight',
+    capturedExchangeIds: ['coincheck', 'okj'],
+  });
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 150, '2026-04-25T15:05:00.000Z'),
+  ], {
+    capturedAt: '2026-04-25T15:05:00.000Z',
+    volumeDateJst: '2026-04-25',
+    reason: 'jst-midnight',
+    capturedExchangeIds: ['okj'],
+    missingRequiredExchangeIds: ['coincheck'],
+  });
+
+  const history = store.getHistory('30d', { now: '2026-04-26T12:00:00.000+09:00' });
+  assert.equal(history.meta.historySnapshotCount, 2);
+  assert.equal(history.meta.partialDailySnapshotCount, 1);
+  assert.equal(history.meta.latestPartialVolumeDateJst, '2026-04-25');
+  assert.deepEqual(history.rows.map(row => row.date), ['2026-04-24', '2026-04-24', '2026-04-25']);
+});

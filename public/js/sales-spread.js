@@ -119,6 +119,16 @@ document.addEventListener('DOMContentLoaded', () => {
       : `暫定 ${latestDate} あり`;
   }
 
+  function partialSnapshotNote(meta, latestKey, countKey) {
+    if (!meta) return '';
+    const latestDate = meta[latestKey];
+    const count = Number(meta[countKey]) || 0;
+    if (!latestDate || count < 1) return '';
+    return count > 1
+      ? `欠損あり ${latestDate} まで ${count}件`
+      : `欠損あり ${latestDate}`;
+  }
+
   const API_STATUS_LABELS = {
     success: '成功',
     partial: '一部失敗',
@@ -790,6 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : '最新収集値';
     const visibleCountLabel = hasActiveFilters() ? `${rows.length}/${allRows.length}件` : `${allRows.length}件`;
     const provisionalNote = provisionalSnapshotNote(latestMeta, 'latestProvisionalSpreadDateJst', 'provisionalDailySnapshotCount');
+    const partialNote = partialSnapshotNote(latestMeta, 'latestPartialSpreadDateJst', 'partialDailySnapshotCount');
 
     setText(
       'spread-meta',
@@ -798,6 +809,7 @@ document.addEventListener('DOMContentLoaded', () => {
         range30d,
         visibleCountLabel,
         provisionalNote,
+        partialNote,
       ].filter(Boolean).join(' | ')
     );
   }
@@ -941,9 +953,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ? `${spreadHistoryMeta.earliestSpreadDateJst} - ${spreadHistoryMeta.latestSpreadDateJst}`
       : '履歴データ待ち';
     const provisionalNote = provisionalSnapshotNote(spreadHistoryMeta, 'latestProvisionalSpreadDateJst', 'provisionalDailySnapshotCount');
+    const partialNote = partialSnapshotNote(spreadHistoryMeta, 'latestPartialSpreadDateJst', 'partialDailySnapshotCount');
     setText(
       'spread-history-meta',
-      [instrumentLabel, range, series.length > 0 ? `${series.length}系列` : '該当なし', historySourceLabel(spreadHistoryMeta), provisionalNote].filter(Boolean).join(' | ')
+      [instrumentLabel, range, series.length > 0 ? `${series.length}系列` : '該当なし', historySourceLabel(spreadHistoryMeta), provisionalNote, partialNote].filter(Boolean).join(' | ')
     );
     writeUrlState();
   }

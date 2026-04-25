@@ -121,3 +121,37 @@ test('SalesSpreadStore excludes provisional current-day snapshots from multi-day
   assert.equal(history.meta.historySnapshotCount, 1);
   assert.deepEqual(history.rows.map(row => row.date), ['2026-04-24']);
 });
+
+test('SalesSpreadStore tracks partial snapshot coverage without dropping history', (t) => {
+  const tempDir = createTempDir('okj-sales-store-partial-');
+  t.after(() => removeTempDir(tempDir));
+
+  const store = new SalesSpreadStore({
+    dataFilePath: path.join(tempDir, 'sales-spread-history.json'),
+  });
+
+  store.captureDaily([
+    spreadRecord('okj', 1.0, '2026-04-24T15:05:00.000Z'),
+    spreadRecord('coincheck', 0.8, '2026-04-24T15:05:00.000Z'),
+  ], {
+    capturedAt: '2026-04-24T15:05:00.000Z',
+    spreadDateJst: '2026-04-24',
+    reason: 'jst-midnight',
+    capturedExchangeIds: ['coincheck', 'okj'],
+  });
+  store.captureDaily([
+    spreadRecord('okj', 1.1, '2026-04-25T15:05:00.000Z'),
+  ], {
+    capturedAt: '2026-04-25T15:05:00.000Z',
+    spreadDateJst: '2026-04-25',
+    reason: 'jst-midnight',
+    capturedExchangeIds: ['okj'],
+    missingRequiredExchangeIds: ['coincheck'],
+  });
+
+  const history = store.getHistory('30d', { now: '2026-04-26T12:00:00.000+09:00' });
+  assert.equal(history.meta.historySnapshotCount, 2);
+  assert.equal(history.meta.partialDailySnapshotCount, 1);
+  assert.equal(history.meta.latestPartialSpreadDateJst, '2026-04-25');
+  assert.deepEqual(history.rows.map(row => row.date), ['2026-04-24', '2026-04-24', '2026-04-25']);
+});
