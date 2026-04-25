@@ -201,6 +201,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketHtml.body.includes('データ定義と免責'));
   assert.ok(marketHtml.body.includes('免責とデータ取得'));
 
+  const marketsHtml = await fetchText(baseUrl, '/markets');
+  assert.equal(marketsHtml.status, 200);
+  assert.ok(marketsHtml.body.includes('国内取引所で買える暗号資産を、対応取引所数・板の有無・販売所スプレッド・出来高の観点で比較できます。'));
+  assert.ok(marketsHtml.body.includes('カテゴリから探す'));
+  assert.ok(marketsHtml.body.includes('主要銘柄'));
+  assert.ok(marketsHtml.body.includes('コスト比較を見る'));
+  assert.ok(marketsHtml.body.includes('購入前に実効コストを確認することが重要です。'));
+
   const exchangeHtml = await fetchText(baseUrl, '/exchanges/okj');
   assert.equal(exchangeHtml.status, 200);
   assert.ok(exchangeHtml.body.includes('取引所詳細'));

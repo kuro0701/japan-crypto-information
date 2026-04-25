@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-7">
+  <link rel="stylesheet" href="/css/style.css?v=ui-8">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -40,9 +40,17 @@
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">銘柄ページ</h2>
-          <p class="text-xs text-gray-500 mt-1">板、出来高シェア、販売所スプレッド、取引所別比較を銘柄ごとに確認できます</p>
+          <p class="text-xs text-gray-500 mt-1">対応取引所数、板、販売所スプレッド、出来高の観点で国内銘柄を比較できます</p>
         </div>
         <span class="panel-kicker">Markets</span>
+      </div>
+      <div class="market-index-intro">
+        <div class="market-index-intro__copy">
+          <p class="market-index-intro__lead">国内取引所で買える暗号資産を、対応取引所数・板の有無・販売所スプレッド・出来高の観点で比較できます。</p>
+          <div class="market-category-nav" aria-label="カテゴリから探す">
+            <!-- MARKET_CATEGORY_NAV -->
+          </div>
+        </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         <div class="metric-row metric-row--hero"><span class="metric-label">掲載銘柄</span><span class="metric-value metric-value--hero">__MARKET_COUNT__</span></div>
@@ -51,6 +59,19 @@
       <div class="filter-grid" aria-label="銘柄ページフィルター">
         <label class="filter-control" for="market-index-search"><span>銘柄検索</span><input id="market-index-search" class="field font-mono" type="search" placeholder="BTC / XRP / bitbank"></label>
         <label class="filter-control" for="market-index-exchange"><span>取引所</span><select id="market-index-exchange" class="field" aria-label="取引所で絞り込み">__MARKET_INDEX_EXCHANGE_OPTIONS__</select></label>
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-3">
+        <div>
+          <h2 class="panel-title">カテゴリから探す</h2>
+          <p class="text-xs text-gray-500 mt-1">主要銘柄からニッチ銘柄まで、比較の切り口ごとに銘柄ページへ進めます</p>
+        </div>
+        <span class="panel-kicker">Categories</span>
+      </div>
+      <div class="market-category-sections">
+        <!-- MARKET_CATEGORY_SECTIONS -->
       </div>
     </section>
 
@@ -66,6 +87,19 @@
         <!-- MARKET_INDEX_LIST -->
       </div>
       <p id="market-index-empty" class="text-center text-gray-500 py-8 hidden">該当する銘柄はありません</p>
+    </section>
+
+    <section class="panel panel--dense">
+      <div class="callout callout--warn">
+        <span class="callout-icon" aria-hidden="true">!</span>
+        <div class="callout-title">取扱取引所数が多い銘柄でも条件は同じではありません</div>
+        <div class="callout-body">取扱取引所数が多い銘柄でも、板の厚み・スプレッド・手数料は取引所ごとに異なります。</div>
+      </div>
+      <div class="callout mt-3">
+        <span class="callout-icon" aria-hidden="true">i</span>
+        <div class="callout-title">購入前の確認ポイント</div>
+        <div class="callout-body">購入前に実効コストを確認することが重要です。</div>
+      </div>
     </section>
   </main>
 

@@ -152,6 +152,8 @@ const siteContentService = createSiteContentService({
   listArticles,
   publicDir: PUBLIC_DIR,
   renderHeadMeta,
+  salesSpreadStore,
+  volumeShareStore,
 });
 
 function normalizeAnalyticsRoute(reqPath) {
