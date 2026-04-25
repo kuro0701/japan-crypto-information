@@ -213,6 +213,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const salesSpreadPage = await fetchText(baseUrl, '/sales-spread?instrumentId=BTC-JPY');
   assert.equal(salesSpreadPage.status, 200);
+  assert.ok(salesSpreadPage.body.includes('販売所スプレッドとは？'));
+  assert.ok(salesSpreadPage.body.includes('現在スプレッドが狭い銘柄TOP10'));
+  assert.ok(salesSpreadPage.body.includes('BTC/JPYの取引所コストを確認する'));
 
   const volumeShare = await fetchJson(baseUrl, '/api/volume-share?window=7d');
   assert.equal(volumeShare.status, 200);

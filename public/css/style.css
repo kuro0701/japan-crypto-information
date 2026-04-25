@@ -1044,6 +1044,187 @@ input.field[inputmode="decimal"] {
   gap: var(--sp-2);
 }
 
+.spread-intro-card {
+  border-color: rgba(244, 201, 93, 0.24);
+  background:
+    radial-gradient(circle at top right, rgba(244, 201, 93, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(18, 16, 10, 0.96), rgba(11, 12, 10, 0.96));
+}
+
+.spread-orderbook-card {
+  border-color: rgba(53, 224, 165, 0.2);
+  background:
+    radial-gradient(circle at top right, rgba(53, 224, 165, 0.12), transparent 34%),
+    linear-gradient(135deg, rgba(8, 15, 14, 0.96), rgba(8, 12, 14, 0.96));
+}
+
+.spread-ranking-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--sp-3);
+}
+
+.spread-ranking-card {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background:
+    linear-gradient(180deg, rgba(18, 24, 26, 0.9), rgba(11, 16, 18, 0.92));
+  box-shadow: var(--shadow-sm);
+}
+
+.spread-ranking-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.spread-ranking-card__title {
+  margin: 0;
+  color: var(--text-1);
+  font-size: var(--fs-md);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.spread-ranking-card__meta {
+  margin: 6px 0 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.spread-ranking-list {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spread-ranking-item {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: var(--sp-2);
+  align-items: flex-start;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line-weak);
+}
+
+.spread-ranking-item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.spread-ranking-item__rank {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(53, 200, 210, 0.3);
+  border-radius: 999px;
+  background: rgba(53, 200, 210, 0.1);
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+}
+
+.spread-ranking-item__copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.spread-ranking-item__topline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sp-2);
+  align-items: flex-start;
+}
+
+.spread-ranking-item__title {
+  min-width: 0;
+  color: var(--text-1);
+  font-size: var(--fs-md);
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.spread-ranking-item__title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.spread-ranking-item__title a:hover,
+.spread-ranking-item__title a:focus-visible {
+  text-decoration: underline;
+}
+
+.spread-ranking-item__subtitle {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.spread-ranking-item__metric {
+  text-align: right;
+}
+
+.spread-ranking-item__value {
+  color: var(--text-1);
+  font-size: var(--fs-md);
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.spread-ranking-item__value--positive {
+  color: var(--bid);
+}
+
+.spread-ranking-item__value--caution {
+  color: var(--warn);
+}
+
+.spread-ranking-item__value--danger {
+  color: var(--ask);
+}
+
+.spread-ranking-item__note {
+  color: var(--text-4);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.spread-ranking-item__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.spread-ranking-item__delta {
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
+.spread-ranking-empty,
+.spread-orderbook-empty {
+  margin: 0;
+  padding: var(--sp-3);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  background: rgba(17, 22, 24, 0.48);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
 .comparison-row-link {
   color: var(--accent);
   font-size: 10px;
@@ -2587,6 +2768,23 @@ th {
 
   .decision-summary-card__actions {
     display: grid;
+  }
+
+  .spread-ranking-item {
+    grid-template-columns: 1fr;
+  }
+
+  .spread-ranking-item__rank {
+    width: 28px;
+    height: 28px;
+  }
+
+  .spread-ranking-item__topline {
+    grid-template-columns: 1fr;
+  }
+
+  .spread-ranking-item__metric {
+    text-align: left;
   }
 
   .history-chart-container {

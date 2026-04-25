@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const $ = AppUtil.byId;
   const setText = AppUtil.setText;
   const escapeHtml = AppUtil.escapeHtml;
+  const exchangePageUrl = AppUtil.exchangePageUrl;
   const marketPageUrl = AppUtil.marketPageUrl;
   const cssVar = AppUtil.cssVar;
   const fmtPct = AppFmt.pct;
@@ -34,6 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const fmtJpyPrice = AppFmt.jpyPrice;
   const shortDate = AppFmt.shortDate;
   const HISTORY_WINDOW_VALUES = new Set(Object.keys(WINDOW_LABELS));
+  const TOP_RANKING_LIMIT = 10;
+  const ORDERBOOK_SUGGESTION_LIMIT = 3;
 
   function normalizeHistoryWindow(value) {
     return HISTORY_WINDOW_VALUES.has(value) ? value : '30d';
@@ -267,28 +270,420 @@ document.addEventListener('DOMContentLoaded', () => {
     return a.exchangeId.localeCompare(b.exchangeId);
   }
 
+  function averageNumber(values) {
+    let total = 0;
+    let count = 0;
+
+    for (const value of values || []) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) continue;
+      total += number;
+      count += 1;
+    }
+
+    return count > 0 ? total / count : null;
+  }
+
+  function formatVenueCount(count) {
+    const value = Number(count) || 0;
+    return `${value}販売所`;
+  }
+
+  function formatPointDelta(value, { signed = true } = {}) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '-';
+    const prefix = signed && number > 0 ? '+' : '';
+    return `${prefix}${number.toFixed(2)}pt`;
+  }
+
+  function currentSpreadValueClass(spreadPct) {
+    const value = Number(spreadPct);
+    if (!Number.isFinite(value)) return '';
+    if (value <= 1.5) return 'spread-ranking-item__value--positive';
+    if (value <= 3) return 'spread-ranking-item__value--caution';
+    return 'spread-ranking-item__value--danger';
+  }
+
+  function getCurrentSpread(row) {
+    const latest = row && row.latest;
+    if (!latest) return null;
+
+    const spreadPct = Number(latest.spreadPct);
+    if (!Number.isFinite(spreadPct)) return null;
+
+    const spread = Number(latest.spread);
+    return {
+      spread: Number.isFinite(spread) ? spread : null,
+      spreadPct,
+      quotePrecision: Number.isFinite(Number(latest.quotePrecision)) ? Number(latest.quotePrecision) : null,
+    };
+  }
+
+  function getAverageSpread(row, windowKey) {
+    const summary = row && row.averages && row.averages[windowKey];
+    if (!summary) return null;
+
+    const spreadPct = Number(summary.spreadPct);
+    if (!Number.isFinite(spreadPct)) return null;
+
+    const spread = Number(summary.spread);
+    return {
+      spread: Number.isFinite(spread) ? spread : null,
+      spreadPct,
+      sampleCount: Number(summary.sampleCount) || 0,
+    };
+  }
+
   function getSummarySpread(row) {
-    const latest = row.latest || null;
-    if (latest && Number.isFinite(Number(latest.spreadPct))) {
-      return {
-        spreadPct: Number(latest.spreadPct),
-      };
-    }
-
-    const average24h = row.averages && row.averages['1d'];
-    if (average24h && Number.isFinite(Number(average24h.spreadPct))) {
-      return {
-        spreadPct: Number(average24h.spreadPct),
-      };
-    }
-
-    return null;
+    return getCurrentSpread(row) || getAverageSpread(row, '1d');
   }
 
   function spreadHighlightLabel(row) {
     const summary = getSummarySpread(row);
     if (!summary) return '-';
     return `${row.instrumentLabel} / ${row.exchangeLabel} ${fmtPct(summary.spreadPct)}`;
+  }
+
+  function buildInstrumentSummaries(rows) {
+    const grouped = new Map();
+
+    for (const row of rows || []) {
+      if (!row.instrumentId) continue;
+
+      if (!grouped.has(row.instrumentId)) {
+        grouped.set(row.instrumentId, {
+          instrumentId: row.instrumentId,
+          instrumentLabel: row.instrumentLabel || row.instrumentId,
+          baseCurrency: row.baseCurrency,
+          currencyFullName: row.currencyFullName,
+          currentEntries: [],
+          averageEntries7d: [],
+          averageEntries30d: [],
+        });
+      }
+
+      const item = grouped.get(row.instrumentId);
+      const current = getCurrentSpread(row);
+      if (current) {
+        item.currentEntries.push({
+          exchangeId: row.exchangeId,
+          exchangeLabel: row.exchangeLabel || row.exchangeId,
+          spread: current.spread,
+          spreadPct: current.spreadPct,
+        });
+      }
+
+      const average7d = getAverageSpread(row, '7d');
+      if (average7d) item.averageEntries7d.push(average7d);
+
+      const average30d = getAverageSpread(row, '30d');
+      if (average30d) item.averageEntries30d.push(average30d);
+    }
+
+    return Array.from(grouped.values())
+      .map((item) => {
+        const currentEntries = item.currentEntries
+          .slice()
+          .sort((a, b) => a.spreadPct - b.spreadPct);
+        const currentSpreadPct = averageNumber(currentEntries.map(entry => entry.spreadPct));
+        const average7dSpreadPct = averageNumber(item.averageEntries7d.map(entry => entry.spreadPct));
+        const average30dSpreadPct = averageNumber(item.averageEntries30d.map(entry => entry.spreadPct));
+
+        return {
+          instrumentId: item.instrumentId,
+          instrumentLabel: item.instrumentLabel,
+          baseCurrency: item.baseCurrency,
+          currencyFullName: item.currencyFullName,
+          current: Number.isFinite(currentSpreadPct)
+            ? {
+              spread: averageNumber(currentEntries.map(entry => entry.spread)),
+              spreadPct: currentSpreadPct,
+              venueCount: currentEntries.length,
+            }
+            : null,
+          averages: {
+            '7d': Number.isFinite(average7dSpreadPct)
+              ? {
+                spread: averageNumber(item.averageEntries7d.map(entry => entry.spread)),
+                spreadPct: average7dSpreadPct,
+                venueCount: item.averageEntries7d.length,
+              }
+              : null,
+            '30d': Number.isFinite(average30dSpreadPct)
+              ? {
+                spread: averageNumber(item.averageEntries30d.map(entry => entry.spread)),
+                spreadPct: average30dSpreadPct,
+                venueCount: item.averageEntries30d.length,
+              }
+              : null,
+          },
+          narrowestExchange: currentEntries[0] || null,
+          widestExchange: currentEntries[currentEntries.length - 1] || null,
+        };
+      })
+      .sort((a, b) => String(a.instrumentLabel || a.instrumentId).localeCompare(String(b.instrumentLabel || b.instrumentId), 'ja'));
+  }
+
+  function buildExchangeSummaries(rows) {
+    const grouped = new Map();
+
+    for (const row of rows || []) {
+      const current = getCurrentSpread(row);
+      if (!current || !row.exchangeId) continue;
+
+      if (!grouped.has(row.exchangeId)) {
+        grouped.set(row.exchangeId, {
+          exchangeId: row.exchangeId,
+          exchangeLabel: row.exchangeLabel || row.exchangeId,
+          currentEntries: [],
+        });
+      }
+
+      grouped.get(row.exchangeId).currentEntries.push({
+        instrumentId: row.instrumentId,
+        instrumentLabel: row.instrumentLabel || row.instrumentId,
+        spread: current.spread,
+        spreadPct: current.spreadPct,
+      });
+    }
+
+    return Array.from(grouped.values())
+      .map((item) => {
+        const currentEntries = item.currentEntries
+          .slice()
+          .sort((a, b) => a.spreadPct - b.spreadPct);
+        const currentSpreadPct = averageNumber(currentEntries.map(entry => entry.spreadPct));
+
+        if (!Number.isFinite(currentSpreadPct)) return null;
+
+        return {
+          exchangeId: item.exchangeId,
+          exchangeLabel: item.exchangeLabel,
+          current: {
+            spread: averageNumber(currentEntries.map(entry => entry.spread)),
+            spreadPct: currentSpreadPct,
+            instrumentCount: currentEntries.length,
+          },
+          narrowestInstrument: currentEntries[0] || null,
+          widestInstrument: currentEntries[currentEntries.length - 1] || null,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        const spreadDiff = a.current.spreadPct - b.current.spreadPct;
+        if (spreadDiff !== 0) return spreadDiff;
+        return String(a.exchangeLabel || a.exchangeId).localeCompare(String(b.exchangeLabel || b.exchangeId), 'ja');
+      });
+  }
+
+  function renderRankingList(listId, items, emptyMessage) {
+    const list = $(listId);
+    if (!list) return;
+
+    if (!items || items.length === 0) {
+      list.innerHTML = `<li class="spread-ranking-empty">${escapeHtml(emptyMessage)}</li>`;
+      return;
+    }
+
+    list.innerHTML = items.map((item, index) => `
+      <li class="spread-ranking-item">
+        <div class="spread-ranking-item__rank">${index + 1}</div>
+        <div class="spread-ranking-item__copy">
+          <div class="spread-ranking-item__topline">
+            <div>
+              <div class="spread-ranking-item__title">
+                ${item.titleHref
+                  ? `<a href="${item.titleHref}">${escapeHtml(item.title)}</a>`
+                  : escapeHtml(item.title)}
+              </div>
+              <div class="spread-ranking-item__subtitle">${escapeHtml(item.subtitle || '')}</div>
+            </div>
+            <div class="spread-ranking-item__metric">
+              <div class="spread-ranking-item__value ${escapeHtml(item.valueClass || '')}">${escapeHtml(item.value || '-')}</div>
+              <div class="spread-ranking-item__note">${escapeHtml(item.note || '')}</div>
+            </div>
+          </div>
+          <div class="spread-ranking-item__footer">
+            <span class="spread-ranking-item__delta">${escapeHtml(item.delta || '')}</span>
+            ${item.actionHref
+              ? `<a class="comparison-row-link" href="${item.actionHref}">${escapeHtml(item.actionLabel || '詳細を見る')}</a>`
+              : ''}
+          </div>
+        </div>
+      </li>
+    `).join('');
+  }
+
+  function renderOrderbookSuggestions(items) {
+    const container = $('spread-orderbook-links');
+    const badge = $('spread-orderbook-badge');
+    if (!container) return;
+
+    if (!items || items.length === 0) {
+      container.innerHTML = '<p class="spread-orderbook-empty">板比較に進める候補はまだありません。</p>';
+      setText('spread-orderbook-meta', '現在値の比較データが揃うと、板比較に進みやすい銘柄を表示します。');
+      if (badge) {
+        badge.className = 'decision-summary-badge decision-summary-badge--loading';
+        badge.textContent = '候補待ち';
+      }
+      return;
+    }
+
+    const suggestions = items.slice(0, ORDERBOOK_SUGGESTION_LIMIT);
+    container.innerHTML = suggestions.map((item) => {
+      const widestLabel = item.widestExchange
+        ? `${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
+        : null;
+      const description = widestLabel
+        ? `販売所平均 ${fmtPct(item.current.spreadPct)}。最も広い販売所は ${widestLabel} です。取引所板と成行コストも続けて確認できます。`
+        : `販売所平均 ${fmtPct(item.current.spreadPct)}。取引所板と成行コストも続けて確認できます。`;
+      return [
+        `<a class="market-context-card" href="${marketPageUrl(item.instrumentId)}">`,
+        '  <span class="market-context-card__eyebrow">Order Book</span>',
+        `  <strong class="market-context-card__title">${escapeHtml(item.instrumentLabel)} の取引所板へ</strong>`,
+        `  <span class="market-context-card__description">${escapeHtml(description)}</span>`,
+        '  <span class="market-context-card__cta">板比較へ</span>',
+        '</a>',
+      ].join('\n');
+    }).join('');
+
+    setText('spread-orderbook-meta', `${suggestions.length}銘柄をピックアップしました。広めの販売所スプレッドを見つけたら、板のBid/Askとシミュレーターも合わせて確認できます。`);
+    if (badge) {
+      badge.className = 'decision-summary-badge decision-summary-badge--ready';
+      badge.textContent = `${suggestions.length}銘柄`;
+    }
+  }
+
+  function buildInstrumentRankingItems(instrumentSummaries) {
+    const currentItems = instrumentSummaries
+      .filter(item => item.current && Number.isFinite(Number(item.current.spreadPct)));
+    const narrowSources = currentItems
+      .slice()
+      .sort((a, b) => a.current.spreadPct - b.current.spreadPct)
+      .slice(0, TOP_RANKING_LIMIT);
+    const narrow = narrowSources.map(item => ({
+        title: item.instrumentLabel,
+        titleHref: marketPageUrl(item.instrumentId),
+        subtitle: `${formatVenueCount(item.current.venueCount)}平均`,
+        value: fmtPct(item.current.spreadPct),
+        valueClass: currentSpreadValueClass(item.current.spreadPct),
+        note: '現在平均',
+        delta: item.narrowestExchange && item.widestExchange
+          ? `最狭 ${item.narrowestExchange.exchangeLabel} ${fmtPct(item.narrowestExchange.spreadPct)} / 最広 ${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
+          : '現在値ベース',
+        actionHref: marketPageUrl(item.instrumentId),
+        actionLabel: '取引所板を見る',
+      }));
+
+    const wideSources = currentItems
+      .slice()
+      .sort((a, b) => b.current.spreadPct - a.current.spreadPct)
+      .slice(0, TOP_RANKING_LIMIT);
+    const wide = wideSources.map(item => ({
+        title: item.instrumentLabel,
+        titleHref: marketPageUrl(item.instrumentId),
+        subtitle: `${formatVenueCount(item.current.venueCount)}平均`,
+        value: fmtPct(item.current.spreadPct),
+        valueClass: 'spread-ranking-item__value--danger',
+        note: '現在平均',
+        delta: item.widestExchange
+          ? `最も広い販売所 ${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
+          : '現在値ベース',
+        actionHref: marketPageUrl(item.instrumentId),
+        actionLabel: '取引所板を見る',
+      }));
+
+    const widerThan7dSources = currentItems
+      .filter(item => item.averages['7d'] && Number.isFinite(Number(item.averages['7d'].spreadPct)))
+      .map(item => ({
+        item,
+        diff: item.current.spreadPct - item.averages['7d'].spreadPct,
+      }))
+      .filter(entry => entry.diff > 0)
+      .sort((a, b) => b.diff - a.diff)
+      .slice(0, TOP_RANKING_LIMIT);
+    const widerThan7d = widerThan7dSources.map(({ item, diff }) => ({
+        title: item.instrumentLabel,
+        titleHref: marketPageUrl(item.instrumentId),
+        subtitle: `${formatVenueCount(item.current.venueCount)}平均`,
+        value: formatPointDelta(diff),
+        valueClass: 'spread-ranking-item__value--danger',
+        note: `現在 ${fmtPct(item.current.spreadPct)}`,
+        delta: `7日平均 ${fmtPct(item.averages['7d'].spreadPct)}`,
+        actionHref: marketPageUrl(item.instrumentId),
+        actionLabel: '取引所板を見る',
+      }));
+
+    const improvedFrom30dSources = currentItems
+      .filter(item => item.averages['30d'] && Number.isFinite(Number(item.averages['30d'].spreadPct)))
+      .map(item => ({
+        item,
+        diff: item.averages['30d'].spreadPct - item.current.spreadPct,
+      }))
+      .filter(entry => entry.diff > 0)
+      .sort((a, b) => b.diff - a.diff)
+      .slice(0, TOP_RANKING_LIMIT);
+    const improvedFrom30d = improvedFrom30dSources.map(({ item, diff }) => ({
+        title: item.instrumentLabel,
+        titleHref: marketPageUrl(item.instrumentId),
+        subtitle: `${formatVenueCount(item.current.venueCount)}平均`,
+        value: formatPointDelta(diff, { signed: false }),
+        valueClass: 'spread-ranking-item__value--positive',
+        note: `現在 ${fmtPct(item.current.spreadPct)}`,
+        delta: `30日平均 ${fmtPct(item.averages['30d'].spreadPct)}`,
+        actionHref: marketPageUrl(item.instrumentId),
+        actionLabel: '取引所板を見る',
+      }));
+
+    return {
+      narrow,
+      wide,
+      widerThan7d,
+      improvedFrom30d,
+      wideSources,
+      currentItemCount: currentItems.length,
+    };
+  }
+
+  function buildExchangeRankingItems(exchangeSummaries) {
+    return exchangeSummaries.map(item => ({
+      title: item.exchangeLabel,
+      titleHref: exchangePageUrl(item.exchangeId),
+      subtitle: `${item.current.instrumentCount}銘柄平均`,
+      value: fmtPct(item.current.spreadPct),
+      valueClass: currentSpreadValueClass(item.current.spreadPct),
+      note: '現在平均',
+      delta: item.narrowestInstrument && item.widestInstrument
+        ? `最狭 ${item.narrowestInstrument.instrumentLabel} ${fmtPct(item.narrowestInstrument.spreadPct)} / 最広 ${item.widestInstrument.instrumentLabel} ${fmtPct(item.widestInstrument.spreadPct)}`
+        : '集計中',
+      actionHref: exchangePageUrl(item.exchangeId),
+      actionLabel: '取引所詳細へ',
+    }));
+  }
+
+  function renderRankings(rows) {
+    const instrumentSummaries = buildInstrumentSummaries(rows);
+    const exchangeSummaries = buildExchangeSummaries(rows);
+    const instrumentItems = buildInstrumentRankingItems(instrumentSummaries);
+    const exchangeItems = buildExchangeRankingItems(exchangeSummaries);
+    const scopeLabel = hasActiveFilters() ? 'フィルター反映' : '全体';
+
+    setText(
+      'spread-ranking-summary',
+      `${scopeLabel} | 銘柄 ${instrumentItems.currentItemCount}件 | 取引所平均 ${exchangeItems.length}社`
+    );
+    setText('spread-ranking-narrow-meta', `${instrumentItems.currentItemCount}銘柄から表示`);
+    setText('spread-ranking-wide-meta', `${instrumentItems.currentItemCount}銘柄から表示`);
+    setText('spread-ranking-wider7-meta', `上位${instrumentItems.widerThan7d.length}件を表示`);
+    setText('spread-ranking-improved30-meta', `上位${instrumentItems.improvedFrom30d.length}件を表示`);
+    setText('spread-ranking-exchange-meta', `${exchangeItems.length}販売所を表示`);
+
+    renderRankingList('spread-ranking-narrow-list', instrumentItems.narrow, '現在値を比較できる銘柄がありません。');
+    renderRankingList('spread-ranking-wide-list', instrumentItems.wide, '現在値を比較できる銘柄がありません。');
+    renderRankingList('spread-ranking-wider7-list', instrumentItems.widerThan7d, '7日平均より広がっている銘柄はありません。');
+    renderRankingList('spread-ranking-improved30-list', instrumentItems.improvedFrom30d, '30日平均より改善している銘柄はありません。');
+    renderRankingList('spread-ranking-exchange-list', exchangeItems, '取引所別平均の計算対象がありません。');
+    renderOrderbookSuggestions(instrumentItems.wideSources);
   }
 
   function renderRows(rows) {
@@ -395,6 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rows = getFilteredRows();
     renderSummary(rows);
     renderMeta(rows);
+    renderRankings(rows);
     renderRows(rows);
     renderQualityRows(latestMeta.quality || []);
     writeUrlState();

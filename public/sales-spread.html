@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-7">
+  <link rel="stylesheet" href="/css/style.css?v=ui-10">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -32,6 +32,26 @@
   </header>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
+    <section class="decision-summary-card spread-intro-card">
+      <div class="decision-summary-card__header">
+        <div>
+          <p class="decision-summary-card__eyebrow">Spread Guide</p>
+          <div class="panel-title-with-help">
+            <h2 class="decision-summary-card__title">販売所スプレッドとは？</h2>
+            <button class="term-help" type="button" data-term-key="sales-spread" aria-label="販売所スプレッド の説明を開く"><span aria-hidden="true">?</span></button>
+          </div>
+        </div>
+        <span class="decision-summary-badge decision-summary-badge--ready">Reference Cost</span>
+      </div>
+      <p class="decision-summary-card__lead">販売所では、取引手数料が無料でも、買値と売値の差であるスプレッドが実質的なコストになります。</p>
+      <p class="decision-summary-card__body">このページでは、国内販売所の表示価格をもとに、銘柄ごとの参考スプレッドを比較します。</p>
+      <div class="decision-summary-card__chips">
+        <span class="decision-summary-chip">現在値と平均を比較</span>
+        <span class="decision-summary-chip">スプレッドの広がりを確認</span>
+        <span class="decision-summary-chip">取引所板への導線つき</span>
+      </div>
+    </section>
+
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4"><div><div class="panel-title-with-help"><h2 class="panel-title">販売所スプレッド</h2><button class="term-help" type="button" data-term-key="sales-spread" aria-label="販売所スプレッド の説明を開く"><span aria-hidden="true">?</span></button></div><p id="spread-meta" class="text-xs text-gray-500 mt-1">スプレッドスナップショットを集計中</p></div><span class="panel-kicker">Sales Spread</span></div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -41,6 +61,95 @@
       <div class="filter-grid" aria-label="販売所スプレッドフィルター">
         <label class="filter-control" for="spread-filter"><span>銘柄検索</span><input id="spread-filter" class="field font-mono" type="search" placeholder="BTC"></label>
         <label class="filter-control" for="spread-exchange-filter"><span>取引所</span><select id="spread-exchange-filter" class="field" aria-label="取引所で絞り込み"><option value="__all__">すべて</option></select></label>
+      </div>
+    </section>
+
+    <section class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">ランキング</h2>
+          <p id="spread-ranking-summary" class="text-xs text-gray-500 mt-1">現在値と平均値の比較を準備中</p>
+        </div>
+        <span class="panel-kicker">Ranking</span>
+      </div>
+      <div class="spread-ranking-grid">
+        <article class="spread-ranking-card">
+          <div class="spread-ranking-card__header">
+            <div>
+              <h3 class="spread-ranking-card__title">現在スプレッドが狭い銘柄TOP10</h3>
+              <p id="spread-ranking-narrow-meta" class="spread-ranking-card__meta">最新値ベース</p>
+            </div>
+          </div>
+          <ol id="spread-ranking-narrow-list" class="spread-ranking-list">
+            <li class="spread-ranking-empty">読み込み中</li>
+          </ol>
+        </article>
+
+        <article class="spread-ranking-card">
+          <div class="spread-ranking-card__header">
+            <div>
+              <h3 class="spread-ranking-card__title">現在スプレッドが広い銘柄TOP10</h3>
+              <p id="spread-ranking-wide-meta" class="spread-ranking-card__meta">最新値ベース</p>
+            </div>
+          </div>
+          <ol id="spread-ranking-wide-list" class="spread-ranking-list">
+            <li class="spread-ranking-empty">読み込み中</li>
+          </ol>
+        </article>
+
+        <article class="spread-ranking-card">
+          <div class="spread-ranking-card__header">
+            <div>
+              <h3 class="spread-ranking-card__title">7日平均より広がっている銘柄</h3>
+              <p id="spread-ranking-wider7-meta" class="spread-ranking-card__meta">現在値との差分</p>
+            </div>
+          </div>
+          <ol id="spread-ranking-wider7-list" class="spread-ranking-list">
+            <li class="spread-ranking-empty">読み込み中</li>
+          </ol>
+        </article>
+
+        <article class="spread-ranking-card">
+          <div class="spread-ranking-card__header">
+            <div>
+              <h3 class="spread-ranking-card__title">30日平均より改善している銘柄</h3>
+              <p id="spread-ranking-improved30-meta" class="spread-ranking-card__meta">現在値との差分</p>
+            </div>
+          </div>
+          <ol id="spread-ranking-improved30-list" class="spread-ranking-list">
+            <li class="spread-ranking-empty">読み込み中</li>
+          </ol>
+        </article>
+
+        <article class="spread-ranking-card spread-ranking-card--wide">
+          <div class="spread-ranking-card__header">
+            <div>
+              <h3 class="spread-ranking-card__title">取引所別の平均スプレッド</h3>
+              <p id="spread-ranking-exchange-meta" class="spread-ranking-card__meta">銘柄横断の平均</p>
+            </div>
+          </div>
+          <ol id="spread-ranking-exchange-list" class="spread-ranking-list">
+            <li class="spread-ranking-empty">読み込み中</li>
+          </ol>
+        </article>
+      </div>
+    </section>
+
+    <section class="decision-summary-card spread-orderbook-card">
+      <div class="decision-summary-card__header">
+        <div>
+          <p class="decision-summary-card__eyebrow">Next Action</p>
+          <h2 class="decision-summary-card__title">スプレッドが広いなら、取引所板も比較する</h2>
+        </div>
+        <span id="spread-orderbook-badge" class="decision-summary-badge decision-summary-badge--loading">準備中</span>
+      </div>
+      <p class="decision-summary-card__lead">スプレッドが広い場合は、取引所板での購入も比較してみましょう。</p>
+      <p id="spread-orderbook-meta" class="decision-summary-card__body">現在スプレッドが広めの銘柄から、そのまま板比較ページに進めます。</p>
+      <div id="spread-orderbook-links" class="market-context-grid market-context-grid--links">
+        <p class="spread-orderbook-empty">候補を読み込み中です。</p>
+      </div>
+      <div class="decision-summary-card__actions">
+        <a class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">BTC/JPYの取引所コストを確認する</a>
       </div>
     </section>
 
@@ -96,6 +205,6 @@
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/sales-spread.js?v=sales-spread-12"></script>
+  <script src="js/sales-spread.js?v=sales-spread-13"></script>
 </body>
 </html>
