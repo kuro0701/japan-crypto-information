@@ -603,10 +603,6 @@ function captureVolumeSnapshotFromResult(result, reason, options = {}) {
   const capturedAt = new Date(result.capturedAt);
   const volumeDateJst = options.volumeDateJst || VolumeShareStore.getJstDate(capturedAt);
 
-  if (options.skipIfExists && volumeShareStore.hasDailySnapshot(volumeDateJst)) {
-    return null;
-  }
-
   return volumeShareStore.captureDaily(result.records, {
     capturedAt: result.capturedAt,
     reason,
@@ -643,10 +639,6 @@ function captureSalesSpreadSnapshotFromResult(result, reason, options = {}) {
   const capturedAt = new Date(result.capturedAt);
   const spreadDateJst = options.spreadDateJst || SalesSpreadStore.getJstDate(capturedAt);
 
-  if (options.skipIfExists && salesSpreadStore.hasDailySnapshot(spreadDateJst)) {
-    return null;
-  }
-
   return salesSpreadStore.captureDaily(result.records, {
     capturedAt: result.capturedAt,
     reason,
@@ -665,13 +657,9 @@ function captureRollingVolumeSnapshot(result, reason = 'refresh-snapshot') {
   const volumeDateJst = isEarlyMorning
     ? VolumeShareStore.getPreviousJstDate(capturedAt)
     : parts.date;
-  const existingSnapshot = isEarlyMorning ? volumeShareStore.getDailySnapshot(volumeDateJst) : null;
-  const hasClosingSnapshot = existingSnapshot
-    && ['jst-midnight', 'early-morning-catchup'].includes(existingSnapshot.reason);
 
   return captureVolumeSnapshotFromResult(result, isEarlyMorning ? 'early-morning-catchup' : reason, {
     volumeDateJst,
-    skipIfExists: hasClosingSnapshot,
   });
 }
 
@@ -684,13 +672,9 @@ function captureRollingSalesSpreadSnapshot(result, reason = 'refresh-snapshot') 
   const spreadDateJst = isEarlyMorning
     ? SalesSpreadStore.getPreviousJstDate(capturedAt)
     : parts.date;
-  const existingSnapshot = isEarlyMorning ? salesSpreadStore.getDailySnapshot(spreadDateJst) : null;
-  const hasClosingSnapshot = existingSnapshot
-    && ['jst-midnight', 'early-morning-catchup'].includes(existingSnapshot.reason);
 
   return captureSalesSpreadSnapshotFromResult(result, isEarlyMorning ? 'early-morning-catchup' : reason, {
     spreadDateJst,
-    skipIfExists: hasClosingSnapshot,
   });
 }
 
