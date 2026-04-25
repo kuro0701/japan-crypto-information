@@ -112,3 +112,37 @@ test('VolumeShareStore supports extended history windows for longer comparisons'
   assert.equal(history.meta.historySnapshotCount, 2);
   assert.equal(history.rows.length, 2);
 });
+
+test('VolumeShareStore excludes provisional current-day snapshots from history windows', (t) => {
+  const tempDir = createTempDir('okj-volume-store-provisional-');
+  t.after(() => removeTempDir(tempDir));
+
+  const store = new VolumeShareStore({
+    dataFilePath: path.join(tempDir, 'volume-share-history.json'),
+  });
+
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 100, '2026-04-24T15:05:00.000Z'),
+  ], {
+    capturedAt: '2026-04-24T15:05:00.000Z',
+    volumeDateJst: '2026-04-24',
+    reason: 'early-morning-catchup',
+  });
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 999, '2026-04-25T03:00:00.000Z'),
+  ], {
+    capturedAt: '2026-04-25T03:00:00.000Z',
+    volumeDateJst: '2026-04-25',
+    reason: 'startup-snapshot',
+  });
+
+  const history = store.getHistory('30d', { now: '2026-04-25T12:00:00.000+09:00' });
+  assert.equal(history.meta.availableDailySnapshotCount, 1);
+  assert.equal(history.meta.historySnapshotCount, 1);
+  assert.deepEqual(history.rows.map(row => row.date), ['2026-04-24']);
+
+  const share = store.getShare('7d', { now: '2026-04-25T12:00:00.000+09:00' });
+  assert.equal(share.meta.dailySnapshotCount, 1);
+  assert.equal(share.meta.availableDailySnapshotCount, 1);
+  assert.equal(share.meta.totalQuoteVolume, 100);
+});
