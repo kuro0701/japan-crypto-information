@@ -58,10 +58,15 @@ const { createSiteContentService } = require('./lib/server/site-content-service'
 const app = express();
 app.set('trust proxy', 1);
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const BUNDLED_DATA_DIR = path.join(__dirname, 'data');
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
 const USE_NEON_SNAPSHOT_STORAGE = Boolean(DATABASE_URL);
 const DATA_DIR = resolveDataDir({ projectRoot: __dirname });
 const DATA_DIR_CONFIGURED = Boolean(String(process.env.DATA_DIR || '').trim());
+const BUNDLED_DATA_FILES = Object.freeze({
+  volumeShare: path.join(BUNDLED_DATA_DIR, 'volume-share-history.json'),
+  salesSpread: path.join(BUNDLED_DATA_DIR, 'sales-spread-history.json'),
+});
 const DATA_FILES = Object.freeze({
   volumeShare: path.join(DATA_DIR, 'volume-share-history.json'),
   salesSpread: path.join(DATA_DIR, 'sales-spread-history.json'),
@@ -122,13 +127,13 @@ const snapshotStateStore = USE_NEON_SNAPSHOT_STORAGE
   : null;
 const volumeShareStore = new VolumeShareStore({
   dataFilePath: USE_NEON_SNAPSHOT_STORAGE ? null : DATA_FILES.volumeShare,
-  seedFilePath: DATA_FILES.volumeShare,
+  seedFilePath: USE_NEON_SNAPSHOT_STORAGE ? BUNDLED_DATA_FILES.volumeShare : DATA_FILES.volumeShare,
   persistence: snapshotStateStore,
   persistenceKey: 'volume-share',
 });
 const salesSpreadStore = new SalesSpreadStore({
   dataFilePath: USE_NEON_SNAPSHOT_STORAGE ? null : DATA_FILES.salesSpread,
-  seedFilePath: DATA_FILES.salesSpread,
+  seedFilePath: USE_NEON_SNAPSHOT_STORAGE ? BUNDLED_DATA_FILES.salesSpread : DATA_FILES.salesSpread,
   persistence: snapshotStateStore,
   persistenceKey: 'sales-spread',
 });

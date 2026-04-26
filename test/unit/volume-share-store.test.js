@@ -1,9 +1,27 @@
+const fs = require('fs');
 const path = require('path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const VolumeShareStore = require('../../lib/volume-share-store');
 const { createTempDir, removeTempDir } = require('../helpers/temp-dir');
+
+class MemoryPersistence {
+  constructor(initialState = {}) {
+    this.state = JSON.parse(JSON.stringify(initialState));
+    this.saved = [];
+  }
+
+  async load(key) {
+    return this.state[key] || null;
+  }
+
+  async save(key, payload) {
+    this.state[key] = JSON.parse(JSON.stringify(payload));
+    this.saved.push({ key, payload: this.state[key] });
+    return true;
+  }
+}
 
 function volumeRecord(exchangeId, instrumentId, quoteVolume24h, capturedAt, overrides = {}) {
   const baseCurrency = instrumentId.split('-')[0];
@@ -81,6 +99,85 @@ test('VolumeShareStore falls back to latest records when no history snapshots ex
   assert.equal(history.meta.source, 'latest-fallback');
   assert.equal(history.rows.length, 1);
   assert.equal(history.rows[0].quoteVolume, 250);
+});
+
+test('VolumeShareStore merges bundled seed snapshots into existing persistence', async (t) => {
+  const tempDir = createTempDir('okj-volume-store-merge-');
+  t.after(() => removeTempDir(tempDir));
+
+  const seedFilePath = path.join(tempDir, 'volume-share-history.json');
+  fs.writeFileSync(seedFilePath, JSON.stringify({
+    version: 1,
+    latest: {
+      capturedAt: '2026-04-25T00:00:00.000Z',
+      jstDate: '2026-04-25',
+      source: 'seed',
+      records: [
+        volumeRecord('okj', 'BTC-JPY', 240, '2026-04-25T00:00:00.000Z'),
+      ],
+    },
+    dailySnapshots: [
+      {
+        capturedAt: '2026-04-24T00:00:00.000Z',
+        jstDate: '2026-04-24',
+        volumeDateJst: '2026-04-24',
+        reason: 'startup-snapshot',
+        records: [
+          volumeRecord('okj', 'BTC-JPY', 240, '2026-04-24T00:00:00.000Z'),
+        ],
+      },
+    ],
+  }));
+
+  const persistence = new MemoryPersistence({
+    'volume-share': {
+      version: 1,
+      latest: {
+        capturedAt: '2026-04-26T00:00:00.000Z',
+        jstDate: '2026-04-26',
+        source: 'neon',
+        records: [
+          volumeRecord('okj', 'BTC-JPY', 260, '2026-04-26T00:00:00.000Z'),
+        ],
+      },
+      dailySnapshots: [
+        {
+          capturedAt: '2026-04-19T00:00:00.000Z',
+          jstDate: '2026-04-19',
+          volumeDateJst: '2026-04-19',
+          reason: 'jst-midnight',
+          records: [
+            volumeRecord('okj', 'BTC-JPY', 190, '2026-04-19T00:00:00.000Z'),
+          ],
+        },
+      ],
+    },
+  });
+
+  const store = new VolumeShareStore({
+    dataFilePath: null,
+    seedFilePath,
+    persistence,
+    persistenceKey: 'volume-share',
+  });
+  await store.initializePersistence();
+
+  assert.equal(store.data.latest.capturedAt, '2026-04-26T00:00:00.000Z');
+  assert.deepEqual(store.data.dailySnapshots.map(snapshot => snapshot.volumeDateJst), [
+    '2026-04-19',
+    '2026-04-24',
+  ]);
+  assert.equal(persistence.saved.length, 1);
+  assert.deepEqual(persistence.state['volume-share'].dailySnapshots.map(snapshot => snapshot.volumeDateJst), [
+    '2026-04-19',
+    '2026-04-24',
+  ]);
+
+  const history = store.getHistory('30d', { now: '2026-04-26T12:00:00.000+09:00' });
+  assert.deepEqual([...new Set(history.rows.map(row => row.date))], [
+    '2026-04-19',
+    '2026-04-24',
+  ]);
 });
 
 test('VolumeShareStore supports extended history windows for longer comparisons', (t) => {

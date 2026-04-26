@@ -14,21 +14,22 @@
 2. このリポジトリを選択する。
 3. `render.yaml` の内容を確認して `Apply` する。
 
-このリポジトリの `render.yaml` は、アクセス解析も永続化できるように Persistent Disk 付きの設定を維持しています。Neon にスナップショット履歴を逃がすだけなら、Disk はあとで任意に外せます。
+このリポジトリの `render.yaml` は、Neon にスナップショット履歴を保存する前提で Persistent Disk なしの設定にしています。JSON fallback やアクセス解析も永続化したい場合だけ、あとから Disk と `DATA_DIR` を追加してください。
 
 設定値は以下です。
 
 - Service type: Web Service
-- Plan: Starter
+- Plan: Free
 - Region: Singapore
 - Build Command: `npm ci`
 - Start Command: `npm start`
 - Health Check Path: `/healthz`
 - Node.js: `22.22.0`
-- Persistent Disk: 任意
-- Disk mount path: `/var/data` (`DATA_DIR` を使う場合)
-- `DATA_DIR`: `/var/data` (アクセス解析や JSON fallback を永続化したい場合)
+- Persistent Disk: 未使用 (JSON fallback やアクセス解析も永続化したい場合だけ追加)
+- `DATA_DIR`: 未設定 (Disk を使う場合は `/var/data` などのマウント先を設定)
 - `DATABASE_URL`: Neon の接続文字列 (出来高シェア / 販売所スプレッドの履歴を Neon に保存する場合)
+
+`render.yaml` では `DATABASE_URL` を `sync: false` の秘密値として宣言しています。初回 Blueprint 作成時は値の入力を促されます。既存サービスでは Render が `sync: false` の新規変数を自動追加しないため、Render Dashboard の Environment で実際の Neon 接続文字列を手動追加してください。
 
 公開URLは Render が `https://japan-crypto-information.onrender.com` のような `onrender.com` サブドメインを自動発行します。
 
@@ -47,6 +48,7 @@ Render の Environment には、訪問者の概算集計に使う `ANALYTICS_SAL
 出来高シェアは各取引所の24h出来高、販売所スプレッドは各販売所の現在価格差を、起動直後と定期更新のたびにスナップショットとして取得し、JSTの日付ごとに保存します。同じ日付の記録は最新のスナップショットで置き換えるため、Render が深夜にスリープしていても、次回起動時の取得分から7日/30日集計を積み上げられます。
 
 Neon を使う場合は、Render の Environment に Neon の接続文字列を `DATABASE_URL` として設定してください。接続文字列は Neon Dashboard の `Connect` から取得でき、`postgresql://.../dbname?sslmode=require` の形式です。
+保存後は `Save, rebuild, and deploy` または `Save and deploy` を選び、起動ログに `snapshot history: Neon` と出ることを確認してください。
 
 Persistent Disk を使う場合は Render のディスクを `/var/data` にマウントし、`DATA_DIR=/var/data` を設定します。これにより、アクセス解析や JSON fallback がデプロイや再起動のあとも保持されます。
 

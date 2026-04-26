@@ -1,9 +1,27 @@
+const fs = require('fs');
 const path = require('path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const SalesSpreadStore = require('../../lib/sales-spread-store');
 const { createTempDir, removeTempDir } = require('../helpers/temp-dir');
+
+class MemoryPersistence {
+  constructor(initialState = {}) {
+    this.state = JSON.parse(JSON.stringify(initialState));
+    this.saved = [];
+  }
+
+  async load(key) {
+    return this.state[key] || null;
+  }
+
+  async save(key, payload) {
+    this.state[key] = JSON.parse(JSON.stringify(payload));
+    this.saved.push({ key, payload: this.state[key] });
+    return true;
+  }
+}
 
 function spreadRecord(exchangeId, spreadPct, capturedAt, overrides = {}) {
   const midPrice = 100;
@@ -77,6 +95,85 @@ test('SalesSpreadStore aggregates latest and historical snapshots by window', (t
     '2026-04-21',
     '2026-04-22',
     '2026-04-22',
+  ]);
+});
+
+test('SalesSpreadStore merges bundled seed snapshots into existing persistence', async (t) => {
+  const tempDir = createTempDir('okj-sales-store-merge-');
+  t.after(() => removeTempDir(tempDir));
+
+  const seedFilePath = path.join(tempDir, 'sales-spread-history.json');
+  fs.writeFileSync(seedFilePath, JSON.stringify({
+    version: 1,
+    latest: {
+      capturedAt: '2026-04-25T00:00:00.000Z',
+      jstDate: '2026-04-25',
+      source: 'seed',
+      records: [
+        spreadRecord('okj', 2.4, '2026-04-25T00:00:00.000Z'),
+      ],
+    },
+    dailySnapshots: [
+      {
+        capturedAt: '2026-04-24T00:00:00.000Z',
+        jstDate: '2026-04-24',
+        spreadDateJst: '2026-04-24',
+        reason: 'startup-snapshot',
+        records: [
+          spreadRecord('okj', 2.4, '2026-04-24T00:00:00.000Z'),
+        ],
+      },
+    ],
+  }));
+
+  const persistence = new MemoryPersistence({
+    'sales-spread': {
+      version: 1,
+      latest: {
+        capturedAt: '2026-04-26T00:00:00.000Z',
+        jstDate: '2026-04-26',
+        source: 'neon',
+        records: [
+          spreadRecord('okj', 2.6, '2026-04-26T00:00:00.000Z'),
+        ],
+      },
+      dailySnapshots: [
+        {
+          capturedAt: '2026-04-19T00:00:00.000Z',
+          jstDate: '2026-04-19',
+          spreadDateJst: '2026-04-19',
+          reason: 'jst-midnight',
+          records: [
+            spreadRecord('okj', 1.9, '2026-04-19T00:00:00.000Z'),
+          ],
+        },
+      ],
+    },
+  });
+
+  const store = new SalesSpreadStore({
+    dataFilePath: null,
+    seedFilePath,
+    persistence,
+    persistenceKey: 'sales-spread',
+  });
+  await store.initializePersistence();
+
+  assert.equal(store.data.latest.capturedAt, '2026-04-26T00:00:00.000Z');
+  assert.deepEqual(store.data.dailySnapshots.map(snapshot => snapshot.spreadDateJst), [
+    '2026-04-19',
+    '2026-04-24',
+  ]);
+  assert.equal(persistence.saved.length, 1);
+  assert.deepEqual(persistence.state['sales-spread'].dailySnapshots.map(snapshot => snapshot.spreadDateJst), [
+    '2026-04-19',
+    '2026-04-24',
+  ]);
+
+  const history = store.getHistory('30d', { now: '2026-04-26T12:00:00.000+09:00' });
+  assert.deepEqual([...new Set(history.rows.map(row => row.date))], [
+    '2026-04-19',
+    '2026-04-24',
   ]);
 });
 
