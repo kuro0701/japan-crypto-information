@@ -7,6 +7,7 @@
 - [出来高シェア](https://japan-crypto-information.onrender.com/volume-share): 国内主要取引所の BTC・ETH 他銘柄の出来高シェアを JPY 換算で集計し、取引所ごとの流動性集中度や対応範囲を日次・週次・月次で確認できます。
 - [販売所スプレッド](https://japan-crypto-information.onrender.com/sales-spread): 国内販売所の買値・売値スプレッドを比較し、販売所と取引所の実効コスト差を確認できます。
 - [銘柄ページ一覧](https://japan-crypto-information.onrender.com/markets): 銘柄別に取引所比較ページへ移動できます。
+- [キャンペーン一覧](https://japan-crypto-information.onrender.com/campaigns): 国内暗号資産取引所のキャンペーン、公式URL、紹介リンク/アフィリエイトリンク、注意事項を一覧で確認できます。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧
