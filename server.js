@@ -177,6 +177,8 @@ function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/volume-share' || reqPath === '/volume-share.html') return '/volume-share';
   if (reqPath === '/sales-spread' || reqPath === '/sales-spread.html') return '/sales-spread';
   if (reqPath === '/campaigns' || reqPath === '/campaigns.html') return '/campaigns';
+  if (reqPath === '/learn' || reqPath === '/learn/') return '/learn';
+  if (/^\/learn\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
   if (/^\/campaigns\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
   if (reqPath === '/markets' || reqPath === '/markets.html') return '/markets';
   if (/^\/markets\/[A-Z0-9]+-[A-Z0-9]+$/i.test(reqPath)) return reqPath.toUpperCase();

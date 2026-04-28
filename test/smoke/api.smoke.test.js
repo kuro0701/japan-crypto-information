@@ -170,6 +170,24 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(homePage.body.includes('/markets?q={search_term_string}'));
   assert.ok(homePage.body.includes('国内暗号資産取引所の板・スプレッド・手数料・キャンペーンを比較し'));
   assert.ok(homePage.body.includes('/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000'));
+  assert.ok(homePage.body.includes('/learn/exchange-vs-broker'));
+  assert.ok(homePage.body.includes('/learn/slippage'));
+
+  const learnIndex = await fetchText(baseUrl, '/learn');
+  assert.equal(learnIndex.status, 200);
+  assert.ok(learnIndex.body.includes('初心者向け暗号資産取引ガイド'));
+  assert.ok(learnIndex.body.includes('/learn/market-order-risk'));
+  assert.ok(learnIndex.body.includes('/sales-spread?instrumentId=BTC-JPY'));
+
+  const learnSlippage = await fetchText(baseUrl, '/learn/slippage');
+  assert.equal(learnSlippage.status, 200);
+  assert.ok(learnSlippage.body.includes('スリッページとは？'));
+  assert.ok(learnSlippage.body.includes('/simulator?market=BTC-JPY'));
+  assert.ok(learnSlippage.body.includes('/learn/market-order-risk'));
+
+  const learnLegacy = await fetch(new URL('/articles/slippage', baseUrl), { redirect: 'manual' });
+  assert.equal(learnLegacy.status, 301);
+  assert.equal(learnLegacy.headers.get('location'), '/learn/slippage');
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -264,6 +282,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(gmoCampaignPage.body.includes('6. この取引所のコスト比較'));
   assert.ok(gmoCampaignPage.body.includes('キャンペーン内容だけでなく、手数料・スプレッド・板の厚みも確認した上で利用を検討してください。'));
   assert.ok(gmoCampaignPage.body.includes('/simulator?exchange=gmo&amp;market=BTC-JPY'));
+
+  const sitemap = await fetchText(baseUrl, '/sitemap.xml');
+  assert.equal(sitemap.status, 200);
+  assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
+
+  const rss = await fetchText(baseUrl, '/rss.xml');
+  assert.equal(rss.status, 200);
+  assert.ok(rss.body.includes('/learn/crypto-fees'));
 
   const volumeShare = await fetchJson(baseUrl, '/api/volume-share?window=7d');
   assert.equal(volumeShare.status, 200);

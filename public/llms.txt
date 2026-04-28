@@ -3,6 +3,9 @@
 
 ## Pages
 - [ホーム](https://japan-crypto-information.onrender.com/): 初心者向け導線、中級者向けツール導線、人気ページ、データ取得元、免責をまとめた比較ホームです。
+- [初心者ガイド](https://japan-crypto-information.onrender.com/learn): 販売所と取引所の違い、スプレッド、スリッページ、成行注文、手数料、取引所比較の見方を学べます。
+- [販売所と取引所の違い](https://japan-crypto-information.onrender.com/learn/exchange-vs-broker): 販売所の表示価格と取引所の板取引の違いを説明し、販売所スプレッド比較と板シミュレーターへ案内します。
+- [スリッページとは？](https://japan-crypto-information.onrender.com/learn/slippage): 成行注文で平均約定価格がずれる理由を説明し、板シミュレーターで確認できます。
 - [成行注文シミュレーター](https://japan-crypto-information.onrender.com/simulator): 国内暗号資産取引所のリアルタイム板を使い、成行注文の執行価格・スリッページ・マーケットインパクトを比較できます。
 - [出来高シェア](https://japan-crypto-information.onrender.com/volume-share): 国内主要取引所の BTC・ETH 他銘柄の出来高シェアを JPY 換算で集計し、取引所ごとの流動性集中度や対応範囲を日次・週次・月次で確認できます。
 - [販売所スプレッド](https://japan-crypto-information.onrender.com/sales-spread): 国内販売所の買値・売値スプレッドを比較し、販売所と取引所の実効コスト差を確認できます。

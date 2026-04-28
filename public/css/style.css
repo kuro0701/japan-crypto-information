@@ -1568,10 +1568,12 @@ button:active { transform: scale(0.98); }
   text-decoration: underline;
   text-underline-offset: 3px;
 }
-.article-body ul {
+.article-body ul,
+.article-body ol {
   list-style: disc;
   padding-left: var(--sp-6);
 }
+.article-body ol { list-style: decimal; }
 .article-body li + li { margin-top: var(--sp-2); }
 
 .chart-panel { min-height: 470px; }
