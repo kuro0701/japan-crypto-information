@@ -177,7 +177,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const homePage = await fetchText(baseUrl, '/');
   assert.equal(homePage.status, 200);
   assert.ok(homePage.body.includes('/markets?q={search_term_string}'));
-  assert.ok(homePage.body.includes('国内暗号資産取引所の板・スプレッド・手数料・キャンペーンを比較し'));
+  assert.ok(homePage.body.includes('国内暗号資産取引所の板・スプレッド・手数料を比較し'));
+  assert.ok(homePage.body.includes('サイトの役割'));
+  assert.ok(homePage.body.includes('手数料・実質コスト比較'));
   assert.ok(homePage.body.includes('/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000'));
   assert.ok(homePage.body.includes('/learn/exchange-vs-broker'));
   assert.ok(homePage.body.includes('/learn/slippage'));

@@ -2,7 +2,7 @@
 > 国内暗号資産取引所の板・出来高・販売所スプレッド・手数料を比較し、どこで買うと実質コストが低いかを確認するためのサイト。
 
 ## Pages
-- [ホーム](https://japan-crypto-information.onrender.com/): 初心者向け導線、中級者向けツール導線、人気ページ、データ取得元、免責をまとめた比較ホームです。
+- [ホーム](https://japan-crypto-information.onrender.com/): サイトの役割を「比較する」と「理解・確認する」に分け、板シミュレーター、販売所スプレッド、出来高シェア、銘柄別比較、手数料込み実質コスト比較へ案内する比較ホームです。
 - [初心者ガイド](https://japan-crypto-information.onrender.com/learn): 販売所と取引所の違い、スプレッド、スリッページ、成行注文、手数料、取引所比較の見方を学べます。
 - [販売所と取引所の違い](https://japan-crypto-information.onrender.com/learn/exchange-vs-broker): 販売所の表示価格と取引所の板取引の違いを説明し、販売所スプレッド比較と板シミュレーターへ案内します。
 - [スリッページとは？](https://japan-crypto-information.onrender.com/learn/slippage): 成行注文で平均約定価格がずれる理由を説明し、板シミュレーターで確認できます。
