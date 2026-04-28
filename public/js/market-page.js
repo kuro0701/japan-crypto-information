@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let comparisonAbortController = null;
   let lastComparisonData = null;
   const SUMMARY_REFRESH_MS = 60000;
+  const ORDERBOOK_WAITING_MESSAGE = '取引所から板データを取得中です。接続に数秒かかる場合があります。';
+  const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
 
   const $ = AppUtil.byId;
   const setText = AppUtil.setText;
@@ -147,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const bestAsk = freshRows
       .filter(row => Number.isFinite(Number(row.bestAsk)))
       .sort((a, b) => Number(a.bestAsk) - Number(b.bestAsk))[0];
-    let statusText = '板データ待機中';
+    let statusText = '板データ取得中';
     if (counts.fresh > 0 && counts.stale > 0) statusText = '鮮度注意';
     else if (counts.fresh > 0) statusText = '集計済み';
     else if (counts.stale > 0) statusText = '鮮度切れ';
@@ -180,12 +182,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setSnapshotMetric(
       'best-ask',
       snapshot && snapshot.bestAsk ? fmtJpyPrice(snapshot.bestAsk.price) : 'データ待ち',
-      snapshot && snapshot.bestAsk ? snapshot.bestAsk.exchangeLabel : '板データ待ち'
+      snapshot && snapshot.bestAsk ? snapshot.bestAsk.exchangeLabel : ORDERBOOK_WAITING_MESSAGE
     );
     setSnapshotMetric(
       'best-bid',
       snapshot && snapshot.bestBid ? fmtJpyPrice(snapshot.bestBid.price) : 'データ待ち',
-      snapshot && snapshot.bestBid ? snapshot.bestBid.exchangeLabel : '板データ待ち'
+      snapshot && snapshot.bestBid ? snapshot.bestBid.exchangeLabel : ORDERBOOK_WAITING_MESSAGE
     );
     setSnapshotMetric(
       'thickest-book',
@@ -207,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setSnapshotMetric(
       'top-volume',
       snapshot && snapshot.topVolume ? snapshot.topVolume.exchangeLabel : 'データ待ち',
-      snapshot && snapshot.topVolume ? `24h出来高 ${Fmt.jpyLarge(snapshot.topVolume.quoteVolume)}` : '出来高データ待ち'
+      snapshot && snapshot.topVolume ? `24h出来高 ${Fmt.jpyLarge(snapshot.topVolume.quoteVolume)}` : '出来高データを取得中です'
     );
   }
 
@@ -216,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!tbody) return;
     const rows = sortedOrderbookRows();
     if (rows.length === 0) {
-      setEmpty('market-orderbook-tbody', 5, '対応取引所がありません');
+      setEmpty('market-orderbook-tbody', 5, 'この銘柄の板を取得できる取引所がまだありません。');
       return;
     }
 
@@ -228,14 +230,14 @@ document.addEventListener('DOMContentLoaded', () => {
         <tr class="border-b border-gray-800/60 ${rowClass}">
           <td class="text-left" data-label="取引所">
             <div class="font-bold text-gray-200">${escapeHtml(row.exchangeLabel || row.exchangeId)}</div>
-            <div class="text-[10px] text-gray-500">${hasBook ? escapeHtml(String(row.source || '-').toUpperCase()) : escapeHtml(row.message || '板データ待機中')}</div>
+            <div class="text-[10px] text-gray-500">${hasBook ? escapeHtml(String(row.source || '-').toUpperCase()) : escapeHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</div>
           </td>
           <td class="is-num text-right font-mono text-green-300" data-label="Bid">${hasBook ? fmtJpyPrice(row.bestBid) : '-'}</td>
           <td class="is-num text-right font-mono text-red-300" data-label="Ask">${hasBook ? fmtJpyPrice(row.bestAsk) : '-'}</td>
           <td class="is-num text-right font-mono text-yellow-300" data-label="Spread">${hasBook ? fmtPct(row.spreadPct) : '-'}</td>
           <td class="text-right font-mono text-gray-400" data-label="更新">
             <div>${hasBook ? escapeHtml(updatedAtLabel(row)) : '-'}</div>
-            <div class="text-[10px] text-gray-500">${hasBook ? escapeHtml(ageLabel(row)) : escapeHtml(row.message || '板データ待機中')}</div>
+            <div class="text-[10px] text-gray-500">${hasBook ? escapeHtml(ageLabel(row)) : escapeHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</div>
             ${freshnessBadge(status)}
           </td>
         </tr>
@@ -248,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .slice()
       .sort((a, b) => Number(b.quoteVolume || 0) - Number(a.quoteVolume || 0));
     if (rows.length === 0) {
-      setEmpty('market-volume-tbody', 4, '出来高データ待ち');
+      setEmpty('market-volume-tbody', 4, '出来高データを取得中です。取得でき次第、取引所ごとの流動性を表示します。');
       return;
     }
 
@@ -273,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(a.exchangeLabel).localeCompare(String(b.exchangeLabel), 'ja');
       });
     if (rows.length === 0) {
-      setEmpty('market-sales-tbody', 5, '販売所スプレッド記録待ち');
+      setEmpty('market-sales-tbody', 5, '販売所価格を取得中です。取得できた販売所から順に比較します。');
       return;
     }
 
@@ -328,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (!Number.isFinite(amount) || amount <= 0 || Number.isNaN(feeRatePct) || (feeRatePct != null && (feeRatePct < 0 || feeRatePct > 100))) {
       lastComparisonData = null;
-      setEmpty('market-comparison-tbody', 6, '比較条件を確認してください');
+      setEmpty('market-comparison-tbody', 6, '数量または金額、手数料率を確認してください。');
       return;
     }
 
@@ -351,8 +353,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       if (err.name === 'AbortError') return;
       lastComparisonData = null;
-      setText('market-comparison-meta', err.message);
-      setEmpty('market-comparison-tbody', 6, '比較の取得に失敗しました');
+      setText('market-comparison-meta', '比較データを取得できませんでした。');
+      setEmpty('market-comparison-tbody', 6, '比較データを取得できませんでした。時間をおいて再度お試しください。');
     } finally {
       if (comparisonAbortController === controller) {
         comparisonAbortController = null;
@@ -365,9 +367,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const rows = Array.isArray(data && data.rows) ? data.rows : [];
     const meta = data.meta || {};
     const counts = summarizeStatuses(rows);
-    setText('market-comparison-meta', `${marketLabel()} | ${meta.side === 'sell' ? '売り' : '買い'} | ${comparisonAmountLabel(meta)} | 手数料 ${meta.feeRate == null ? '各取引所既定' : fmtPct(meta.feeRate * 100)} | 新鮮 ${counts.fresh || 0}件 / stale ${counts.stale || 0}件 / 待機 ${counts.waiting || 0}件`);
+    setText('market-comparison-meta', `${marketLabel()} | ${meta.side === 'sell' ? '売り' : '買い'} | ${comparisonAmountLabel(meta)} | 手数料 ${meta.feeRate == null ? '各取引所既定' : fmtPct(meta.feeRate * 100)} | 新鮮 ${counts.fresh || 0}件 / stale ${counts.stale || 0}件 / 待機 ${counts.waiting || 0}件${counts.waiting > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`);
     if (rows.length === 0) {
-      setEmpty('market-comparison-tbody', 6, '比較できる取引所がありません');
+      setEmpty('market-comparison-tbody', 6, '比較できる取引所がありません。別の銘柄または条件で確認してください。');
       return;
     }
 
@@ -384,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const vwap = ready ? Fmt.jpy(result.effectiveVWAP) : '-';
       const statusText = ready
         ? (result.executionStatusLabel || '発注可能')
-        : (status === 'stale' ? '板データが古いため比較停止' : (row.message || '板データ待機中'));
+        : (status === 'stale' ? '板データが古いため比較停止' : (row.message || ORDERBOOK_WAITING_MESSAGE));
       const statusSub = ready
         ? comparisonReasonText(result)
         : (status === 'fresh' || status === 'stale' ? `最終更新 ${ageLabel(row)}` : '');
@@ -444,8 +446,8 @@ document.addEventListener('DOMContentLoaded', () => {
       void loadComparison();
     } catch (err) {
       if (err.name === 'AbortError') return;
-      setText('market-status', '取得失敗');
-      setText('market-hero-meta', err.message);
+      setText('market-status', '取得できませんでした');
+      setText('market-hero-meta', '銘柄データを取得できませんでした。時間をおいて再読み込みしてください。');
     } finally {
       if (summaryAbortController === controller) {
         summaryAbortController = null;

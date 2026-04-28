@@ -1,4 +1,6 @@
 const UI = {
+  emptySimulationMessage: '数量または金額を入力して、シミュレーションを実行してください。',
+  orderbookWaitingMessage: '取引所から板データを取得中です。接続に数秒かかる場合があります。',
   market: {
     baseCurrency: 'BTC',
     quoteCurrency: 'JPY',
@@ -198,12 +200,12 @@ const UI = {
   clearSimulationView() {
     const panel = document.getElementById('simulation-results');
     if (panel) {
-      panel.innerHTML = '<div class="text-gray-500 text-center py-8">シミュレーション未実行</div>';
+      panel.innerHTML = `<div class="text-gray-500 text-center py-8">${this.emptySimulationMessage}</div>`;
     }
 
     const tbody = document.getElementById('fill-tbody');
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="9" headers="fill-col-side fill-col-idx fill-col-price fill-quantity-header fill-col-subtotal fill-col-cum-base fill-col-cum-quote fill-col-impact fill-col-orders" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="9" headers="fill-col-side fill-col-idx fill-col-price fill-quantity-header fill-col-subtotal fill-col-cum-base fill-col-cum-quote fill-col-impact fill-col-orders" class="text-center text-gray-500 py-4">${this.emptySimulationMessage}</td></tr>`;
     }
   },
 
@@ -212,7 +214,7 @@ const UI = {
     if (!tbody) return;
 
     if (!thresholds || !thresholds.targets) {
-      tbody.innerHTML = '<tr><td colspan="3" headers="threshold-col-impact threshold-col-buy threshold-col-sell" class="text-center text-gray-500 py-4">板データ待機中</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="3" headers="threshold-col-impact threshold-col-buy threshold-col-sell" class="text-center text-gray-500 py-4">${this.orderbookWaitingMessage}</td></tr>`;
       return;
     }
 
@@ -247,6 +249,20 @@ const UI = {
     const sideLabel = r.side === 'buy' ? '買い (Ask消費)' : '売り (Bid消費)';
     const sideClass = r.side === 'buy' ? 'text-red-400' : 'text-green-400';
     const risk = this.impactRiskMeta(r.marketImpactPct);
+    const impactAbs = Math.abs(Number(r.marketImpactPct));
+    const dangerousOrderSize = r.insufficient
+      || r.autoCancelTriggered
+      || r.circuitBreakerTriggered
+      || ['auto_cancel', 'insufficient_liquidity', 'circuit_breaker'].includes(r.executionStatus)
+      || (Number.isFinite(impactAbs) && impactAbs >= 0.5);
+    const beginnerDangerWarning = dangerousOrderSize
+      ? `
+        <div class="beginner-only beginner-order-warning">
+          <strong>危険な注文サイズの警告</strong>
+          <span>Impact が ${Fmt.pct(r.marketImpactPct)} です。このサイズの成行注文は、分割注文・指値注文・板の厚い取引所への切り替えを先に検討してください。</span>
+        </div>
+      `
+      : '';
 
     const slipClass = (v) => v > 0.5 ? 'text-red-400 font-bold' : v > 0.1 ? 'text-yellow-400' : 'text-gray-200';
     const statusClass = {
@@ -286,6 +302,7 @@ const UI = {
           </div>
           <div class="mt-1 text-xs opacity-90">${r.recommendedAction}</div>
         </div>
+        ${beginnerDangerWarning}
 
         <div class="decision-summary-card">
           <div class="decision-summary-card__header">
@@ -425,7 +442,7 @@ const UI = {
     if (!tbody || !fills) return;
 
     if (fills.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" headers="fill-col-side fill-col-idx fill-col-price fill-quantity-header fill-col-subtotal fill-col-cum-base fill-col-cum-quote fill-col-impact fill-col-orders" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="9" headers="fill-col-side fill-col-idx fill-col-price fill-quantity-header fill-col-subtotal fill-col-cum-base fill-col-cum-quote fill-col-impact fill-col-orders" class="text-center text-gray-500 py-4">${this.emptySimulationMessage}</td></tr>`;
       return;
     }
 

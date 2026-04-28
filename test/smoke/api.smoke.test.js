@@ -180,14 +180,25 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(homePage.body.includes('国内暗号資産取引所の板・スプレッド・手数料を比較し'));
   assert.ok(homePage.body.includes('サイトの役割'));
   assert.ok(homePage.body.includes('手数料・実質コスト比較'));
+  assert.ok(homePage.body.includes('調べるハブ'));
+  assert.ok(homePage.body.includes('この取引所は信頼できる？'));
   assert.ok(homePage.body.includes('/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000'));
   assert.ok(homePage.body.includes('/learn/exchange-vs-broker'));
   assert.ok(homePage.body.includes('/learn/slippage'));
   assertCommonDisclosure(homePage.body);
 
+  const researchPage = await fetchText(baseUrl, '/research');
+  assert.equal(researchPage.status, 200);
+  assert.ok(researchPage.body.includes('取引所や銘柄を理解する'));
+  assert.ok(researchPage.body.includes('取引所を調べる'));
+  assert.ok(researchPage.body.includes('銘柄を調べる'));
+  assert.ok(researchPage.body.includes('/learn/exchange-company-analysis'));
+  assertCommonDisclosure(researchPage.body);
+
   const learnIndex = await fetchText(baseUrl, '/learn');
   assert.equal(learnIndex.status, 200);
   assert.ok(learnIndex.body.includes('初心者向け暗号資産取引ガイド'));
+  assert.ok(learnIndex.body.includes('/learn/exchange-company-analysis'));
   assert.ok(learnIndex.body.includes('/learn/market-order-risk'));
   assert.ok(learnIndex.body.includes('/sales-spread?instrumentId=BTC-JPY'));
   assertCommonDisclosure(learnIndex.body);
@@ -230,6 +241,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const marketHtml = await fetchText(baseUrl, '/markets/BTC-JPY');
   assert.equal(marketHtml.status, 200);
   assert.ok(marketHtml.body.includes('この銘柄の要点'));
+  assert.ok(marketHtml.body.includes('BTC/JPY は何に使われる？'));
+  assert.ok(marketHtml.body.includes('銘柄プロフィール / 特徴・リスク'));
   assert.ok(marketHtml.body.includes('BTC/JPY 比較サマリー'));
   assert.ok(marketHtml.body.includes('10万円購入時の最安候補'));
   assert.ok(marketHtml.body.includes('次に見る'));
@@ -256,6 +269,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(exchangeHtml.status, 200);
   assert.ok(exchangeHtml.body.includes('取引所詳細'));
   assert.ok(exchangeHtml.body.includes('OKCoin Japan'));
+  assert.ok(exchangeHtml.body.includes('信頼性・運営会社分析'));
+  assert.ok(exchangeHtml.body.includes('この取引所は信頼できる？'));
+  assert.ok(exchangeHtml.body.includes('財務・運営会社分析'));
   assert.ok(exchangeHtml.body.includes('板取引対応銘柄'));
   assert.ok(exchangeHtml.body.includes('販売所対応銘柄'));
   assert.ok(exchangeHtml.body.includes('公式リンク / 紹介リンク'));
@@ -312,6 +328,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const sitemap = await fetchText(baseUrl, '/sitemap.xml');
   assert.equal(sitemap.status, 200);
+  assert.ok(sitemap.body.includes('/research'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
 
   const rss = await fetchText(baseUrl, '/rss.xml');

@@ -34,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const CHART_COLORS = ['#35e0a5', '#ff6b70', '#35c8d2', '#f4c95d', '#dbe7df', '#ff9f7e', '#9ad46a'];
   const SHARE_REFRESH_MS = 60000;
   const VOLUME_HISTORY_REFRESH_MS = 600000;
+  const EMPTY_FILTER_MESSAGE = '条件に合う出来高データがありません。フィルターを変更してください。';
+  const WAITING_DATA_MESSAGE = '出来高データを取得中です。集計に数秒かかる場合があります。';
+  const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
 
   const $ = AppUtil.byId;
   const setText = AppUtil.setText;
@@ -150,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const API_STATUS_LABELS = {
     success: '成功',
-    partial: '一部失敗',
+    partial: '一部API未取得',
     failed: '失敗',
     waiting: '待機中',
   };
@@ -183,10 +186,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function historySourceLabel(meta) {
-    if (!meta) return '記録待ち';
+    if (!meta) return 'データ取得中';
     if (meta.source === 'daily-snapshots') return `日次 ${meta.historySnapshotCount}件`;
     if (meta.source === 'latest-fallback') return '最新24h収集値';
-    return '記録待ち';
+    return 'データ取得中';
   }
 
   function chartColor(index) {
@@ -318,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  function renderExchangeRows(exchanges, emptyMessage = '記録待ち') {
+  function renderExchangeRows(exchanges, emptyMessage = WAITING_DATA_MESSAGE) {
     const tbody = $('exchange-share-tbody');
     if (!tbody) return;
 
@@ -339,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
-  function renderInstrumentRows(rows, emptyMessage = '記録待ち') {
+  function renderInstrumentRows(rows, emptyMessage = WAITING_DATA_MESSAGE) {
     const tbody = $('instrument-share-tbody');
     if (!tbody) return;
 
@@ -374,8 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange
     ));
     if (rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-4">記録待ち</td></tr>';
-      setText('volume-quality-meta', '取得状況の記録待ち');
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 py-4">${WAITING_DATA_MESSAGE}</td></tr>`;
+      setText('volume-quality-meta', '取引所APIの取得状況を確認中です。');
       return;
     }
 
@@ -385,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const estimatedCount = rows.reduce((sum, row) => sum + (Number(row.estimatedCount) || 0), 0);
     setText(
       'volume-quality-meta',
-      `${rows.length}取引所 | 成功 ${successCount} | 要確認 ${issueCount} | 実測 ${measuredCount} / 推定 ${estimatedCount}`
+      `${rows.length}取引所 | 成功 ${successCount} | 要確認 ${issueCount} | 実測 ${measuredCount} / 推定 ${estimatedCount}${issueCount > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`
     );
 
     tbody.innerHTML = rows.map(row => `
@@ -528,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (rows.length === 0) {
       return {
         label: '-',
-        detail: '取得状況の記録待ち',
+        detail: '取得状況を確認中',
         tone: '',
       };
     }
@@ -821,9 +824,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const visibleCountLabel = hasActiveFilters()
       ? `${filtered.rows.length}/${allRowCount}件`
       : `${filtered.rows.length}件`;
-    const emptyMessage = hasActiveFilters() ? '該当なし' : '記録待ち';
+    const emptyMessage = hasActiveFilters() ? EMPTY_FILTER_MESSAGE : WAITING_DATA_MESSAGE;
 
-    setText('share-status', status.running ? '更新中' : (allRowCount > 0 ? '集計済み' : '記録待ち'));
+    setText('share-status', status.running ? '更新中' : (allRowCount > 0 ? '集計済み' : '取得中'));
     setText('share-updated-at', fmtDateTime(meta.latestCapturedAt || meta.generatedAt));
 
     const dateRange = meta.earliestVolumeDateJst && meta.latestVolumeDateJst
@@ -1115,8 +1118,8 @@ document.addEventListener('DOMContentLoaded', () => {
       render(data);
     } catch (err) {
       if (err.name === 'AbortError') return;
-      setText('share-status', '取得失敗');
-      setText('share-meta', err.message);
+      setText('share-status', '取得できませんでした');
+      setText('share-meta', '出来高データを取得できませんでした。時間をおいて再読み込みしてください。');
     } finally {
       if (shareAbortController === controller) {
         shareAbortController = null;
@@ -1145,8 +1148,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       if (err.name === 'AbortError') return;
-      setText('volume-history-meta', err.message);
-      setText('volume-rank-meta', '取得失敗');
+      setText('volume-history-meta', '出来高履歴を取得できませんでした。時間をおいて再読み込みしてください。');
+      setText('volume-rank-meta', '履歴データを取得できませんでした。');
     } finally {
       if (volumeHistoryAbortController === controller) {
         volumeHistoryAbortController = null;

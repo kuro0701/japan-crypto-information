@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-9">
+  <link rel="stylesheet" href="/css/style.css?v=ui-13">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -23,6 +23,7 @@
     </div>
     <nav class="nav-menu" aria-label="ページ間ナビゲーション">
       <a class="nav-link" href="/">ホーム</a>
+      <a class="nav-link" href="/research">調べる</a>
       <a class="nav-link" href="/simulator">板シミュレーター</a>
       <a class="nav-link" href="/markets">銘柄ページ</a>
       <a class="nav-link is-active" href="/volume-share" aria-current="page">出来高シェア</a>
@@ -63,17 +64,17 @@
           <strong id="total-volume" class="volume-kpi-card__value">-</strong>
           <p id="total-volume-meta" class="volume-kpi-card__meta">JPY換算</p>
         </article>
-        <article class="volume-kpi-card volume-kpi-card--hero volume-kpi-card--positive">
+        <article class="volume-kpi-card volume-kpi-card--hero volume-kpi-card--positive beginner-focus" data-beginner-focus="true">
           <span class="volume-kpi-card__label">首位取引所</span>
           <strong id="top-exchange" class="volume-kpi-card__value is-positive">-</strong>
           <p id="top-exchange-meta" class="volume-kpi-card__meta">シェアを計算中</p>
         </article>
-        <article class="volume-kpi-card">
+        <article class="volume-kpi-card beginner-focus" data-beginner-focus="true">
           <span class="volume-kpi-card__label">首位シェア</span>
           <strong id="top-share" class="volume-kpi-card__value">-</strong>
           <p id="top-share-meta" class="volume-kpi-card__meta">首位取引所の構成比</p>
         </article>
-        <article class="volume-kpi-card">
+        <article class="volume-kpi-card beginner-focus" data-beginner-focus="true">
           <span class="volume-kpi-card__label">上位3社集中度</span>
           <strong id="top3-share" class="volume-kpi-card__value">-</strong>
           <p id="top3-share-meta" class="volume-kpi-card__meta">取引所の偏りを確認</p>
@@ -93,7 +94,7 @@
           <strong id="daily-change" class="volume-kpi-card__value">-</strong>
           <p id="daily-change-meta" class="volume-kpi-card__meta">直近日次スナップショット比</p>
         </article>
-        <article class="volume-kpi-card">
+        <article class="volume-kpi-card beginner-focus" data-beginner-focus="true">
           <span class="volume-kpi-card__label">データ信頼度</span>
           <strong id="data-reliability" class="volume-kpi-card__value">-</strong>
           <p id="data-reliability-meta" class="volume-kpi-card__meta">取得状況を確認中</p>
@@ -229,7 +230,7 @@
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 出来高はJPY換算です</footer>
 
-  <script src="/js/beginner-mode.js?v=2"></script>
+  <script src="/js/beginner-mode.js?v=3"></script>
   <script src="js/formatter.js?v=volume-share-1"></script>
   <script src="js/app-utils.js?v=app-utils-1"></script>
   <script src="js/app-formatters.js?v=app-formatters-1"></script>

@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastVenueComparisonData = null;
   let lastSalesReferenceData = null;
   const COMPARISON_REFRESH_MS = 10000;
+  const EMPTY_SIMULATION_MESSAGE = '数量または金額を入力して、シミュレーションを実行してください。';
+  const ORDERBOOK_WAITING_MESSAGE = '取引所から板データを取得中です。接続に数秒かかる場合があります。';
+  const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
   const defaultMarket = {
     instrumentId: 'BTC-JPY',
     label: 'BTC/JPY',
@@ -262,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
       badgeLabel: '未実行',
       badgeTone: 'idle',
       lead: 'シミュレーションを実行すると、最適な取引所と危険度をここで要約します。',
-      body: 'まずは初心者向けプリセットを押すか、数量を入れて実行してください。',
+      body: 'まずは「実効コスト」「Impact」「販売所スプレッド」の3つを見ると判断しやすいです。初心者向けプリセットを押すか、数量または金額を入力して実行してください。',
     });
   }
 
@@ -1349,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function alertStatusText(alert) {
     if (alert.status === 'triggered') return '条件達成';
     if (alert.status === 'waiting') return '待機中';
-    if (alert.status === 'error') return '取得失敗';
+    if (alert.status === 'error') return '取得できず';
     return '未判定';
   }
 
@@ -1764,8 +1767,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setBusy('sales-reference-panel', false);
     UI.setText('venue-comparison-meta', 'シミュレーション実行後に比較します');
     UI.setText('sales-reference-meta', '販売所は表示価格ベースの参考値です');
-    setVenueComparisonEmpty('シミュレーション結果なし');
-    setSalesReferenceEmpty('シミュレーション結果なし');
+    setVenueComparisonEmpty(EMPTY_SIMULATION_MESSAGE);
+    setSalesReferenceEmpty(EMPTY_SIMULATION_MESSAGE);
     updateDecisionSummary();
   }
 
@@ -1834,7 +1837,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     UI.setText(
       'venue-comparison-meta',
-      `${market.label || meta.instrumentId || '-'} | ${sideLabel} | ${comparisonAmountLabel(meta)} | 手数料 ${meta.feeRate == null ? '各取引所既定' : `${formatFeeRatePct(meta.feeRate)}`} | 取得 ${comparisonGeneratedAtLabel(meta.generatedAt)} | 新鮮 ${counts.fresh || 0}件 / stale ${counts.stale || 0}件 / 待機 ${counts.waiting || 0}件`
+      `${market.label || meta.instrumentId || '-'} | ${sideLabel} | ${comparisonAmountLabel(meta)} | 手数料 ${meta.feeRate == null ? '各取引所既定' : `${formatFeeRatePct(meta.feeRate)}`} | 取得 ${comparisonGeneratedAtLabel(meta.generatedAt)} | 新鮮 ${counts.fresh || 0}件 / stale ${counts.stale || 0}件 / 待機 ${counts.waiting || 0}件${counts.waiting > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`
     );
 
     if (rows.length === 0) {
@@ -1856,7 +1859,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const valueClass = isSell ? 'text-green-300' : 'text-red-300';
       const statusText = ready
         ? (result.executionStatusLabel || '発注可能')
-        : (status === 'stale' ? '板データが古いため比較停止' : (row.message || '板データ待機中'));
+        : (status === 'stale' ? '板データが古いため比較停止' : (row.message || ORDERBOOK_WAITING_MESSAGE));
       const statusClass = ready
         ? comparisonStatusClass(result.executionStatus)
         : (status === 'stale' ? 'text-yellow-300' : 'text-gray-500');
@@ -1892,7 +1895,7 @@ document.addEventListener('DOMContentLoaded', () => {
         : constraintSub;
       const updatedSub = status === 'fresh' || status === 'stale'
         ? `<div class="text-[10px] text-gray-500">${escapeHtml(comparisonAgeLabel(row))}</div>`
-        : `<div class="text-[10px] text-gray-500">${escapeHtml(row.message || '-')}</div>`;
+        : `<div class="text-[10px] text-gray-500">${escapeHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</div>`;
 
       return `
         <tr class="border-b border-gray-800/60 ${rowClass}">
@@ -1964,7 +1967,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lastVenueComparisonData = null;
         setBusy('venue-comparison-panel', false);
         UI.setText('venue-comparison-meta', err.message);
-        setVenueComparisonEmpty('比較の取得に失敗しました');
+        setVenueComparisonEmpty('比較データを取得できませんでした。時間をおいて再度お試しください。');
         updateDecisionSummary();
       }
     } finally {
@@ -2097,7 +2100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     if (rows.length === 0) {
-      setSalesReferenceEmpty('販売所価格の記録待ち');
+      setSalesReferenceEmpty('販売所価格を取得中です。取得できた販売所のみで参考比較します。');
       return;
     }
 
@@ -2178,7 +2181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lastSalesReferenceData = null;
         setBusy('sales-reference-panel', false);
         UI.setText('sales-reference-meta', err.message);
-        setSalesReferenceEmpty('販売所参考比較の取得に失敗しました');
+        setSalesReferenceEmpty('販売所参考比較を取得できませんでした。時間をおいて再度お試しください。');
       }
     } finally {
       if (salesReferenceAbortController === controller) {
@@ -2288,9 +2291,9 @@ document.addEventListener('DOMContentLoaded', () => {
       setBusy('simulation-export-panel', false);
       setBusy('fill-tbody', false);
       lastSimulationResult = null;
-      lastSimulationError = '正の数値を入力してください';
+      lastSimulationError = '数量または金額に正の数値を入力してください。';
       document.getElementById('simulation-results').innerHTML =
-        '<div class="text-yellow-400 text-center py-4">正の数値を入力してください</div>';
+        '<div class="text-yellow-400 text-center py-4">数量または金額に正の数値を入力してください。</div>';
       updateDecisionSummary();
       return;
     }
@@ -2313,7 +2316,7 @@ document.addEventListener('DOMContentLoaded', () => {
       lastSimulationResult = null;
       lastSimulationError = '板データへ接続中です。数秒待ってからもう一度実行してください';
       document.getElementById('simulation-results').innerHTML =
-        '<div class="text-yellow-400 text-center py-4">板データへ接続中です。数秒待ってからもう一度実行してください</div>';
+        `<div class="text-yellow-400 text-center py-4">${ORDERBOOK_WAITING_MESSAGE}</div>`;
       updateDecisionSummary();
       return;
     }

@@ -371,6 +371,182 @@ body.terminal-body {
   line-height: 1.5;
 }
 
+.beginner-only {
+  display: none !important;
+}
+
+.beginner-mode .beginner-only:not([hidden]) {
+  display: block !important;
+}
+
+.beginner-guide-panel {
+  display: grid;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  border: 1px solid rgba(53, 200, 210, 0.28);
+  border-radius: var(--r);
+  background:
+    radial-gradient(circle at top right, rgba(53, 200, 210, 0.14), transparent 34%),
+    linear-gradient(135deg, rgba(9, 16, 18, 0.98), rgba(8, 12, 14, 0.98));
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.beginner-mode .beginner-guide-panel:not([hidden]) {
+  display: grid !important;
+}
+
+.beginner-guide-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.beginner-guide-panel__eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+}
+
+.beginner-guide-panel__title {
+  margin: 6px 0 0;
+  color: var(--text-1);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.beginner-guide-panel__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid rgba(53, 224, 165, 0.32);
+  border-radius: 999px;
+  background: rgba(53, 224, 165, 0.1);
+  color: var(--bid);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.beginner-guide-panel__summary {
+  margin: 0;
+  color: var(--text-1);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  line-height: 1.8;
+}
+
+.beginner-guide-section {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.beginner-guide-section > strong,
+.beginner-guide-warning > strong {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.beginner-guide-chip-row,
+.beginner-guide-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.beginner-guide-chip,
+.beginner-guide-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: rgba(17, 22, 24, 0.74);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.beginner-guide-chip {
+  border-color: rgba(244, 201, 93, 0.28);
+  background: rgba(244, 201, 93, 0.1);
+  color: var(--warn);
+}
+
+.beginner-guide-link:hover,
+.beginner-guide-link:focus-visible {
+  border-color: rgba(53, 200, 210, 0.48);
+  color: var(--accent);
+  background: rgba(53, 200, 210, 0.1);
+}
+
+.beginner-guide-term-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+.beginner-guide-term {
+  min-width: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: rgba(8, 11, 8, 0.44);
+}
+
+.beginner-guide-term dt {
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+}
+
+.beginner-guide-term dd {
+  margin: 5px 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+}
+
+.beginner-guide-warning,
+.beginner-order-warning {
+  display: grid;
+  gap: 6px;
+  padding: var(--sp-3);
+  border: 1px solid rgba(244, 201, 93, 0.34);
+  border-radius: var(--r);
+  background: rgba(244, 201, 93, 0.1);
+  color: var(--warn);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+}
+
+.beginner-order-warning {
+  margin-top: var(--sp-3);
+}
+
+.beginner-mode .beginner-order-warning.beginner-only:not([hidden]) {
+  display: grid !important;
+}
+
+.beginner-mode :is(.beginner-focus, [data-beginner-focus="true"]) {
+  border-color: rgba(244, 201, 93, 0.4) !important;
+  box-shadow: 0 0 0 1px rgba(244, 201, 93, 0.14), inset 3px 0 0 rgba(244, 201, 93, 0.68);
+}
+
+.beginner-mode .beginner-focus-cell {
+  background: rgba(244, 201, 93, 0.08);
+  color: var(--text-1) !important;
+}
+
 .status-dot {
   position: relative;
   flex: 0 0 auto;
@@ -1791,6 +1967,14 @@ th {
   box-shadow: inset 2px 0 0 var(--accent);
 }
 
+.beginner-mode .data-table .beginner-optional {
+  display: none !important;
+}
+
+.beginner-mode .data-table tbody tr:hover > .beginner-optional:first-child {
+  box-shadow: none;
+}
+
 .table-skeleton-row:hover {
   background: transparent !important;
 }
@@ -2071,6 +2255,10 @@ th {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   gap: var(--sp-3);
+}
+
+.market-insight-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .market-insight-card {

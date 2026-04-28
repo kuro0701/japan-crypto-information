@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const CHART_COLORS = ['#35e0a5', '#ff6b70', '#35c8d2', '#f4c95d', '#dbe7df', '#ff9f7e', '#9ad46a'];
   const SPREAD_REFRESH_MS = 60000;
   const SPREAD_HISTORY_REFRESH_MS = 600000;
+  const EMPTY_FILTER_MESSAGE = '条件に合う販売所スプレッドデータがありません。銘柄名や取引所フィルターを変更してください。';
+  const WAITING_DATA_MESSAGE = '販売所価格を取得中です。取得できた販売所から順に比較します。';
+  const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
 
   const $ = AppUtil.byId;
   const setText = AppUtil.setText;
@@ -101,12 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
   selectedHistoryInstrument = initialState.historyInstrumentId;
 
   function sourceLabel(windowMeta) {
-    if (!windowMeta) return '記録待ち';
+    if (!windowMeta) return 'データ取得中';
     if (windowMeta.source === 'daily-snapshots') return `スプレッドスナップショット ${windowMeta.sampleSnapshotCount}件`;
     if (windowMeta.source === 'daily-snapshot') return 'スプレッドスナップショット';
     if (windowMeta.source === 'latest-fallback') return '最新収集値';
     if (windowMeta.source === 'latest') return '最新収集値';
-    return '記録待ち';
+    return 'データ取得中';
   }
 
   function provisionalSnapshotNote(meta, latestKey, countKey) {
@@ -131,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const API_STATUS_LABELS = {
     success: '成功',
-    partial: '一部失敗',
+    partial: '一部API未取得',
     failed: '失敗',
     waiting: '待機中',
   };
@@ -164,10 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function historySourceLabel(meta) {
-    if (!meta) return '記録待ち';
+    if (!meta) return 'データ取得中';
     if (meta.source === 'daily-snapshots') return `日次 ${meta.historySnapshotCount}件`;
     if (meta.source === 'latest-fallback') return '最新収集値';
-    return '記録待ち';
+    return 'データ取得中';
   }
 
   function chartColor(index) {
@@ -711,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!tbody) return;
 
     if (rows.length === 0) {
-      const message = hasActiveFilters() ? '該当なし' : '記録待ち';
+      const message = hasActiveFilters() ? EMPTY_FILTER_MESSAGE : WAITING_DATA_MESSAGE;
       tbody.innerHTML = `<tr><td colspan="8" class="text-center text-gray-500 py-4">${message}</td></tr>`;
       return;
     }
@@ -746,8 +749,8 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange
     ));
     if (rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-4">記録待ち</td></tr>';
-      setText('spread-quality-meta', '取得状況の記録待ち');
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 py-4">${WAITING_DATA_MESSAGE}</td></tr>`;
+      setText('spread-quality-meta', '販売所APIの取得状況を確認中です。');
       return;
     }
 
@@ -757,7 +760,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const estimatedCount = rows.reduce((sum, row) => sum + (Number(row.estimatedCount) || 0), 0);
     setText(
       'spread-quality-meta',
-      `${rows.length}販売所 | 成功 ${successCount} | 要確認 ${issueCount} | 実測 ${measuredCount} / 推定 ${estimatedCount}`
+      `${rows.length}販売所 | 成功 ${successCount} | 要確認 ${issueCount} | 実測 ${measuredCount} / 推定 ${estimatedCount}${issueCount > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`
     );
 
     tbody.innerHTML = rows.map(row => `
@@ -789,7 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setText('narrowest-spread', narrowest ? spreadHighlightLabel(narrowest.row) : '-');
     setText('widest-spread', widest ? spreadHighlightLabel(widest.row) : '-');
-    setText('spread-status', status.running ? '更新中' : (allRows.length > 0 ? '集計済み' : '記録待ち'));
+    setText('spread-status', status.running ? '更新中' : (allRows.length > 0 ? '集計済み' : '取得中'));
     setText('spread-updated-at', fmtDateTime(latestMeta.latestCapturedAt || latestMeta.generatedAt));
   }
 
@@ -976,8 +979,8 @@ document.addEventListener('DOMContentLoaded', () => {
       render(data);
     } catch (err) {
       if (err.name === 'AbortError') return;
-      setText('spread-status', '取得失敗');
-      setText('spread-meta', err.message);
+      setText('spread-status', '取得できませんでした');
+      setText('spread-meta', '販売所スプレッドを取得できませんでした。時間をおいて再読み込みしてください。');
     } finally {
       if (spreadAbortController === controller) {
         spreadAbortController = null;
@@ -1002,7 +1005,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderSpreadHistory();
     } catch (err) {
       if (err.name === 'AbortError') return;
-      setText('spread-history-meta', err.message);
+      setText('spread-history-meta', '販売所スプレッド履歴を取得できませんでした。時間をおいて再読み込みしてください。');
     } finally {
       if (spreadHistoryAbortController === controller) {
         spreadHistoryAbortController = null;

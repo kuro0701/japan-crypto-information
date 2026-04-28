@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-8">
+  <link rel="stylesheet" href="/css/style.css?v=ui-13">
   <script>
     tailwind.config = {
       theme: {
@@ -48,6 +48,7 @@
 
     <nav class="nav-menu" aria-label="ページ間ナビゲーション">
       <a class="nav-link" href="/">ホーム</a>
+      <a class="nav-link" href="/research">調べる</a>
       <a class="nav-link is-active" href="/simulator" aria-current="page">板シミュレーター</a>
       <a class="nav-link" href="/markets">銘柄ページ</a>
       <a class="nav-link" href="/volume-share">出来高シェア</a>
@@ -82,11 +83,11 @@
         実行後は、危険度、取引所ごとの差、次に見るべき詳細ページまでまとめて確認できます。
       </p>
       <div class="simulator-intro-card__points" aria-label="このページで分かること">
-        <div class="simulator-intro-point">
+          <div class="simulator-intro-point beginner-focus" data-beginner-focus="true">
           <strong>約定コスト</strong>
           <span>想定VWAP、手数料込み実効コスト、最悪約定価格</span>
         </div>
-        <div class="simulator-intro-point">
+        <div class="simulator-intro-point beginner-focus" data-beginner-focus="true">
           <strong>危険度</strong>
           <span>Impact を5段階で判定し、分割注文の要否を判断</span>
         </div>
@@ -237,7 +238,7 @@
               </tr>
             </thead>
             <tbody id="threshold-tbody">
-              <tr><td colspan="3" class="text-center text-gray-500 py-4">板データ待機中</td></tr>
+              <tr><td colspan="3" class="text-center text-gray-500 py-4">取引所から板データを取得中です。接続に数秒かかる場合があります。</td></tr>
             </tbody>
           </table>
         </div>
@@ -263,10 +264,10 @@
             <span class="decision-summary-badge decision-summary-badge--idle">未実行</span>
           </div>
           <p class="decision-summary-card__lead">シミュレーションを実行すると、最適な取引所、OKJとの差、Impactベースの危険度をここで自然文で要約します。</p>
-          <p class="decision-summary-card__body">まずは初心者向けプリセットを押すか、数量を入れて実行してください。</p>
+          <p class="decision-summary-card__body">まずは「実効コスト」「Impact」「販売所スプレッド」の3つを見ると判断しやすいです。初心者向けプリセットを押すか、数量または金額を入力して実行してください。</p>
         </div>
         <div id="simulation-results" class="text-sm mt-2">
-          <div class="text-gray-500 text-center py-8">シミュレーション未実行</div>
+          <div class="text-gray-500 text-center py-8">数量または金額を入力して、シミュレーションを実行してください。</div>
         </div>
       </section>
 
@@ -330,7 +331,7 @@
         </div>
       </section>
 
-      <section id="venue-comparison-panel" class="panel panel--dense index-priority-4">
+      <section id="venue-comparison-panel" class="panel panel--dense index-priority-4 beginner-focus" data-beginner-focus="true">
         <div class="panel-title-row">
           <div>
             <h2 class="panel-title">取引所横断コスト比較</h2>
@@ -358,13 +359,13 @@
               </tr>
             </thead>
             <tbody id="venue-comparison-tbody">
-              <tr><td colspan="7" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>
+              <tr><td colspan="7" class="text-center text-gray-500 py-4">数量または金額を入力して、シミュレーションを実行してください。</td></tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <section id="sales-reference-panel" class="panel panel--dense index-priority-5">
+      <section id="sales-reference-panel" class="panel panel--dense index-priority-5 beginner-focus" data-beginner-focus="true">
         <div class="panel-title-row">
           <div>
             <div class="panel-title-with-help">
@@ -407,7 +408,7 @@
               </tr>
             </thead>
             <tbody id="sales-reference-tbody">
-              <tr><td colspan="7" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>
+              <tr><td colspan="7" class="text-center text-gray-500 py-4">数量または金額を入力して、シミュレーションを実行してください。</td></tr>
             </tbody>
           </table>
         </div>
@@ -434,7 +435,7 @@
               </tr>
             </thead>
             <tbody id="fill-tbody">
-              <tr><td colspan="9" class="text-center text-gray-500 py-4">シミュレーション結果なし</td></tr>
+              <tr><td colspan="9" class="text-center text-gray-500 py-4">数量または金額を入力して、シミュレーションを実行してください。</td></tr>
             </tbody>
           </table>
         </div>
@@ -447,7 +448,7 @@
     板シミュレーター | 取引所: <span id="footer-exchange-label">OKJ</span> | 銘柄: <span id="footer-instrument-label">BTC/JPY</span> | データソース: <span id="footer-source-label">OKCoin Japan WebSocket + REST fallback</span>
   </footer>
 
-  <script src="/js/beginner-mode.js?v=2"></script>
+  <script src="/js/beginner-mode.js?v=3"></script>
   <script src="js/formatter.js?v=volume-1"></script>
   <script src="js/app-utils.js?v=app-utils-2"></script>
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
