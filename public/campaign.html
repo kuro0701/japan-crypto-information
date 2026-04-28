@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- HEAD_META_INJECT -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=ui-12">
+</head>
+<body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
+  <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
+
+  <header class="topbar px-6 py-3">
+    <div class="brand-cluster">
+      <div class="brand-mark" aria-hidden="true">₿</div>
+      <div class="brand-copy min-w-0">
+        <h1 class="page-title">キャンペーン詳細</h1>
+        <div class="brand-subtitle">特典・条件・コスト確認</div>
+      </div>
+    </div>
+    <nav class="nav-menu" aria-label="ページ間ナビゲーション">
+      <a class="nav-link" href="/">ホーム</a>
+      <a class="nav-link" href="/simulator">板シミュレーター</a>
+      <a class="nav-link" href="/markets">銘柄ページ</a>
+      <a class="nav-link" href="/volume-share">出来高シェア</a>
+      <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
+      <a class="nav-link is-active" href="/campaigns" aria-current="page">キャンペーン</a>
+    </nav>
+    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true">
+      <span class="badge badge--live">PR</span>
+      <span class="status-text">詳細確認</span>
+      <span class="text-xs text-gray-600 ml-2">取引所: <span class="text-gray-400">__CAMPAIGN_EXCHANGE_NAME__</span></span>
+    </div>
+  </header>
+
+  <main id="main" class="dashboard-shell campaign-shell campaign-detail-shell flex flex-col gap-4 p-4 max-w-[1440px] mx-auto">
+    <section class="decision-summary-card campaign-hero-card">
+      <div class="decision-summary-card__header">
+        <div>
+          <p class="decision-summary-card__eyebrow">Campaign Detail</p>
+          <h2 class="decision-summary-card__title">__CAMPAIGN_EXCHANGE_NAME__ のキャンペーン確認</h2>
+        </div>
+        <span class="decision-summary-badge decision-summary-badge--ready">__CAMPAIGN_LAST_CHECKED__</span>
+      </div>
+      <p class="decision-summary-card__lead">__CAMPAIGN_NAME__</p>
+      <p class="decision-summary-card__body">キャンペーン内容だけでなく、手数料・スプレッド・板の厚みも確認した上で利用を検討してください。</p>
+      <div class="campaign-detail-fact-grid">
+        <div class="metric-row metric-row--hero"><span class="metric-label">特典</span><span class="metric-value metric-value--market">__CAMPAIGN_BENEFIT__</span></div>
+        <div class="metric-row metric-row--hero bid"><span class="metric-label">既定 taker 手数料</span><span class="metric-value metric-value--market text-green-300">__CAMPAIGN_FEE_LABEL__</span></div>
+        <div class="metric-row metric-row--hero"><span class="metric-label">取扱銘柄</span><span class="metric-value metric-value--hero">__CAMPAIGN_MARKET_COUNT__</span></div>
+      </div>
+    </section>
+
+    <section class="campaign-detail-nav" aria-label="ページ内ナビゲーション">
+      <a href="#overview">概要</a>
+      <a href="#benefit">特典内容</a>
+      <a href="#audience">対象者</a>
+      <a href="#conditions">達成条件</a>
+      <a href="#notes">注意点</a>
+      <a href="#costs">コスト比較</a>
+      <a href="#markets">取扱銘柄</a>
+      <a href="#simulator">板シミュレーター</a>
+      <a href="#links">公式/紹介リンク</a>
+    </section>
+
+    <section id="overview" class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">1. キャンペーン概要</h2>
+          <p class="text-xs text-gray-500 mt-1">公式確認導線を中心に、申込前に見たい項目を整理しています。</p>
+        </div>
+        <span class="panel-kicker">Overview</span>
+      </div>
+      <dl class="campaign-detail-dl">
+        <div><dt>取引所</dt><dd>__CAMPAIGN_EXCHANGE_NAME__</dd></div>
+        <div><dt>キャンペーン名</dt><dd>__CAMPAIGN_NAME__</dd></div>
+        <div><dt>期間</dt><dd>__CAMPAIGN_PERIOD__</dd></div>
+        <div><dt>最終確認日</dt><dd>__CAMPAIGN_LAST_CHECKED__</dd></div>
+      </dl>
+    </section>
+
+    <div class="campaign-detail-section-grid">
+      <section id="benefit" class="panel panel--dense">
+        <div class="panel-title-row mb-3">
+          <h2 class="panel-title">2. 特典内容</h2>
+          <span class="panel-kicker">Benefit</span>
+        </div>
+        <p class="campaign-detail-copy">__CAMPAIGN_BENEFIT__</p>
+        <p class="text-xs text-gray-500 mt-3">特典額、付与時期、上限、抽選/全員付与の違いは公式ページの最新表示を優先してください。</p>
+      </section>
+
+      <section id="audience" class="panel panel--dense">
+        <div class="panel-title-row mb-3">
+          <h2 class="panel-title">3. 対象者</h2>
+          <span class="panel-kicker">Audience</span>
+        </div>
+        <p class="campaign-detail-copy">__CAMPAIGN_AUDIENCE__</p>
+        <p class="text-xs text-gray-500 mt-3">新規/既存、紹介経由、エントリー済みなどの条件を分けて確認しましょう。</p>
+      </section>
+
+      <section id="conditions" class="panel panel--dense">
+        <div class="panel-title-row mb-3">
+          <h2 class="panel-title">4. 達成条件</h2>
+          <span class="panel-kicker">Conditions</span>
+        </div>
+        <p class="campaign-detail-copy">__CAMPAIGN_CONDITIONS__</p>
+        <p class="text-xs text-gray-500 mt-3">本人確認、入金、対象サービスの取引、期限内達成、対象外取引の有無を見てください。</p>
+      </section>
+
+      <section id="notes" class="panel panel--dense">
+        <div class="panel-title-row mb-3">
+          <h2 class="panel-title">5. 注意点</h2>
+          <span class="panel-kicker">Caution</span>
+        </div>
+        <ol class="market-insight-checklist">
+          <!-- CAMPAIGN_NOTES -->
+        </ol>
+      </section>
+    </div>
+
+    <section id="costs" class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">6. この取引所のコスト比較</h2>
+          <p class="text-xs text-gray-500 mt-1">キャンペーンの特典と、通常利用時のコストを分けて確認します。</p>
+        </div>
+        <span class="panel-kicker">Cost</span>
+      </div>
+      <div class="callout callout--warn mb-4">
+        <span class="callout-icon" aria-hidden="true">!</span>
+        <div class="callout-title">キャンペーンだけで判断しない</div>
+        <div class="callout-body">キャンペーン内容だけでなく、手数料・スプレッド・板の厚みも確認した上で利用を検討してください。</div>
+      </div>
+      <div class="market-definition-list">
+        <!-- CAMPAIGN_COST_CARDS -->
+      </div>
+    </section>
+
+    <section id="markets" class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">7. 取扱銘柄</h2>
+          <p class="text-xs text-gray-500 mt-1">板シミュレーターに接続している銘柄から、実効コストの確認へ進めます。</p>
+        </div>
+        <span class="panel-kicker">Markets</span>
+      </div>
+      <div class="exchange-market-grid">
+        <!-- CAMPAIGN_MARKET_LINKS -->
+      </div>
+    </section>
+
+    <section id="simulator" class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">8. 板シミュレーターへの導線</h2>
+          <p class="text-xs text-gray-500 mt-1">代表銘柄を選んだ状態で、成行注文時の板の厚みと想定コストを確認できます。</p>
+        </div>
+        <span class="panel-kicker">Simulator</span>
+      </div>
+      <div class="market-context-grid market-context-grid--links">
+        <!-- CAMPAIGN_SIMULATOR_LINKS -->
+      </div>
+    </section>
+
+    <section id="links" class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">9. 公式/紹介リンク</h2>
+          <p class="text-xs text-gray-500 mt-1">公式URLを優先し、紹介リンクがある場合は PR として扱います。</p>
+        </div>
+        <span class="panel-kicker">Links</span>
+      </div>
+      <div class="market-context-grid market-context-grid--links">
+        <!-- CAMPAIGN_LINK_CARDS -->
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | __CAMPAIGN_EXCHANGE_NAME__ キャンペーン詳細</footer>
+</body>
+</html>

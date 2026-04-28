@@ -2921,6 +2921,93 @@ th {
     linear-gradient(135deg, rgba(17, 15, 10, 0.96), rgba(8, 12, 14, 0.96));
 }
 
+.campaign-detail-shell {
+  scroll-padding-top: 96px;
+}
+
+.campaign-detail-fact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.campaign-detail-fact-grid .metric-value {
+  overflow-wrap: anywhere;
+}
+
+.campaign-detail-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: rgba(8, 12, 14, 0.72);
+}
+
+.campaign-detail-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line-weak);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.campaign-detail-nav a:hover,
+.campaign-detail-nav a:focus-visible {
+  border-color: rgba(53, 200, 210, 0.5);
+  color: var(--accent);
+}
+
+.campaign-detail-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.campaign-detail-dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin: 0;
+}
+
+.campaign-detail-dl div {
+  min-width: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line-weak);
+  border-radius: var(--r-sm);
+  background: rgba(11, 16, 18, 0.58);
+}
+
+.campaign-detail-dl dt {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+}
+
+.campaign-detail-dl dd {
+  margin: var(--sp-1) 0 0;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.campaign-detail-copy {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-base);
+  font-weight: 700;
+  line-height: 1.75;
+}
+
 .campaign-kpi-grid,
 .campaign-card-grid {
   display: grid;
@@ -3270,7 +3357,10 @@ th {
   }
 
   .market-insight-grid,
-  .market-context-grid {
+  .market-context-grid,
+  .campaign-detail-section-grid,
+  .campaign-detail-fact-grid,
+  .campaign-detail-dl {
     grid-template-columns: 1fr;
   }
 

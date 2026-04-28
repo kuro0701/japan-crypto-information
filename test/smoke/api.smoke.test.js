@@ -251,6 +251,19 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(campaignsPage.body.includes('GMOコイン'));
   assert.ok(campaignsPage.body.includes('紹介リンク/アフィリエイトリンク'));
   assert.ok(campaignsPage.body.includes('PR / アフィリエイト表記'));
+  assert.ok(campaignsPage.body.includes('/campaigns/gmo-coin'));
+
+  const gmoCampaignLegacy = await fetch(new URL('/campaigns/gmo', baseUrl), { redirect: 'manual' });
+  assert.equal(gmoCampaignLegacy.status, 301);
+  assert.equal(gmoCampaignLegacy.headers.get('location'), '/campaigns/gmo-coin');
+
+  const gmoCampaignPage = await fetchText(baseUrl, '/campaigns/gmo-coin');
+  assert.equal(gmoCampaignPage.status, 200);
+  assert.ok(gmoCampaignPage.body.includes('キャンペーン詳細'));
+  assert.ok(gmoCampaignPage.body.includes('1. キャンペーン概要'));
+  assert.ok(gmoCampaignPage.body.includes('6. この取引所のコスト比較'));
+  assert.ok(gmoCampaignPage.body.includes('キャンペーン内容だけでなく、手数料・スプレッド・板の厚みも確認した上で利用を検討してください。'));
+  assert.ok(gmoCampaignPage.body.includes('/simulator?exchange=gmo&amp;market=BTC-JPY'));
 
   const volumeShare = await fetchJson(baseUrl, '/api/volume-share?window=7d');
   assert.equal(volumeShare.status, 200);
