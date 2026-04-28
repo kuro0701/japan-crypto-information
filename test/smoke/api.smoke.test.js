@@ -90,6 +90,15 @@ async function fetchText(baseUrl, route) {
   };
 }
 
+function assertCommonDisclosure(body) {
+  assert.ok(body.includes('重要な注意事項 / PR表記'));
+  assert.ok(body.includes('投資助言ではありません'));
+  assert.ok(body.includes('暗号資産は価格変動リスクがあり'));
+  assert.ok(body.includes('公開API / WebSocket の取得失敗'));
+  assert.ok(body.includes('広告・PR・アフィリエイトリンクが含まれる場合があります'));
+  assert.ok(body.includes('キャンペーン情報の最終確認日は'));
+}
+
 test('major public APIs return seeded test data over HTTP', async (t) => {
   const tempDir = createTempDir('okj-smoke-');
   const previousEnv = new Map(TEST_ENV_KEYS.map((key) => [key, process.env[key]]));
@@ -172,18 +181,21 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(homePage.body.includes('/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000'));
   assert.ok(homePage.body.includes('/learn/exchange-vs-broker'));
   assert.ok(homePage.body.includes('/learn/slippage'));
+  assertCommonDisclosure(homePage.body);
 
   const learnIndex = await fetchText(baseUrl, '/learn');
   assert.equal(learnIndex.status, 200);
   assert.ok(learnIndex.body.includes('初心者向け暗号資産取引ガイド'));
   assert.ok(learnIndex.body.includes('/learn/market-order-risk'));
   assert.ok(learnIndex.body.includes('/sales-spread?instrumentId=BTC-JPY'));
+  assertCommonDisclosure(learnIndex.body);
 
   const learnSlippage = await fetchText(baseUrl, '/learn/slippage');
   assert.equal(learnSlippage.status, 200);
   assert.ok(learnSlippage.body.includes('スリッページとは？'));
   assert.ok(learnSlippage.body.includes('/simulator?market=BTC-JPY'));
   assert.ok(learnSlippage.body.includes('/learn/market-order-risk'));
+  assertCommonDisclosure(learnSlippage.body);
 
   const learnLegacy = await fetch(new URL('/articles/slippage', baseUrl), { redirect: 'manual' });
   assert.equal(learnLegacy.status, 301);
@@ -193,6 +205,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(simulatorPage.status, 200);
   assert.ok(simulatorPage.body.includes('成行取引リアルタイム板シミュレーター'));
   assert.ok(simulatorPage.body.includes('app.js?v='));
+  assertCommonDisclosure(simulatorPage.body);
 
   const exchanges = await fetchJson(baseUrl, '/api/exchanges');
   assert.equal(exchanges.status, 200);
@@ -226,6 +239,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketHtml.body.includes('/articles/about'));
   assert.ok(marketHtml.body.includes('データ定義と免責'));
   assert.ok(marketHtml.body.includes('免責とデータ取得'));
+  assertCommonDisclosure(marketHtml.body);
 
   const marketsHtml = await fetchText(baseUrl, '/markets');
   assert.equal(marketsHtml.status, 200);
@@ -234,6 +248,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketsHtml.body.includes('主要銘柄'));
   assert.ok(marketsHtml.body.includes('コスト比較を見る'));
   assert.ok(marketsHtml.body.includes('購入前に実効コストを確認することが重要です。'));
+  assertCommonDisclosure(marketsHtml.body);
 
   const exchangeHtml = await fetchText(baseUrl, '/exchanges/okj');
   assert.equal(exchangeHtml.status, 200);
@@ -244,6 +259,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(exchangeHtml.body.includes('公式リンク / 紹介リンク'));
   assert.ok(exchangeHtml.body.includes('/simulator?exchange=okj&amp;market=BTC-JPY'));
   assert.ok(exchangeHtml.body.includes('/campaigns'));
+  assertCommonDisclosure(exchangeHtml.body);
 
   const gmoLegacy = await fetch(new URL('/exchanges/gmo', baseUrl), { redirect: 'manual' });
   assert.equal(gmoLegacy.status, 301);
@@ -256,12 +272,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
   assert.equal(volumeSharePage.status, 200);
+  assertCommonDisclosure(volumeSharePage.body);
 
   const salesSpreadPage = await fetchText(baseUrl, '/sales-spread?instrumentId=BTC-JPY');
   assert.equal(salesSpreadPage.status, 200);
   assert.ok(salesSpreadPage.body.includes('販売所スプレッドとは？'));
   assert.ok(salesSpreadPage.body.includes('現在スプレッドが狭い銘柄TOP10'));
   assert.ok(salesSpreadPage.body.includes('BTC/JPYの取引所コストを確認する'));
+  assertCommonDisclosure(salesSpreadPage.body);
 
   const campaignsPage = await fetchText(baseUrl, '/campaigns');
   assert.equal(campaignsPage.status, 200);
@@ -270,6 +288,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(campaignsPage.body.includes('紹介リンク/アフィリエイトリンク'));
   assert.ok(campaignsPage.body.includes('PR / アフィリエイト表記'));
   assert.ok(campaignsPage.body.includes('/campaigns/gmo-coin'));
+  assertCommonDisclosure(campaignsPage.body);
 
   const gmoCampaignLegacy = await fetch(new URL('/campaigns/gmo', baseUrl), { redirect: 'manual' });
   assert.equal(gmoCampaignLegacy.status, 301);
@@ -282,6 +301,12 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(gmoCampaignPage.body.includes('6. この取引所のコスト比較'));
   assert.ok(gmoCampaignPage.body.includes('キャンペーン内容だけでなく、手数料・スプレッド・板の厚みも確認した上で利用を検討してください。'));
   assert.ok(gmoCampaignPage.body.includes('/simulator?exchange=gmo&amp;market=BTC-JPY'));
+  assertCommonDisclosure(gmoCampaignPage.body);
+
+  const adminAnalyticsPage = await fetchText(baseUrl, '/admin-analytics.html');
+  assert.equal(adminAnalyticsPage.status, 200);
+  assert.ok(adminAnalyticsPage.body.includes('アクセス解析'));
+  assertCommonDisclosure(adminAnalyticsPage.body);
 
   const sitemap = await fetchText(baseUrl, '/sitemap.xml');
   assert.equal(sitemap.status, 200);
