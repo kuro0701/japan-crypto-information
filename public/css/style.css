@@ -119,7 +119,7 @@ body.terminal-body {
 .hover\:bg-blue-500:hover { background: linear-gradient(180deg, #62ead8, #18a79a) !important; }
 .rounded-lg, .rounded { border-radius: var(--r) !important; }
 
-:where(a[href], button, input, select, textarea, .btn, .btn-tab, .tab, .window-tab, .nav-link, .field, .market-index-card) {
+:where(a[href], button, input, select, textarea, .btn, .btn-tab, .tab, .window-tab, .nav-link, .nav-dropdown__link, .field, .market-index-card) {
   transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease;
 }
 
@@ -185,6 +185,31 @@ body.terminal-body {
   gap: var(--sp-2);
 }
 
+.nav-menu--grouped {
+  flex-wrap: nowrap;
+}
+
+.nav-group {
+  position: relative;
+}
+
+.nav-group__summary {
+  gap: var(--sp-2);
+  cursor: pointer;
+  list-style: none;
+}
+
+.nav-group__summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-group__chevron {
+  color: var(--text-3);
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 140ms ease, color 140ms ease;
+}
+
 .nav-link {
   min-height: 44px;
   min-width: 44px;
@@ -204,10 +229,16 @@ body.terminal-body {
 }
 
 .nav-link:hover,
-.nav-link.is-active {
+.nav-link.is-active,
+.nav-group[open] .nav-group__summary {
   color: var(--text-1) !important;
   border-color: rgba(53, 200, 210, 0.46);
   background: rgba(53, 200, 210, 0.08);
+}
+
+.nav-group[open] .nav-group__chevron {
+  color: var(--accent);
+  transform: rotate(180deg);
 }
 
 .nav-link::after {
@@ -229,6 +260,59 @@ body.terminal-body {
 .nav-link[aria-current="page"]::after {
   opacity: 1;
   transform: scaleX(1);
+}
+
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  min-width: 224px;
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: rgba(9, 13, 14, 0.98);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-50%);
+}
+
+.nav-dropdown::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+}
+
+.nav-dropdown__link {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-2) !important;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: var(--lh-normal);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nav-dropdown__link:hover,
+.nav-dropdown__link:focus-visible,
+.nav-dropdown__link.is-active {
+  color: var(--text-1) !important;
+  border-color: rgba(53, 200, 210, 0.36);
+  background: rgba(53, 200, 210, 0.1);
+}
+
+.nav-dropdown__separator {
+  height: 1px;
+  margin: var(--sp-1) var(--sp-2);
+  background: var(--line);
 }
 
 .instrument-pill,
@@ -3759,8 +3843,25 @@ th {
 
   .nav-menu {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     justify-content: stretch;
+  }
+
+  .nav-menu--grouped {
+    flex-wrap: wrap;
+  }
+
+  .nav-group,
+  .nav-group__summary {
+    width: 100%;
+  }
+
+  .nav-group__summary {
+    justify-content: center;
+  }
+
+  .nav-dropdown {
+    min-width: min(260px, calc(100vw - 32px));
   }
 
   .exchange-switcher,
@@ -3843,9 +3944,30 @@ th {
   .exchange-switcher,
   .market-switcher,
   .status-cluster,
-  .nav-link {
+  .nav-link,
+  .nav-dropdown__link {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .nav-menu {
+    grid-template-columns: 1fr;
+  }
+
+  .nav-group__summary {
+    justify-content: space-between;
+  }
+
+  .nav-dropdown {
+    position: static;
+    min-width: 0;
+    width: 100%;
+    margin-top: var(--sp-2);
+    transform: none;
+  }
+
+  .nav-dropdown::before {
+    display: none;
   }
 
   .metric-row {
@@ -4063,6 +4185,7 @@ th {
   .tab,
   button,
   .nav-link,
+  .nav-dropdown__link,
   .window-tab,
   .field {
     min-height: 48px;

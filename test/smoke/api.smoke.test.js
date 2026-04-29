@@ -266,7 +266,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketHtml.body.includes('/sales-spread?instrumentId=BTC-JPY'));
   assert.ok(marketHtml.body.includes('#market-supported-exchanges'));
   assert.ok(marketHtml.body.includes('/exchanges/okj'));
-  assert.ok(marketHtml.body.includes('/articles/about'));
+  assert.ok(marketHtml.body.includes('/about'));
   assert.ok(marketHtml.body.includes('データ定義と免責'));
   assert.ok(marketHtml.body.includes('免責とデータ取得'));
   assertCommonDisclosure(marketHtml.body);
@@ -279,6 +279,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketsHtml.body.includes('コスト比較を見る'));
   assert.ok(marketsHtml.body.includes('購入前に実効コストを確認することが重要です。'));
   assertCommonDisclosure(marketsHtml.body);
+
+  const exchangesHtml = await fetchText(baseUrl, '/exchanges');
+  assert.equal(exchangesHtml.status, 200);
+  assert.ok(exchangesHtml.body.includes('取引所一覧'));
+  assert.ok(exchangesHtml.body.includes('nav-menu--grouped'));
+  assert.ok(exchangesHtml.body.includes('/exchanges/bitflyer'));
+  assert.ok(exchangesHtml.body.includes('/exchanges/gmo-coin'));
+  assertCommonDisclosure(exchangesHtml.body);
 
   const exchangeHtml = await fetchText(baseUrl, '/exchanges/okj');
   assert.equal(exchangeHtml.status, 200);
@@ -302,6 +310,20 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(gmoHtml.status, 200);
   assert.ok(gmoHtml.body.includes('GMO Coin'));
   assert.ok(gmoHtml.body.includes('キャンペーン・プログラム一覧を公式で確認'));
+
+  const aboutHtml = await fetchText(baseUrl, '/about');
+  assert.equal(aboutHtml.status, 200);
+  assert.ok(aboutHtml.body.includes('id="data-sources"'));
+  assert.ok(aboutHtml.body.includes('id="pr-disclosure"'));
+  assert.ok(aboutHtml.body.includes('id="disclaimer"'));
+  assertCommonDisclosure(aboutHtml.body);
+
+  const orderBookGuide = await fetchText(baseUrl, '/learn/order-book-trading');
+  assert.equal(orderBookGuide.status, 200);
+  assert.ok(orderBookGuide.body.includes('板取引とは？'));
+  assert.ok(orderBookGuide.body.includes('注文板'));
+  assert.ok(orderBookGuide.body.includes('/simulator?market=BTC-JPY'));
+  assertCommonDisclosure(orderBookGuide.body);
 
   const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
   assert.equal(volumeSharePage.status, 200);
