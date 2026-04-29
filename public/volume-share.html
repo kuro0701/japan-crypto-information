@@ -51,6 +51,30 @@
       </div>
     </section>
 
+    <section class="panel panel--dense compare-tool-section" aria-labelledby="volume-share-compare-tools-title">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 id="volume-share-compare-tools-title" class="panel-title">比較する</h2>
+          <p class="text-xs text-gray-500 mt-1">比較ツール導線。板、販売所、出来高の3つから注文前の実質コストを確認できます。</p>
+        </div>
+        <span class="panel-kicker">比較ツール導線</span>
+      </div>
+      <div class="home-compare-link-grid">
+        <a class="home-compare-link" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
+          <strong>板シミュレーター</strong>
+          <span>実際の板情報から、成行注文時の想定コストを比較</span>
+        </a>
+        <a class="home-compare-link" href="/sales-spread?instrumentId=BTC-JPY">
+          <strong>販売所スプレッド比較</strong>
+          <span>販売所で買う場合の実質コストを確認</span>
+        </a>
+        <a class="home-compare-link" href="/volume-share?instrumentId=BTC-JPY">
+          <strong>出来高シェア</strong>
+          <span>どの取引所に流動性があるかを見る</span>
+        </a>
+      </div>
+    </section>
+
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4"><div><div class="panel-title-with-help"><h2 class="panel-title">出来高シェア</h2><button class="term-help" type="button" data-term-key="volume-share" aria-label="出来高シェア の説明を開く"><span aria-hidden="true">?</span></button></div><p id="share-meta" class="text-xs text-gray-500 mt-1">24hスナップショットを集計中</p></div><span class="panel-kicker">Volume Share</span></div>
       <div class="tab-group mb-4" role="tablist" aria-label="集計期間"><button class="btn btn-tab window-tab active" data-window="1d" type="button" role="tab" aria-selected="true">24時間</button><button class="btn btn-tab window-tab" data-window="7d" type="button" role="tab" aria-selected="false">7日間</button><button class="btn btn-tab window-tab" data-window="30d" type="button" role="tab" aria-selected="false">30日間</button></div>

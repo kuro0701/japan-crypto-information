@@ -59,34 +59,26 @@
       </div>
     </section>
 
-    <section class="panel panel--dense" aria-labelledby="home-tools-title">
+    <section id="compare-tools" class="panel panel--dense" aria-labelledby="home-tools-title">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 id="home-tools-title" class="panel-title">比較ツール</h2>
-          <p class="text-xs text-gray-500 mt-1">購入前に確認したいコスト・流動性・銘柄ページへすぐ進めます。</p>
+          <h2 id="home-tools-title" class="panel-title">比較する</h2>
+          <p class="text-xs text-gray-500 mt-1">比較ツール導線。注文前に、板・販売所・流動性を同じ銘柄で確認できます。</p>
         </div>
-        <span class="panel-kicker">Compare</span>
+        <span class="panel-kicker">比較ツール導線</span>
       </div>
-      <div class="home-capability-grid">
-        <a class="home-link-card" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
-          <span class="home-link-card__eyebrow">Cost</span>
-          <strong class="home-link-card__title">板シミュレーター</strong>
-          <span class="home-link-card__description">注文サイズごとの想定約定価格、スリッページ、手数料込みコストを比較します。</span>
+      <div class="home-compare-link-grid">
+        <a class="home-compare-link" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
+          <strong>板シミュレーター</strong>
+          <span>実際の板情報から、成行注文時の想定コストを比較</span>
         </a>
-        <a class="home-link-card" href="/sales-spread?instrumentId=BTC-JPY">
-          <span class="home-link-card__eyebrow">Spread</span>
-          <strong class="home-link-card__title">販売所スプレッド比較</strong>
-          <span class="home-link-card__description">販売所の買値と売値の開きを、銘柄別・取引所別に確認します。</span>
+        <a class="home-compare-link" href="/sales-spread?instrumentId=BTC-JPY">
+          <strong>販売所スプレッド比較</strong>
+          <span>販売所で買う場合の実質コストを確認</span>
         </a>
-        <a class="home-link-card" href="/volume-share?instrumentId=BTC-JPY">
-          <span class="home-link-card__eyebrow">Volume</span>
-          <strong class="home-link-card__title">出来高シェア</strong>
-          <span class="home-link-card__description">どの取引所に流動性が集まっているかを、24h出来高ベースで見ます。</span>
-        </a>
-        <a class="home-link-card" href="/markets">
-          <span class="home-link-card__eyebrow">Markets</span>
-          <strong class="home-link-card__title">銘柄ページ一覧</strong>
-          <span class="home-link-card__description">BTC、ETH、XRP など、銘柄ごとの比較ページから取引所を探せます。</span>
+        <a class="home-compare-link" href="/volume-share?instrumentId=BTC-JPY">
+          <strong>出来高シェア</strong>
+          <span>どの取引所に流動性があるかを見る</span>
         </a>
       </div>
     </section>
