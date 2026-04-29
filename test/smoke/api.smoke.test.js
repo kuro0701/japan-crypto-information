@@ -182,6 +182,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(homePage.body.includes('販売所スプレッドを見る'));
   assert.ok(homePage.body.includes('銘柄から探す'));
   assert.ok(homePage.body.includes('調べるハブ'));
+  assert.ok(homePage.body.includes('リサーチ導線'));
+  assert.ok(homePage.body.includes('取引所リサーチ、銘柄リサーチ、初心者ガイドをまとめて確認'));
+  assert.ok(homePage.body.includes('/research#research-exchanges'));
+  assert.ok(homePage.body.includes('販売所と取引所の違い、スプレッド、板取引を学ぶ'));
   assert.ok(homePage.body.includes('人気ページ'));
   assert.ok(homePage.body.includes('データ・免責・PR表記'));
   assert.ok(homePage.body.includes('/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000'));
@@ -192,8 +196,17 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const researchPage = await fetchText(baseUrl, '/research');
   assert.equal(researchPage.status, 200);
   assert.ok(researchPage.body.includes('取引所や銘柄を理解する'));
-  assert.ok(researchPage.body.includes('取引所を調べる'));
-  assert.ok(researchPage.body.includes('銘柄を調べる'));
+  assert.ok(researchPage.body.includes('3. リサーチ導線'));
+  assert.ok(researchPage.body.includes('取引所リサーチ'));
+  assert.ok(researchPage.body.includes('手数料、取扱銘柄、運営会社、財務情報を確認'));
+  assert.ok(researchPage.body.includes('銘柄リサーチ'));
+  assert.ok(researchPage.body.includes('銘柄の特徴、用途、リスク、対応取引所を確認'));
+  assert.ok(researchPage.body.includes('初心者ガイド'));
+  assert.ok(researchPage.body.includes('販売所と取引所の違い、スプレッド、板取引を学ぶ'));
+  assert.ok(researchPage.body.includes('href="#research-exchanges"'));
+  assert.ok(researchPage.body.includes('id="research-markets"'));
+  assert.ok(researchPage.body.includes('/learn/spread'));
+  assert.ok(researchPage.body.includes('/learn/slippage'));
   assert.ok(researchPage.body.includes('/learn/exchange-company-analysis'));
   assertCommonDisclosure(researchPage.body);
 
