@@ -39,397 +39,141 @@
     </div>
   </header>
 
-  <main id="main" class="dashboard-shell home-shell flex flex-col gap-4 p-4 max-w-[1440px] mx-auto">
-    <section class="panel panel--dense home-hero">
+  <main id="main" class="dashboard-shell home-shell flex flex-col gap-4 p-4 max-w-[1180px] mx-auto">
+    <section class="panel panel--dense home-hero home-hero--entry" aria-labelledby="home-hero-title">
       <div class="home-hero__content">
-        <p class="home-eyebrow">Domestic Crypto Cost Navigator</p>
+        <p class="home-eyebrow">Crypto Cost Navigator</p>
         <div class="home-hero__header">
-          <h2 class="home-hero__headline">
+          <h2 id="home-hero-title" class="home-hero__headline home-hero__headline--compact">
             <span class="home-hero__headline-line">国内暗号資産</span>
-            <span class="home-hero__headline-line">取引所を</span>
-            <span class="home-hero__headline-line home-hero__headline-line--accent">実質コストで比較</span>
+            <span class="home-hero__headline-line">取引所の</span>
+            <span class="home-hero__headline-line home-hero__headline-line--accent">購入コストを比較</span>
           </h2>
-          <p class="home-hero__summary">板・スプレッド・手数料を横断比較して、どこで買うと安いかを確認できます。</p>
+          <p class="home-hero__summary">国内暗号資産取引所の板・スプレッド・手数料・出来高を横断し、実際に近い購入コストを比較できます。</p>
         </div>
-        <div class="home-hero__signal-list" aria-label="比較軸">
-          <span>板の厚み</span>
-          <span>販売所スプレッド</span>
-          <span>taker 手数料</span>
-          <span>出来高シェア</span>
+        <div class="home-hero__actions" aria-label="主要CTA">
+          <a class="btn btn-primary px-4 py-3 rounded-lg font-bold text-sm" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">10万円分のBTCを比較する</a>
+          <a class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/sales-spread?instrumentId=BTC-JPY">販売所スプレッドを見る</a>
+          <a class="btn btn-ghost px-4 py-3 rounded-lg font-bold text-sm" href="/markets?q=BTC">銘柄から探す</a>
         </div>
-        <p class="home-hero__lede"><strong>国内暗号資産取引所の板・スプレッド・手数料を比較し、どこで買うと実質コストが低いかを確認できるサイトです。</strong> 販売所の表示価格だけでなく、板の厚み、taker 手数料、出来高シェアまで合わせて見て、実際に近い買いコストを比べるための入口ページです。まずは「比較する」導線から入り、必要になったら初心者ガイドやキャンペーン情報で前提を確認できます。</p>
-        <div class="home-hero__actions">
-          <a class="btn btn-primary px-4 py-3 rounded-lg font-bold text-sm" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">10万円分のBTCをすぐ比べる</a>
-          <a class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/markets/BTC-JPY">BTC/JPY の比較ページへ</a>
-        </div>
-        <div class="home-highlight-grid">
-          <article class="home-highlight-card">
-            <span class="home-highlight-card__label">板と実効コスト</span>
-            <strong class="home-highlight-card__title">WebSocket ベースでリアルタイム比較</strong>
-            <p class="home-highlight-card__body">OKJ、Coincheck、bitFlyer、bitbank、GMOコイン、Binance Japan、BitTrade の公開板を横断して確認できます。</p>
-          </article>
-          <article class="home-highlight-card">
-            <span class="home-highlight-card__label">出来高と流動性</span>
-            <strong class="home-highlight-card__title">24h出来高を毎時更新</strong>
-            <p class="home-highlight-card__body">どの取引所に流動性が集まっているかを、24h集計とJST日次スナップショットで追えます。</p>
-          </article>
-          <article class="home-highlight-card">
-            <span class="home-highlight-card__label">販売所との比較</span>
-            <strong class="home-highlight-card__title">スプレッドと既定手数料を同時確認</strong>
-            <p class="home-highlight-card__body">販売所スプレッドと取引所の taker 手数料を並べて見て、見かけより高い買いコストを避けやすくします。</p>
-          </article>
-        </div>
-      </div>
-
-      <aside class="home-hero__rail" aria-labelledby="home-journey-title">
-        <div class="home-hero__rail-header">
-          <p class="home-eyebrow">Start Here</p>
-          <h3 id="home-journey-title" class="home-rail-title">最初のホーム導線</h3>
-          <p class="home-rail-copy">まずはこの5つから入れば、主要な比較軸をひと通り確認できます。</p>
-        </div>
-        <ol class="home-journey-list">
-          <li>
-            <a class="home-journey-card" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
-              <span class="home-journey-card__index">1</span>
-              <span class="home-journey-card__body">
-                <strong>10万円分のBTCを買うならどこが安い？</strong>
-                <span>板シミュレーターを BTC/JPY・10万円買いで開きます。</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a class="home-journey-card" href="/sales-spread?instrumentId=BTC-JPY">
-              <span class="home-journey-card__index">2</span>
-              <span class="home-journey-card__body">
-                <strong>販売所スプレッドを比較する</strong>
-                <span>販売所の買値と売値の開きを BTC から確認します。</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a class="home-journey-card" href="/volume-share?instrumentId=BTC-JPY">
-              <span class="home-journey-card__index">3</span>
-              <span class="home-journey-card__body">
-                <strong>出来高シェアを見る</strong>
-                <span>流動性がどこに集まっているかを 24h ベースで見ます。</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a class="home-journey-card" href="/markets?q=BTC">
-              <span class="home-journey-card__index">4</span>
-              <span class="home-journey-card__body">
-                <strong>銘柄別に取引所を比較する</strong>
-                <span>BTC 以外の銘柄も含めて、対応取引所を一覧から辿れます。</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a class="home-journey-card" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
-              <span class="home-journey-card__index">5</span>
-              <span class="home-journey-card__body">
-                <strong>手数料込みの実質コストを比較する</strong>
-                <span>既定 taker 手数料を含めた想定コストを確認します。</span>
-              </span>
-            </a>
-          </li>
-        </ol>
-      </aside>
-    </section>
-
-    <section class="panel panel--dense home-role-section" aria-labelledby="home-role-title">
-      <div class="panel-title-row mb-4">
-        <div>
-          <h2 id="home-role-title" class="panel-title">サイトの役割</h2>
-          <p class="text-xs text-gray-500 mt-1">まずは「比較する」と「調べる」に分け、判断に直結するページを先にまとめています。</p>
-        </div>
-        <span class="panel-kicker">Step 1</span>
-      </div>
-
-      <div class="home-role-grid">
-        <article class="home-role-card home-role-card--primary">
-          <div class="home-role-card__header">
-            <span class="home-role-card__number">1</span>
-            <div>
-              <p class="home-role-card__eyebrow">Compare</p>
-              <h3 class="home-role-card__title">比較する</h3>
-            </div>
-          </div>
-          <p class="home-role-card__lead">目的は、ユーザーがすぐに判断できること。</p>
-          <div class="home-question-row" aria-label="比較ページで答える問い">
-            <span>どこで買うと安い？</span>
-            <span>どの取引所の板が厚い？</span>
-            <span>販売所と取引所でどれくらい差がある？</span>
-          </div>
-          <div class="home-compare-link-grid" aria-label="比較する主なページ">
-            <a class="home-compare-link" href="/simulator">
-              <strong>板シミュレーター</strong>
-              <span>注文サイズごとの約定価格、Impact、手数料込みコストを見る</span>
-            </a>
-            <a class="home-compare-link" href="/sales-spread">
-              <strong>販売所スプレッド比較</strong>
-              <span>販売所の買値・売値の開きと平均スプレッドを見る</span>
-            </a>
-            <a class="home-compare-link" href="/volume-share">
-              <strong>出来高シェア</strong>
-              <span>流動性が集まっている取引所を銘柄別に見る</span>
-            </a>
-            <a class="home-compare-link" href="/markets">
-              <strong>銘柄別の取引所比較</strong>
-              <span>BTC、ETH、XRP など銘柄ごとの比較ページへ進む</span>
-            </a>
-            <a class="home-compare-link" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
-              <strong>手数料・実質コスト比較</strong>
-              <span>板、スリッページ、既定 taker 手数料を合わせて判断する</span>
-            </a>
-          </div>
-        </article>
-
-        <article class="home-role-card">
-          <div class="home-role-card__header">
-            <span class="home-role-card__number">2</span>
-            <div>
-              <p class="home-role-card__eyebrow">Learn / Check</p>
-              <h3 class="home-role-card__title">理解・確認する</h3>
-            </div>
-          </div>
-          <p class="home-role-card__lead">目的は、取引所や銘柄を理解すること。</p>
-          <div class="home-question-row" aria-label="調べるページで答える問い">
-            <span>この取引所は信頼できる？</span>
-            <span>この銘柄は何に使われる？</span>
-            <span>初心者が注意すべき点は？</span>
-            <span>長く使うならどの取引所が良い？</span>
-          </div>
-          <div class="home-support-link-list" aria-label="調べる主なページ">
-            <a href="/research">調べるハブ</a>
-            <a href="/exchanges/okj">取引所詳細ページ</a>
-            <a href="/markets/BTC-JPY">銘柄プロフィール</a>
-            <a href="/learn/exchange-company-analysis">運営会社分析の見方</a>
-            <a href="/learn">初心者向けガイド</a>
-          </div>
-        </article>
       </div>
     </section>
 
-    <section class="panel panel--dense">
+    <section class="panel panel--dense" aria-labelledby="home-tools-title">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">このサイトでできること</h2>
-          <p class="text-xs text-gray-500 mt-1">買う前に知りたい「どこが安いか」「どこに流動性があるか」を、用途別に分けて確認できます。</p>
+          <h2 id="home-tools-title" class="panel-title">比較ツール</h2>
+          <p class="text-xs text-gray-500 mt-1">購入前に確認したいコスト・流動性・銘柄ページへすぐ進めます。</p>
         </div>
-        <span class="panel-kicker">Overview</span>
+        <span class="panel-kicker">Compare</span>
       </div>
       <div class="home-capability-grid">
-        <article class="home-capability-card">
-          <h3>実効コストを横並びで比較</h3>
-          <p>板シミュレーターで、成行注文の想定約定価格、VWAP、スリッページ、マーケットインパクトを比較できます。</p>
-        </article>
-        <article class="home-capability-card">
-          <h3>販売所の見かけの安さを検証</h3>
-          <p>販売所の買値と売値の差を見て、取引所で買うより高くなっていないかを確認できます。</p>
-        </article>
-        <article class="home-capability-card">
-          <h3>流動性の集中先を確認</h3>
-          <p>出来高シェアから、どの取引所に売買が集まりやすいかを日次・週次・月次で追えます。</p>
-        </article>
-        <article class="home-capability-card">
-          <h3>銘柄ごとに比較ページへ遷移</h3>
-          <p>BTC だけでなく、ETH や XRP などの銘柄ごとに、板・出来高・スプレッドをまとめて確認できます。</p>
-        </article>
+        <a class="home-link-card" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
+          <span class="home-link-card__eyebrow">Cost</span>
+          <strong class="home-link-card__title">板シミュレーター</strong>
+          <span class="home-link-card__description">注文サイズごとの想定約定価格、スリッページ、手数料込みコストを比較します。</span>
+        </a>
+        <a class="home-link-card" href="/sales-spread?instrumentId=BTC-JPY">
+          <span class="home-link-card__eyebrow">Spread</span>
+          <strong class="home-link-card__title">販売所スプレッド比較</strong>
+          <span class="home-link-card__description">販売所の買値と売値の開きを、銘柄別・取引所別に確認します。</span>
+        </a>
+        <a class="home-link-card" href="/volume-share?instrumentId=BTC-JPY">
+          <span class="home-link-card__eyebrow">Volume</span>
+          <strong class="home-link-card__title">出来高シェア</strong>
+          <span class="home-link-card__description">どの取引所に流動性が集まっているかを、24h出来高ベースで見ます。</span>
+        </a>
+        <a class="home-link-card" href="/markets">
+          <span class="home-link-card__eyebrow">Markets</span>
+          <strong class="home-link-card__title">銘柄ページ一覧</strong>
+          <span class="home-link-card__description">BTC、ETH、XRP など、銘柄ごとの比較ページから取引所を探せます。</span>
+        </a>
       </div>
     </section>
 
-    <div class="home-dual-grid">
-      <section class="panel panel--dense">
-        <div class="panel-title-row mb-4">
-          <div>
-            <h2 class="panel-title">初心者向け導線</h2>
-            <p class="text-xs text-gray-500 mt-1">まずは比較結果をすぐ見たい人向けのショートカットです。</p>
-          </div>
-          <span class="panel-kicker">Beginner</span>
-        </div>
-        <div class="home-link-grid">
-          <a class="home-link-card" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
-            <span class="home-link-card__eyebrow">Cost Check</span>
-            <strong class="home-link-card__title">10万円で BTC を買う比較</strong>
-            <span class="home-link-card__description">入力済みの状態で板シミュレーターを開き、どこが安いかをそのまま確認します。</span>
-          </a>
-          <a class="home-link-card" href="/sales-spread?instrumentId=BTC-JPY">
-            <span class="home-link-card__eyebrow">Spread</span>
-            <strong class="home-link-card__title">販売所スプレッド比較</strong>
-            <span class="home-link-card__description">まずは販売所の価格差を見て、販売所で買うべきかをざっくり判断できます。</span>
-          </a>
-          <a class="home-link-card" href="/learn/exchange-vs-broker">
-            <span class="home-link-card__eyebrow">Guide</span>
-            <strong class="home-link-card__title">販売所と取引所の違い</strong>
-            <span class="home-link-card__description">販売所スプレッドと板取引の違いを理解してから、比較ツールへ進めます。</span>
-          </a>
-        </div>
-      </section>
-
-      <section class="panel panel--dense">
-        <div class="panel-title-row mb-4">
-          <div>
-            <h2 class="panel-title">中級者向けツール導線</h2>
-            <p class="text-xs text-gray-500 mt-1">比較条件を細かく触りたいときは、ここから各ツールへ進めます。</p>
-          </div>
-          <span class="panel-kicker">Tools</span>
-        </div>
-        <div class="home-link-grid">
-          <a class="home-link-card" href="/simulator">
-            <span class="home-link-card__eyebrow">Simulator</span>
-            <strong class="home-link-card__title">板シミュレーター</strong>
-            <span class="home-link-card__description">売買方向、金額、数量、手数料を指定して、実効コストを比較できます。</span>
-          </a>
-          <a class="home-link-card" href="/markets">
-            <span class="home-link-card__eyebrow">Markets</span>
-            <strong class="home-link-card__title">銘柄ページ一覧</strong>
-            <span class="home-link-card__description">銘柄ごとに対応取引所を見つけ、板・出来高・スプレッドの詳細比較へ移動できます。</span>
-          </a>
-          <a class="home-link-card" href="/volume-share">
-            <span class="home-link-card__eyebrow">Liquidity</span>
-            <strong class="home-link-card__title">出来高シェア分析</strong>
-            <span class="home-link-card__description">取引所全体の流動性や、銘柄別の集中先を期間ごとに比較できます。</span>
-          </a>
-        </div>
-      </section>
-    </div>
-
-    <section class="panel panel--dense">
+    <section class="panel panel--dense" aria-labelledby="home-research-title">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">初心者向けの記事</h2>
-          <p class="text-xs text-gray-500 mt-1">用語を理解したあと、そのまま板シミュレーターやスプレッド比較で確認できます。</p>
+          <h2 id="home-research-title" class="panel-title">リサーチ</h2>
+          <p class="text-xs text-gray-500 mt-1">取引所や比較軸を調べたいときの入口です。</p>
         </div>
-        <span class="panel-kicker">Learn</span>
+        <span class="panel-kicker">Research</span>
       </div>
       <div class="home-popular-grid">
-        <a class="home-popular-link" href="/learn/exchange-vs-broker">
-          <strong>販売所と取引所の違い</strong>
-          <span>価格の決まり方、使いやすさ、スプレッド、板取引の違いを整理</span>
-        </a>
-        <a class="home-popular-link" href="/learn/spread">
-          <strong>スプレッドとは？</strong>
-          <span>販売所の買値と売値の差、取引所の板スプレッドを確認</span>
-        </a>
-        <a class="home-popular-link" href="/learn/slippage">
-          <strong>スリッページとは？</strong>
-          <span>成行注文で平均約定価格がずれる理由を板の厚みから理解</span>
-        </a>
-        <a class="home-popular-link" href="/learn/market-order-risk">
-          <strong>成行注文のリスク</strong>
-          <span>価格ずれ、板不足、相場急変、手数料込みコストの注意点</span>
-        </a>
-        <a class="home-popular-link" href="/learn/crypto-fees">
-          <strong>暗号資産取引所の手数料の見方</strong>
-          <span>maker / taker、販売所スプレッド、入出金手数料を分けて確認</span>
+        <a class="home-popular-link" href="/research">
+          <strong>調べるハブ</strong>
+          <span>取引所、銘柄、比較観点をまとめて確認</span>
         </a>
         <a class="home-popular-link" href="/learn/how-to-compare-exchanges">
-          <strong>暗号資産取引所の比較方法</strong>
-          <span>銘柄、板、出来高、スプレッド、キャンペーンを順番に比較</span>
+          <strong>取引所の比較方法</strong>
+          <span>板、出来高、スプレッド、手数料の見方</span>
+        </a>
+        <a class="home-popular-link" href="/learn/exchange-company-analysis">
+          <strong>運営会社分析の見方</strong>
+          <span>信頼性や運営体制を確認する観点</span>
         </a>
       </div>
     </section>
 
-    <section class="panel panel--dense">
+    <section class="panel panel--dense" aria-labelledby="home-popular-title">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">人気ページへのリンク</h2>
-          <p class="text-xs text-gray-500 mt-1">検索やSNSで見られやすいページへすぐ移動できます。</p>
+          <h2 id="home-popular-title" class="panel-title">人気ページ</h2>
+          <p class="text-xs text-gray-500 mt-1">よく使う比較ページと基礎ガイドです。</p>
         </div>
         <span class="panel-kicker">Popular</span>
       </div>
       <div class="home-popular-grid">
         <a class="home-popular-link" href="/markets/BTC-JPY">
           <strong>BTC/JPY 銘柄ページ</strong>
-          <span>板・出来高・販売所スプレッド・実効コストを1ページで確認</span>
+          <span>板・出来高・スプレッドを1ページで確認</span>
         </a>
         <a class="home-popular-link" href="/markets/ETH-JPY">
           <strong>ETH/JPY 銘柄ページ</strong>
-          <span>ETH を扱う国内取引所の比較ページへ直接移動</span>
+          <span>ETH を扱う国内取引所を比較</span>
         </a>
         <a class="home-popular-link" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
           <strong>BTC 10万円買い比較</strong>
-          <span>入力済みの比較条件で、どこが安いかを即確認</span>
-        </a>
-        <a class="home-popular-link" href="/volume-share?instrumentId=BTC-JPY&window=30d">
-          <strong>BTC 出来高シェア</strong>
-          <span>30日推移で流動性の集中先を確認</span>
+          <span>入力済み条件で購入コストを確認</span>
         </a>
         <a class="home-popular-link" href="/sales-spread?instrumentId=BTC-JPY&historyWindow=30d">
           <strong>BTC 販売所スプレッド</strong>
-          <span>30日平均まで含めて販売所の広さを比較</span>
+          <span>販売所価格差と30日履歴を見る</span>
         </a>
-        <a class="home-popular-link" href="/articles/about">
-          <strong>サイトについて</strong>
-          <span>データ取得元、運営ポリシー、免責事項を確認</span>
+        <a class="home-popular-link" href="/learn/exchange-vs-broker">
+          <strong>販売所と取引所の違い</strong>
+          <span>価格の決まり方とコスト差を整理</span>
+        </a>
+        <a class="home-popular-link" href="/learn/crypto-fees">
+          <strong>手数料の見方</strong>
+          <span>maker / taker、スプレッド、入出金手数料</span>
         </a>
       </div>
     </section>
 
-    <section class="panel panel--dense" aria-labelledby="data-policy-title">
+    <section class="panel panel--dense" aria-labelledby="home-policy-title">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 id="data-policy-title" class="panel-title">データ取得元・更新頻度</h2>
-          <p class="text-xs text-gray-500 mt-1">何をどこから取得しているかと、どのくらいの頻度で更新しているかを先に公開します。</p>
+          <h2 id="home-policy-title" class="panel-title">データ・免責・PR表記</h2>
+          <p class="text-xs text-gray-500 mt-1">比較結果を見る前に知っておきたい前提です。</p>
         </div>
-        <span class="panel-kicker">Sources</span>
+        <span class="panel-kicker">Policy</span>
       </div>
-      <div class="home-source-grid">
-        <article class="home-source-card">
-          <h3>板と成行シミュレーション</h3>
-          <dl>
-            <div><dt>取得元</dt><dd>各取引所の公開 WebSocket と REST fallback</dd></div>
-            <div><dt>対象</dt><dd>OKJ / Coincheck / bitFlyer / bitbank / GMOコイン / Binance Japan / BitTrade</dd></div>
-            <div><dt>更新</dt><dd>板更新ごとに反映、鮮度目安は約15秒</dd></div>
-          </dl>
+      <div class="home-disclosure-grid home-disclosure-grid--three">
+        <article class="home-disclosure-card">
+          <h3>データ</h3>
+          <p>板、出来高、販売所価格は各取引所の公開API / WebSocketをもとに機械的に集計しています。</p>
         </article>
-        <article class="home-source-card">
-          <h3>出来高シェア</h3>
-          <dl>
-            <div><dt>取得元</dt><dd>各取引所の公開 ticker / 24h volume API</dd></div>
-            <div><dt>更新</dt><dd>サーバー側で毎時更新、履歴は JST 日次スナップショット</dd></div>
-            <div><dt>補足</dt><dd>比較しやすいよう JPY 換算で集計</dd></div>
-          </dl>
+        <article class="home-disclosure-card">
+          <h3>免責</h3>
+          <p>表示値は参考情報であり、投資助言ではありません。実際の約定価格や注文条件は各取引所で確認してください。</p>
         </article>
-        <article class="home-source-card">
-          <h3>販売所スプレッド</h3>
-          <dl>
-            <div><dt>取得元</dt><dd>各社の公開 API と公開価格ページ</dd></div>
-            <div><dt>更新</dt><dd>サーバー側で毎時更新、ページ側は約60秒ごとに再取得</dd></div>
-            <div><dt>対象</dt><dd>OKJ / Coincheck / bitFlyer / bitbank / GMOコイン / BitTrade</dd></div>
-          </dl>
-        </article>
-        <article class="home-source-card">
-          <h3>手数料とキャンペーン</h3>
-          <dl>
-            <div><dt>取得元</dt><dd>各取引所の公開手数料表、公式キャンペーン告知</dd></div>
-            <div><dt>更新</dt><dd>手数料は仕様変更時に更新、キャンペーン一覧は公式条件を確認しながら更新</dd></div>
-            <div><dt>補足</dt><dd>シミュレーターでは既定 taker 手数料を基準にし、手動上書きも可能</dd></div>
-          </dl>
+        <article id="campaign-policy" class="home-disclosure-card">
+          <h3>PR表記</h3>
+          <p>広告・提携リンクを掲載する場合は明示します。広告の有無で比較ロジックや並び順は変更しません。</p>
         </article>
       </div>
     </section>
-
-    <div class="home-disclosure-grid">
-      <section id="campaign-policy" class="panel panel--dense home-disclosure-card">
-        <div class="panel-title-row mb-3">
-          <h2 class="panel-title">PR / アフィリエイト表記</h2>
-          <span class="panel-kicker">Disclosure</span>
-        </div>
-        <p>提携リンクや広告を掲載する場合は、PR / 広告 / アフィリエイトであることをページ上で明示します。広告の有無で、板・スプレッド・手数料・出来高の比較ロジックや並び順を変更しない方針です。</p>
-        <p class="mt-3">キャンペーン一覧では公式URLを必ず併記し、紹介リンクが未設定のものは未設定として表示します。特典額や対象条件は変わるため、申込前に公式ページの最新条件を確認してください。</p>
-      </section>
-
-      <section class="panel panel--dense home-disclosure-card">
-        <div class="panel-title-row mb-3">
-          <h2 class="panel-title">投資助言ではありません</h2>
-          <span class="panel-kicker">Risk</span>
-        </div>
-        <p>このサイトは投資助言を目的としたものではありません。表示している価格、出来高、スプレッド、手数料は公開情報をもとに機械的に整理した参考値であり、実際の約定価格、約定可否、損益を保証するものではありません。</p>
-        <p class="mt-3">最終的な取引判断は、各取引所の公式画面、注文条件、手数料、最小発注数量、入出金条件、リスク説明を必ず確認したうえで行ってください。</p>
-      </section>
-    </div>
   </main>
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | ホーム</footer>
