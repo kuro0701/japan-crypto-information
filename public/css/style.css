@@ -2742,6 +2742,35 @@ th {
   font-weight: 700;
 }
 
+.market-insight-checkbox-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 1.65;
+}
+
+.market-insight-checkbox-list li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.market-insight-checkbox-list__box {
+  width: 16px;
+  height: 16px;
+  margin-top: 4px;
+  border: 1px solid rgba(53, 224, 165, 0.48);
+  border-radius: 4px;
+  background: rgba(11, 16, 18, 0.72);
+  box-shadow: inset 0 0 0 2px rgba(11, 16, 18, 0.9);
+}
+
 .market-conclusion-card,
 .market-live-card,
 .market-supported-panel {
