@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const sideSelect = document.getElementById('side-select');
   const amountTypeSelect = document.getElementById('amount-type');
   const amountInput = document.getElementById('amount-input');
+  const amountInputLabel = document.getElementById('amount-input-label');
   const feeRateInput = document.getElementById('fee-rate');
   const feePresetHint = document.getElementById('fee-preset-hint');
   const simulateBtn = document.getElementById('simulate-btn');
@@ -63,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const refreshAlertsBtn = document.getElementById('refresh-alerts-btn');
   const alertTbody = document.getElementById('alert-tbody');
   const depthChartContainer = document.getElementById('depth-chart-container');
+  const detailDisclosure = document.getElementById('simulator-detail-disclosure');
   const autoUpdateCheck = document.getElementById('auto-update');
   const amountUnit = document.getElementById('amount-unit');
   const SETTINGS_STORAGE_KEY = 'okj.simulatorSettings.v1';
@@ -205,6 +207,12 @@ document.addEventListener('DOMContentLoaded', () => {
     element.innerHTML = html;
   }
 
+  function closestFromEvent(event, selector) {
+    const target = event && event.target;
+    const element = target && target.nodeType === 1 ? target : (target && target.parentElement);
+    return element && element.closest ? element.closest(selector) : null;
+  }
+
   function setQuickstartStatus(message) {
     if (!quickstartStatus) return;
     quickstartStatus.textContent = message || '';
@@ -224,38 +232,46 @@ document.addEventListener('DOMContentLoaded', () => {
     badgeTone = 'idle',
     lead = '',
     body = '',
-    chips = [],
-    actionHref = '',
-    actionLabel = '',
+    candidate = '',
+    gap = '',
+    note = '',
+    meta = '',
+    actionLabel = '詳しく見る',
   } = {}) {
     const panel = document.getElementById('simulation-decision-summary');
     if (!panel) return;
 
-    const chipHtml = chips.map((chip) => {
-      if (!chip || !chip.label) return '';
-      if (chip.type === 'risk') {
-        return `<span class="risk-badge risk-badge--${escapeHtml(chip.tone || 'caution')}">${escapeHtml(chip.label)}</span>`;
-      }
-      return `<span class="decision-summary-chip">${escapeHtml(chip.label)}</span>`;
-    }).filter(Boolean).join('');
+    const candidateText = candidate || lead || '比較前';
+    const gapText = gap || '-';
+    const noteText = note || body || '数量または金額を入力して「比較する」を押してください。';
+    const metaHtml = meta ? `<p class="beginner-conclusion-card__meta">${escapeHtml(meta)}</p>` : '';
 
-    const actionsHtml = actionHref
-      ? `<div class="decision-summary-card__actions"><a class="btn btn-secondary px-3 py-2.5 rounded-lg text-sm" href="${escapeHtml(actionHref)}">${escapeHtml(actionLabel || '詳細を見る')}</a></div>`
-      : '';
-
-    panel.className = `decision-summary-card mt-3${status === 'loading' ? ' decision-summary-card--loading' : ''}${status === 'error' ? ' decision-summary-card--error' : ''}`;
+    panel.className = [
+      'beginner-conclusion-card',
+      'mt-3',
+      `beginner-conclusion-card--${status}`,
+    ].join(' ');
     panel.innerHTML = `
-      <div class="decision-summary-card__header">
-        <div>
-          <p class="decision-summary-card__eyebrow">Judgement</p>
-          <h3 class="decision-summary-card__title">この条件での判断</h3>
-        </div>
+      <div class="beginner-conclusion-card__header">
+        <p class="beginner-conclusion-card__prefix">この条件なら</p>
         <span class="decision-summary-badge decision-summary-badge--${escapeHtml(badgeTone)}">${escapeHtml(badgeLabel)}</span>
       </div>
-      <p class="decision-summary-card__lead">${escapeHtml(lead)}</p>
-      <p class="decision-summary-card__body">${escapeHtml(body)}</p>
-      ${chipHtml ? `<div class="decision-summary-card__chips">${chipHtml}</div>` : ''}
-      ${actionsHtml}
+      <dl class="beginner-conclusion-list">
+        <div>
+          <dt>最安候補</dt>
+          <dd>${escapeHtml(candidateText)}</dd>
+        </div>
+        <div>
+          <dt>2位との差</dt>
+          <dd>${escapeHtml(gapText)}</dd>
+        </div>
+        <div>
+          <dt>注意点</dt>
+          <dd>${escapeHtml(noteText)}</dd>
+        </div>
+      </dl>
+      ${metaHtml}
+      <button class="btn btn-secondary px-4 py-2.5 rounded-lg text-sm" type="button" data-open-detail onclick="document.getElementById('simulator-detail-disclosure').open = true; document.getElementById('simulator-detail-disclosure').scrollIntoView({ behavior: 'smooth', block: 'start' });">${escapeHtml(actionLabel)}</button>
     `;
   }
 
@@ -264,8 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
       status: 'idle',
       badgeLabel: '未実行',
       badgeTone: 'idle',
-      lead: 'シミュレーションを実行すると、最適な取引所と危険度をここで要約します。',
-      body: 'まずは「実効コスト」「Impact」「販売所スプレッド」の3つを見ると判断しやすいです。初心者向けプリセットを押すか、数量または金額を入力して実行してください。',
+      candidate: '比較前',
+      gap: '-',
+      note: '買いたい銘柄、購入金額、注文方法を確認して「比較する」を押してください。',
     });
   }
 
@@ -276,11 +293,10 @@ document.addEventListener('DOMContentLoaded', () => {
       status: 'loading',
       badgeLabel: '比較中',
       badgeTone: 'loading',
-      lead: `${market.label || market.instrumentId || '-'} の比較を更新しています。`,
-      body: '現在の板を使って、最適な取引所と危険度を組み立てています。',
-      chips: [
-        { label: `${exchange.label || exchange.id} / ${market.label || market.instrumentId || '-'}` },
-      ],
+      candidate: '計算中',
+      gap: '計算中',
+      note: '現在の板を使って、最安候補と2位との差を比較しています。',
+      meta: `${market.label || market.instrumentId || '-'} / ${exchange.label || exchange.id}`,
     });
   }
 
@@ -289,9 +305,81 @@ document.addEventListener('DOMContentLoaded', () => {
       status: 'error',
       badgeLabel: '要確認',
       badgeTone: 'error',
-      lead: '判断サマリーを更新できませんでした。',
-      body: message || '入力条件や接続状態を確認してください。',
+      candidate: '要確認',
+      gap: '-',
+      note: message || '入力条件や接続状態を確認してください。',
     });
+  }
+
+  function positiveJpyLabel(value, suffix = '') {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '-';
+    if (Math.abs(num) < 0.5) return 'ほぼ同じ';
+    return `+${Fmt.jpy(Math.abs(num))}${suffix}`;
+  }
+
+  function venueRowsForConclusion(data = lastVenueComparisonData) {
+    const rows = executableVenueComparisonRows(data);
+    const sourceRows = rows.length > 0 ? rows : freshVenueComparisonRows(data);
+    return sourceRows
+      .filter(row => row && row.result && !row.result.error)
+      .slice()
+      .sort((a, b) => {
+        const rankA = Number.isFinite(Number(a.rank)) ? Number(a.rank) : 999;
+        const rankB = Number.isFinite(Number(b.rank)) ? Number(b.rank) : 999;
+        return rankA - rankB;
+      });
+  }
+
+  function venueGapLabel(meta, bestRow, secondRow) {
+    if (!meta || !bestRow || !secondRow || !bestRow.result || !secondRow.result) return '-';
+    const best = bestRow.result;
+    const second = secondRow.result;
+    const isSell = meta.side === 'sell';
+    const fixedQuote = meta.amountType === 'jpy';
+
+    if (fixedQuote) {
+      const bestBase = Number(best.totalBTCFilled);
+      const secondBase = Number(second.totalBTCFilled);
+      const price = Number(best.effectiveVWAP) || Number(second.effectiveVWAP);
+      if (!Number.isFinite(bestBase) || !Number.isFinite(secondBase) || !Number.isFinite(price)) return '-';
+      const baseAdvantage = isSell ? secondBase - bestBase : bestBase - secondBase;
+      return positiveJpyLabel(baseAdvantage * price, '相当');
+    }
+
+    const bestQuote = Number(best.effectiveCostJPY);
+    const secondQuote = Number(second.effectiveCostJPY);
+    if (!Number.isFinite(bestQuote) || !Number.isFinite(secondQuote)) return '-';
+    return positiveJpyLabel(isSell ? bestQuote - secondQuote : secondQuote - bestQuote);
+  }
+
+  function beginnerConclusionNote(meta, bestRow) {
+    const result = bestRow && bestRow.result;
+    const risk = result ? UI.impactRiskMeta(result.marketImpactPct) : null;
+    const salesRows = Array.isArray(lastSalesReferenceData && lastSalesReferenceData.rows)
+      ? lastSalesReferenceData.rows
+      : [];
+    const salesLooksWorse = salesRows.some((row) => {
+      const disadvantage = Number(row && row.delta && row.delta.disadvantageJpy);
+      return Number.isFinite(disadvantage) && disadvantage > 0.5;
+    });
+
+    if (result && result.executionStatus && result.executionStatus !== 'executable') {
+      return '成行注文は条件に合わない可能性があります。詳しく見るでImpactと流動性を確認してください。';
+    }
+
+    if (!meta || meta.side !== 'sell') {
+      if (salesLooksWorse || !lastSalesReferenceData) {
+        return '販売所ではなく取引所形式の方が安い可能性があります';
+      }
+      return '販売所参考コストも確認済みです。最終注文前は公式画面の提示価格を確認してください。';
+    }
+
+    if (risk && ['warning', 'danger', 'critical'].includes(risk.tone)) {
+      return 'Impactが大きめです。分割注文や指値注文も検討してください。';
+    }
+
+    return '販売所価格は参考値です。売却前に実際の提示価格と手数料条件を確認してください。';
   }
 
   function freshVenueComparisonRows(data = lastVenueComparisonData) {
@@ -401,62 +489,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const market = getSelectedMarket(exchange);
     const risk = UI.impactRiskMeta(lastSimulationResult.marketImpactPct);
     const meta = (lastVenueComparisonData && lastVenueComparisonData.meta) || lastComparisonParams || {};
-    const freshRows = freshVenueComparisonRows(lastVenueComparisonData);
+    const conclusionRows = venueRowsForConclusion(lastVenueComparisonData);
     const executableRows = executableVenueComparisonRows(lastVenueComparisonData);
 
-    if (!lastVenueComparisonData || freshRows.length === 0) {
+    if (!lastVenueComparisonData || conclusionRows.length === 0) {
       renderDecisionSummaryCard({
         status: 'loading',
         badgeLabel: '比較中',
         badgeTone: 'loading',
-        lead: `${exchange.label || exchange.id} の Impact は ${Fmt.pct(lastSimulationResult.marketImpactPct)} で、危険度は「${risk.label}」です。`,
-        body: '他取引所の板が揃い次第、最も有利な取引所と差分をここに要約します。',
-        chips: [
-          { type: 'risk', label: `危険度 ${risk.label}`, tone: risk.tone },
-          { label: `${market.label || market.instrumentId || '-'} / ${meta.side === 'sell' ? '売り' : '買い'}` },
-        ],
-        actionHref: exchangePageUrl(exchange.id),
-        actionLabel: 'この取引所の手数料・取扱銘柄・キャンペーンを見る',
+        candidate: '比較中',
+        gap: '計算中',
+        note: '他取引所の板が揃い次第、最安候補と2位との差を表示します。',
+        meta: `${market.label || market.instrumentId || '-'} / ${meta.side === 'sell' ? '売る' : '買う'} / Impact ${Fmt.pct(lastSimulationResult.marketImpactPct)} (${risk.label})`,
       });
       return;
     }
 
-    const rowsForSummary = executableRows.length > 0 ? executableRows : freshRows;
-    const bestRow = rowsForSummary[0] || null;
-    const referenceRow = pickSummaryReferenceRow(bestRow, rowsForSummary, exchange.id);
+    const bestRow = conclusionRows[0] || null;
+    const secondRow = conclusionRows[1] || null;
     const bestLabel = bestRow && (bestRow.exchangeLabel || bestRow.exchangeId);
-    const bestRisk = bestRow && bestRow.result ? UI.impactRiskMeta(bestRow.result.marketImpactPct) : null;
-
-    let lead = '';
-    let body = '';
-
-    if (executableRows.length > 0 && bestRow) {
-      lead = decisionLeadText(meta, bestRow);
-      if (referenceRow) {
-        body = `${comparisonDifferenceText(meta, bestRow, referenceRow)}。主な差分は${summaryReasonLabels(bestRow, referenceRow)}です。`;
-      } else {
-        body = `${bestLabel} がこの条件で最もバランスよく約定できる候補です。`;
-      }
-    } else if (bestRow) {
-      lead = 'この条件では、どの取引所でも成行を積極的には勧めにくい状況です。';
-      body = `${bestLabel} が相対的にはましですが、${bestRisk ? bestRisk.label : '要注意'}の水準です。無理な成行より、分割や指値の検討が無難です。`;
-    }
-
-    body = `${body} 現在見ている ${exchange.label || exchange.id} は Impact ${Fmt.pct(lastSimulationResult.marketImpactPct)} で、危険度は「${risk.label}」です。`;
 
     renderDecisionSummaryCard({
       status: 'ready',
       badgeLabel: executableRows.length > 0 ? '比較済み' : '要注意',
       badgeTone: executableRows.length > 0 ? 'ready' : 'error',
-      lead,
-      body,
-      chips: [
-        { type: 'risk', label: `危険度 ${risk.label}`, tone: risk.tone },
-        { label: `${market.label || market.instrumentId || '-'} / ${meta.side === 'sell' ? '売り' : '買い'}` },
-        bestLabel ? { label: executableRows.length > 0 ? `1位 ${bestLabel}` : `候補 ${bestLabel}` } : null,
-      ].filter(Boolean),
-      actionHref: exchangePageUrl((bestRow && bestRow.exchangeId) || exchange.id),
-      actionLabel: 'この取引所の手数料・取扱銘柄・キャンペーンを見る',
+      candidate: bestLabel || '比較不可',
+      gap: venueGapLabel(meta, bestRow, secondRow),
+      note: beginnerConclusionNote(meta, bestRow),
+      meta: `${market.label || market.instrumentId || '-'} / ${meta.side === 'sell' ? '売る' : '買う'} / ${comparisonAmountLabel(meta)} / Impact ${Fmt.pct(lastSimulationResult.marketImpactPct)} (${risk.label})`,
+      actionLabel: '詳しく見る',
     });
   }
 
@@ -757,6 +818,26 @@ document.addEventListener('DOMContentLoaded', () => {
     button.__labelTimer = setTimeout(() => {
       button.textContent = button.dataset.defaultLabel;
     }, duration);
+  }
+
+  function resizeDepthChartSoon() {
+    if (!depthChart) return;
+    requestAnimationFrame(() => {
+      depthChart.resize();
+      depthChart.update('none');
+    });
+  }
+
+  function openDetailDisclosure(options = {}) {
+    const { scroll = true } = options;
+    if (!detailDisclosure) return;
+    detailDisclosure.open = true;
+    resizeDepthChartSoon();
+    if (scroll) {
+      requestAnimationFrame(() => {
+        detailDisclosure.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
   }
 
   async function runExportAction(button, action) {
@@ -1281,6 +1362,7 @@ document.addEventListener('DOMContentLoaded', () => {
       button.classList.toggle('is-active', isActive);
       button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
+    updateAmountUnit();
   }
 
   function currentShareParams() {
@@ -1660,8 +1742,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateAmountUnit() {
     const market = getSelectedMarket();
     const base = market.baseCurrency || 'BTC';
-    amountUnit.textContent = amountTypeSelect.value === 'base' ? base : 'JPY';
-    amountInput.placeholder = amountTypeSelect.value === 'base' ? '1.0' : '10000000';
+    const isBaseAmount = amountTypeSelect.value === 'base';
+    const side = normalizeSide(sideSelect && sideSelect.value) || 'buy';
+    amountUnit.textContent = isBaseAmount ? base : 'JPY';
+    amountInput.placeholder = isBaseAmount ? '0.01' : '100000';
+    if (amountInputLabel) {
+      if (isBaseAmount) {
+        amountInputLabel.textContent = side === 'sell' ? '売却数量' : '購入数量';
+      } else {
+        amountInputLabel.textContent = side === 'sell' ? '売却金額' : '購入金額';
+      }
+    }
     
     // Update the dropdown option text itself
     const baseOption = document.getElementById('amount-type-base-option');
@@ -1691,7 +1782,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function applyInitialUrlState() {
     const initialSide = initialUrlState.hasSide ? initialUrlState.side : savedSettings.side;
-    const initialAmountType = initialUrlState.hasAmountType ? initialUrlState.amountType : savedSettings.amountType;
+    const initialAmountType = initialUrlState.hasAmountType ? initialUrlState.amountType : 'jpy';
     const initialFeeRatePct = initialUrlState.hasFeeRate ? initialUrlState.feeRatePct : savedSettings.feeRatePct;
     const initialExchangeId = initialUrlState.hasExchange ? initialUrlState.exchangeId : savedSettings.exchangeId;
     const initialInstrumentId = initialUrlState.hasInstrument ? initialUrlState.instrumentId : savedSettings.instrumentId;
@@ -1699,6 +1790,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (initialSide) setSide(initialSide);
     if (initialAmountType && amountTypeSelect) amountTypeSelect.value = initialAmountType;
     if (initialUrlState.amount != null && amountInput) amountInput.value = formatNumberParam(initialUrlState.amount);
+    if (!initialUrlState.hasAmount && initialAmountType === 'base' && amountInput && amountInput.value === amountInput.defaultValue) {
+      amountInput.value = '';
+    }
     if (initialFeeRatePct != null && feeRateInput) feeRateInput.value = formatNumberParam(initialFeeRatePct);
 
     const nextExchangeId = initialExchangeId || ws.exchangeId;
@@ -2101,6 +2195,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (rows.length === 0) {
       setSalesReferenceEmpty('販売所価格を取得中です。取得できた販売所のみで参考比較します。');
+      updateDecisionSummary();
       return;
     }
 
@@ -2146,6 +2241,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>
       `;
     }).join('');
+    updateDecisionSummary();
   }
 
   async function loadSalesReferenceComparison(options = {}) {
@@ -2182,6 +2278,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setBusy('sales-reference-panel', false);
         UI.setText('sales-reference-meta', err.message);
         setSalesReferenceEmpty('販売所参考比較を取得できませんでした。時間をおいて再度お試しください。');
+        updateDecisionSummary();
       }
     } finally {
       if (salesReferenceAbortController === controller) {
@@ -2356,14 +2453,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  document.addEventListener('click', (event) => {
+    const button = closestFromEvent(event, '[data-open-detail]');
+    if (!button) return;
+    openDetailDisclosure();
+  });
+
+  if (detailDisclosure) {
+    detailDisclosure.addEventListener('toggle', () => {
+      if (detailDisclosure.open) resizeDepthChartSoon();
+    });
+  }
+
   if (copyShareUrlBtn) {
     copyShareUrlBtn.addEventListener('click', copyShareUrl);
   }
 
   document.addEventListener('click', (event) => {
-    const button = event.target && event.target.closest
-      ? event.target.closest('[data-export-kind][data-export-format]')
-      : null;
+    const button = closestFromEvent(event, '[data-export-kind][data-export-format]');
     if (!button) return;
 
     const kind = button.dataset.exportKind;
@@ -2611,6 +2718,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderAlerts();
   alertRefreshTask.start({ immediate: false });
   freshnessTask.start({ immediate: false });
+  resetDecisionSummary();
   setOverviewLoadingState();
   setThresholdLoading();
   setChartLoading(true);
