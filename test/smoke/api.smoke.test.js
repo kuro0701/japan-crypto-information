@@ -252,6 +252,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(marketPage.body.snapshot.exchangeCount, 7);
   assert.equal(marketPage.body.snapshot.bestAsk.exchangeLabel, 'OKJ');
   assert.equal(marketPage.body.snapshot.tightestSalesSpread.exchangeLabel, 'Coincheck');
+  assert.equal(marketPage.body.snapshot.fundingSupport.supportedCount, 7);
+  assert.ok(Array.isArray(marketPage.body.domesticComparison.rows));
+  assert.ok(marketPage.body.domesticComparison.rows.some((row) => (
+    row.exchangeId === 'okj'
+    && row.cost100k
+    && row.salesSpread
+    && row.funding
+  )));
 
   const marketHtml = await fetchText(baseUrl, '/markets/BTC-JPY');
   assert.equal(marketHtml.status, 200);
@@ -261,9 +269,20 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketHtml.body.includes('2. 国内取引所での比較'));
   assert.ok(marketHtml.body.includes('BTC/JPY は何に使われる？'));
   assert.ok(marketHtml.body.includes('3. 銘柄プロフィール'));
+  assert.ok(marketHtml.body.includes('ティッカー'));
+  assert.ok(marketHtml.body.includes('名称'));
+  assert.ok(marketHtml.body.includes('ネットワーク'));
+  assert.ok(marketHtml.body.includes('発行上限'));
+  assert.ok(marketHtml.body.includes('コンセンサス方式'));
+  assert.ok(marketHtml.body.includes('関連するリスク'));
+  assert.ok(marketHtml.body.includes('国内取扱状況'));
+  assert.ok(marketHtml.body.includes('2,100万 BTC'));
+  assert.ok(marketHtml.body.includes('Proof of Work'));
   assert.ok(marketHtml.body.includes('4. 取引前チェック'));
   assert.ok(marketHtml.body.includes('BTC/JPY 比較サマリー'));
   assert.ok(marketHtml.body.includes('10万円購入時の最安候補'));
+  assert.ok(marketHtml.body.includes('国内取引所 比較一覧'));
+  assert.ok(marketHtml.body.includes('入出金対応'));
   assert.ok(marketHtml.body.includes('5. 関連ページ'));
   assert.ok(marketHtml.body.includes('/simulator?market=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/volume-share?instrumentId=BTC-JPY'));

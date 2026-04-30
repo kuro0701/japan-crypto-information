@@ -166,9 +166,32 @@ document.addEventListener('DOMContentLoaded', () => {
     setText(`market-summary-${key}-meta`, meta);
   }
 
+  function fundingSupportSummary() {
+    const exchanges = supportedExchanges();
+    const supportedCount = exchanges.filter(exchange => (
+      exchange
+      && exchange.funding
+      && exchange.funding.fiatDeposit
+      && exchange.funding.fiatWithdrawal
+      && exchange.funding.cryptoDeposit
+      && exchange.funding.cryptoWithdrawal
+    )).length;
+    return {
+      exchangeCount: exchanges.length,
+      supportedCount,
+      summary: supportedCount === exchanges.length && exchanges.length > 0
+        ? `${supportedCount}社すべて`
+        : `${supportedCount}/${exchanges.length}社`,
+      note: 'JPY入出金・暗号資産入出庫は銀行、銘柄、ネットワークごとの条件を公式確認',
+    };
+  }
+
   function renderSnapshot(snapshotData) {
     const snapshot = snapshotData && typeof snapshotData === 'object' ? snapshotData : null;
     const defaultExchangeCount = supportedExchanges().length;
+    const funding = (snapshot && snapshot.fundingSupport)
+      || (summary && summary.domesticComparison && summary.domesticComparison.meta && summary.domesticComparison.meta.fundingSupport)
+      || fundingSupportSummary();
     const amount = snapshot && snapshot.comparisonAmount ? Number(snapshot.comparisonAmount.amount) : NaN;
     const freshnessNote = snapshot && snapshot.boardFreshness === 'stale'
       ? '現在は stale 板を含む参考値です'
@@ -207,10 +230,89 @@ document.addEventListener('DOMContentLoaded', () => {
       snapshot && snapshot.tightestSalesSpread ? fmtPct(snapshot.tightestSalesSpread.spreadPct) : '販売所データ待ち'
     );
     setSnapshotMetric(
+      'funding-support',
+      funding ? funding.summary : '公式確認',
+      funding ? funding.note : 'JPY入出金・暗号資産入出庫は公式条件確認'
+    );
+    setSnapshotMetric(
       'top-volume',
       snapshot && snapshot.topVolume ? snapshot.topVolume.exchangeLabel : 'データ待ち',
       snapshot && snapshot.topVolume ? `24h出来高 ${Fmt.jpyLarge(snapshot.topVolume.quoteVolume)}` : '出来高データを取得中です'
     );
+  }
+
+  function fundingLabel(funding) {
+    if (!funding) return '公式条件確認';
+    const summaryText = funding.summary || 'JPY入出金 / 暗号資産入出庫';
+    const statusText = funding.statusLabel || '公式条件確認';
+    return `${summaryText} (${statusText})`;
+  }
+
+  function renderDomesticComparisonRows() {
+    const tbody = $('market-domestic-comparison-tbody');
+    if (!tbody) return;
+    const domestic = summary && summary.domesticComparison ? summary.domesticComparison : null;
+    const rows = Array.isArray(domestic && domestic.rows) ? domestic.rows : [];
+    const meta = domestic && domestic.meta ? domestic.meta : {};
+    const baseCurrency = (summary && summary.market && summary.market.baseCurrency) || instrumentId.split('-')[0] || '';
+    const counts = summarizeStatuses(rows.map(row => row.orderbook || {}));
+    setText(
+      'market-domestic-comparison-meta',
+      `${marketLabel()} | 10万円買い / 各取引所既定 taker | 対応 ${meta.exchangeCount || rows.length || supportedExchanges().length}社 | 板 fresh ${counts.fresh || 0}社 / 待機 ${counts.waiting || 0}社`
+    );
+
+    if (rows.length === 0) {
+      setEmpty('market-domestic-comparison-tbody', 6, '国内取引所比較データを取得中です。');
+      return;
+    }
+
+    tbody.innerHTML = rows.map((row) => {
+      const orderbook = row.orderbook || {};
+      const orderbookStatus = liveRowStatus(orderbook);
+      const hasBook = orderbookStatus === 'fresh' || orderbookStatus === 'stale';
+      const cost = row.cost100k || {};
+      const costReady = cost.status === 'fresh' && cost.executionStatus && Number.isFinite(Number(cost.totalBaseFilled));
+      const sales = row.salesSpread || {};
+      const salesReady = sales.status === 'ready' && Number.isFinite(Number(sales.spreadPct));
+      const rowClass = [
+        cost.rank === 1 && costReady ? 'data-table__row--rank-1' : '',
+        orderbookStatus === 'stale' ? 'data-table__row--stale' : '',
+      ].filter(Boolean).join(' ');
+      const costStatus = costReady
+        ? (cost.executionStatusLabel || '参考値')
+        : (cost.status === 'stale' ? '板データが古い' : (cost.message || ORDERBOOK_WAITING_MESSAGE));
+
+      return `
+        <tr class="border-b border-gray-800/60 ${rowClass}">
+          <td class="text-left" data-label="対応取引所">
+            <div class="font-bold text-gray-200">${escapeHtml(row.exchangeLabel || row.exchangeId)}</div>
+            <div class="text-[10px] text-gray-500">対応銘柄 / ${escapeHtml(row.instrumentLabel || instrumentId)}</div>
+          </td>
+          <td class="is-num text-right font-mono" data-label="最良Bid / Ask">
+            <div class="text-green-300">Bid ${hasBook ? fmtJpyPrice(orderbook.bestBid) : '-'}</div>
+            <div class="text-red-300">Ask ${hasBook ? fmtJpyPrice(orderbook.bestAsk) : '-'}</div>
+            <div class="text-[10px] text-gray-500">${hasBook ? `Spread ${fmtPct(orderbook.spreadPct)}` : escapeHtml(orderbook.message || ORDERBOOK_WAITING_MESSAGE)}</div>
+            ${freshnessBadge(orderbookStatus)}
+          </td>
+          <td class="is-num text-right font-mono" data-label="板厚">
+            <div class="text-gray-200">${hasBook ? Fmt.jpyLarge(orderbook.visibleDepthJPY) : '-'}</div>
+            <div class="text-[10px] text-gray-500">${hasBook ? 'Bid + Ask可視深さ' : '-'}</div>
+          </td>
+          <td class="is-num text-right font-mono" data-label="10万円買い">
+            <div class="${costReady ? 'text-red-300' : 'text-gray-500'}">${costReady ? `${cost.rank ? `#${cost.rank} ` : ''}${Fmt.baseCompact(cost.totalBaseFilled)} ${escapeHtml(baseCurrency)}` : '-'}</div>
+            <div class="text-[10px] text-gray-500">${costReady ? `VWAP ${fmtJpyPrice(cost.effectiveVWAP)} / Impact ${fmtPct(cost.marketImpactPct)}` : escapeHtml(costStatus)}</div>
+          </td>
+          <td class="is-num text-right font-mono" data-label="販売所Spread">
+            <div class="${salesReady ? 'text-yellow-300' : 'text-gray-500'}">${salesReady ? fmtPct(sales.spreadPct) : '-'}</div>
+            <div class="text-[10px] text-gray-500">${salesReady ? `買 ${fmtJpyPrice(sales.buyPrice)} / 売 ${fmtJpyPrice(sales.sellPrice)}` : escapeHtml(sales.message || '販売所データなし')}</div>
+          </td>
+          <td class="text-left" data-label="入出金対応">
+            <div class="font-bold text-gray-200">${escapeHtml(fundingLabel(row.funding))}</div>
+            <div class="text-[10px] text-gray-500">${escapeHtml((row.funding && row.funding.note) || '銀行・銘柄・ネットワーク別の条件は公式確認')}</div>
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 
   function renderOrderbookRows() {
@@ -425,6 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
     populateBoardExchangeSelect();
     renderSnapshot(summary && summary.snapshot);
     renderHero();
+    renderDomesticComparisonRows();
     renderOrderbookRows();
     renderVolumeRows();
     renderSalesRows();
@@ -465,6 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
     callback: () => {
       if (summary) {
         renderHero();
+        renderDomesticComparisonRows();
         renderOrderbookRows();
         updateSelectedOrderbookMeta();
       }
@@ -509,12 +613,31 @@ document.addEventListener('DOMContentLoaded', () => {
           message: null,
         };
       }
+      const domesticRows = summary.domesticComparison && Array.isArray(summary.domesticComparison.rows)
+        ? summary.domesticComparison.rows
+        : [];
+      const domesticRow = domesticRows.find(row => row.exchangeId === data.exchangeId && row.instrumentId === data.instrumentId);
+      if (domesticRow) {
+        domesticRow.orderbook = {
+          ...domesticRow.orderbook,
+          status: 'fresh',
+          message: null,
+          bestBid: data.bestBid,
+          bestAsk: data.bestAsk,
+          spreadPct: data.spreadPct,
+          visibleDepthJPY: Number(data.totalAskDepthJPY || 0) + Number(data.totalBidDepthJPY || 0),
+          updatedAt: data.updatedAt || data.timestamp || data.receivedAt || null,
+          staleAfterMs: data.staleAfterMs || null,
+          source: data.source || null,
+        };
+      }
     }
     updateSelectedOrderbookMeta();
     setChartBaseCurrency(data.market?.baseCurrency || (summary.market && summary.market.baseCurrency) || 'BTC');
     updateDepthChart(data.depthChart, data.midPrice);
     if (summary) {
       renderHero();
+      renderDomesticComparisonRows();
       renderOrderbookRows();
     }
   });

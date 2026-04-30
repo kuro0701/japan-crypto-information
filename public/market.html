@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-14">
+  <link rel="stylesheet" href="/css/style.css?v=ui-16">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -80,6 +80,40 @@
           <div class="market-context-grid market-context-grid--links">
             <!-- MARKET_SUPPORTED_EXCHANGE_LINKS -->
           </div>
+        </div>
+      </div>
+      <div class="market-domestic-comparison mt-4">
+        <div class="panel-title-row mb-3">
+          <div>
+            <h3 class="market-domestic-comparison__title">国内取引所 比較一覧</h3>
+            <p id="market-domestic-comparison-meta" class="text-xs text-gray-500 mt-1">板・販売所・入出金対応を集計中</p>
+          </div>
+          <span class="panel-kicker">Domestic</span>
+        </div>
+        <div class="overflow-auto scrollbar-thin">
+          <table class="data-table data-table--cards data-table--fixed data-table--market-domestic text-xs">
+            <colgroup>
+              <col style="width:17%">
+              <col style="width:18%">
+              <col style="width:13%">
+              <col style="width:21%">
+              <col style="width:15%">
+              <col style="width:16%">
+            </colgroup>
+            <thead class="sticky">
+              <tr>
+                <th class="text-left">対応取引所</th>
+                <th class="is-num text-right">最良Bid / Ask</th>
+                <th class="is-num text-right">板厚</th>
+                <th class="is-num text-right">10万円買い</th>
+                <th class="is-num text-right">販売所Spread</th>
+                <th class="text-left">入出金対応</th>
+              </tr>
+            </thead>
+            <tbody id="market-domestic-comparison-tbody">
+              <tr><td colspan="6" class="text-center text-gray-500 py-4">国内取引所比較を取得中</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -254,6 +288,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-9"></script>
+  <script src="/js/market-page.js?v=market-10"></script>
 </body>
 </html>
