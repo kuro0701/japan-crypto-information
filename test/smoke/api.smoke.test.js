@@ -255,16 +255,20 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const marketHtml = await fetchText(baseUrl, '/markets/BTC-JPY');
   assert.equal(marketHtml.status, 200);
-  assert.ok(marketHtml.body.includes('この銘柄の要点'));
+  assert.ok(marketHtml.body.includes('1. 銘柄の結論カード'));
+  assert.ok(marketHtml.body.includes('BTCの要点'));
+  assert.ok(marketHtml.body.includes('BTCは国内取引所で流動性が高い一方、販売所で購入する場合はスプレッドに注意が必要です。'));
+  assert.ok(marketHtml.body.includes('2. 国内取引所での比較'));
   assert.ok(marketHtml.body.includes('BTC/JPY は何に使われる？'));
-  assert.ok(marketHtml.body.includes('銘柄プロフィール / 特徴・リスク'));
+  assert.ok(marketHtml.body.includes('3. 銘柄プロフィール'));
+  assert.ok(marketHtml.body.includes('4. 取引前チェック'));
   assert.ok(marketHtml.body.includes('BTC/JPY 比較サマリー'));
   assert.ok(marketHtml.body.includes('10万円購入時の最安候補'));
-  assert.ok(marketHtml.body.includes('次に見る'));
+  assert.ok(marketHtml.body.includes('5. 関連ページ'));
   assert.ok(marketHtml.body.includes('/simulator?market=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/volume-share?instrumentId=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/sales-spread?instrumentId=BTC-JPY'));
-  assert.ok(marketHtml.body.includes('#market-supported-exchanges'));
+  assert.ok(marketHtml.body.includes('#market-exchange-comparison'));
   assert.ok(marketHtml.body.includes('/exchanges/okj'));
   assert.ok(marketHtml.body.includes('/about'));
   assert.ok(marketHtml.body.includes('データ定義と免責'));

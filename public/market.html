@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-13">
+  <link rel="stylesheet" href="/css/style.css?v=ui-14">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -17,8 +17,8 @@
     <div class="brand-cluster">
       <div class="brand-mark" aria-hidden="true">₿</div>
       <div class="brand-copy min-w-0">
-        <h1 class="page-title" id="market-page-title">銘柄ページ</h1>
-        <div class="brand-subtitle" id="market-page-subtitle">国内取引所データ</div>
+        <h1 class="page-title" id="market-page-title">__MARKET_PAGE_TITLE__</h1>
+        <div class="brand-subtitle" id="market-page-subtitle">__MARKET_PAGE_SUBTITLE__</div>
       </div>
     </div>
     <nav class="nav-menu" aria-label="ページ間ナビゲーション">
@@ -34,71 +34,92 @@
   </header>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
-    <section class="panel panel--dense">
+    <section id="market-conclusion" class="panel panel--dense beginner-focus" data-beginner-focus="true">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title" id="market-hero-title">-</h2>
-          <p id="market-hero-meta" class="text-xs text-gray-500 mt-1">銘柄データを集計中</p>
+          <h2 class="panel-title">1. 銘柄の結論カード</h2>
+          <p class="text-xs text-gray-500 mt-1">値動きの予測ではなく、国内取引所で買う前に見るべき要点をまとめています</p>
         </div>
-        <span class="panel-kicker">Market</span>
+        <span class="panel-kicker">Conclusion</span>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div class="metric-row metric-row--hero beginner-focus" data-beginner-focus="true"><span class="metric-label">対応取引所</span><span id="market-exchange-count" class="metric-value metric-value--hero">-</span></div>
-        <div class="metric-row metric-row--hero bid beginner-focus" data-beginner-focus="true"><span class="metric-label">最良Bid</span><span id="market-best-bid" class="metric-value metric-value--hero text-green-300">-</span></div>
-        <div class="metric-row metric-row--hero ask beginner-focus" data-beginner-focus="true"><span class="metric-label">最良Ask</span><span id="market-best-ask" class="metric-value metric-value--hero text-red-300">-</span></div>
+      <div class="market-conclusion-layout">
+        <!-- MARKET_CONCLUSION_CARD -->
+        <aside class="market-live-card" aria-labelledby="market-hero-title">
+          <div class="market-live-card__header">
+            <div>
+              <p class="market-insight-card__eyebrow">Live Data</p>
+              <h3 class="market-live-card__title" id="market-hero-title">__MARKET_HERO_TITLE__</h3>
+              <p id="market-hero-meta" class="market-live-card__meta">銘柄データを集計中</p>
+            </div>
+            <span class="market-insight-card__badge">国内取引所</span>
+          </div>
+          <dl class="market-live-metrics">
+            <div class="metric-row metric-row--hero"><span class="metric-label">対応取引所</span><span id="market-exchange-count" class="metric-value metric-value--hero">-</span></div>
+            <div class="metric-row metric-row--hero bid"><span class="metric-label">最良Bid</span><span id="market-best-bid" class="metric-value metric-value--hero text-green-300">-</span></div>
+            <div class="metric-row metric-row--hero ask"><span class="metric-label">最良Ask</span><span id="market-best-ask" class="metric-value metric-value--hero text-red-300">-</span></div>
+          </dl>
+        </aside>
       </div>
     </section>
 
-    <section class="panel panel--dense beginner-focus" data-beginner-focus="true">
+    <section id="market-exchange-comparison" class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">この銘柄の要点</h2>
-          <p class="text-xs text-gray-500 mt-1">検索流入後に最初に見たい説明文と比較サマリーを、ページ冒頭にまとめています</p>
+          <h2 class="panel-title">2. 国内取引所での比較</h2>
+          <p class="text-xs text-gray-500 mt-1">板、出来高、販売所スプレッド、10万円購入時の参考コストを同じ銘柄で見比べます</p>
         </div>
-        <span class="panel-kicker">Summary</span>
+        <span class="panel-kicker">Compare</span>
       </div>
-      <div class="market-insight-grid">
-        <!-- MARKET_OVERVIEW_CARD -->
+      <div class="market-comparison-layout">
         <!-- MARKET_COMPARISON_SUMMARY_CARD -->
+        <div class="market-supported-panel">
+          <div class="market-supported-panel__header">
+            <p class="market-insight-card__eyebrow">Supported Exchanges</p>
+            <h3 class="market-supported-panel__title">この銘柄を扱う国内取引所</h3>
+          </div>
+          <div class="market-context-grid market-context-grid--links">
+            <!-- MARKET_SUPPORTED_EXCHANGE_LINKS -->
+          </div>
+        </div>
       </div>
     </section>
 
     <section id="market-research" class="panel panel--dense beginner-focus" data-beginner-focus="true">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">銘柄プロフィール / 特徴・リスク</h2>
-          <p class="text-xs text-gray-500 mt-1">この銘柄が何に使われるか、初心者が注意すべき点を先に確認できます</p>
+          <h2 class="panel-title">3. 銘柄プロフィール</h2>
+          <p class="text-xs text-gray-500 mt-1">この銘柄の用途、分類、特徴を確認します</p>
         </div>
-        <span class="panel-kicker">Research</span>
+        <span class="panel-kicker">Profile</span>
       </div>
       <div class="market-insight-grid">
-        <!-- MARKET_RESEARCH_CARDS -->
+        <!-- MARKET_PROFILE_CARDS -->
       </div>
     </section>
 
-    <section class="panel panel--dense">
+    <section id="market-pretrade-check" class="panel panel--dense beginner-focus" data-beginner-focus="true">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">次に見る</h2>
-          <p class="text-xs text-gray-500 mt-1">この銘柄を軸に、板シミュレーション・販売所スプレッド・出来高・取引所確認へ続けて移動できます</p>
+          <h2 class="panel-title">4. 取引前チェック</h2>
+          <p class="text-xs text-gray-500 mt-1">注文方式、板の厚み、販売所スプレッド、送金条件を購入前に確認します</p>
         </div>
-        <span class="panel-kicker">Next</span>
+        <span class="panel-kicker">Checklist</span>
+      </div>
+      <div class="market-insight-grid">
+        <!-- MARKET_PRETRADE_CHECK_CARDS -->
+      </div>
+    </section>
+
+    <section id="market-related-pages" class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">5. 関連ページ</h2>
+          <p class="text-xs text-gray-500 mt-1">この銘柄を軸に、シミュレーター、スプレッド、出来高、学習ページへ移動できます</p>
+        </div>
+        <span class="panel-kicker">Related</span>
       </div>
       <div class="market-context-grid market-context-grid--links">
         <!-- MARKET_JOURNEY_LINKS -->
-      </div>
-    </section>
-
-    <section id="market-supported-exchanges" class="panel panel--dense">
-      <div class="panel-title-row mb-4">
-        <div>
-          <h2 class="panel-title">この銘柄を扱う取引所</h2>
-          <p class="text-xs text-gray-500 mt-1">各取引所の詳細ページから、手数料・取扱銘柄・キャンペーン確認の入口へ進めます</p>
-        </div>
-        <span class="panel-kicker">Exchanges</span>
-      </div>
-      <div class="market-context-grid market-context-grid--links">
-        <!-- MARKET_SUPPORTED_EXCHANGE_LINKS -->
       </div>
     </section>
 
@@ -221,10 +242,10 @@
     </section>
   </main>
 
-  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | <span id="market-footer-label">銘柄ページ</span></footer>
+  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | <span id="market-footer-label">__MARKET_FOOTER_LABEL__</span></footer>
 
   <script>window.MARKET_PAGE = __MARKET_PAGE_JSON__;</script>
-  <script src="/js/beginner-mode.js?v=3"></script>
+  <script src="/js/beginner-mode.js?v=4"></script>
   <script src="/js/formatter.js?v=volume-1"></script>
   <script src="/js/app-utils.js?v=app-utils-1"></script>
   <script src="/js/app-formatters.js?v=app-formatters-1"></script>
@@ -233,6 +254,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-8"></script>
+  <script src="/js/market-page.js?v=market-9"></script>
 </body>
 </html>
