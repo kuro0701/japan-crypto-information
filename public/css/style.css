@@ -3068,6 +3068,42 @@ th {
   gap: var(--sp-2);
 }
 
+.exchange-conclusion-card {
+  scroll-margin-top: 88px;
+}
+
+.exchange-conclusion-list {
+  margin-top: 0;
+}
+
+.exchange-conclusion-facts {
+  margin-top: 0;
+}
+
+.exchange-related-subtitle {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line-weak);
+}
+
+.exchange-related-subtitle h3 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: var(--fs-base);
+  font-weight: 800;
+}
+
+.exchange-related-subtitle p {
+  margin: 6px 0 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.7;
+}
+
 .exchange-market-link {
   display: flex;
   flex-direction: column;

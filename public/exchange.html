@@ -37,27 +37,15 @@
   </header>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1600px] mx-auto">
-    <section class="panel panel--dense simulator-intro-card">
-      <div class="simulator-intro-card__header">
-        <div>
-          <p class="simulator-intro-card__eyebrow">Exchange Detail</p>
-          <h2 class="simulator-intro-card__title">__EXCHANGE_NAME__ の確認ポイント</h2>
-        </div>
-        <span class="simulator-intro-card__badge">詳細導線</span>
-      </div>
-      <p class="simulator-intro-card__copy">__EXCHANGE_LEDE__</p>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div class="metric-row metric-row--hero"><span class="metric-label">既定 taker 手数料</span><span class="metric-value metric-value--hero">__EXCHANGE_FEE_LABEL__</span></div>
-        <div class="metric-row metric-row--hero bid"><span class="metric-label">取扱銘柄数</span><span class="metric-value metric-value--hero text-green-300">__EXCHANGE_MARKET_COUNT__</span></div>
-        <div class="metric-row metric-row--hero"><span class="metric-label">基準銘柄</span><span class="metric-value metric-value--hero">__EXCHANGE_DEFAULT_MARKET__</span></div>
-      </div>
+    <section id="exchange-conclusion" class="decision-summary-card exchange-conclusion-card">
+      <!-- EXCHANGE_CONCLUSION_CARD -->
     </section>
 
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">基本情報</h2>
-          <p class="text-xs text-gray-500 mt-1">比較前に見ておきたい手数料、流動性の参考、販売所スプレッドの傾向をまとめています</p>
+          <h2 class="panel-title">2. 基本情報</h2>
+          <p class="text-xs text-gray-500 mt-1">比較前に見ておきたい取引所の前提、入出金、データ取得元をまとめています</p>
         </div>
         <span class="panel-kicker">Overview</span>
       </div>
@@ -66,23 +54,23 @@
       </div>
     </section>
 
-    <section id="exchange-research" class="panel panel--dense">
+    <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">信頼性・運営会社分析</h2>
-          <p class="text-xs text-gray-500 mt-1">この取引所は信頼できるか、長く使うなら何を見るべきかを確認します</p>
+          <h2 class="panel-title">3. 手数料・スプレッド</h2>
+          <p class="text-xs text-gray-500 mt-1">取引所手数料と販売所スプレッドを分けて確認します</p>
         </div>
-        <span class="panel-kicker">Research</span>
+        <span class="panel-kicker">Cost</span>
       </div>
-      <div class="market-insight-grid market-insight-grid--three">
-        <!-- EXCHANGE_TRUST_CARDS -->
+      <div class="market-definition-list">
+        <!-- EXCHANGE_FEE_SPREAD_CARDS -->
       </div>
     </section>
 
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">銘柄カバレッジ</h2>
+          <h2 class="panel-title">4. 取扱銘柄</h2>
           <p class="text-xs text-gray-500 mt-1">取扱銘柄、板取引対応銘柄、販売所対応銘柄を分けて見られます</p>
         </div>
         <span class="panel-kicker">Coverage</span>
@@ -95,77 +83,60 @@
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">コストと流動性</h2>
-          <p class="text-xs text-gray-500 mt-1">手数料、出来高シェア、スプレッド傾向、板の厚い銘柄の参考をまとめています</p>
+          <h2 class="panel-title">5. 板・出来高</h2>
+          <p class="text-xs text-gray-500 mt-1">板取引の対応範囲、出来高シェア、板の厚い銘柄の参考を確認します</p>
         </div>
-        <span class="panel-kicker">Cost</span>
+        <span class="panel-kicker">Liquidity</span>
       </div>
       <div class="market-definition-list">
-        <!-- EXCHANGE_COST_CARDS -->
+        <!-- EXCHANGE_ORDERBOOK_VOLUME_CARDS -->
+      </div>
+    </section>
+
+    <section id="exchange-research" class="panel panel--dense">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">6. 運営会社・財務情報</h2>
+          <p class="text-xs text-gray-500 mt-1">信頼性・運営会社分析として、登録情報、公開財務情報、運営体制の確認観点を整理します</p>
+        </div>
+        <span class="panel-kicker">Company</span>
+      </div>
+      <div class="market-insight-grid market-insight-grid--three">
+        <!-- EXCHANGE_COMPANY_CARDS -->
       </div>
     </section>
 
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">向いているユーザーと注意点</h2>
-          <p class="text-xs text-gray-500 mt-1">どんな人が見比べやすいか、先に確認しておきたい注意点を整理しています</p>
+          <h2 class="panel-title">7. 注意点・リスク</h2>
+          <p class="text-xs text-gray-500 mt-1">向いている使い方と、申込・注文前に確認したいリスクを分けて見ます</p>
         </div>
-        <span class="panel-kicker">Guide</span>
+        <span class="panel-kicker">Risk</span>
       </div>
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <!-- EXCHANGE_AUDIENCE_CARDS -->
+        <!-- EXCHANGE_RISK_CARDS -->
       </div>
     </section>
 
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">現在のキャンペーン</h2>
-          <p class="text-xs text-gray-500 mt-1">内容や終了時期が変わるため、申込前に公式ページで確認しましょう</p>
-        </div>
-        <span class="panel-kicker">Campaign</span>
-      </div>
-      <div class="market-context-grid market-context-grid--links">
-        <!-- EXCHANGE_CAMPAIGN_CARDS -->
-      </div>
-    </section>
-
-    <section class="panel panel--dense">
-      <div class="panel-title-row mb-4">
-        <div>
-          <h2 class="panel-title">公式リンク / 紹介リンク</h2>
-          <p class="text-xs text-gray-500 mt-1">一次情報と申込導線を分けて置いています。紹介リンク掲載時はPR表記を前提にします</p>
+          <h2 class="panel-title">8. 関連ページ</h2>
+          <p class="text-xs text-gray-500 mt-1">公式リンク / 紹介リンク、キャンペーン、シミュレーター、銘柄ページへ進めます</p>
         </div>
         <span class="panel-kicker">Links</span>
       </div>
       <div class="market-context-grid market-context-grid--links">
-        <!-- EXCHANGE_LINK_CARDS -->
+        <!-- EXCHANGE_RELATED_LINKS -->
       </div>
-    </section>
-
-    <section class="panel panel--dense">
-      <div class="panel-title-row mb-4">
+      <div class="exchange-related-subtitle">
         <div>
-          <h2 class="panel-title">次に見る</h2>
-          <p class="text-xs text-gray-500 mt-1">この取引所を基準にシミュレーターへ戻るか、代表銘柄の比較ページへ進めます</p>
+          <h3>取扱銘柄からそのまま比較する</h3>
+          <p>各銘柄を押すと、この取引所を選んだ状態の板シミュレーターへ移動します。</p>
         </div>
-        <span class="panel-kicker">Next</span>
       </div>
-      <div class="market-context-grid market-context-grid--links">
-        <!-- EXCHANGE_JOURNEY_LINKS -->
-      </div>
-    </section>
-
-    <section class="panel panel--dense">
-      <div class="panel-title-row mb-4">
-        <div>
-          <h2 class="panel-title">取扱銘柄からそのまま比較する</h2>
-          <p class="text-xs text-gray-500 mt-1">各銘柄を押すと、この取引所を選んだ状態の板シミュレーターへ移動します。注文前に実効コストを確認しましょう</p>
-        </div>
-        <span class="panel-kicker">Markets</span>
-      </div>
-      <div class="exchange-market-grid">
+      <div class="exchange-market-grid mt-3">
         <!-- EXCHANGE_MARKET_LINKS -->
       </div>
     </section>
