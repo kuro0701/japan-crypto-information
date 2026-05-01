@@ -3027,6 +3027,54 @@ th {
   line-height: var(--lh-relaxed);
 }
 
+.exchange-detail-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 0;
+}
+
+.exchange-detail-list--compact {
+  grid-template-columns: 1fr;
+}
+
+.exchange-detail-list div {
+  min-width: 0;
+  padding: var(--sp-2);
+  border: 1px solid var(--line-weak);
+  border-radius: var(--r-sm);
+  background: rgba(8, 12, 14, 0.45);
+}
+
+.exchange-detail-list dt {
+  color: var(--text-4);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em !important;
+}
+
+.exchange-detail-list dd {
+  margin: 5px 0 0;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.exchange-live-value {
+  color: var(--bid);
+  font-weight: 800;
+}
+
+.exchange-live-value.is-waiting {
+  color: var(--text-4);
+}
+
+.exchange-live-value.is-stale {
+  color: var(--warn);
+}
+
 .market-disclaimer-card {
   display: flex;
   flex-direction: column;
@@ -4480,7 +4528,8 @@ th {
   .market-conclusion-list,
   .market-conclusion-facts,
   .market-summary-grid,
-  .market-profile-facts {
+  .market-profile-facts,
+  .exchange-detail-list {
     grid-template-columns: 1fr;
   }
 

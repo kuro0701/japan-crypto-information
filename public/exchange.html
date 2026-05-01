@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-13">
+  <link rel="stylesheet" href="/css/style.css?v=ui-15">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -36,7 +36,7 @@
     </div>
   </header>
 
-  <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1600px] mx-auto">
+  <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1600px] mx-auto" data-exchange-page data-exchange-id="__EXCHANGE_ID__" data-default-instrument-id="__EXCHANGE_DEFAULT_INSTRUMENT_ID__">
     <section id="exchange-conclusion" class="decision-summary-card exchange-conclusion-card">
       <!-- EXCHANGE_CONCLUSION_CARD -->
     </section>
@@ -70,26 +70,26 @@
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">4. 取扱銘柄</h2>
-          <p class="text-xs text-gray-500 mt-1">取扱銘柄、板取引対応銘柄、販売所対応銘柄を分けて見られます</p>
+          <h2 class="panel-title">4. 板・出来高</h2>
+          <p class="text-xs text-gray-500 mt-1">主要銘柄の板厚、出来高シェア、最良Bid / Ask、スリッページ傾向を確認します</p>
         </div>
-        <span class="panel-kicker">Coverage</span>
+        <span class="panel-kicker">Liquidity</span>
       </div>
       <div class="market-definition-list">
-        <!-- EXCHANGE_COVERAGE_CARDS -->
+        <!-- EXCHANGE_ORDERBOOK_VOLUME_CARDS -->
       </div>
     </section>
 
     <section class="panel panel--dense">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">5. 板・出来高</h2>
-          <p class="text-xs text-gray-500 mt-1">板取引の対応範囲、出来高シェア、板の厚い銘柄の参考を確認します</p>
+          <h2 class="panel-title">5. 取扱銘柄の詳細</h2>
+          <p class="text-xs text-gray-500 mt-1">取扱銘柄、板取引対応銘柄、販売所対応銘柄を分けて見られます</p>
         </div>
-        <span class="panel-kicker">Liquidity</span>
+        <span class="panel-kicker">Coverage</span>
       </div>
       <div class="market-definition-list">
-        <!-- EXCHANGE_ORDERBOOK_VOLUME_CARDS -->
+        <!-- EXCHANGE_COVERAGE_CARDS -->
       </div>
     </section>
 
@@ -144,5 +144,6 @@
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | __EXCHANGE_NAME__</footer>
   <script src="/js/beginner-mode.js?v=3"></script>
+  <script src="/js/exchange-page.js?v=1"></script>
 </body>
 </html>
