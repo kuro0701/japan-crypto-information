@@ -3075,6 +3075,19 @@ th {
   color: var(--warn);
 }
 
+.exchange-financial-card--summary {
+  grid-column: 1 / -1;
+}
+
+.exchange-financial-card .exchange-detail-list {
+  margin-top: 0;
+}
+
+.exchange-financial-card__notice {
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line-weak);
+}
+
 .market-disclaimer-card {
   display: flex;
   flex-direction: column;

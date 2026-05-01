@@ -315,9 +315,12 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(exchangeHtml.status, 200);
   assert.ok(exchangeHtml.body.includes('取引所詳細'));
   assert.ok(exchangeHtml.body.includes('OKCoin Japan'));
-  assert.ok(exchangeHtml.body.includes('信頼性・運営会社分析'));
-  assert.ok(exchangeHtml.body.includes('この取引所は信頼できる？'));
-  assert.ok(exchangeHtml.body.includes('財務・運営会社分析'));
+  assert.ok(exchangeHtml.body.includes('会社概要、売上・利益、純資産、親会社、開示資料、注意点'));
+  assert.ok(exchangeHtml.body.includes('財務から見る運営安定性'));
+  assert.ok(exchangeHtml.body.includes('売上・利益の推移'));
+  assert.ok(exchangeHtml.body.includes('自己資本比率'));
+  assert.ok(exchangeHtml.body.includes('行政処分歴'));
+  assert.ok(exchangeHtml.body.includes('この情報は公開資料をもとにした参考情報'));
   assert.ok(exchangeHtml.body.includes('板取引対応銘柄'));
   assert.ok(exchangeHtml.body.includes('販売所対応銘柄'));
   assert.ok(exchangeHtml.body.includes('公式リンク / 紹介リンク'));
