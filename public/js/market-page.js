@@ -84,9 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function updatePageLabels() {
     const label = marketLabel();
     const navLink = $('market-page-nav-link');
-    document.title = `${label} 結論・国内取引所比較・取引前チェック｜国内暗号資産取引所ナビ`;
+    document.title = `${label} 結論・国内取引所比較・銘柄特徴｜国内暗号資産取引所ナビ`;
     setText('market-page-title', `${label} 銘柄ページ`);
-    setText('market-page-subtitle', '結論・国内取引所比較・取引前チェック');
+    setText('market-page-subtitle', '結論・国内取引所比較・銘柄特徴');
     setText('market-hero-title', `${label} 国内取引所データ`);
     setText('market-footer-label', `${label} 銘柄ページ`);
     setText('market-summary-title', `${label} 比較サマリー`);

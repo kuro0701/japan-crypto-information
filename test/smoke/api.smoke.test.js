@@ -267,8 +267,16 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketHtml.body.includes('BTCの要点'));
   assert.ok(marketHtml.body.includes('BTCは国内取引所で流動性が高い一方、販売所で購入する場合はスプレッドに注意が必要です。'));
   assert.ok(marketHtml.body.includes('2. 国内取引所での比較'));
+  assert.ok(marketHtml.body.includes('3. この銘柄について'));
+  assert.ok(marketHtml.body.includes('BTCとは'));
+  assert.ok(marketHtml.body.includes('1. 何のための銘柄か'));
+  assert.ok(marketHtml.body.includes('2. 主な用途'));
+  assert.ok(marketHtml.body.includes('3. 仕組み'));
+  assert.ok(marketHtml.body.includes('4. 国内取引所での扱われ方'));
+  assert.ok(marketHtml.body.includes('5. 注意点'));
+  assert.ok(marketHtml.body.includes('6. 関連銘柄'));
+  assert.ok(marketHtml.body.includes('販売所で購入する場合はスプレッドによって実質コストが高くなることがあります。'));
   assert.ok(marketHtml.body.includes('BTC/JPY は何に使われる？'));
-  assert.ok(marketHtml.body.includes('3. 銘柄プロフィール'));
   assert.ok(marketHtml.body.includes('ティッカー'));
   assert.ok(marketHtml.body.includes('名称'));
   assert.ok(marketHtml.body.includes('ネットワーク'));
