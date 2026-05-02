@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-13">
+  <link rel="stylesheet" href="/css/style.css?v=ui-18">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -51,6 +51,41 @@
         <span class="decision-summary-chip">現在値と平均を比較</span>
         <span class="decision-summary-chip">スプレッドの広がりを確認</span>
         <span class="decision-summary-chip">取引所板への導線つき</span>
+      </div>
+      <div class="decision-summary-card__actions">
+        <a class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/learn/spread">スプレッドとは？</a>
+        <a class="btn btn-ghost px-4 py-3 rounded-lg font-bold text-sm" href="/learn/exchange-vs-broker">販売所と取引所の違い</a>
+        <a class="btn btn-ghost px-4 py-3 rounded-lg font-bold text-sm" href="/learn/broker-loss-reasons">販売所で損しやすい理由</a>
+      </div>
+    </section>
+
+    <section class="panel panel--dense" aria-labelledby="sales-spread-beginner-flow-title">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 id="sales-spread-beginner-flow-title" class="panel-title">初心者の確認順</h2>
+          <p class="text-xs text-gray-500 mt-1">スプレッドの意味を確認してから、取引所板で同じ金額を比較できます。</p>
+        </div>
+        <span class="panel-kicker">Beginner Flow</span>
+      </div>
+      <div class="market-context-grid market-context-grid--links">
+        <a class="market-context-card" href="/learn/spread">
+          <span class="market-context-card__eyebrow">Step 1</span>
+          <strong class="market-context-card__title">スプレッドとは？</strong>
+          <span class="market-context-card__description">買値と売値の差が、なぜ販売所の実質コストになるかを確認します。</span>
+          <span class="market-context-card__cta">読む</span>
+        </a>
+        <a class="market-context-card" href="/learn/exchange-vs-broker">
+          <span class="market-context-card__eyebrow">Step 2</span>
+          <strong class="market-context-card__title">販売所と取引所の違い</strong>
+          <span class="market-context-card__description">同じ銘柄でも、販売所形式と取引所形式で価格の決まり方が変わります。</span>
+          <span class="market-context-card__cta">読む</span>
+        </a>
+        <a class="market-context-card" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
+          <span class="market-context-card__eyebrow">Step 3</span>
+          <strong class="market-context-card__title">板シミュレーター</strong>
+          <span class="market-context-card__description">BTC/JPYを10万円買う条件で、取引所板の参考コストを比較します。</span>
+          <span class="market-context-card__cta">比較する</span>
+        </a>
       </div>
     </section>
 
@@ -225,7 +260,7 @@
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 販売所価格はJPY建て、スプレッド率は仲値比です</footer>
 
-  <script src="/js/beginner-mode.js?v=3"></script>
+  <script src="/js/beginner-mode.js?v=5"></script>
   <script src="js/formatter.js?v=sales-spread-1"></script>
   <script src="js/app-utils.js?v=app-utils-1"></script>
   <script src="js/app-formatters.js?v=app-formatters-1"></script>

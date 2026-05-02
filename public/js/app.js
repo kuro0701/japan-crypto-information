@@ -53,6 +53,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const shareUrlStatus = document.getElementById('share-url-status');
   const quickstartStatus = document.getElementById('quickstart-status');
   const marketPageNavLink = document.getElementById('market-page-nav-link');
+  const simulatorNextMarketLink = document.getElementById('simulator-next-market-link');
+  const simulatorNextMarketTitle = document.getElementById('simulator-next-market-title');
+  const simulatorNextMarketDescription = document.getElementById('simulator-next-market-description');
+  const simulatorNextExchangeLink = document.getElementById('simulator-next-exchange-link');
+  const simulatorNextExchangeTitle = document.getElementById('simulator-next-exchange-title');
+  const simulatorNextExchangeDescription = document.getElementById('simulator-next-exchange-description');
+  const simulatorNextSpreadLink = document.getElementById('simulator-next-spread-link');
+  const simulatorNextSpreadTitle = document.getElementById('simulator-next-spread-title');
+  const simulatorNextSpreadDescription = document.getElementById('simulator-next-spread-description');
   const favoriteMarketList = document.getElementById('favorite-market-list');
   const saveFavoriteBtn = document.getElementById('save-favorite-btn');
   const clearSettingsBtn = document.getElementById('clear-settings-btn');
@@ -94,6 +103,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const marketDataCounts = MarketData.summarizeStatuses;
   const freshnessBadgeHtml = MarketData.freshnessBadge;
   const exchangePageUrl = AppUtil.exchangePageUrl;
+  function setElementText(element, value) {
+    if (element) element.textContent = value;
+  }
+
+  function updateSimulatorNextLinks(exchange = getSelectedExchange(), market = getSelectedMarket(exchange)) {
+    const marketLabel = (market && (market.label || market.instrumentId)) || defaultMarket.label;
+    const instrumentId = (market && market.instrumentId) || defaultMarket.instrumentId;
+    const exchangeLabel = (exchange && (exchange.label || exchange.id)) || exchanges[0].label;
+    const exchangeId = exchange && exchange.id ? exchange.id : exchanges[0].id;
+
+    if (simulatorNextMarketLink) simulatorNextMarketLink.href = marketPageUrl(instrumentId);
+    setElementText(simulatorNextMarketTitle, `${marketLabel} 銘柄ページ`);
+    setElementText(simulatorNextMarketDescription, `${marketLabel} の対応取引所、板、出来高、販売所スプレッドをまとめて確認します。`);
+
+    if (simulatorNextExchangeLink) simulatorNextExchangeLink.href = exchangePageUrl(exchangeId);
+    setElementText(simulatorNextExchangeTitle, `${exchangeLabel} の取引所詳細`);
+    setElementText(simulatorNextExchangeDescription, '手数料、取扱銘柄、運営会社、財務情報の確認観点へ進みます。');
+
+    if (simulatorNextSpreadLink) simulatorNextSpreadLink.href = `/sales-spread?instrumentId=${encodeURIComponent(instrumentId)}`;
+    setElementText(simulatorNextSpreadTitle, `${marketLabel} 販売所スプレッド`);
+    setElementText(simulatorNextSpreadDescription, `${marketLabel} を販売所で買う場合の買値と売値の差も確認します。`);
+  }
+
   const readOptionalFeeRatePct = (input) => {
     const raw = input && input.value != null ? String(input.value).trim() : '';
     if (!raw) return null;
@@ -1773,6 +1805,7 @@ document.addEventListener('DOMContentLoaded', () => {
       marketPageNavLink.href = marketPageUrl(market.instrumentId);
       marketPageNavLink.title = `${label} 銘柄ページ`;
     }
+    updateSimulatorNextLinks(exchange, market);
     if (typeof setChartBaseCurrency === 'function') {
       setChartBaseCurrency(market.baseCurrency || 'BTC');
     }

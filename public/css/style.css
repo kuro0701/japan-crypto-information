@@ -3975,6 +3975,71 @@ a.market-feature-related__pill:focus-visible {
   line-height: 1.65;
 }
 
+.home-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.home-flow-card {
+  display: grid;
+  gap: var(--sp-3);
+  min-width: 0;
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: rgba(8, 12, 14, 0.72);
+}
+
+.home-flow-card__header {
+  display: grid;
+  gap: 6px;
+}
+
+.home-flow-card__label {
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-flow-card h3 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  line-height: var(--lh-tight);
+}
+
+.home-flow-card__steps {
+  display: grid;
+  gap: var(--sp-2);
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text-4);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.home-flow-card__steps li::marker {
+  color: var(--text-4);
+  font-weight: 800;
+}
+
+.home-flow-card__steps a {
+  color: var(--text-2);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-flow-card__steps a:hover,
+.home-flow-card__steps a:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .home-support-link-list {
   display: grid;
   gap: var(--sp-2);
@@ -4548,6 +4613,7 @@ a.market-feature-related__pill:focus-visible {
 
   .home-capability-grid,
   .home-compare-link-grid,
+  .home-flow-grid,
   .home-highlight-grid,
   .home-popular-grid,
   .research-pathway-grid,

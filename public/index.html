@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-14">
+  <link rel="stylesheet" href="/css/style.css?v=ui-18">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -56,6 +56,56 @@
           <a class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/sales-spread?instrumentId=BTC-JPY">販売所スプレッドを見る</a>
           <a class="btn btn-ghost px-4 py-3 rounded-lg font-bold text-sm" href="/markets?q=BTC">銘柄から探す</a>
         </div>
+      </div>
+    </section>
+
+    <section class="panel panel--dense" aria-labelledby="home-journey-title">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 id="home-journey-title" class="panel-title">目的別の導線</h2>
+          <p class="text-xs text-gray-500 mt-1">トップから比較、銘柄、取引所、学習ページまで迷わず進める内部リンクです。</p>
+        </div>
+        <span class="panel-kicker">Internal Links</span>
+      </div>
+      <div class="home-flow-grid">
+        <article class="home-flow-card">
+          <div class="home-flow-card__header">
+            <span class="home-flow-card__label">BTC Cost</span>
+            <h3>10万円BTC比較から財務分析へ</h3>
+          </div>
+          <ol class="home-flow-card__steps">
+            <li><a href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">10万円BTC比較</a></li>
+            <li><a href="/markets/BTC-JPY">BTCページ</a></li>
+            <li><a href="/markets/BTC-JPY#market-exchange-comparison">BTC対応取引所</a></li>
+            <li><a href="/learn/exchange-company-analysis">財務分析の見方</a></li>
+          </ol>
+        </article>
+
+        <article class="home-flow-card">
+          <div class="home-flow-card__header">
+            <span class="home-flow-card__label">ETH Venues</span>
+            <h3>銘柄一覧からETH対応取引所へ</h3>
+          </div>
+          <ol class="home-flow-card__steps">
+            <li><a href="/markets">銘柄一覧</a></li>
+            <li><a href="/markets/ETH-JPY">ETHページ</a></li>
+            <li><a href="/markets/ETH-JPY#market-exchange-comparison">ETH対応取引所</a></li>
+            <li><a href="/exchanges">各取引所の詳細</a></li>
+          </ol>
+        </article>
+
+        <article class="home-flow-card">
+          <div class="home-flow-card__header">
+            <span class="home-flow-card__label">Beginner</span>
+            <h3>販売所スプレッドから板比較へ</h3>
+          </div>
+          <ol class="home-flow-card__steps">
+            <li><a href="/sales-spread?instrumentId=BTC-JPY">販売所スプレッド比較</a></li>
+            <li><a href="/learn/spread">スプレッドとは</a></li>
+            <li><a href="/learn/exchange-vs-broker">販売所と取引所の違い</a></li>
+            <li><a href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">板シミュレーター</a></li>
+          </ol>
+        </article>
       </div>
     </section>
 
@@ -173,6 +223,6 @@
   </main>
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | ホーム</footer>
-  <script src="/js/beginner-mode.js?v=3"></script>
+  <script src="/js/beginner-mode.js?v=5"></script>
 </body>
 </html>

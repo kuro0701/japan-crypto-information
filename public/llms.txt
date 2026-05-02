@@ -3,8 +3,14 @@
 
 ## Pages
 - [ホーム](https://japan-crypto-information.onrender.com/): 国内暗号資産取引所の板・スプレッド・手数料・出来高を横断し、10万円分のBTC比較、販売所スプレッド、銘柄ページ、リサーチ、人気ページへ案内する入口ページです。
-- [初心者ガイド](https://japan-crypto-information.onrender.com/learn): 販売所と取引所の違い、スプレッド、スリッページ、成行注文、手数料、取引所比較の見方を学べます。
+- [初心者ガイド](https://japan-crypto-information.onrender.com/learn): 販売所と取引所の違い、スプレッド、板取引、手数料、10万円分買う前の確認、販売所で損しやすい理由、取引所選びのチェックリストを学べます。
 - [販売所と取引所の違い](https://japan-crypto-information.onrender.com/learn/exchange-vs-broker): 販売所の表示価格と取引所の板取引の違いを説明し、販売所スプレッド比較と板シミュレーターへ案内します。
+- [スプレッドとは？](https://japan-crypto-information.onrender.com/learn/spread): 販売所と取引所で使われるスプレッドを説明し、販売所スプレッド比較へ案内します。
+- [板取引とは？](https://japan-crypto-information.onrender.com/learn/order-book-trading): 取引所の注文板、成行注文、指値注文、板の厚みを説明し、板シミュレーターへ案内します。
+- [暗号資産の手数料の見方](https://japan-crypto-information.onrender.com/learn/crypto-fees): maker / taker、販売所スプレッド、入出金手数料を分けて整理します。
+- [10万円分買うときに見るべきポイント](https://japan-crypto-information.onrender.com/learn/buying-100k-points): 10万円購入前に見る販売所スプレッド、板、手数料、入出金条件を整理します。
+- [初心者が販売所で損しやすい理由](https://japan-crypto-information.onrender.com/learn/broker-loss-reasons): 手数料無料表示と販売所スプレッドの見落としを説明します。
+- [取引所選びのチェックリスト](https://japan-crypto-information.onrender.com/learn/exchange-checklist): 取扱銘柄、注文方式、板、手数料、入出金、運営会社、キャンペーン条件を確認できます。
 - [スリッページとは？](https://japan-crypto-information.onrender.com/learn/slippage): 成行注文で平均約定価格がずれる理由を説明し、板シミュレーターで確認できます。
 - [成行注文シミュレーター](https://japan-crypto-information.onrender.com/simulator): 国内暗号資産取引所のリアルタイム板を使い、成行注文の執行価格・スリッページ・マーケットインパクトを比較できます。
 - [出来高シェア](https://japan-crypto-information.onrender.com/volume-share): 国内主要取引所の BTC・ETH 他銘柄の出来高シェアを JPY 換算で集計し、取引所ごとの流動性集中度や対応範囲を日次・週次・月次で確認できます。

@@ -215,6 +215,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(learnIndex.body.includes('初心者向け暗号資産取引ガイド'));
   assert.ok(learnIndex.body.includes('/learn/exchange-company-analysis'));
   assert.ok(learnIndex.body.includes('/learn/market-order-risk'));
+  assert.ok(learnIndex.body.includes('/learn/buying-100k-points'));
+  assert.ok(learnIndex.body.includes('/learn/broker-loss-reasons'));
+  assert.ok(learnIndex.body.includes('/learn/exchange-checklist'));
+  assert.ok(learnIndex.body.includes('暗号資産の手数料の見方'));
   assert.ok(learnIndex.body.includes('/sales-spread?instrumentId=BTC-JPY'));
   assertCommonDisclosure(learnIndex.body);
 
@@ -233,6 +237,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(simulatorPage.status, 200);
   assert.ok(simulatorPage.body.includes('成行取引リアルタイム板シミュレーター'));
   assert.ok(simulatorPage.body.includes('app.js?v='));
+  assert.ok(simulatorPage.body.includes('/learn/order-book-trading'));
+  assert.ok(simulatorPage.body.includes('/learn/buying-100k-points'));
   assertCommonDisclosure(simulatorPage.body);
 
   const exchanges = await fetchJson(baseUrl, '/api/exchanges');
@@ -296,6 +302,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketHtml.body.includes('/volume-share?instrumentId=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/sales-spread?instrumentId=BTC-JPY'));
   assert.ok(marketHtml.body.includes('#market-exchange-comparison'));
+  assert.ok(marketHtml.body.includes('/learn/exchange-vs-broker'));
+  assert.ok(marketHtml.body.includes('/learn/buying-100k-points'));
   assert.ok(marketHtml.body.includes('/exchanges/okj'));
   assert.ok(marketHtml.body.includes('/about'));
   assert.ok(marketHtml.body.includes('データ定義と免責'));
@@ -357,7 +365,29 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(orderBookGuide.body.includes('板取引とは？'));
   assert.ok(orderBookGuide.body.includes('注文板'));
   assert.ok(orderBookGuide.body.includes('/simulator?market=BTC-JPY'));
+  assert.ok(orderBookGuide.body.includes('/learn/buying-100k-points'));
   assertCommonDisclosure(orderBookGuide.body);
+
+  const buying100kGuide = await fetchText(baseUrl, '/learn/buying-100k-points');
+  assert.equal(buying100kGuide.status, 200);
+  assert.ok(buying100kGuide.body.includes('10万円分買うときに見るべきポイント'));
+  assert.ok(buying100kGuide.body.includes('/simulator?market=BTC-JPY'));
+  assert.ok(buying100kGuide.body.includes('/sales-spread?instrumentId=BTC-JPY'));
+  assertCommonDisclosure(buying100kGuide.body);
+
+  const brokerLossGuide = await fetchText(baseUrl, '/learn/broker-loss-reasons');
+  assert.equal(brokerLossGuide.status, 200);
+  assert.ok(brokerLossGuide.body.includes('初心者が販売所で損しやすい理由'));
+  assert.ok(brokerLossGuide.body.includes('/learn/spread'));
+  assert.ok(brokerLossGuide.body.includes('/sales-spread?instrumentId=BTC-JPY'));
+  assertCommonDisclosure(brokerLossGuide.body);
+
+  const exchangeChecklistGuide = await fetchText(baseUrl, '/learn/exchange-checklist');
+  assert.equal(exchangeChecklistGuide.status, 200);
+  assert.ok(exchangeChecklistGuide.body.includes('取引所選びのチェックリスト'));
+  assert.ok(exchangeChecklistGuide.body.includes('/markets'));
+  assert.ok(exchangeChecklistGuide.body.includes('/learn/crypto-fees'));
+  assertCommonDisclosure(exchangeChecklistGuide.body);
 
   const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
   assert.equal(volumeSharePage.status, 200);
@@ -366,6 +396,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const salesSpreadPage = await fetchText(baseUrl, '/sales-spread?instrumentId=BTC-JPY');
   assert.equal(salesSpreadPage.status, 200);
   assert.ok(salesSpreadPage.body.includes('販売所スプレッドとは？'));
+  assert.ok(salesSpreadPage.body.includes('/learn/spread'));
+  assert.ok(salesSpreadPage.body.includes('/learn/broker-loss-reasons'));
   assert.ok(salesSpreadPage.body.includes('現在スプレッドが狭い銘柄TOP10'));
   assert.ok(salesSpreadPage.body.includes('BTC/JPYの取引所コストを確認する'));
   assertCommonDisclosure(salesSpreadPage.body);
@@ -401,10 +433,12 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(sitemap.status, 200);
   assert.ok(sitemap.body.includes('/research'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
+  assert.ok(sitemap.body.includes('/learn/exchange-checklist'));
 
   const rss = await fetchText(baseUrl, '/rss.xml');
   assert.equal(rss.status, 200);
   assert.ok(rss.body.includes('/learn/crypto-fees'));
+  assert.ok(rss.body.includes('/learn/buying-100k-points'));
 
   const volumeShare = await fetchJson(baseUrl, '/api/volume-share?window=7d');
   assert.equal(volumeShare.status, 200);

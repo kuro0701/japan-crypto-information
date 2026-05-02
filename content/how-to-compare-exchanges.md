@@ -2,7 +2,7 @@
 title: 暗号資産取引所の比較方法
 description: 暗号資産取引所を比較するときに見るべき、取扱銘柄、板の厚み、販売所スプレッド、手数料、出来高、キャンペーン、使いやすさを整理します。
 date: 2026-04-29
-updated: 2026-04-29
+updated: 2026-05-02
 author: 国内暗号資産取引所ナビ
 slug: how-to-compare-exchanges
 path: /learn/how-to-compare-exchanges
@@ -44,4 +44,4 @@ path: /learn/how-to-compare-exchanges
 
 まず [BTC 10万円買いの板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で、取引所ごとの成行コストを見ます。次に [BTC/JPY の販売所スプレッド](/sales-spread?instrumentId=BTC-JPY) を見て、販売所で買う場合のコスト感を確認します。
 
-用語から復習したい場合は、[販売所と取引所の違い](/learn/exchange-vs-broker)、[スプレッドとは？](/learn/spread)、[成行注文のリスク](/learn/market-order-risk) を順番に読むと、比較軸がつながります。
+用語から復習したい場合は、[販売所と取引所の違い](/learn/exchange-vs-broker)、[スプレッドとは？](/learn/spread)、[成行注文のリスク](/learn/market-order-risk) を順番に読むと、比較軸がつながります。最終確認には [取引所選びのチェックリスト](/learn/exchange-checklist) も使えます。

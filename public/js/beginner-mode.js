@@ -141,9 +141,9 @@
         terms: ['effective-cost', 'impact', 'sales-spread', 'slippage', 'order-size'],
         warning: 'Impactが1%以上、または流動性不足の表示が出る注文サイズは要注意です。注文を小さくして再計算すると、危険度の変化を確認できます。',
         links: [
+          { href: '/learn/order-book-trading', label: '板取引とは？' },
+          { href: '/learn/buying-100k-points', label: '10万円分買う前のポイント' },
           { href: '/sales-spread?instrumentId=BTC-JPY', label: '販売所スプレッドを見る' },
-          { href: '/volume-share?instrumentId=BTC-JPY', label: '出来高シェアを見る' },
-          { href: '/markets/BTC-JPY', label: 'BTC/JPY銘柄ページへ' },
         ],
       };
     }
@@ -156,9 +156,9 @@
         terms: ['sales-spread', 'effective-cost', 'orderbook'],
         warning: 'スプレッドが大きい銘柄を販売所でまとめて買うと、取引所板より不利になる可能性があります。',
         links: [
+          { href: '/learn/spread', label: 'スプレッドとは？' },
+          { href: '/learn/broker-loss-reasons', label: '販売所で損しやすい理由' },
           { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '取引所板で10万円買いを比較' },
-          { href: '/markets/BTC-JPY', label: '銘柄ページでまとめて見る' },
-          { href: '/learn/spread', label: 'スプレッドの説明を読む' },
         ],
       };
     }
@@ -201,9 +201,9 @@
         terms: ['effective-cost', 'impact', 'volume-share', 'sales-spread'],
         warning: 'Impactが高い取引所や、販売所スプレッドが広い取引所は、注文サイズを下げて再確認すると判断しやすくなります。',
         links: [
+          { href: '/learn/exchange-vs-broker', label: '販売所と取引所の違い' },
+          { href: '/learn/buying-100k-points', label: '10万円分買う前のポイント' },
           { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '板シミュレーターで再計算' },
-          { href: '/sales-spread', label: '販売所スプレッド一覧へ' },
-          { href: '/volume-share', label: '出来高シェア一覧へ' },
         ],
       };
     }

@@ -2,7 +2,7 @@
 title: 販売所と取引所の違い
 description: 暗号資産の販売所と取引所の違いを、価格の決まり方、使いやすさ、スプレッド、板取引の観点から初心者向けに整理します。
 date: 2026-04-29
-updated: 2026-04-29
+updated: 2026-05-03
 author: 国内暗号資産取引所ナビ
 slug: exchange-vs-broker
 path: /learn/exchange-vs-broker
@@ -43,6 +43,6 @@ path: /learn/exchange-vs-broker
 
 ## 次に確認する
 
-まずは [スプレッドとは？](/learn/spread) で販売所の実質コストを理解し、そのあと [スリッページとは？](/learn/slippage) で取引所の板取引の注意点を見るとつながりやすくなります。
+まずは [スプレッドとは？](/learn/spread) で販売所の実質コストを理解し、そのあと [板取引とは？](/learn/order-book-trading) と [スリッページとは？](/learn/slippage) で取引所の注意点を見るとつながりやすくなります。
 
-実際のデータで確認する場合は、[販売所スプレッド比較](/sales-spread?instrumentId=BTC-JPY) と [板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) を並べて見るのがおすすめです。表示値は参考情報であり、実際の約定価格や取引判断を保証するものではありません。
+実際のデータで確認する場合は、まず [販売所スプレッド比較](/sales-spread?instrumentId=BTC-JPY) で販売所側のコストを見てから、[板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で取引所板の10万円買いを比べるとつながります。10万円分買う前の確認順は [10万円分買うときに見るべきポイント](/learn/buying-100k-points) も参考にしてください。表示値は参考情報であり、実際の約定価格や取引判断を保証するものではありません。

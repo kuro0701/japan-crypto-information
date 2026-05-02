@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-14">
+  <link rel="stylesheet" href="/css/style.css?v=ui-18">
   <script>
     tailwind.config = {
       theme: {
@@ -95,6 +95,10 @@
         <button id="simulate-btn" class="btn btn-primary simulator-compare-button py-2.5 rounded-lg font-bold text-sm" type="button">比較する</button>
       </div>
 
+      <div class="decision-summary-card__actions simulator-guide-actions mt-4">
+        <a class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/learn/order-book-trading">板取引とは？</a>
+        <a class="btn btn-ghost px-4 py-3 rounded-lg font-bold text-sm" href="/learn/buying-100k-points">10万円分買う前のポイント</a>
+      </div>
     </section>
 
     <section id="beginner-conclusion-panel" class="panel panel--dense simulator-conclusion-panel" aria-labelledby="beginner-conclusion-title">
@@ -122,6 +126,36 @@
           </div>
         </dl>
         <button id="show-detail-btn" class="btn btn-secondary px-4 py-2.5 rounded-lg text-sm" type="button" data-open-detail onclick="document.getElementById('simulator-detail-disclosure').open = true; document.getElementById('simulator-detail-disclosure').scrollIntoView({ behavior: 'smooth', block: 'start' });">詳しく見る</button>
+      </div>
+    </section>
+
+    <section class="panel panel--dense simulator-next-section" aria-labelledby="simulator-next-title">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 id="simulator-next-title" class="panel-title">次に見る</h2>
+          <p class="text-xs text-gray-500 mt-1">比較した銘柄から、銘柄ページ、取引所詳細、販売所スプレッドへ進めます。</p>
+        </div>
+        <span class="panel-kicker">Next Links</span>
+      </div>
+      <div class="market-context-grid market-context-grid--links">
+        <a id="simulator-next-market-link" class="market-context-card" href="/markets/BTC-JPY">
+          <span class="market-context-card__eyebrow">Market</span>
+          <strong id="simulator-next-market-title" class="market-context-card__title">BTC/JPY 銘柄ページ</strong>
+          <span id="simulator-next-market-description" class="market-context-card__description">対応取引所、板、出来高、販売所スプレッドを同じ銘柄で確認します。</span>
+          <span class="market-context-card__cta">銘柄ページへ</span>
+        </a>
+        <a id="simulator-next-exchange-link" class="market-context-card" href="/exchanges/okj">
+          <span class="market-context-card__eyebrow">Exchange</span>
+          <strong id="simulator-next-exchange-title" class="market-context-card__title">OKJ の取引所詳細</strong>
+          <span id="simulator-next-exchange-description" class="market-context-card__description">手数料、取扱銘柄、運営会社、財務情報の確認観点へ進みます。</span>
+          <span class="market-context-card__cta">取引所詳細へ</span>
+        </a>
+        <a id="simulator-next-spread-link" class="market-context-card" href="/sales-spread?instrumentId=BTC-JPY">
+          <span class="market-context-card__eyebrow">Sales Spread</span>
+          <strong id="simulator-next-spread-title" class="market-context-card__title">BTC/JPY 販売所スプレッド</strong>
+          <span id="simulator-next-spread-description" class="market-context-card__description">販売所で買う場合の買値と売値の差も同じ銘柄で確認します。</span>
+          <span class="market-context-card__cta">スプレッドへ</span>
+        </a>
       </div>
     </section>
 
@@ -422,7 +456,7 @@
     板シミュレーター | 取引所: <span id="footer-exchange-label">OKJ</span> | 銘柄: <span id="footer-instrument-label">BTC/JPY</span> | データソース: <span id="footer-source-label">OKCoin Japan WebSocket + REST fallback</span>
   </footer>
 
-  <script src="/js/beginner-mode.js?v=3"></script>
+  <script src="/js/beginner-mode.js?v=5"></script>
   <script src="js/formatter.js?v=volume-1"></script>
   <script src="js/app-utils.js?v=app-utils-2"></script>
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
@@ -432,6 +466,6 @@
   <script src="js/ws-client.js?v=volume-1"></script>
   <script src="js/ui.js?v=volume-4"></script>
   <script src="js/chart.js?v=volume-1"></script>
-  <script src="js/app.js?v=volume-15"></script>
+  <script src="js/app.js?v=volume-16"></script>
 </body>
 </html>

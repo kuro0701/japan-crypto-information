@@ -2,7 +2,7 @@
 title: スプレッドとは？
 description: 暗号資産取引でよく出てくるスプレッドを、買値と売値の差、販売所コスト、取引所の板スプレッドに分けて説明します。
 date: 2026-04-29
-updated: 2026-04-29
+updated: 2026-05-03
 author: 国内暗号資産取引所ナビ
 slug: spread
 path: /learn/spread
@@ -38,6 +38,6 @@ path: /learn/spread
 
 ## 次に確認する
 
-[BTC/JPY の販売所スプレッドを確認する](/sales-spread?instrumentId=BTC-JPY) と、実際の販売所スプレッドの広さを見られます。取引所で同じ金額を買う場合は、[板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で成行注文時の平均約定価格を確認してください。
+[BTC/JPY の販売所スプレッドを確認する](/sales-spread?instrumentId=BTC-JPY) と、実際の販売所スプレッドの広さを見られます。次に [販売所と取引所の違い](/learn/exchange-vs-broker) で価格の決まり方を整理すると、販売所スプレッドと取引所板を比べやすくなります。
 
-販売所と取引所の違いから整理したい場合は、[販売所と取引所の違い](/learn/exchange-vs-broker) もあわせて見ると理解しやすくなります。
+取引所で同じ金額を買う場合は、[板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で成行注文時の平均約定価格を確認してください。販売所で損しやすい場面は [初心者が販売所で損しやすい理由](/learn/broker-loss-reasons) にまとめています。

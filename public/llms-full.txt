@@ -18,22 +18,26 @@ URL: https://japan-crypto-information.onrender.com/
 
 URL: https://japan-crypto-information.onrender.com/learn
 
-初心者ガイドは、暗号資産取引所を比較する前に理解したい基本用語をまとめたページです。各記事から、販売所スプレッド比較、板シミュレーター、出来高シェア、銘柄ページへ移動できます。
+初心者ガイドは、暗号資産取引所を比較する前に理解したい基本用語と確認手順をまとめたページです。各記事から、販売所スプレッド比較、板シミュレーター、出来高シェア、銘柄ページへ移動できます。
 
 最初に用意している記事は以下です。
 
 - https://japan-crypto-information.onrender.com/learn/exchange-vs-broker
 - https://japan-crypto-information.onrender.com/learn/spread
+- https://japan-crypto-information.onrender.com/learn/order-book-trading
+- https://japan-crypto-information.onrender.com/learn/crypto-fees
+- https://japan-crypto-information.onrender.com/learn/buying-100k-points
+- https://japan-crypto-information.onrender.com/learn/broker-loss-reasons
+- https://japan-crypto-information.onrender.com/learn/exchange-checklist
 - https://japan-crypto-information.onrender.com/learn/slippage
 - https://japan-crypto-information.onrender.com/learn/market-order-risk
-- https://japan-crypto-information.onrender.com/learn/crypto-fees
 - https://japan-crypto-information.onrender.com/learn/how-to-compare-exchanges
 
 ## 成行注文シミュレーター
 
 URL: https://japan-crypto-information.onrender.com/simulator
 
-成行注文シミュレーターは、国内暗号資産取引所の板情報をリアルタイムに取得し、指定した成行注文がどの価格帯で約定するかを確認するページです。対象銘柄、注文方向、数量または金額、手数料率を指定すると、平均約定価格、想定スリッページ、マーケットインパクト、約定明細を確認できます。
+成行注文シミュレーターは、国内暗号資産取引所の板情報をリアルタイムに取得し、指定した成行注文がどの価格帯で約定するかを確認するページです。対象銘柄、注文方向、数量または金額、手数料率を指定すると、平均約定価格、想定スリッページ、マーケットインパクト、約定明細を確認できます。ページ上部から「板取引とは？」と「10万円分買う前のポイント」へ移動できます。
 
 対応取引所は OKJ、Coincheck、bitFlyer、bitbank、GMOコイン、Binance Japan、BitTrade です。ページ内では取引所と銘柄を切り替え、板深度チャート、マーケット概要、インパクト別の必要注文量、シミュレーション結果、約定明細を確認できます。
 
@@ -51,7 +55,7 @@ URL: https://japan-crypto-information.onrender.com/volume-share
 
 URL: https://japan-crypto-information.onrender.com/sales-spread
 
-販売所スプレッドは、国内販売所の買値・売値スプレッドを比較するページです。買値、売値、現在スプレッド、24時間平均、7日平均、30日平均を銘柄別・取引所別に確認できます。
+販売所スプレッドは、国内販売所の買値・売値スプレッドを比較するページです。買値、売値、現在スプレッド、24時間平均、7日平均、30日平均を銘柄別・取引所別に確認できます。ページ上部から「スプレッドとは？」と「初心者が販売所で損しやすい理由」へ移動できます。
 
 販売所価格は各社の公開 API または公開価格ページをもとに収集し、サーバー側では毎時更新します。ページ側は定期再取得し、最新収集値と履歴スナップショットの両方を確認できます。
 
@@ -59,7 +63,7 @@ URL: https://japan-crypto-information.onrender.com/sales-spread
 
 URL: https://japan-crypto-information.onrender.com/markets
 
-銘柄ページ一覧から、BTC/JPY、ETH/JPY、XRP/JPY などの銘柄別ページへ移動できます。各銘柄ページでは、銘柄特徴、この銘柄について、板、出来高シェア、販売所スプレッド、取引所別の成行コストを1ページに集約しています。
+銘柄ページ一覧から、BTC/JPY、ETH/JPY、XRP/JPY などの銘柄別ページへ移動できます。各銘柄ページでは、銘柄特徴、この銘柄について、板、出来高シェア、販売所スプレッド、取引所別の成行コストを1ページに集約しています。関連ページから「販売所と取引所の違い」と「10万円分買う前のポイント」へ移動できます。
 
 ## キャンペーン一覧
 
