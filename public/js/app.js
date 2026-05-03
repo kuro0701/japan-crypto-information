@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const Api = window.AppApi;
   const AppFmt = window.AppFormatters;
+  const AppComponents = window.AppComponents;
   const AppUtil = window.AppUtils;
   const MarketData = window.MarketDataUtils;
   const ws = new WSClient();
@@ -276,6 +277,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const candidateText = candidate || lead || '比較前';
     const gapText = gap || '-';
     const noteText = note || body || '数量または金額を入力して「比較する」を押してください。';
+    const detailAction = {
+      label: actionLabel,
+      dataOpenDetail: true,
+      onclick: "document.getElementById('simulator-detail-disclosure').open = true; document.getElementById('simulator-detail-disclosure').scrollIntoView({ behavior: 'smooth', block: 'start' });",
+    };
+
+    if (AppComponents && typeof AppComponents.renderConditionConclusionCard === 'function') {
+      panel.className = AppComponents.conditionConclusionClassName(status, 'mt-3');
+      panel.innerHTML = AppComponents.renderConditionConclusionCard({
+        status,
+        badgeLabel,
+        badgeTone,
+        candidate: candidateText,
+        gap: gapText,
+        note: noteText,
+        meta,
+        action: detailAction,
+        fragment: true,
+      });
+      return;
+    }
+
     const metaHtml = meta ? `<p class="beginner-conclusion-card__meta">${escapeHtml(meta)}</p>` : '';
 
     panel.className = [
@@ -303,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </dl>
       ${metaHtml}
-      <button class="btn btn-secondary px-4 py-2.5 rounded-lg text-sm" type="button" data-open-detail onclick="document.getElementById('simulator-detail-disclosure').open = true; document.getElementById('simulator-detail-disclosure').scrollIntoView({ behavior: 'smooth', block: 'start' });">${escapeHtml(actionLabel)}</button>
+      <button class="btn btn-secondary px-4 py-2.5 rounded-lg text-sm" type="button" data-open-detail onclick="${escapeHtml(detailAction.onclick)}">${escapeHtml(actionLabel)}</button>
     `;
   }
 
