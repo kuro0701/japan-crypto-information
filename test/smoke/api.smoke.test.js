@@ -270,6 +270,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const marketHtml = await fetchText(baseUrl, '/markets/BTC-JPY');
   assert.equal(marketHtml.status, 200);
   assert.ok(marketHtml.body.includes('1. 銘柄の結論カード'));
+  assert.ok(marketHtml.body.includes('data-info-layer="top"'));
+  assert.ok(marketHtml.body.includes('data-info-layer="middle"'));
+  assert.ok(marketHtml.body.includes('data-info-layer="bottom"'));
   assert.ok(marketHtml.body.includes('BTCの要点'));
   assert.ok(marketHtml.body.includes('BTCは国内取引所で流動性が高い一方、販売所で購入する場合はスプレッドに注意が必要です。'));
   assert.ok(marketHtml.body.includes('2. 国内取引所での比較'));
@@ -391,10 +394,18 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
   assert.equal(volumeSharePage.status, 200);
+  assert.ok(volumeSharePage.body.includes('流動性サマリー'));
+  assert.ok(volumeSharePage.body.includes('data-info-layer="top"'));
+  assert.ok(volumeSharePage.body.includes('data-info-layer="middle"'));
+  assert.ok(volumeSharePage.body.includes('data-info-layer="bottom"'));
   assertCommonDisclosure(volumeSharePage.body);
 
   const salesSpreadPage = await fetchText(baseUrl, '/sales-spread?instrumentId=BTC-JPY');
   assert.equal(salesSpreadPage.status, 200);
+  assert.ok(salesSpreadPage.body.includes('販売所で買う前に見る結論'));
+  assert.ok(salesSpreadPage.body.includes('data-info-layer="top"'));
+  assert.ok(salesSpreadPage.body.includes('data-info-layer="middle"'));
+  assert.ok(salesSpreadPage.body.includes('data-info-layer="bottom"'));
   assert.ok(salesSpreadPage.body.includes('販売所スプレッドとは？'));
   assert.ok(salesSpreadPage.body.includes('/learn/spread'));
   assert.ok(salesSpreadPage.body.includes('/learn/broker-loss-reasons'));

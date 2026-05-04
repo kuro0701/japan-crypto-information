@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-19">
+  <link rel="stylesheet" href="/css/style.css?v=ui-20">
   <script>
     tailwind.config = {
       theme: {
@@ -58,7 +58,7 @@
   </header>
 
   <main id="main" class="dashboard-shell simulator-two-layer-shell flex flex-col gap-4 p-4 max-w-[1440px] mx-auto">
-    <section class="panel panel--dense simulator-input-panel" aria-labelledby="simulator-input-title">
+    <section class="panel panel--dense simulator-input-panel info-layer info-layer--top" data-info-layer="top" aria-labelledby="simulator-input-title">
       <div class="panel-title-row">
         <div>
           <h2 id="simulator-input-title" class="panel-title">かんたん比較</h2>
@@ -101,7 +101,7 @@
       </div>
     </section>
 
-    <section id="beginner-conclusion-panel" class="panel panel--dense simulator-conclusion-panel" aria-labelledby="beginner-conclusion-title">
+    <section id="beginner-conclusion-panel" class="panel panel--dense simulator-conclusion-panel info-layer info-layer--top" data-info-layer="top" aria-labelledby="beginner-conclusion-title">
       <div class="panel-title-row">
         <div>
           <h2 id="beginner-conclusion-title" class="panel-title">結論</h2>
@@ -129,7 +129,7 @@
       </div>
     </section>
 
-    <section class="panel panel--dense simulator-next-section" aria-labelledby="simulator-next-title">
+    <section class="panel panel--dense simulator-next-section info-layer info-layer--top" data-info-layer="top" aria-labelledby="simulator-next-title">
       <div class="panel-title-row mb-4">
         <div>
           <h2 id="simulator-next-title" class="panel-title">次に見る</h2>
@@ -159,7 +159,7 @@
       </div>
     </section>
 
-    <details id="simulator-detail-disclosure" class="simulator-detail-disclosure">
+    <details id="simulator-detail-disclosure" class="simulator-detail-disclosure info-layer info-layer--middle" data-info-layer="middle">
       <summary class="simulator-detail-summary">
         <span>詳しく見る</span>
         <span>VWAP、スリッページ、Impact、板深度、約定明細、手数料率、販売所参考コスト、CSV/画像保存</span>

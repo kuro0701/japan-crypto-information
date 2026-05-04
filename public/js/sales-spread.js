@@ -778,6 +778,64 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
+  function renderTopDecision(narrowest, widest, comparableCount) {
+    const badge = $('spread-decision-badge');
+    const cta = $('spread-top-cta');
+    const hasComparableRows = comparableCount > 0;
+
+    if (badge) {
+      badge.className = `decision-summary-badge decision-summary-badge--${hasComparableRows ? 'ready' : 'loading'}`;
+      badge.textContent = hasComparableRows
+        ? (hasActiveFilters() ? 'フィルター反映' : '比較済み')
+        : '読み込み中';
+    }
+
+    if (!hasComparableRows) {
+      setText('spread-top-candidate', 'データ待ち');
+      setText('spread-top-candidate-meta', hasActiveFilters() ? EMPTY_FILTER_MESSAGE : WAITING_DATA_MESSAGE);
+      setText('spread-top-caution', '広い銘柄も確認');
+      setText('spread-top-caution-meta', '表示価格は参考値です');
+      setText('spread-top-note', 'スプレッドデータを取得できた販売所から順に比較します。');
+      if (cta) {
+        cta.href = '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000';
+        cta.textContent = '板シミュレーターで確認';
+      }
+      return;
+    }
+
+    const narrowSummary = narrowest && narrowest.summary;
+    const wideSummary = widest && widest.summary;
+    setText(
+      'spread-top-candidate',
+      narrowest ? `${narrowest.row.instrumentLabel} / ${narrowest.row.exchangeLabel}` : 'データ待ち'
+    );
+    setText(
+      'spread-top-candidate-meta',
+      narrowSummary ? `現在 ${fmtPct(narrowSummary.spreadPct)} | ${narrowSummary.spread != null ? fmtJpyPrice(narrowSummary.spread, narrowSummary.quotePrecision) : '差額未取得'}` : '販売所価格を集計中'
+    );
+    setText(
+      'spread-top-caution',
+      widest ? `${widest.row.instrumentLabel} / ${widest.row.exchangeLabel}` : '広い銘柄も確認'
+    );
+    setText(
+      'spread-top-caution-meta',
+      wideSummary ? `最大 ${fmtPct(wideSummary.spreadPct)} | 板比較も確認` : '表示価格は参考値です'
+    );
+    setText(
+      'spread-top-note',
+      widest
+        ? `${widest.row.instrumentLabel} のようにスプレッドが広い候補は、販売所だけで判断せず取引所板の実効コストも確認してください。`
+        : 'スプレッドが広い場合は、同じ銘柄を取引所板でも比較してください。'
+    );
+
+    if (cta) {
+      const instrumentId = narrowest && narrowest.row.instrumentId ? narrowest.row.instrumentId : 'BTC-JPY';
+      const label = narrowest && narrowest.row.instrumentLabel ? narrowest.row.instrumentLabel : instrumentId.replace('-', '/');
+      cta.href = `/simulator?market=${encodeURIComponent(instrumentId)}&side=buy&amountType=jpy&amount=100000`;
+      cta.textContent = `${label}を板で確認`;
+    }
+  }
+
   function renderSummary(rows) {
     const rowsWithSpread = rows
       .map(row => ({ row, summary: getSummarySpread(row) }))
@@ -792,6 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setText('narrowest-spread', narrowest ? spreadHighlightLabel(narrowest.row) : '-');
     setText('widest-spread', widest ? spreadHighlightLabel(widest.row) : '-');
+    renderTopDecision(narrowest, widest, rowsWithSpread.length);
     setText('spread-status', status.running ? '更新中' : (allRows.length > 0 ? '集計済み' : '取得中'));
     setText('spread-updated-at', fmtDateTime(latestMeta.latestCapturedAt || latestMeta.generatedAt));
   }
