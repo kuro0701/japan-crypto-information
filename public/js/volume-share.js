@@ -1013,13 +1013,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedExchange !== ALL_VALUE) {
       series = series.filter(item => item.exchangeId === selectedExchange);
     } else {
-      series = series
-        .sort((a, b) => {
-          const shareDiff = (latestMapValue(dates, b.shareByDate, -1) ?? -1) - (latestMapValue(dates, a.shareByDate, -1) ?? -1);
-          if (shareDiff !== 0) return shareDiff;
-          return String(a.label).localeCompare(String(b.label), 'ja');
-        })
-        .slice(0, 6);
+      series = series.sort((a, b) => {
+        const shareDiff = (latestMapValue(dates, b.shareByDate, -1) ?? -1) - (latestMapValue(dates, a.shareByDate, -1) ?? -1);
+        if (shareDiff !== 0) return shareDiff;
+        return String(a.label).localeCompare(String(b.label), 'ja');
+      });
     }
 
     const coverageNotes = series
@@ -1085,7 +1083,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ? `${dates[0]} - ${dates[dates.length - 1]}`
       : '履歴データ待ち';
     const instrumentLabel = selectedOptionLabel('volume-instrument-filter', '全銘柄');
-    const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '上位取引所');
+    const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '全取引所');
     const seriesLabel = series.length > 0 ? `${series.length}系列` : '該当なし';
     const provisionalNote = provisionalSnapshotNote(volumeHistoryMeta, 'latestProvisionalVolumeDateJst', 'provisionalDailySnapshotCount');
     const partialNote = partialSnapshotNote(volumeHistoryMeta, 'latestPartialVolumeDateJst', 'partialDailySnapshotCount');
