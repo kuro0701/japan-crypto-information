@@ -40,8 +40,10 @@ class InsightConfig:
     concentration_change_threshold: float = 0.002
     hhi_change_threshold: float = 0.0005
     min_streak: int = 3
+    max_share_movement_insights: int = 4
     max_rank_movement_insights: int = 2
     max_gap_insights: int = 2
+    include_rank_insights: bool = False
     period_label: str | None = None
 
     @classmethod

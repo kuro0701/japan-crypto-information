@@ -62,6 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const INSIGHT_TYPE_LABELS = {
     top_gainer: '増加',
     top_loser: '低下',
+    share_up: 'シェア増加',
+    share_down: 'シェア低下',
     leader_change: '首位交代',
     leader_gap_change: '首位',
     leader_hold: '首位',

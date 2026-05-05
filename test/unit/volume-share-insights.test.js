@@ -31,6 +31,24 @@ test('buildExchangeShareFrame aggregates daily exchange shares', () => {
   assert.equal(Number(exchangeA.volumeShare.toFixed(6)), Number((800 / 1000).toFixed(6)));
 });
 
+test('buildExchangeShareFrame keeps the market denominator when filtering an exchange', () => {
+  const frame = buildExchangeShareFrame([
+    row('2026-04-01', 'a', 900),
+    row('2026-04-01', 'b', 100),
+    row('2026-04-02', 'a', 800),
+    row('2026-04-02', 'b', 200),
+  ], {
+    exchangeId: 'b',
+  });
+
+  assert.equal(frame.rows.length, 2);
+  assert.deepEqual(frame.dates, ['2026-04-01', '2026-04-02']);
+  assert.deepEqual(
+    frame.rows.map(item => Number(item.volumeShare.toFixed(6))),
+    [0.1, 0.2]
+  );
+});
+
 test('generateVolumeShareInsights emits top gainer and loser', () => {
   const result = generateVolumeShareInsights([
     row('2026-04-01', 'a', 500),
@@ -46,9 +64,10 @@ test('generateVolumeShareInsights emits top gainer and loser', () => {
   const types = new Set(result.insights.map(insight => insight.type));
   assert.equal(types.has('top_gainer'), true);
   assert.equal(types.has('top_loser'), true);
+  assert.match(result.insights.find(insight => insight.type === 'top_gainer').messageJa, /% → /);
 });
 
-test('generateVolumeShareInsights emits leader change', () => {
+test('generateVolumeShareInsights defaults to share changes instead of rank comparisons', () => {
   const result = generateVolumeShareInsights([
     row('2026-04-01', 'a', 500),
     row('2026-04-01', 'b', 300),
@@ -58,6 +77,23 @@ test('generateVolumeShareInsights emits leader change', () => {
     row('2026-04-02', 'c', 150),
   ], {
     config: { window: 2, maxInsights: 8 },
+  });
+
+  const rankBased = result.insights.filter(insight => insight.metric === 'rank' || insight.metric === 'rank_change');
+  assert.deepEqual(rankBased, []);
+  assert.equal(result.insights.some(insight => insight.metric === 'share_change'), true);
+});
+
+test('generateVolumeShareInsights can include rank insights when explicitly enabled', () => {
+  const result = generateVolumeShareInsights([
+    row('2026-04-01', 'a', 500),
+    row('2026-04-01', 'b', 300),
+    row('2026-04-01', 'c', 200),
+    row('2026-04-02', 'a', 400),
+    row('2026-04-02', 'b', 450),
+    row('2026-04-02', 'c', 150),
+  ], {
+    config: { window: 2, maxInsights: 8, includeRankInsights: true },
   });
 
   const leaderChange = result.insights.find(insight => insight.type === 'leader_change');

@@ -32,6 +32,11 @@ def main() -> None:
         default=2.0,
         help="Absolute z-score threshold",
     )
+    parser.add_argument(
+        "--include-rank-insights",
+        action="store_true",
+        help="Include optional rank and rank-gap comparison insights",
+    )
     parser.add_argument("--output-json", help="Optional path to write insight JSON")
     args = parser.parse_args()
 
@@ -44,6 +49,7 @@ def main() -> None:
         "gap_change_threshold": args.min_share_change,
         "concentration_change_threshold": args.min_share_change,
         "zscore_threshold": args.zscore_threshold,
+        "include_rank_insights": args.include_rank_insights,
     }
 
     df = load_data(args.input)

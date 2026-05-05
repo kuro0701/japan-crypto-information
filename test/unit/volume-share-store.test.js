@@ -242,6 +242,13 @@ test('VolumeShareStore excludes provisional current-day snapshots from history w
   assert.equal(history.meta.historySnapshotCount, 1);
   assert.deepEqual(history.rows.map(row => row.date), ['2026-04-24']);
 
+  const historyWithProvisional = store.getHistory('30d', {
+    now: '2026-04-25T12:00:00.000+09:00',
+    includeProvisional: true,
+  });
+  assert.equal(historyWithProvisional.meta.historySnapshotCount, 2);
+  assert.deepEqual(historyWithProvisional.rows.map(row => row.date), ['2026-04-24', '2026-04-25']);
+
   const share = store.getShare('7d', { now: '2026-04-25T12:00:00.000+09:00' });
   assert.equal(share.meta.dailySnapshotCount, 1);
   assert.equal(share.meta.availableDailySnapshotCount, 1);

@@ -40,9 +40,10 @@ def generate_structured_insights(
 
     candidates: list[Insight] = []
     candidates.extend(_top_movers(latest, cfg, terms))
-    candidates.extend(_leader_insights(latest, previous, cfg, terms))
-    candidates.extend(_rank_movement_insights(latest, cfg, terms))
-    candidates.extend(_gap_change_insights(latest, cfg, terms))
+    if cfg.include_rank_insights:
+        candidates.extend(_leader_insights(latest, previous, cfg, terms))
+        candidates.extend(_rank_movement_insights(latest, cfg, terms))
+        candidates.extend(_gap_change_insights(latest, cfg, terms))
     candidates.extend(_streak_insights(latest, cfg, terms))
     candidates.extend(_zscore_insights(latest, cfg, terms))
     candidates.extend(_market_structure_insights(concentration, latest_date, cfg, terms))
@@ -53,55 +54,113 @@ def generate_structured_insights(
 def _top_movers(
     latest: pd.DataFrame, cfg: InsightConfig, terms: dict[str, str]
 ) -> list[Insight]:
-    rows = latest.dropna(subset=["share_change"])
+    rows = latest.dropna(subset=["share_change", "volume_share"]).copy()
+    rows = rows[rows["share_change"].abs() >= cfg.min_share_change]
     if rows.empty:
         return []
 
     insights: list[Insight] = []
+    seen_exchanges: set[str] = set()
     gainer = rows.loc[rows["share_change"].idxmax()]
     loser = rows.loc[rows["share_change"].idxmin()]
 
-    if gainer["share_change"] >= cfg.min_share_change:
+    if gainer["share_change"] > 0:
         change = float(gainer["share_change"])
         insights.append(
-            Insight(
-                type="top_gainer",
-                exchange=str(gainer["exchange"]),
-                metric="share_change",
-                value=change,
-                unit="pt",
+            _share_movement_insight(
+                row=gainer,
+                type_="top_gainer",
                 direction="up",
-                priority=90 + min(int(abs(change) * 1000), 9),
+                priority_base=90,
+                terms=terms,
                 message_ja=(
                     f"{terms['current_label']}の最大シェア増加は "
                     f"{gainer['exchange']}（{terms['comparison_label']} "
-                    f"{_fmt_pt(change)}）です。"
+                    f"{_fmt_pt(change)}、{_fmt_share(_previous_share(gainer))} → "
+                    f"{_fmt_share(float(gainer['volume_share']))}）です。"
                 ),
-                metadata={"dedupe_key": "top_gainer"},
             )
         )
+        seen_exchanges.add(str(gainer["exchange"]))
 
-    if loser["share_change"] <= -cfg.min_share_change:
+    if loser["share_change"] < 0 and str(loser["exchange"]) not in seen_exchanges:
         change = float(loser["share_change"])
         insights.append(
-            Insight(
-                type="top_loser",
-                exchange=str(loser["exchange"]),
-                metric="share_change",
-                value=change,
-                unit="pt",
+            _share_movement_insight(
+                row=loser,
+                type_="top_loser",
                 direction="down",
-                priority=88 + min(int(abs(change) * 1000), 9),
+                priority_base=88,
+                terms=terms,
                 message_ja=(
                     f"{terms['current_label']}の最大シェア低下は "
                     f"{loser['exchange']}（{terms['comparison_label']} "
-                    f"{_fmt_pt(change)}）です。"
+                    f"{_fmt_pt(change)}、{_fmt_share(_previous_share(loser))} → "
+                    f"{_fmt_share(float(loser['volume_share']))}）です。"
                 ),
-                metadata={"dedupe_key": "top_loser"},
             )
         )
+        seen_exchanges.add(str(loser["exchange"]))
+
+    rows = rows.assign(abs_share_change=rows["share_change"].abs())
+    for _, row in rows.sort_values("abs_share_change", ascending=False).iterrows():
+        if len(insights) >= cfg.max_share_movement_insights:
+            break
+        exchange = str(row["exchange"])
+        if exchange in seen_exchanges:
+            continue
+
+        change = float(row["share_change"])
+        direction = "up" if change > 0 else "down"
+        direction_ja = "上昇" if direction == "up" else "低下"
+        insights.append(
+            _share_movement_insight(
+                row=row,
+                type_="share_up" if direction == "up" else "share_down",
+                direction=direction,
+                priority_base=82 if direction == "up" else 80,
+                terms=terms,
+                message_ja=(
+                    f"{row['exchange']} のシェアは{terms['comparison_label']} "
+                    f"{_fmt_pt(change)}（{_fmt_share(_previous_share(row))} → "
+                    f"{_fmt_share(float(row['volume_share']))}）で{direction_ja}しています。"
+                ),
+            )
+        )
+        seen_exchanges.add(exchange)
 
     return insights
+
+
+def _share_movement_insight(
+    *,
+    row: pd.Series,
+    type_: str,
+    direction: str,
+    priority_base: int,
+    terms: dict[str, str],
+    message_ja: str,
+) -> Insight:
+    change = float(row["share_change"])
+    exchange = str(row["exchange"])
+    previous_share = _previous_share(row)
+    latest_share = float(row["volume_share"])
+    return Insight(
+        type=type_,
+        exchange=exchange,
+        metric="share_change",
+        value=change,
+        unit="pt",
+        direction=direction,
+        priority=priority_base + min(int(abs(change) * 1000), 9),
+        message_ja=message_ja,
+        metadata={
+            "previous_share": previous_share,
+            "latest_share": latest_share,
+            "comparison_label": terms["comparison_label"],
+            "dedupe_key": f"share_change:{exchange}",
+        },
+    )
 
 
 def _leader_insights(
@@ -343,9 +402,6 @@ def _streak_insights(
     for _, row in rows.iterrows():
         increase_streak = int(row.get("increase_streak", 0))
         decrease_streak = int(row.get("decrease_streak", 0))
-        rank_change = row.get("rank_change")
-        unchanged = _is_number(rank_change) and int(rank_change) == 0
-        prefix = "順位変動はないものの、" if unchanged else ""
 
         if increase_streak >= cfg.min_streak:
             candidates.append(
@@ -358,7 +414,7 @@ def _streak_insights(
                     direction="up",
                     priority=58 + min(increase_streak, 8),
                     message_ja=(
-                        f"{row['exchange']} は{prefix}シェアが"
+                        f"{row['exchange']} はシェアが"
                         f"{increase_streak}{terms['streak_unit']}連続で上昇しています。"
                     ),
                     metadata={"dedupe_key": f"streak:{row['exchange']}"},
@@ -376,7 +432,7 @@ def _streak_insights(
                     direction="down",
                     priority=58 + min(decrease_streak, 8),
                     message_ja=(
-                        f"{row['exchange']} は{prefix}シェアが"
+                        f"{row['exchange']} はシェアが"
                         f"{decrease_streak}{terms['streak_unit']}連続で低下しています。"
                     ),
                     metadata={"dedupe_key": f"streak:{row['exchange']}"},
@@ -514,6 +570,10 @@ def _leader_second_gap(frame: pd.DataFrame) -> float:
     if len(top_rows) < 2:
         return math.nan
     return float(top_rows.iloc[0]["volume_share"] - top_rows.iloc[1]["volume_share"])
+
+
+def _previous_share(row: pd.Series) -> float:
+    return float(row["volume_share"]) - float(row["share_change"])
 
 
 def _deduplicate_and_limit(candidates: list[Insight], max_insights: int) -> list[Insight]:

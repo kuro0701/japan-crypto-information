@@ -28,11 +28,23 @@ def test_top_gainer_and_loser_insights_are_generated():
 
     assert "top_gainer" in types
     assert "top_loser" in types
+    assert "→" in next(insight.message_ja for insight in insights if insight.type == "top_gainer")
 
 
-def test_leader_change_insight_is_generated():
+def test_rank_insights_are_disabled_by_default():
     insights = generate_structured_insights(
         _weekly_df(), config={"window": 2, "max_insights": 8}
+    )
+    rank_metrics = {insight.metric for insight in insights if insight.metric in {"rank", "rank_change"}}
+
+    assert not rank_metrics
+    assert any(insight.metric == "share_change" for insight in insights)
+
+
+def test_leader_change_insight_can_be_generated_when_enabled():
+    insights = generate_structured_insights(
+        _weekly_df(),
+        config={"window": 2, "max_insights": 8, "include_rank_insights": True},
     )
     leader_changes = [insight for insight in insights if insight.type == "leader_change"]
 
