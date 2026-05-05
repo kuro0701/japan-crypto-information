@@ -176,6 +176,7 @@
       </div>
       <div class="history-toolbar">
         <div class="tab-group" role="tablist" aria-label="スプレッド履歴期間">
+          <button class="btn btn-tab window-tab" data-spread-history-window="24h" type="button" role="tab" aria-selected="false">24h</button>
           <button class="btn btn-tab window-tab" data-spread-history-window="7d" type="button" role="tab" aria-selected="false">7日</button>
           <button class="btn btn-tab window-tab active" data-spread-history-window="30d" type="button" role="tab" aria-selected="true">30日</button>
         </div>
@@ -184,8 +185,30 @@
           <select id="spread-history-instrument" class="field" aria-label="履歴グラフの銘柄"><option value="BTC-JPY">BTC/JPY</option></select>
         </label>
       </div>
-      <div class="chart-container history-chart-container mt-3">
-        <canvas id="spread-history-chart"></canvas>
+      <div class="history-chart-grid mt-3">
+        <div class="history-chart-block">
+          <div class="history-chart-heading">
+            <h3>販売所スプレッド推移</h3>
+            <p>選択中の銘柄で、販売所ごとのスプレッド率を追います</p>
+          </div>
+          <div class="chart-container history-chart-container">
+            <canvas id="spread-history-chart"></canvas>
+          </div>
+        </div>
+        <div class="history-chart-block volume-insights-report-block beginner-focus" data-beginner-focus="true" aria-labelledby="sales-spread-insights-title">
+          <div class="history-chart-heading">
+            <h3 id="sales-spread-insights-title">銘柄別インサイト</h3>
+            <p id="sales-spread-insights-meta">履歴データから変化を確認中</p>
+          </div>
+          <div class="tab-group mb-3" role="tablist" aria-label="販売所インサイト期間">
+            <button class="btn btn-tab window-tab active" data-spread-insight-period="24h" type="button" role="tab" aria-selected="true">24h</button>
+            <button class="btn btn-tab window-tab" data-spread-insight-period="7d" type="button" role="tab" aria-selected="false">7日</button>
+            <button class="btn btn-tab window-tab" data-spread-insight-period="30d" type="button" role="tab" aria-selected="false">30日</button>
+          </div>
+          <ul id="sales-spread-insights-list" class="volume-insights-list volume-insights-list--report" aria-live="polite">
+            <li class="volume-insight-item volume-insight-item--loading">インサイトを生成中です。</li>
+          </ul>
+        </div>
       </div>
     </section>
 
@@ -297,6 +320,6 @@
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/sales-spread.js?v=sales-spread-16"></script>
+  <script src="js/sales-spread.js?v=sales-spread-17"></script>
 </body>
 </html>

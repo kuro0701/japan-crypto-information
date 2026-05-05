@@ -285,3 +285,42 @@ test('SalesSpreadStore keeps the best snapshot for a day instead of blindly over
   assert.equal(history.meta.partialDailySnapshotCount, 0);
   assert.deepEqual(history.rows.map(row => row.exchangeId).sort(), ['coincheck', 'okj']);
 });
+
+test('SalesSpreadStore getInsights keeps enough snapshots for 30d comparison', (t) => {
+  const tempDir = createTempDir('okj-sales-store-insights-');
+  t.after(() => removeTempDir(tempDir));
+
+  const store = new SalesSpreadStore({
+    dataFilePath: path.join(tempDir, 'sales-spread-history.json'),
+  });
+
+  for (let index = 1; index <= 35; index += 1) {
+    const date = new Date(Date.UTC(2026, 3, index)).toISOString().slice(0, 10);
+    store.captureDaily([
+      spreadRecord('okj', index === 35 ? 1.0 : 2.0, `${date}T00:00:00.000Z`),
+      spreadRecord('coincheck', index === 35 ? 4.0 : 2.0, `${date}T00:00:00.000Z`),
+    ], {
+      capturedAt: `${date}T00:00:00.000Z`,
+      spreadDateJst: date,
+      reason: 'jst-midnight',
+    });
+  }
+
+  const insights = store.getInsights('30d', {
+    now: '2026-05-06T12:00:00.000+09:00',
+    filters: { instrumentId: 'BTC-JPY' },
+    insightConfig: {
+      periods: 30,
+      periodLabel: '30d',
+      maxInsights: 8,
+      minSpreadChange: 0.1,
+    },
+  });
+
+  assert.equal(insights.meta.requestedSnapshotDays, 31);
+  assert.equal(insights.meta.previousDate, '2026-04-05');
+  assert.equal(insights.meta.latestDate, '2026-05-05');
+  assert.equal(insights.meta.period.comparisonLabel, '30日前比');
+  assert.equal(insights.insights.some(insight => insight.type === 'top_narrowing'), true);
+  assert.equal(insights.insights.some(insight => insight.type === 'top_widening'), true);
+});

@@ -20,9 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let spreadHistoryChart = null;
   let spreadAbortController = null;
   let spreadHistoryAbortController = null;
+  let spreadInsightsAbortController = null;
+  let selectedInsightPeriod = '24h';
   const CHART_COLORS = ['#35e0a5', '#ff6b70', '#35c8d2', '#f4c95d', '#dbe7df', '#ff9f7e', '#9ad46a'];
   const SPREAD_REFRESH_MS = 60000;
   const SPREAD_HISTORY_REFRESH_MS = 600000;
+  const SPREAD_INSIGHTS_REFRESH_MS = 600000;
   const EMPTY_FILTER_MESSAGE = '条件に合う販売所スプレッドデータがありません。銘柄名や取引所フィルターを変更してください。';
   const WAITING_DATA_MESSAGE = '販売所価格を取得中です。取得できた販売所から順に比較します。';
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
@@ -37,12 +40,42 @@ document.addEventListener('DOMContentLoaded', () => {
   const fmtDateTime = AppFmt.dateTime;
   const fmtJpyPrice = AppFmt.jpyPrice;
   const shortDate = AppFmt.shortDate;
-  const HISTORY_WINDOW_VALUES = new Set(Object.keys(WINDOW_LABELS));
+  const HISTORY_WINDOW_VALUES = new Set(['24h', '7d', '30d']);
+  const INSIGHT_PERIODS = {
+    '24h': { label: '24h', periods: 1, periodLabel: '24h' },
+    '7d': { label: '7日', periods: 7, periodLabel: '7d' },
+    '30d': { label: '30日', periods: 30, periodLabel: '30d' },
+  };
+  const INSIGHT_TYPE_LABELS = {
+    top_narrowing: '改善',
+    top_widening: '注意',
+    spread_narrowing: '改善',
+    spread_widening: '拡大',
+    narrowest_change: '最狭更新',
+    narrowest_hold: '最狭',
+    narrowest_gap_change: '差分変化',
+    rank_up: '順位改善',
+    rank_down: '順位悪化',
+    narrowest_gap_narrow: '差分縮小',
+    narrowest_gap_widen: '差分拡大',
+    above_gap_narrow: '差分縮小',
+    above_gap_widen: '差分拡大',
+    narrowing_streak: '連続改善',
+    widening_streak: '連続拡大',
+    zscore_outlier: '外れ値',
+  };
+  const INSIGHT_PERIOD_VALUES = new Set(Object.keys(INSIGHT_PERIODS));
   const TOP_RANKING_LIMIT = 10;
   const ORDERBOOK_SUGGESTION_LIMIT = 3;
 
   function normalizeHistoryWindow(value) {
+    if (value === '1d') return '24h';
     return HISTORY_WINDOW_VALUES.has(value) ? value : '30d';
+  }
+
+  function normalizeInsightPeriod(value) {
+    if (value === '1d') return '24h';
+    return INSIGHT_PERIOD_VALUES.has(value) ? value : '24h';
   }
 
   function normalizeInstrumentId(value) {
@@ -69,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
       filterText: query || instrumentId,
       exchangeId: normalizeExchangeId(params.get('exchange') || params.get('exchangeId')),
       historyWindow: normalizeHistoryWindow(params.get('historyWindow')),
+      insightPeriod: normalizeInsightPeriod(params.get('insightPeriod') || params.get('insightWindow')),
       historyInstrumentId: historyInstrumentId || instrumentId || 'BTC-JPY',
     };
   }
@@ -83,6 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
       params.set('historyInstrument', selectedHistoryInstrument);
     }
     if (selectedHistoryWindow !== '30d') params.set('historyWindow', selectedHistoryWindow);
+    if (selectedInsightPeriod !== '24h') params.set('insightPeriod', selectedInsightPeriod);
     const nextUrl = params.toString()
       ? `${window.location.pathname}?${params.toString()}`
       : window.location.pathname;
@@ -97,10 +132,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function syncInsightPeriodButtons() {
+    document.querySelectorAll('[data-spread-insight-period]').forEach((button) => {
+      const isActive = (button.dataset.spreadInsightPeriod || '') === selectedInsightPeriod;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  }
+
   const initialState = readInitialState();
   filterText = initialState.filterText;
   selectedExchange = initialState.exchangeId;
   selectedHistoryWindow = initialState.historyWindow;
+  selectedInsightPeriod = initialState.insightPeriod;
   selectedHistoryInstrument = initialState.historyInstrumentId;
 
   function sourceLabel(windowMeta) {
@@ -173,6 +217,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'データ取得中';
   }
 
+  function selectedOptionLabel(selectId, fallback) {
+    const select = $(selectId);
+    if (!select) return fallback;
+    const option = select.selectedOptions && select.selectedOptions[0];
+    return option ? option.textContent : fallback;
+  }
+
   function chartColor(index) {
     return CHART_COLORS[index % CHART_COLORS.length];
   }
@@ -241,10 +292,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function populateHistoryInstrumentFilter() {
     const select = $('spread-history-instrument');
-    if (!select) return;
+    if (!select) return false;
 
     const options = uniqueHistoryInstrumentOptions();
     const values = new Set(options.map(option => option.value));
+    const previousValue = selectedHistoryInstrument;
     if (!values.has(selectedHistoryInstrument)) {
       selectedHistoryInstrument = values.has('BTC-JPY') ? 'BTC-JPY' : (options[0] && options[0].value) || 'BTC-JPY';
     }
@@ -253,6 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ? options.map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join('')
       : '<option value="BTC-JPY">BTC/JPY</option>';
     select.value = selectedHistoryInstrument;
+    return previousValue !== selectedHistoryInstrument;
   }
 
   function hasActiveFilters() {
@@ -891,9 +944,10 @@ document.addEventListener('DOMContentLoaded', () => {
     latestMeta.quality = data.quality || [];
     allRows = data.rows || [];
     populateExchangeFilter();
-    populateHistoryInstrumentFilter();
+    const historyInstrumentChanged = populateHistoryInstrumentFilter();
     renderView();
     renderSpreadHistory();
+    if (historyInstrumentChanged) loadSalesSpreadInsights();
   }
 
   function initSpreadHistoryChart() {
@@ -1023,6 +1077,60 @@ document.addEventListener('DOMContentLoaded', () => {
     writeUrlState();
   }
 
+  function insightTone(insight) {
+    const direction = insight && insight.direction;
+    if (direction === 'narrow' || direction === 'up') return 'is-positive';
+    if (direction === 'widen' || direction === 'down') return 'is-danger';
+    return '';
+  }
+
+  function renderSalesSpreadInsights(data) {
+    const list = $('sales-spread-insights-list');
+    if (!list) return;
+
+    const meta = data && data.meta ? data.meta : {};
+    const insights = Array.isArray(data && data.insights) ? data.insights : [];
+    const period = meta.period || {};
+    const periodConfig = INSIGHT_PERIODS[selectedInsightPeriod] || INSIGHT_PERIODS['24h'];
+    const instrumentLabel = selectedOptionLabel('spread-history-instrument', selectedHistoryInstrument);
+    const exchangeLabel = selectedExchange !== ALL_VALUE
+      ? selectedOptionLabel('spread-exchange-filter', selectedExchange)
+      : '全販売所';
+    const range = meta.earliestDate && meta.latestDate ? `${meta.earliestDate} - ${meta.latestDate}` : '履歴データ待ち';
+    const provisionalNote = provisionalSnapshotNote(meta, 'latestProvisionalSpreadDateJst', 'provisionalDailySnapshotCount');
+    const partialNote = partialSnapshotNote(meta, 'latestPartialSpreadDateJst', 'partialDailySnapshotCount');
+
+    setText(
+      'sales-spread-insights-meta',
+      [
+        periodConfig.label,
+        period.comparisonLabel || '前回比',
+        instrumentLabel,
+        exchangeLabel,
+        range,
+        provisionalNote,
+        partialNote,
+      ].filter(Boolean).join(' | ')
+    );
+
+    if (insights.length === 0) {
+      list.innerHTML = '<li class="volume-insight-item volume-insight-item--empty">有意な変化は検出されませんでした。</li>';
+      return;
+    }
+
+    list.innerHTML = insights.map((insight) => {
+      const label = INSIGHT_TYPE_LABELS[insight.type] || 'Insight';
+      const tone = insightTone(insight);
+      const message = insight.messageJa || insight.message_ja || '';
+      return `
+        <li class="volume-insight-item ${tone ? `volume-insight-item--${tone}` : ''}">
+          <span class="volume-insight-item__label">${escapeHtml(label)}</span>
+          <p class="volume-insight-item__message">${escapeHtml(message)}</p>
+        </li>
+      `;
+    }).join('');
+  }
+
   async function loadSpread() {
     setText('spread-status', '読み込み中');
     if (spreadAbortController) {
@@ -1072,6 +1180,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function loadSalesSpreadInsights() {
+    const list = $('sales-spread-insights-list');
+    if (list) {
+      list.innerHTML = '<li class="volume-insight-item volume-insight-item--loading">インサイトを生成中です。</li>';
+    }
+    if (spreadInsightsAbortController) {
+      spreadInsightsAbortController.abort();
+      spreadInsightsAbortController = null;
+    }
+    const controller = new AbortController();
+    spreadInsightsAbortController = controller;
+    try {
+      const periodConfig = INSIGHT_PERIODS[selectedInsightPeriod] || INSIGHT_PERIODS['24h'];
+      const params = new URLSearchParams({
+        window: '30d',
+        periods: String(periodConfig.periods),
+        periodLabel: periodConfig.periodLabel,
+        zscoreWindow: '8',
+        maxInsights: '6',
+      });
+      if (selectedHistoryInstrument) params.set('instrumentId', selectedHistoryInstrument);
+      if (selectedExchange !== ALL_VALUE) params.set('exchangeId', selectedExchange);
+
+      const data = await Api.fetchJson(`/api/sales-spread/insights?${params.toString()}`, {
+        signal: controller.signal,
+      });
+      renderSalesSpreadInsights(data);
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      setText('sales-spread-insights-meta', 'インサイトを取得できませんでした。');
+      if (list) {
+        list.innerHTML = '<li class="volume-insight-item volume-insight-item--empty">時間をおいて再読み込みしてください。</li>';
+      }
+    } finally {
+      if (spreadInsightsAbortController === controller) {
+        spreadInsightsAbortController = null;
+      }
+    }
+  }
+
   const spreadRefreshTask = pagePoller.createTask({
     intervalMs: SPREAD_REFRESH_MS,
     callback: loadSpread,
@@ -1082,11 +1230,27 @@ document.addEventListener('DOMContentLoaded', () => {
     callback: loadSpreadHistory,
   });
 
+  const spreadInsightsRefreshTask = pagePoller.createTask({
+    intervalMs: SPREAD_INSIGHTS_REFRESH_MS,
+    callback: loadSalesSpreadInsights,
+  });
+
   const filterInput = $('spread-filter');
   if (filterInput) {
     filterInput.value = filterText;
     filterInput.addEventListener('input', () => {
       filterText = filterInput.value.trim();
+      const nextInstrument = instrumentIdFromText(filterText);
+      if (
+        nextInstrument
+        && nextInstrument !== selectedHistoryInstrument
+        && allRows.some(row => row.instrumentId === nextInstrument)
+      ) {
+        selectedHistoryInstrument = nextInstrument;
+        populateHistoryInstrumentFilter();
+        renderSpreadHistory();
+        loadSalesSpreadInsights();
+      }
       renderView();
     });
   }
@@ -1097,6 +1261,7 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedExchange = exchangeFilter.value || ALL_VALUE;
       renderView();
       renderSpreadHistory();
+      loadSalesSpreadInsights();
     });
   }
 
@@ -1113,19 +1278,33 @@ document.addEventListener('DOMContentLoaded', () => {
     historyInstrumentFilter.addEventListener('change', () => {
       selectedHistoryInstrument = historyInstrumentFilter.value || 'BTC-JPY';
       renderSpreadHistory();
+      loadSalesSpreadInsights();
     });
   }
 
+  document.querySelectorAll('[data-spread-insight-period]').forEach(button => {
+    button.addEventListener('click', () => {
+      selectedInsightPeriod = normalizeInsightPeriod(button.dataset.spreadInsightPeriod);
+      syncInsightPeriodButtons();
+      writeUrlState();
+      loadSalesSpreadInsights();
+    });
+  });
+
   syncHistoryWindowButtons();
+  syncInsightPeriodButtons();
   writeUrlState();
   initSpreadHistoryChart();
   loadSpread();
   loadSpreadHistory();
+  loadSalesSpreadInsights();
   spreadRefreshTask.start({ immediate: false });
   spreadHistoryRefreshTask.start({ immediate: false });
+  spreadInsightsRefreshTask.start({ immediate: false });
   window.addEventListener('beforeunload', () => {
     pagePoller.dispose();
     if (spreadAbortController) spreadAbortController.abort();
     if (spreadHistoryAbortController) spreadHistoryAbortController.abort();
+    if (spreadInsightsAbortController) spreadInsightsAbortController.abort();
   });
 });
