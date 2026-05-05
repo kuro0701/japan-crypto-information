@@ -130,14 +130,14 @@
             <canvas id="volume-share-history-chart"></canvas>
           </div>
         </div>
-        <div class="history-chart-block">
+        <div class="history-chart-block volume-insights-report-block beginner-focus" data-beginner-focus="true" aria-labelledby="volume-insights-title">
           <div class="history-chart-heading">
-            <h3>取引所ランキング推移</h3>
-            <p id="volume-rank-meta">順位が小さいほど上位です</p>
+            <h3 id="volume-insights-title">自動インサイトレポート</h3>
+            <p id="volume-insights-meta">履歴データから変化を確認中</p>
           </div>
-          <div class="chart-container history-chart-container">
-            <canvas id="volume-rank-history-chart"></canvas>
-          </div>
+          <ul id="volume-insights-list" class="volume-insights-list volume-insights-list--report" aria-live="polite">
+            <li class="volume-insight-item volume-insight-item--loading">インサイトを生成中です。</li>
+          </ul>
         </div>
       </div>
     </section>
@@ -260,6 +260,6 @@
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/volume-share.js?v=volume-share-15"></script>
+  <script src="js/volume-share.js?v=volume-share-16"></script>
 </body>
 </html>

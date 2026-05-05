@@ -395,6 +395,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
   assert.equal(volumeSharePage.status, 200);
   assert.ok(volumeSharePage.body.includes('流動性サマリー'));
+  assert.ok(volumeSharePage.body.includes('自動インサイト'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="top"'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="middle"'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="bottom"'));
@@ -459,6 +460,11 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const volumeHistory = await fetchJson(baseUrl, '/api/volume-share/history?window=30d');
   assert.equal(volumeHistory.status, 200);
   assert.equal(volumeHistory.body.rows.length, 2);
+
+  const volumeInsights = await fetchJson(baseUrl, '/api/volume-share/insights?window=90d&maxInsights=6');
+  assert.equal(volumeInsights.status, 200);
+  assert.ok(Array.isArray(volumeInsights.body.insights));
+  assert.ok(volumeInsights.body.reportJa.includes('・'));
 
   const salesSpread = await fetchJson(baseUrl, '/api/sales-spread');
   assert.equal(salesSpread.status, 200);

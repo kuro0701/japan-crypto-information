@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const ALL_VALUE = '__all__';
   const HISTORY_FETCH_WINDOW = '90d';
+  const INSIGHTS_FETCH_WINDOW = '90d';
   let selectedWindow = '1d';
   let selectedInstrument = ALL_VALUE;
   let selectedExchange = ALL_VALUE;
@@ -28,12 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let volumeHistoryRows = [];
   let volumeHistoryMeta = {};
   let volumeShareHistoryChart = null;
-  let volumeRankHistoryChart = null;
   let shareAbortController = null;
   let volumeHistoryAbortController = null;
+  let volumeInsightsAbortController = null;
   const CHART_COLORS = ['#35e0a5', '#ff6b70', '#35c8d2', '#f4c95d', '#dbe7df', '#ff9f7e', '#9ad46a'];
   const SHARE_REFRESH_MS = 60000;
   const VOLUME_HISTORY_REFRESH_MS = 600000;
+  const VOLUME_INSIGHTS_REFRESH_MS = 600000;
   const EMPTY_FILTER_MESSAGE = '条件に合う出来高データがありません。フィルターを変更してください。';
   const WAITING_DATA_MESSAGE = '出来高データを取得中です。集計に数秒かかる場合があります。';
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
@@ -57,6 +59,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const WINDOW_VALUES = new Set(Object.keys(WINDOW_LABELS));
   const HISTORY_WINDOW_VALUES = new Set(['7d', '30d']);
   const KPI_TONE_CLASSES = ['is-positive', 'is-caution', 'is-danger'];
+  const INSIGHT_TYPE_LABELS = {
+    top_gainer: '増加',
+    top_loser: '低下',
+    leader_change: '首位交代',
+    leader_gap_change: '首位',
+    leader_hold: '首位',
+    rank_up: '順位上昇',
+    rank_down: '順位低下',
+    leader_gap_narrow: '差縮小',
+    leader_gap_widen: '差拡大',
+    above_gap_narrow: '直上差',
+    above_gap_widen: '直上差',
+    increase_streak: '連続上昇',
+    decrease_streak: '連続低下',
+    zscore_outlier: '異常値',
+    market_concentration: '市場構造',
+    hhi_change: '市場構造',
+  };
 
   function normalizeWindow(value, fallback) {
     return WINDOW_VALUES.has(value) ? value : fallback;
@@ -813,6 +833,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function insightTone(insight) {
+    const direction = insight && insight.direction;
+    if (direction === 'up' || direction === 'concentrating') return 'is-positive';
+    if (direction === 'down') return 'is-danger';
+    if (direction === 'narrow' || direction === 'dispersing') return 'is-caution';
+    return '';
+  }
+
+  function renderInsights(data) {
+    const list = $('volume-insights-list');
+    if (!list) return;
+
+    const meta = data && data.meta ? data.meta : {};
+    const insights = Array.isArray(data && data.insights) ? data.insights : [];
+    const period = meta.period || {};
+    const filterParts = [];
+    const instrumentLabel = selectedOptionLabel('volume-instrument-filter', '全銘柄');
+    const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '全取引所');
+    if (selectedInstrument !== ALL_VALUE) filterParts.push(instrumentLabel);
+    if (selectedExchange !== ALL_VALUE) filterParts.push(exchangeLabel);
+    const range = meta.earliestDate && meta.latestDate ? `${meta.earliestDate} - ${meta.latestDate}` : '履歴データ待ち';
+    setText(
+      'volume-insights-meta',
+      [
+        period.comparisonLabel || '前回比',
+        range,
+        filterParts.length > 0 ? filterParts.join(' / ') : '全体',
+      ].filter(Boolean).join(' | ')
+    );
+
+    if (insights.length === 0) {
+      list.innerHTML = '<li class="volume-insight-item volume-insight-item--empty">有意な変化は検出されませんでした。</li>';
+      return;
+    }
+
+    list.innerHTML = insights.map((insight) => {
+      const label = INSIGHT_TYPE_LABELS[insight.type] || 'Insight';
+      const tone = insightTone(insight);
+      const message = insight.messageJa || insight.message_ja || '';
+      return `
+        <li class="volume-insight-item ${tone ? `volume-insight-item--${tone}` : ''}">
+          <span class="volume-insight-item__label">${escapeHtml(label)}</span>
+          <p class="volume-insight-item__message">${escapeHtml(message)}</p>
+        </li>
+      `;
+    }).join('');
+  }
+
   function renderFilteredShare() {
     if (!latestData) return;
 
@@ -903,7 +971,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function initVolumeHistoryCharts() {
     const shareCanvas = $('volume-share-history-chart');
-    const rankCanvas = $('volume-rank-history-chart');
     if (typeof Chart === 'undefined') return;
 
     if (shareCanvas) {
@@ -916,22 +983,6 @@ document.addEventListener('DOMContentLoaded', () => {
           tooltipLabel: (ctx) => `${ctx.dataset.label}: ${fmtPct(ctx.parsed.y)}`,
         }),
       });
-    }
-
-    if (rankCanvas) {
-      volumeRankHistoryChart = new Chart(rankCanvas, {
-        type: 'line',
-        data: { labels: [], datasets: [] },
-        options: baseHistoryChartOptions({
-          yTitle: '順位',
-          reverseY: true,
-          yTickCallback: (value) => `${value}位`,
-          tooltipLabel: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}位`,
-        }),
-      });
-      volumeRankHistoryChart.options.scales.y.min = 1;
-      volumeRankHistoryChart.options.scales.y.ticks.stepSize = 1;
-      volumeRankHistoryChart.options.scales.y.ticks.precision = 0;
     }
   }
 
@@ -983,29 +1034,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const seriesByExchange = new Map();
-    let maxRank = 1;
-
     for (const date of dates) {
       const day = daily.get(date);
       if (!day || day.totalQuoteVolume <= 0) continue;
 
       const ranked = Array.from(day.exchanges.values())
         .sort((a, b) => b.quoteVolume - a.quoteVolume);
-      maxRank = Math.max(maxRank, ranked.length);
 
-      ranked.forEach((exchange, index) => {
+      ranked.forEach((exchange) => {
         if (!seriesByExchange.has(exchange.exchangeId)) {
           seriesByExchange.set(exchange.exchangeId, {
             exchangeId: exchange.exchangeId,
             label: exchange.exchangeLabel,
             shareByDate: new Map(),
-            rankByDate: new Map(),
           });
         }
 
         const series = seriesByExchange.get(exchange.exchangeId);
         series.shareByDate.set(date, (exchange.quoteVolume / day.totalQuoteVolume) * 100);
-        series.rankByDate.set(date, index + 1);
       });
     }
 
@@ -1020,26 +1066,16 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    const coverageNotes = series
-      .map((item) => {
-        const firstDate = dates.find(date => item.shareByDate.has(date) || item.rankByDate.has(date));
-        if (!firstDate || firstDate === dates[0]) return null;
-        return `${item.label} は ${firstDate} から`;
-      })
-      .filter(Boolean);
-
     return {
       dates,
       series,
-      maxRank,
-      coverageNotes,
     };
   }
 
   function renderVolumeHistory() {
-    if (!volumeShareHistoryChart || !volumeRankHistoryChart) return;
+    if (!volumeShareHistoryChart) return;
 
-    const { dates, series, maxRank, coverageNotes } = buildVolumeHistorySeries();
+    const { dates, series } = buildVolumeHistorySeries();
     const labels = dates.map(shortDate);
     const shareDatasets = series.map((item, index) => {
       const color = chartColor(index);
@@ -1055,29 +1091,10 @@ document.addEventListener('DOMContentLoaded', () => {
         spanGaps: true,
       };
     });
-    const rankDatasets = series.map((item, index) => {
-      const color = chartColor(index);
-      return {
-        label: item.label,
-        data: dates.map(date => item.rankByDate.get(date) ?? null),
-        borderColor: color,
-        backgroundColor: `${color}24`,
-        borderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.2,
-        spanGaps: true,
-      };
-    });
 
     volumeShareHistoryChart.data.labels = labels;
     volumeShareHistoryChart.data.datasets = shareDatasets;
     volumeShareHistoryChart.update('none');
-
-    volumeRankHistoryChart.data.labels = labels;
-    volumeRankHistoryChart.data.datasets = rankDatasets;
-    volumeRankHistoryChart.options.scales.y.suggestedMax = Math.max(3, maxRank);
-    volumeRankHistoryChart.update('none');
 
     const range = dates.length > 0
       ? `${dates[0]} - ${dates[dates.length - 1]}`
@@ -1091,13 +1108,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setText(
       'volume-history-meta',
       [instrumentLabel, exchangeLabel, range, seriesLabel, historySourceLabel(volumeHistoryMeta), provisionalNote, partialNote].filter(Boolean).join(' | ')
-    );
-    const coverageNote = coverageNotes.length > 0 ? `途中追加: ${coverageNotes.slice(0, 2).join(' / ')}` : '';
-    setText(
-      'volume-rank-meta',
-      series.length > 0
-        ? [`最大 ${maxRank}位までの日次順位`, coverageNote].filter(Boolean).join(' | ')
-        : '順位データ待ち'
     );
   }
 
@@ -1147,10 +1157,46 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       if (err.name === 'AbortError') return;
       setText('volume-history-meta', '出来高履歴を取得できませんでした。時間をおいて再読み込みしてください。');
-      setText('volume-rank-meta', '履歴データを取得できませんでした。');
     } finally {
       if (volumeHistoryAbortController === controller) {
         volumeHistoryAbortController = null;
+      }
+    }
+  }
+
+  async function loadInsights() {
+    const list = $('volume-insights-list');
+    if (list) {
+      list.innerHTML = '<li class="volume-insight-item volume-insight-item--loading">インサイトを生成中です。</li>';
+    }
+    if (volumeInsightsAbortController) {
+      volumeInsightsAbortController.abort();
+      volumeInsightsAbortController = null;
+    }
+    const controller = new AbortController();
+    volumeInsightsAbortController = controller;
+    try {
+      const params = new URLSearchParams({
+        window: INSIGHTS_FETCH_WINDOW,
+        periods: '1',
+        zscoreWindow: '8',
+        maxInsights: '6',
+      });
+      if (selectedInstrument !== ALL_VALUE) params.set('instrumentId', selectedInstrument);
+      if (selectedExchange !== ALL_VALUE) params.set('exchangeId', selectedExchange);
+      const data = await Api.fetchJson(`/api/volume-share/insights?${params.toString()}`, {
+        signal: controller.signal,
+      });
+      renderInsights(data);
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      setText('volume-insights-meta', 'インサイトを取得できませんでした。');
+      if (list) {
+        list.innerHTML = '<li class="volume-insight-item volume-insight-item--empty">時間をおいて再読み込みしてください。</li>';
+      }
+    } finally {
+      if (volumeInsightsAbortController === controller) {
+        volumeInsightsAbortController = null;
       }
     }
   }
@@ -1163,6 +1209,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const volumeHistoryRefreshTask = pagePoller.createTask({
     intervalMs: VOLUME_HISTORY_REFRESH_MS,
     callback: loadVolumeHistory,
+  });
+
+  const volumeInsightsRefreshTask = pagePoller.createTask({
+    intervalMs: VOLUME_INSIGHTS_REFRESH_MS,
+    callback: loadInsights,
   });
 
   document.querySelectorAll('[data-window]').forEach(button => {
@@ -1182,6 +1233,7 @@ document.addEventListener('DOMContentLoaded', () => {
     instrumentFilter.addEventListener('change', () => {
       selectedInstrument = instrumentFilter.value || ALL_VALUE;
       renderFilteredShare();
+      loadInsights();
     });
   }
 
@@ -1190,6 +1242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     exchangeFilter.addEventListener('change', () => {
       selectedExchange = exchangeFilter.value || ALL_VALUE;
       renderFilteredShare();
+      loadInsights();
     });
   }
 
@@ -1209,11 +1262,14 @@ document.addEventListener('DOMContentLoaded', () => {
   initVolumeHistoryCharts();
   loadShare();
   loadVolumeHistory();
+  loadInsights();
   shareRefreshTask.start({ immediate: false });
   volumeHistoryRefreshTask.start({ immediate: false });
+  volumeInsightsRefreshTask.start({ immediate: false });
   window.addEventListener('beforeunload', () => {
     pagePoller.dispose();
     if (shareAbortController) shareAbortController.abort();
     if (volumeHistoryAbortController) volumeHistoryAbortController.abort();
+    if (volumeInsightsAbortController) volumeInsightsAbortController.abort();
   });
 });

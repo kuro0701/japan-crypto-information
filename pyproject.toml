@@ -1,0 +1,17 @@
+[project]
+name = "okj-insight-engine"
+version = "0.1.0"
+description = "Rule-based Japanese insight generator for exchange volume-share data"
+requires-python = ">=3.10"
+dependencies = [
+  "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
