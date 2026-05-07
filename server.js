@@ -181,7 +181,7 @@ function normalizeAnalyticsRoute(reqPath) {
   if (/^\/learn\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
   if (/^\/campaigns\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
   if (reqPath === '/markets' || reqPath === '/markets.html') return '/markets';
-  if (/^\/markets\/[A-Z0-9]+-[A-Z0-9]+$/i.test(reqPath)) return reqPath.toUpperCase();
+  if (/^\/markets\/[A-Z0-9]+(?:-[A-Z0-9]+)+$/i.test(reqPath)) return reqPath.toUpperCase();
   if (/^\/exchanges\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
   return null;
 }

@@ -787,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
       exchangeLabel: String(raw.exchangeLabel || exchangeId),
       instrumentLabel: String(raw.instrumentLabel || instrumentId),
       baseCurrency: String(raw.baseCurrency || instrumentId.split('-')[0] || ''),
-      quoteCurrency: String(raw.quoteCurrency || instrumentId.split('-')[1] || 'JPY'),
+      quoteCurrency: String(raw.quoteCurrency || instrumentId.split('-').at(-1) || 'JPY'),
       savedAt: raw.savedAt || new Date().toISOString(),
     };
   }

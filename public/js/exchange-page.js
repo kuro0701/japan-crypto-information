@@ -71,7 +71,7 @@
   }
 
   function updateOrderbookFields(report, row) {
-    const marketLabel = (report.market && report.market.label) || instrumentId.replace('-', '/');
+    const marketLabel = (report.market && report.market.label) || instrumentId.replace(/-/g, '/');
     const orderbook = row && row.orderbook ? row.orderbook : null;
     const state = orderbookState(orderbook);
     const bestBid = numberOrNull(orderbook && orderbook.bestBid);
@@ -92,7 +92,7 @@
   }
 
   function updateCostFields(report, row) {
-    const marketLabel = (report.market && report.market.label) || instrumentId.replace('-', '/');
+    const marketLabel = (report.market && report.market.label) || instrumentId.replace(/-/g, '/');
     const cost = row && row.cost100k ? row.cost100k : null;
     const impact = numberOrNull(cost && cost.marketImpactPct);
     const vwap = numberOrNull(cost && cost.effectiveVWAP);
@@ -129,7 +129,7 @@
     const row = rows.find(item => item && item.exchangeId === exchangeId) || null;
 
     if (!row) {
-      const marketLabel = (report.market && report.market.label) || instrumentId.replace('-', '/');
+      const marketLabel = (report.market && report.market.label) || instrumentId.replace(/-/g, '/');
       setLiveField('bidAsk', `${marketLabel}: この取引所の板データは対象外です。`, 'waiting');
       setLiveField('depth', `${marketLabel}: この取引所の板厚データは対象外です。`, 'waiting');
       setLiveField('effectiveCost', `${marketLabel}: この取引所の実質コストは対象外です。`, 'waiting');

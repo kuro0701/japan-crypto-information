@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function normalizeInstrumentId(value) {
     const normalized = String(value || '').trim().toUpperCase();
-    return /^[A-Z0-9]+-[A-Z0-9]+$/.test(normalized) ? normalized : '';
+    return /^[A-Z0-9]+(?:-[A-Z0-9]+)+$/.test(normalized) ? normalized : '';
   }
 
   function normalizeExchangeId(value) {
@@ -883,7 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (cta) {
       const instrumentId = narrowest && narrowest.row.instrumentId ? narrowest.row.instrumentId : 'BTC-JPY';
-      const label = narrowest && narrowest.row.instrumentLabel ? narrowest.row.instrumentLabel : instrumentId.replace('-', '/');
+      const label = narrowest && narrowest.row.instrumentLabel ? narrowest.row.instrumentLabel : instrumentId.replace(/-/g, '/');
       cta.href = `/simulator?market=${encodeURIComponent(instrumentId)}&side=buy&amountType=jpy&amount=100000`;
       cta.textContent = `${label}を板で確認`;
     }

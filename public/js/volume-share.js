@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function normalizeInstrumentId(value) {
     const normalized = String(value || '').trim().toUpperCase();
-    return /^[A-Z0-9]+-[A-Z0-9]+$/.test(normalized) ? normalized : ALL_VALUE;
+    return /^[A-Z0-9]+(?:-[A-Z0-9]+)+$/.test(normalized) ? normalized : ALL_VALUE;
   }
 
   function normalizeExchangeId(value) {
