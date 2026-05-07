@@ -32,6 +32,10 @@ function volumeRecord(exchangeId, instrumentId, quoteVolume24h, capturedAt, over
     instrumentLabel: overrides.instrumentLabel || instrumentId.replace('-', '/'),
     baseCurrency,
     quoteCurrency: 'JPY',
+    marketType: overrides.marketType || 'spot',
+    marketTypeLabel: overrides.marketTypeLabel || null,
+    derivativeType: overrides.derivativeType || null,
+    underlyingInstrumentId: overrides.underlyingInstrumentId || null,
     baseVolume24h: overrides.baseVolume24h || quoteVolume24h / 100,
     quoteVolume24h,
     quoteVolume24hEstimated: Boolean(overrides.quoteVolume24hEstimated),
@@ -79,6 +83,55 @@ test('VolumeShareStore aggregates exchange and instrument share from daily snaps
   assert.equal(btcOkj.quoteVolume, 300);
   assert.equal(btcOkj.instrumentTotalQuoteVolume, 700);
   assert.equal(Number(btcOkj.instrumentSharePct.toFixed(6)), Number((300 / 700 * 100).toFixed(6)));
+});
+
+test('VolumeShareStore can filter derivative records for dedicated share and insights views', (t) => {
+  const tempDir = createTempDir('okj-volume-store-derivatives-');
+  t.after(() => removeTempDir(tempDir));
+
+  const store = new VolumeShareStore({
+    dataFilePath: path.join(tempDir, 'volume-share-history.json'),
+  });
+  const derivativeFilter = (record) => record.marketType === 'derivative' || /-CFD-/i.test(record.instrumentId || '');
+
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 100, '2026-04-21T00:00:00.000Z'),
+    volumeRecord('bitflyer', 'BTC-CFD-JPY', 300, '2026-04-21T00:00:00.000Z', {
+      exchangeLabel: 'bitFlyer',
+      instrumentLabel: 'BTC-CFD/JPY',
+      marketType: 'derivative',
+      marketTypeLabel: 'Crypto CFD',
+      derivativeType: 'cfd',
+      underlyingInstrumentId: 'BTC-JPY',
+    }),
+    volumeRecord('gmo', 'ETH-CFD-JPY', 200, '2026-04-21T00:00:00.000Z', {
+      exchangeLabel: 'GMOコイン',
+      instrumentLabel: 'ETH-CFD/JPY',
+      marketType: 'derivative',
+      marketTypeLabel: '暗号資産FX',
+      derivativeType: 'cfd',
+      underlyingInstrumentId: 'ETH-JPY',
+    }),
+  ], {
+    capturedAt: '2026-04-21T00:00:00.000Z',
+    volumeDateJst: '2026-04-21',
+    reason: 'test',
+  });
+
+  const share = store.getShare('7d', { recordFilter: derivativeFilter });
+  assert.equal(share.meta.totalQuoteVolume, 500);
+  assert.deepEqual(share.rows.map(row => row.instrumentId).sort(), ['BTC-CFD-JPY', 'ETH-CFD-JPY']);
+  assert.ok(share.rows.every(row => row.marketType === 'derivative'));
+
+  const history = store.getHistory('30d', { recordFilter: derivativeFilter });
+  assert.equal(history.rows.length, 2);
+  assert.ok(history.rows.every(row => row.instrumentId.includes('-CFD-')));
+
+  const insights = store.getInsights('90d', {
+    recordFilter: derivativeFilter,
+    insightConfig: { periods: 1, maxInsights: 3 },
+  });
+  assert.ok(Array.isArray(insights.insights));
 });
 
 test('VolumeShareStore falls back to latest records when no history snapshots exist', (t) => {

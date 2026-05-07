@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     '/': 'ホーム',
     '/simulator': '板シミュレーター',
     '/volume-share': '出来高シェア',
+    '/derivatives': 'デリバティブ',
     '/sales-spread': '販売所スプレッド',
     '/markets': '銘柄ページ一覧',
   };

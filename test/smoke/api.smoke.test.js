@@ -8,14 +8,18 @@ const { createTempDir, removeTempDir } = require('../helpers/temp-dir');
 const SERVER_PATH = path.resolve(__dirname, '../../server.js');
 const TEST_ENV_KEYS = ['ANALYTICS_ADMIN_TOKEN', 'ANALYTICS_ADMIN_TOKEN_HASH', 'DATA_DIR', 'DATABASE_URL', 'NODE_ENV'];
 
-function volumeRecord(exchangeId, exchangeLabel, instrumentId, quoteVolume24h, capturedAt) {
+function volumeRecord(exchangeId, exchangeLabel, instrumentId, quoteVolume24h, capturedAt, overrides = {}) {
   return {
     exchangeId,
     exchangeLabel,
     instrumentId,
-    instrumentLabel: instrumentId.replace('-', '/'),
-    baseCurrency: instrumentId.split('-')[0],
+    instrumentLabel: overrides.instrumentLabel || instrumentId.replace('-', '/'),
+    baseCurrency: overrides.baseCurrency || instrumentId.split('-')[0],
     quoteCurrency: 'JPY',
+    marketType: overrides.marketType || 'spot',
+    marketTypeLabel: overrides.marketTypeLabel || null,
+    derivativeType: overrides.derivativeType || null,
+    underlyingInstrumentId: overrides.underlyingInstrumentId || null,
     baseVolume24h: quoteVolume24h / 100,
     quoteVolume24h,
     quoteVolume24hEstimated: false,
@@ -131,6 +135,20 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   runtime.stores.volumeShareStore.replaceLatest([
     volumeRecord('okj', 'OKJ', 'BTC-JPY', 150, capturedAt),
     volumeRecord('coincheck', 'Coincheck', 'BTC-JPY', 100, capturedAt),
+    volumeRecord('bitflyer', 'bitFlyer', 'BTC-CFD-JPY', 400, capturedAt, {
+      instrumentLabel: 'BTC-CFD/JPY',
+      marketType: 'derivative',
+      marketTypeLabel: 'Crypto CFD',
+      derivativeType: 'cfd',
+      underlyingInstrumentId: 'BTC-JPY',
+    }),
+    volumeRecord('gmo', 'GMOコイン', 'ETH-CFD-JPY', 300, capturedAt, {
+      instrumentLabel: 'ETH-CFD/JPY',
+      marketType: 'derivative',
+      marketTypeLabel: '暗号資産FX',
+      derivativeType: 'cfd',
+      underlyingInstrumentId: 'ETH-JPY',
+    }),
   ], 'test', {
     capturedAt,
   });
@@ -401,6 +419,15 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(volumeSharePage.body.includes('data-info-layer="bottom"'));
   assertCommonDisclosure(volumeSharePage.body);
 
+  const derivativesPage = await fetchText(baseUrl, '/derivatives');
+  assert.equal(derivativesPage.status, 200);
+  assert.ok(derivativesPage.body.includes('デリバティブ流動性サマリー'));
+  assert.ok(derivativesPage.body.includes('data-volume-api-base="/api/derivatives/volume-share"'));
+  assert.ok(derivativesPage.body.includes('自動インサイト'));
+  assert.ok(derivativesPage.body.includes('nav-menu--grouped'));
+  assert.ok(derivativesPage.body.includes('/derivatives'));
+  assertCommonDisclosure(derivativesPage.body);
+
   const salesSpreadPage = await fetchText(baseUrl, '/sales-spread?instrumentId=BTC-JPY');
   assert.equal(salesSpreadPage.status, 200);
   assert.ok(salesSpreadPage.body.includes('販売所で買う前に見る結論'));
@@ -444,6 +471,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const sitemap = await fetchText(baseUrl, '/sitemap.xml');
   assert.equal(sitemap.status, 200);
   assert.ok(sitemap.body.includes('/research'));
+  assert.ok(sitemap.body.includes('/derivatives'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
   assert.ok(sitemap.body.includes('/learn/exchange-checklist'));
 
@@ -457,6 +485,11 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(volumeShare.body.meta.source, 'daily-snapshots');
   assert.equal(volumeShare.body.rows.length, 2);
 
+  const spotVolumeShareLatest = await fetchJson(baseUrl, '/api/volume-share?window=1d');
+  assert.equal(spotVolumeShareLatest.status, 200);
+  assert.equal(spotVolumeShareLatest.body.meta.totalQuoteVolume, 250);
+  assert.ok(spotVolumeShareLatest.body.rows.every(row => !row.instrumentId.includes('-CFD-')));
+
   const volumeHistory = await fetchJson(baseUrl, '/api/volume-share/history?window=30d');
   assert.equal(volumeHistory.status, 200);
   assert.equal(volumeHistory.body.rows.length, 2);
@@ -465,6 +498,20 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(volumeInsights.status, 200);
   assert.ok(Array.isArray(volumeInsights.body.insights));
   assert.ok(volumeInsights.body.reportJa.includes('・'));
+
+  const derivativeVolumeShare = await fetchJson(baseUrl, '/api/derivatives/volume-share?window=1d');
+  assert.equal(derivativeVolumeShare.status, 200);
+  assert.equal(derivativeVolumeShare.body.meta.totalQuoteVolume, 700);
+  assert.deepEqual(derivativeVolumeShare.body.rows.map(row => row.instrumentId).sort(), ['BTC-CFD-JPY', 'ETH-CFD-JPY']);
+
+  const derivativeVolumeHistory = await fetchJson(baseUrl, '/api/derivatives/volume-share/history?window=30d');
+  assert.equal(derivativeVolumeHistory.status, 200);
+  assert.equal(derivativeVolumeHistory.body.meta.source, 'latest-fallback');
+  assert.equal(derivativeVolumeHistory.body.rows.length, 2);
+
+  const derivativeVolumeInsights = await fetchJson(baseUrl, '/api/derivatives/volume-share/insights?window=90d&maxInsights=6');
+  assert.equal(derivativeVolumeInsights.status, 200);
+  assert.ok(Array.isArray(derivativeVolumeInsights.body.insights));
 
   const salesSpread = await fetchJson(baseUrl, '/api/sales-spread');
   assert.equal(salesSpread.status, 200);

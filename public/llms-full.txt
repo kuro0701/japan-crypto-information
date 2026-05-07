@@ -51,6 +51,14 @@ URL: https://japan-crypto-information.onrender.com/volume-share
 
 出来高は JPY 換算で表示されます。サーバー側では各取引所の 24 時間 ticker / volume API をもとに毎時更新し、履歴は JST 基準の日次スナップショットとして保存します。
 
+## デリバティブ
+
+URL: https://japan-crypto-information.onrender.com/derivatives
+
+デリバティブは、bitFlyer Crypto CFD とGMOコイン暗号資産FXの出来高シェアを JPY 換算で日次・週次・月次に可視化するページです。取引所別シェア、銘柄別シェア、履歴グラフ、自動インサイトレポート、データ信頼度を確認できます。
+
+表示値は各社の公開 API から取得した参考データです。レバレッジ取引では、出来高だけでなく板の厚み、証拠金、ロスカット条件、公式ルールを必ず確認してください。
+
 ## 販売所スプレッド
 
 URL: https://japan-crypto-information.onrender.com/sales-spread
@@ -78,6 +86,8 @@ URL: https://japan-crypto-information.onrender.com/campaigns
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
 
 `/api/volume-share` は、出来高シェアの集計データを返します。クエリパラメータ `window` で `1d`、`7d`、`30d` を指定できます。
+
+`/api/derivatives/volume-share` は、デリバティブ出来高シェアの集計データを返します。`/history` と `/insights` で履歴と自動インサイトも取得できます。
 
 `/api/sales-spread` は、販売所スプレッドの集計データを返します。最新スプレッドと、24時間・7日・30日の平均値を含みます。
 

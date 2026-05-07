@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const ALL_VALUE = '__all__';
   const HISTORY_FETCH_WINDOW = '90d';
   const INSIGHTS_FETCH_WINDOW = '90d';
+  const pageRoot = document.querySelector('[data-volume-page]') || document.body;
+  const API_BASE = (String(pageRoot.getAttribute('data-volume-api-base') || '/api/volume-share').replace(/\/+$/, '') || '/api/volume-share');
+  const DEFAULT_SIMULATOR_MARKET = String(pageRoot.getAttribute('data-volume-default-market') || 'BTC-JPY').trim().toUpperCase();
+  const DEFAULT_SIMULATOR_EXCHANGE = String(pageRoot.getAttribute('data-volume-default-exchange') || '').trim().toLowerCase();
   let selectedWindow = '1d';
   let selectedInstrument = ALL_VALUE;
   let selectedExchange = ALL_VALUE;
@@ -694,12 +698,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const params = new URLSearchParams();
     const instrumentId = selectedInstrument !== ALL_VALUE
       ? selectedInstrument
-      : (primaryRow && primaryRow.instrumentId ? primaryRow.instrumentId : '');
+      : (primaryRow && primaryRow.instrumentId ? primaryRow.instrumentId : DEFAULT_SIMULATOR_MARKET);
     const exchangeId = selectedExchange !== ALL_VALUE
       ? selectedExchange
       : (topExchange && topExchange.exchangeId
         ? topExchange.exchangeId
-        : (primaryRow && primaryRow.exchangeId ? primaryRow.exchangeId : ''));
+        : (primaryRow && primaryRow.exchangeId ? primaryRow.exchangeId : DEFAULT_SIMULATOR_EXCHANGE));
 
     if (instrumentId) params.set('market', instrumentId);
     if (exchangeId) params.set('exchange', exchangeId);
@@ -774,7 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setHtml('volume-summary-chips', '<span class="decision-summary-chip">集計待ち</span>');
       const link = $('volume-summary-link');
       if (link) {
-        link.href = '/simulator';
+        link.href = simulatorUrlForSummary(null, null);
         link.textContent = '板シミュレーターを開く';
       }
       return;
@@ -1122,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const controller = new AbortController();
     shareAbortController = controller;
     try {
-      const data = await Api.fetchJson(`/api/volume-share?window=${encodeURIComponent(selectedWindow)}`, {
+      const data = await Api.fetchJson(`${API_BASE}?window=${encodeURIComponent(selectedWindow)}`, {
         signal: controller.signal,
       });
       render(data);
@@ -1146,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const controller = new AbortController();
     volumeHistoryAbortController = controller;
     try {
-      const data = await Api.fetchJson(`/api/volume-share/history?window=${encodeURIComponent(HISTORY_FETCH_WINDOW)}`, {
+      const data = await Api.fetchJson(`${API_BASE}/history?window=${encodeURIComponent(HISTORY_FETCH_WINDOW)}`, {
         signal: controller.signal,
       });
       volumeHistoryRows = data.rows || [];
@@ -1186,7 +1190,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       if (selectedInstrument !== ALL_VALUE) params.set('instrumentId', selectedInstrument);
       if (selectedExchange !== ALL_VALUE) params.set('exchangeId', selectedExchange);
-      const data = await Api.fetchJson(`/api/volume-share/insights?${params.toString()}`, {
+      const data = await Api.fetchJson(`${API_BASE}/insights?${params.toString()}`, {
         signal: controller.signal,
       });
       renderInsights(data);

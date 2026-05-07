@@ -177,6 +177,21 @@
         ],
       };
     }
+    if (path === '/derivatives' || path === '/derivatives.html') {
+      return {
+        eyebrow: 'Beginner Mode',
+        title: 'デリバティブは流動性と条件を分けて見ます',
+        summary: 'Crypto CFDや暗号資産FXは、まず「首位取引所」「上位3社集中度」「データ信頼度」を確認し、その後に板、証拠金、ロスカット条件を公式情報で確認してください。',
+        metrics: ['首位取引所', '上位3社集中度', 'データ信頼度'],
+        terms: ['volume-share', 'liquidity', 'orderbook', 'effective-cost'],
+        warning: 'レバレッジ取引は現物より損失が大きくなる場合があります。出来高が多くても、注文サイズや急変時の板で約定コストは変わります。',
+        links: [
+          { href: '/simulator?market=BTC-CFD-JPY&exchange=bitflyer&side=buy&amountType=jpy&amount=100000', label: 'デリバティブ板を確認' },
+          { href: '/volume-share?instrumentId=BTC-JPY', label: '現物の出来高を見る' },
+          { href: '/markets/BTC-CFD-JPY', label: 'BTC-CFDページへ' },
+        ],
+      };
+    }
     if (path === '/markets' || path === '/markets.html') {
       return {
         eyebrow: 'Beginner Mode',

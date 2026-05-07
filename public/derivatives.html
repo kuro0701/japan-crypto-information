@@ -11,14 +11,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css?v=ui-20">
 </head>
-<body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
+<body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-volume-page data-volume-api-base="/api/derivatives/volume-share" data-volume-default-market="BTC-CFD-JPY" data-volume-default-exchange="bitflyer">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
   <header class="topbar px-6 py-3">
     <div class="brand-cluster">
       <div class="brand-mark" aria-hidden="true">₿</div>
       <div class="brand-copy min-w-0">
         <h1 class="page-title">国内暗号資産取引所ナビ</h1>
-        <div class="brand-subtitle">国内取引所 出来高シェア</div>
+        <div class="brand-subtitle">国内デリバティブ比較</div>
       </div>
     </div>
     <nav class="nav-menu" aria-label="ページ間ナビゲーション">
@@ -26,7 +26,8 @@
       <a class="nav-link" href="/research">調べる</a>
       <a class="nav-link" href="/simulator">板シミュレーター</a>
       <a class="nav-link" href="/markets">銘柄ページ</a>
-      <a class="nav-link is-active" href="/volume-share" aria-current="page">出来高シェア</a>
+      <a class="nav-link" href="/volume-share">出来高シェア</a>
+      <a class="nav-link is-active" href="/derivatives" aria-current="page">デリバティブ</a>
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
       <a class="nav-link" href="/campaigns">キャンペーン</a>
     </nav>
@@ -37,28 +38,28 @@
     <section id="volume-summary-card" class="decision-summary-card volume-summary-card info-layer info-layer--top beginner-focus" data-info-layer="top" data-beginner-focus="true" aria-labelledby="volume-summary-title">
       <div class="decision-summary-card__header">
         <div>
-          <p class="decision-summary-card__eyebrow">Liquidity Summary</p>
-          <h2 id="volume-summary-title" class="decision-summary-card__title">流動性サマリー</h2>
+          <p class="decision-summary-card__eyebrow">Derivatives Liquidity</p>
+          <h2 id="volume-summary-title" class="decision-summary-card__title">デリバティブ流動性サマリー</h2>
         </div>
         <span id="volume-summary-badge" class="decision-summary-badge decision-summary-badge--loading">読み込み中</span>
       </div>
       <div class="volume-summary-copy">
-        <p id="volume-summary-lead" class="decision-summary-card__lead">出来高データを読み込み中です。</p>
-        <p id="volume-summary-body" class="decision-summary-card__body">集計が完了すると、流動性の偏りと見方を自然文で要約します。</p>
-        <p id="volume-summary-note" class="decision-summary-card__body">大きめの注文では、出来高だけでなく板の厚みも合わせて確認するのが安全です。</p>
+        <p id="volume-summary-lead" class="decision-summary-card__lead">暗号資産FX・Crypto CFDの出来高データを読み込み中です。</p>
+        <p id="volume-summary-body" class="decision-summary-card__body">集計が完了すると、デリバティブ市場の流動性集中度と変化を自然文で要約します。</p>
+        <p id="volume-summary-note" class="decision-summary-card__body">レバレッジ取引では、出来高だけでなく板の厚み、証拠金、ロスカット条件も合わせて確認してください。</p>
       </div>
       <div id="volume-summary-chips" class="decision-summary-card__chips">
         <span class="decision-summary-chip">期間を計算中</span>
       </div>
       <div class="decision-summary-card__actions">
-        <a id="volume-summary-link" class="btn btn-secondary" href="/simulator">板シミュレーターで確認</a>
+        <a id="volume-summary-link" class="btn btn-secondary" href="/simulator?market=BTC-CFD-JPY&exchange=bitflyer&side=buy&amountType=jpy&amount=100000">板シミュレーターで確認</a>
       </div>
     </section>
 
     <section class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
-      <div class="panel-title-row mb-4"><div><div class="panel-title-with-help"><h2 class="panel-title">出来高シェア</h2><button class="term-help" type="button" data-term-key="volume-share" aria-label="出来高シェア の説明を開く"><span aria-hidden="true">?</span></button></div><p id="share-meta" class="text-xs text-gray-500 mt-1">24hスナップショットを集計中</p></div><span class="panel-kicker">Volume Share</span></div>
+      <div class="panel-title-row mb-4"><div><div class="panel-title-with-help"><h2 class="panel-title">デリバティブ出来高シェア</h2><button class="term-help" type="button" data-term-key="volume-share" aria-label="出来高シェア の説明を開く"><span aria-hidden="true">?</span></button></div><p id="share-meta" class="text-xs text-gray-500 mt-1">24hスナップショットを集計中</p></div><span class="panel-kicker">Derivatives</span></div>
       <div class="tab-group mb-4" role="tablist" aria-label="集計期間"><button class="btn btn-tab window-tab active" data-window="1d" type="button" role="tab" aria-selected="true">24時間</button><button class="btn btn-tab window-tab" data-window="7d" type="button" role="tab" aria-selected="false">7日間</button><button class="btn btn-tab window-tab" data-window="30d" type="button" role="tab" aria-selected="false">30日間</button></div>
-      <div class="filter-grid mb-4" aria-label="出来高シェアフィルター">
+      <div class="filter-grid mb-4" aria-label="デリバティブ出来高シェアフィルター">
         <label class="filter-control" for="volume-instrument-filter"><span>銘柄</span><select id="volume-instrument-filter" class="field" aria-label="銘柄で絞り込み"><option value="__all__">すべて</option></select></label>
         <label class="filter-control" for="volume-exchange-filter"><span>取引所</span><select id="volume-exchange-filter" class="field" aria-label="取引所で絞り込み"><option value="__all__">すべて</option></select></label>
       </div>
@@ -109,7 +110,7 @@
     <section class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">履歴グラフ</h2>
+          <h2 class="panel-title">デリバティブ履歴グラフ</h2>
           <p id="volume-history-meta" class="text-xs text-gray-500 mt-1">日次スナップショットを読み込み中</p>
         </div>
         <span class="panel-kicker">History</span>
@@ -123,8 +124,8 @@
       <div class="history-chart-grid mt-3">
         <div class="history-chart-block">
           <div class="history-chart-heading">
-            <h3>出来高シェア推移</h3>
-            <p>選択中の銘柄範囲で、取引所ごとの比率を追います</p>
+            <h3>デリバティブ出来高シェア推移</h3>
+            <p>選択中のCFD・暗号資産FX銘柄で、取引所ごとの比率を追います</p>
           </div>
           <div class="chart-container history-chart-container">
             <canvas id="volume-share-history-chart"></canvas>
@@ -144,7 +145,7 @@
 
     <div class="dashboard-grid dashboard-grid--left info-layer info-layer--middle" data-info-layer="middle">
       <section class="panel panel--dense">
-        <div class="panel-title-row mb-3"><h2 class="panel-title">取引所別シェア</h2><span class="panel-kicker">Exchange</span></div>
+        <div class="panel-title-row mb-3"><h2 class="panel-title">取引所別デリバティブシェア</h2><span class="panel-kicker">Exchange</span></div>
         <div class="overflow-auto scrollbar-thin">
           <table class="data-table data-table--cards text-xs">
             <thead class="sticky"><tr><th class="text-left">取引所</th><th class="is-num text-right">出来高</th><th class="is-num text-right">シェア</th></tr></thead>
@@ -154,7 +155,7 @@
       </section>
 
       <section class="panel panel--dense">
-        <div class="panel-title-row mb-3"><h2 class="panel-title">銘柄別シェア</h2><span class="panel-kicker">Markets</span></div>
+        <div class="panel-title-row mb-3"><h2 class="panel-title">デリバティブ銘柄別シェア</h2><span class="panel-kicker">Markets</span></div>
         <div class="overflow-auto scrollbar-thin max-h-[680px]">
           <table class="data-table data-table--cards text-xs">
             <thead class="sticky"><tr><th class="text-left">銘柄</th><th class="text-left">取引所</th><th class="is-num text-right">出来高</th><th class="is-num text-right">銘柄内シェア</th><th class="is-num text-right">全体シェア</th></tr></thead>
@@ -168,7 +169,7 @@
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">期間の見方</h2>
-          <p class="text-xs text-gray-500 mt-1">目的に応じて集計期間を切り替えると、勢いと平常時を分けて見られます</p>
+          <p class="text-xs text-gray-500 mt-1">目的に応じて集計期間を切り替えると、短期の建玉需要と平常時の流動性を分けて見られます</p>
         </div>
         <span class="panel-kicker">Window Guide</span>
       </div>
@@ -189,13 +190,13 @@
       <div class="volume-caution-stack mt-4">
         <div class="callout callout--warn">
           <span class="callout-icon" aria-hidden="true">!</span>
-          <div class="callout-title">出来高だけでは約定コストは決まりません</div>
-          <div class="callout-body">出来高が大きい取引所は流動性の参考になりますが、必ずしも最も安く約定できるとは限りません。</div>
+          <div class="callout-title">デリバティブの出来高だけでは約定コストは決まりません</div>
+          <div class="callout-body">出来高が大きい取引所は流動性の参考になりますが、レバレッジ条件、板の厚み、スプレッドによって実際の約定コストは変わります。</div>
         </div>
         <div class="callout">
           <span class="callout-icon" aria-hidden="true">i</span>
-          <div class="callout-title">実効コストの確認ポイント</div>
-          <div class="callout-body">実際のコストは、板の厚み・スプレッド・手数料・注文サイズによって変わります。</div>
+          <div class="callout-title">レバレッジ取引の確認ポイント</div>
+          <div class="callout-body">実際のコストは、板の厚み・スプレッド・手数料・注文サイズに加えて、証拠金維持率やロスカットルールにも左右されます。</div>
         </div>
       </div>
     </section>
@@ -203,16 +204,16 @@
     <section class="decision-summary-card volume-share-intro-card info-layer info-layer--bottom" data-info-layer="bottom">
       <div class="decision-summary-card__header">
         <div>
-          <p class="decision-summary-card__eyebrow">Liquidity Guide</p>
-          <h2 class="decision-summary-card__title">出来高シェアから、どこに流動性が集まっているかを判断できます</h2>
+          <p class="decision-summary-card__eyebrow">Derivatives Guide</p>
+          <h2 class="decision-summary-card__title">デリバティブ出来高シェアから、どこに流動性が集まっているかを判断できます</h2>
         </div>
-        <span class="decision-summary-badge decision-summary-badge--ready">JPY Converted</span>
+        <span class="decision-summary-badge decision-summary-badge--ready">CFD / FX</span>
       </div>
-      <p class="decision-summary-card__lead">このページでは、国内暗号資産取引所の出来高をJPY換算で集計し、銘柄ごと・取引所ごとの流動性シェアを比較できます。</p>
-      <p class="decision-summary-card__body">出来高の偏り、上位集中度、対応範囲、データ信頼度をまとめて見て、どの取引所で板を確認すべきかの当たりを付けるための判断ページです。</p>
+      <p class="decision-summary-card__lead">このページでは、bitFlyer Crypto CFD とGMOコイン暗号資産FXの出来高をJPY換算で集計し、銘柄ごと・取引所ごとの流動性シェアを比較できます。</p>
+      <p class="decision-summary-card__body">出来高の偏り、上位集中度、対応範囲、データ信頼度をまとめて見て、どのデリバティブ市場で板を確認すべきかの当たりを付けるための判断ページです。</p>
       <div class="decision-summary-card__chips">
-        <span class="decision-summary-chip">取引所別の偏り</span>
-        <span class="decision-summary-chip">銘柄別の流動性</span>
+        <span class="decision-summary-chip">Crypto CFD</span>
+        <span class="decision-summary-chip">暗号資産FX</span>
         <span class="decision-summary-chip">日次・週次・月次比較</span>
       </div>
     </section>
@@ -221,14 +222,18 @@
       <div class="panel-title-row mb-4">
         <div>
           <h2 id="volume-share-compare-tools-title" class="panel-title">比較する</h2>
-          <p class="text-xs text-gray-500 mt-1">比較ツール導線。板、販売所、出来高、デリバティブから注文前の実質コストを確認できます。</p>
+          <p class="text-xs text-gray-500 mt-1">比較ツール導線。デリバティブ、板、販売所、出来高を同じ流れで確認できます。</p>
         </div>
         <span class="panel-kicker">比較ツール導線</span>
       </div>
       <div class="home-compare-link-grid">
-        <a class="home-compare-link" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
+        <a class="home-compare-link" href="/derivatives">
+          <strong>デリバティブ</strong>
+          <span>Crypto CFD・暗号資産FXの出来高シェアと変化を確認</span>
+        </a>
+        <a class="home-compare-link" href="/simulator?market=BTC-CFD-JPY&exchange=bitflyer&side=buy&amountType=jpy&amount=100000">
           <strong>板シミュレーター</strong>
-          <span>実際の板情報から、成行注文時の想定コストを比較</span>
+          <span>デリバティブ板から、成行注文時の想定コストを比較</span>
         </a>
         <a class="home-compare-link" href="/sales-spread?instrumentId=BTC-JPY">
           <strong>販売所スプレッド比較</strong>
@@ -237,10 +242,6 @@
         <a class="home-compare-link" href="/volume-share?instrumentId=BTC-JPY">
           <strong>出来高シェア</strong>
           <span>どの取引所に流動性があるかを見る</span>
-        </a>
-        <a class="home-compare-link" href="/derivatives">
-          <strong>デリバティブ</strong>
-          <span>Crypto CFD・暗号資産FXの流動性と出来高シェアを見る</span>
         </a>
       </div>
     </section>
@@ -256,9 +257,9 @@
     </section>
   </main>
 
-  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 出来高はJPY換算です</footer>
+  <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | デリバティブ出来高はJPY換算です</footer>
 
-  <script src="/js/beginner-mode.js?v=5"></script>
+  <script src="/js/beginner-mode.js?v=6"></script>
   <script src="js/formatter.js?v=volume-share-1"></script>
   <script src="js/app-utils.js?v=app-utils-1"></script>
   <script src="js/app-formatters.js?v=app-formatters-1"></script>

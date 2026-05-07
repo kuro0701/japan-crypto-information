@@ -111,6 +111,11 @@ const SITEMAP_PAGES = [
     priority: '0.8',
   },
   {
+    path: '/derivatives',
+    lastmod: fileLastmod(path.join(PUBLIC_DIR, 'derivatives.html')),
+    priority: '0.8',
+  },
+  {
     path: '/sales-spread',
     lastmod: fileLastmod(path.join(PUBLIC_DIR, 'sales-spread.html')),
     priority: '0.8',
@@ -175,6 +180,7 @@ function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/' || reqPath === '/index.html') return '/';
   if (reqPath === '/simulator' || reqPath === '/simulator.html') return '/simulator';
   if (reqPath === '/volume-share' || reqPath === '/volume-share.html') return '/volume-share';
+  if (reqPath === '/derivatives' || reqPath === '/derivatives.html') return '/derivatives';
   if (reqPath === '/sales-spread' || reqPath === '/sales-spread.html') return '/sales-spread';
   if (reqPath === '/campaigns' || reqPath === '/campaigns.html') return '/campaigns';
   if (reqPath === '/learn' || reqPath === '/learn/') return '/learn';
