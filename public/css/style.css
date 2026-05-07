@@ -2411,6 +2411,32 @@ button:active { transform: scale(0.98); }
 }
 .article-body ol { list-style: decimal; }
 .article-body li + li { margin-top: var(--sp-2); }
+.article-body table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  border: 1px solid var(--line-weak);
+  border-radius: var(--r);
+  background: rgba(5, 8, 5, 0.42);
+}
+.article-body th,
+.article-body td {
+  min-width: 150px;
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--line-weak);
+  border-right: 1px solid var(--line-weak);
+  vertical-align: top;
+  text-align: left;
+}
+.article-body th {
+  color: var(--text-1);
+  background: rgba(116, 255, 122, 0.08);
+  font-weight: 700;
+}
+.article-body td:last-child,
+.article-body th:last-child { border-right: 0; }
+.article-body tr:last-child td { border-bottom: 0; }
 
 .chart-panel { min-height: 470px; }
 .chart-container {
