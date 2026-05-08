@@ -401,10 +401,19 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const cryptoWithdrawalGuide = await fetchText(baseUrl, '/learn/crypto-withdrawal-fees');
   assert.equal(cryptoWithdrawalGuide.status, 200);
   assert.ok(cryptoWithdrawalGuide.body.includes('暗号資産出金手数料の比較'));
+  assert.ok(cryptoWithdrawalGuide.body.includes('全銘柄・ネットワーク別'));
+  assert.ok(cryptoWithdrawalGuide.body.includes('/js/crypto-withdrawal-fees.js'));
   assert.ok(cryptoWithdrawalGuide.body.includes('Binance Japan'));
   assert.ok(cryptoWithdrawalGuide.body.includes('GMOコイン'));
   assert.ok(cryptoWithdrawalGuide.body.includes('/learn/jpy-withdrawal-fees'));
   assertCommonDisclosure(cryptoWithdrawalGuide.body);
+
+  const cryptoWithdrawalData = await fetchJson(baseUrl, '/data/crypto-withdrawal-fees.json');
+  assert.equal(cryptoWithdrawalData.status, 200);
+  assert.ok(cryptoWithdrawalData.body.assets.includes('BTC'));
+  assert.ok(cryptoWithdrawalData.body.assets.includes('ETH'));
+  assert.ok(cryptoWithdrawalData.body.rows.some(row => row.exchangeId === 'binance-japan' && row.asset === 'BTC'));
+  assert.ok(cryptoWithdrawalData.body.rows.some(row => row.exchangeId === 'gmo' && row.fee === '無料'));
 
   const buying100kGuide = await fetchText(baseUrl, '/learn/buying-100k-points');
   assert.equal(buying100kGuide.status, 200);
