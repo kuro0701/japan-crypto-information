@@ -18,7 +18,7 @@ URL: https://japan-crypto-information.onrender.com/
 
 URL: https://japan-crypto-information.onrender.com/learn
 
-初心者ガイドは、暗号資産取引所を比較する前に理解したい基本用語と確認手順をまとめたページです。各記事から、販売所スプレッド比較、日本円出金手数料比較、板シミュレーター、出来高シェア、銘柄ページへ移動できます。
+初心者ガイドは、暗号資産取引所を比較する前に理解したい基本用語と確認手順をまとめたページです。各記事から、販売所スプレッド比較、日本円出金手数料比較、暗号資産出金手数料比較、板シミュレーター、出来高シェア、銘柄ページへ移動できます。
 
 最初に用意している記事は以下です。
 
@@ -27,6 +27,7 @@ URL: https://japan-crypto-information.onrender.com/learn
 - https://japan-crypto-information.onrender.com/learn/order-book-trading
 - https://japan-crypto-information.onrender.com/learn/crypto-fees
 - https://japan-crypto-information.onrender.com/learn/jpy-withdrawal-fees
+- https://japan-crypto-information.onrender.com/learn/crypto-withdrawal-fees
 - https://japan-crypto-information.onrender.com/learn/buying-100k-points
 - https://japan-crypto-information.onrender.com/learn/broker-loss-reasons
 - https://japan-crypto-information.onrender.com/learn/exchange-checklist

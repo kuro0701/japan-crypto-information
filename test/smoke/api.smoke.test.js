@@ -209,6 +209,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(homePage.body.includes('/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000'));
   assert.ok(homePage.body.includes('/learn/exchange-vs-broker'));
   assert.ok(homePage.body.includes('/learn/crypto-fees'));
+  assert.ok(homePage.body.includes('/learn/crypto-withdrawal-fees'));
   assertCommonDisclosure(homePage.body);
 
   const researchPage = await fetchText(baseUrl, '/research');
@@ -226,6 +227,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(researchPage.body.includes('/learn/spread'));
   assert.ok(researchPage.body.includes('/learn/slippage'));
   assert.ok(researchPage.body.includes('/learn/exchange-company-analysis'));
+  assert.ok(researchPage.body.includes('/learn/crypto-withdrawal-fees'));
   assertCommonDisclosure(researchPage.body);
 
   const learnIndex = await fetchText(baseUrl, '/learn');
@@ -389,6 +391,21 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(orderBookGuide.body.includes('/learn/buying-100k-points'));
   assertCommonDisclosure(orderBookGuide.body);
 
+  const cryptoFeesGuide = await fetchText(baseUrl, '/learn/crypto-fees');
+  assert.equal(cryptoFeesGuide.status, 200);
+  assert.ok(cryptoFeesGuide.body.includes('暗号資産の手数料の見方'));
+  assert.ok(cryptoFeesGuide.body.includes('/learn/jpy-withdrawal-fees'));
+  assert.ok(cryptoFeesGuide.body.includes('/learn/crypto-withdrawal-fees'));
+  assertCommonDisclosure(cryptoFeesGuide.body);
+
+  const cryptoWithdrawalGuide = await fetchText(baseUrl, '/learn/crypto-withdrawal-fees');
+  assert.equal(cryptoWithdrawalGuide.status, 200);
+  assert.ok(cryptoWithdrawalGuide.body.includes('暗号資産出金手数料の比較'));
+  assert.ok(cryptoWithdrawalGuide.body.includes('Binance Japan'));
+  assert.ok(cryptoWithdrawalGuide.body.includes('GMOコイン'));
+  assert.ok(cryptoWithdrawalGuide.body.includes('/learn/jpy-withdrawal-fees'));
+  assertCommonDisclosure(cryptoWithdrawalGuide.body);
+
   const buying100kGuide = await fetchText(baseUrl, '/learn/buying-100k-points');
   assert.equal(buying100kGuide.status, 200);
   assert.ok(buying100kGuide.body.includes('10万円分買うときに見るべきポイント'));
@@ -408,6 +425,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(exchangeChecklistGuide.body.includes('取引所選びのチェックリスト'));
   assert.ok(exchangeChecklistGuide.body.includes('/markets'));
   assert.ok(exchangeChecklistGuide.body.includes('/learn/crypto-fees'));
+  assert.ok(exchangeChecklistGuide.body.includes('/learn/crypto-withdrawal-fees'));
   assertCommonDisclosure(exchangeChecklistGuide.body);
 
   const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
@@ -474,10 +492,12 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/derivatives'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
   assert.ok(sitemap.body.includes('/learn/exchange-checklist'));
+  assert.ok(sitemap.body.includes('/learn/crypto-withdrawal-fees'));
 
   const rss = await fetchText(baseUrl, '/rss.xml');
   assert.equal(rss.status, 200);
   assert.ok(rss.body.includes('/learn/crypto-fees'));
+  assert.ok(rss.body.includes('/learn/crypto-withdrawal-fees'));
   assert.ok(rss.body.includes('/learn/buying-100k-points'));
 
   const volumeShare = await fetchJson(baseUrl, '/api/volume-share?window=7d');

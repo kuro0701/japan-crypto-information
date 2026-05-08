@@ -36,4 +36,4 @@ path: /learn/jpy-withdrawal-fees
 
 日本円出金手数料が安くても、購入時の販売所スプレッド、取引所形式の maker / taker 手数料、板の厚み、暗号資産の出庫手数料が高ければ、トータルでは不利になることがあります。
 
-先に [暗号資産の手数料の見方](/learn/crypto-fees) で手数料の種類を整理し、実際に買う銘柄は [銘柄ページ一覧](/markets) や [板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で確認してください。
+先に [暗号資産の手数料の見方](/learn/crypto-fees) で手数料の種類を整理し、暗号資産を外部ウォレットへ送る予定がある場合は [暗号資産出金手数料の比較](/learn/crypto-withdrawal-fees) も確認してください。実際に買う銘柄は [銘柄ページ一覧](/markets) や [板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で確認できます。
