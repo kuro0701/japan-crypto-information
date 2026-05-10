@@ -132,7 +132,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
     volumeDateJst: '2026-04-22',
     reason: 'test',
   });
-  runtime.stores.volumeShareStore.replaceLatest([
+  const latestVolumeRecords = [
     volumeRecord('okj', 'OKJ', 'BTC-JPY', 150, capturedAt),
     volumeRecord('coincheck', 'Coincheck', 'BTC-JPY', 100, capturedAt),
     volumeRecord('bitflyer', 'bitFlyer', 'BTC-CFD-JPY', 400, capturedAt, {
@@ -149,7 +149,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
       derivativeType: 'cfd',
       underlyingInstrumentId: 'ETH-JPY',
     }),
-  ], 'test', {
+  ];
+  runtime.stores.volumeShareStore.replaceLatest(latestVolumeRecords, 'test', {
     capturedAt,
   });
 
@@ -354,22 +355,30 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(exchangeHtml.status, 200);
   assert.ok(exchangeHtml.body.includes('取引所詳細'));
   assert.ok(exchangeHtml.body.includes('OKCoin Japan'));
-  assert.ok(exchangeHtml.body.includes('会社概要、売上・利益、純資産、親会社、開示資料、注意点'));
-  assert.ok(exchangeHtml.body.includes('財務から見る運営安定性'));
+  assert.ok(exchangeHtml.body.includes('運営会社・信頼性'));
+  assert.ok(exchangeHtml.body.includes('公開資料で見る信頼性の要点'));
   assert.ok(exchangeHtml.body.includes('売上・利益の推移'));
   assert.ok(exchangeHtml.body.includes('自己資本比率'));
   assert.ok(exchangeHtml.body.includes('行政処分歴'));
   assert.ok(exchangeHtml.body.includes('この情報は公開資料をもとにした参考情報'));
   assert.ok(exchangeHtml.body.includes('板取引対応銘柄'));
   assert.ok(exchangeHtml.body.includes('販売所対応銘柄'));
-  assert.ok(exchangeHtml.body.includes('公式リンク / 紹介リンク'));
+  assert.ok(exchangeHtml.body.includes('今すぐ確認する'));
+  assert.ok(exchangeHtml.body.includes('比較する'));
+  assert.ok(exchangeHtml.body.includes('理解を深める'));
   assert.ok(exchangeHtml.body.includes('/simulator?exchange=okj&amp;market=BTC-JPY'));
-  assert.ok(exchangeHtml.body.includes('/campaigns'));
+  assert.ok(exchangeHtml.body.includes('現在のキャンペーン'));
   assertCommonDisclosure(exchangeHtml.body);
 
   const bitflyerHtml = await fetchText(baseUrl, '/exchanges/bitflyer');
   assert.equal(bitflyerHtml.status, 200);
-  assert.ok(bitflyerHtml.body.includes('営業収益 13,567百万円'));
+  assert.ok(bitflyerHtml.body.includes('bitFlyerの特徴まとめ'));
+  assert.ok(bitflyerHtml.body.includes('BTC・ETH・XRPなど主要銘柄を板取引で比較したい人'));
+  assert.ok(bitflyerHtml.body.includes('手数料・スプレッドを見る'));
+  assert.ok(bitflyerHtml.body.includes('すべての取扱銘柄を見る'));
+  assert.ok(bitflyerHtml.body.includes('入出金・送金条件'));
+  assert.ok(bitflyerHtml.body.includes('営業収益は2022年度'));
+  assert.ok(bitflyerHtml.body.includes('2025年度 13,567百万円'));
   assert.ok(bitflyerHtml.body.includes('あり（bitFlyer Crypto CFD）'));
   assert.ok(bitflyerHtml.body.includes('純資産 29,750百万円'));
   assert.ok(bitflyerHtml.body.includes('株式会社 bitFlyer Holdings が議決権比率100%を保有'));
@@ -523,6 +532,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(volumeShare.body.meta.source, 'daily-snapshots');
   assert.equal(volumeShare.body.rows.length, 2);
 
+  runtime.stores.volumeShareStore.replaceLatest(latestVolumeRecords, 'test', {
+    capturedAt,
+  });
   const spotVolumeShareLatest = await fetchJson(baseUrl, '/api/volume-share?window=1d');
   assert.equal(spotVolumeShareLatest.status, 200);
   assert.equal(spotVolumeShareLatest.body.meta.totalQuoteVolume, 250);

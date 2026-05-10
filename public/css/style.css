@@ -3979,6 +3979,113 @@ a.market-feature-related__pill:focus-visible {
   border-top: 1px solid var(--line-weak);
 }
 
+.exchange-disclosure-card,
+.exchange-financial-accordion {
+  min-width: 0;
+}
+
+.exchange-disclosure-card__summary,
+.exchange-financial-accordion__summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  cursor: pointer;
+  list-style: none;
+}
+
+.exchange-disclosure-card__summary::-webkit-details-marker,
+.exchange-financial-accordion__summary::-webkit-details-marker {
+  display: none;
+}
+
+.exchange-disclosure-card__summary::after,
+.exchange-financial-accordion__summary::after {
+  content: '+';
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.exchange-disclosure-card[open] .exchange-disclosure-card__summary::after,
+.exchange-financial-accordion[open] .exchange-financial-accordion__summary::after {
+  content: '-';
+}
+
+.exchange-disclosure-card .market-definition-card__description {
+  display: block;
+}
+
+.exchange-coverage-overview {
+  grid-column: 1 / -1;
+}
+
+.exchange-financial-accordion {
+  display: block;
+  gap: var(--sp-3);
+}
+
+.exchange-financial-accordion__summary {
+  margin-bottom: 0;
+}
+
+.exchange-financial-accordion[open] .exchange-financial-accordion__summary {
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line-weak);
+}
+
+.exchange-source-links {
+  display: grid;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.exchange-source-links li {
+  display: grid;
+  gap: 4px;
+  padding: var(--sp-2);
+  border: 1px solid var(--line-weak);
+  border-radius: var(--r-sm);
+  background: rgba(8, 12, 14, 0.45);
+}
+
+.exchange-source-links a {
+  color: var(--accent);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.exchange-source-links a:hover,
+.exchange-source-links a:focus-visible {
+  text-decoration: underline;
+}
+
+.exchange-source-links span {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+}
+
+.exchange-related-groups {
+  display: grid;
+  gap: var(--sp-5);
+}
+
+.exchange-related-group {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.exchange-related-group__title {
+  margin: 0;
+  color: var(--text-1);
+  font-size: var(--fs-base);
+  font-weight: 800;
+}
+
 .market-disclaimer-card {
   display: flex;
   flex-direction: column;
@@ -4991,10 +5098,65 @@ a.market-feature-related__pill:focus-visible {
     rgba(17, 22, 24, 0.92);
 }
 
+.common-disclosure__details {
+  display: block;
+}
+
+.common-disclosure__summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  cursor: pointer;
+  list-style: none;
+}
+
+.common-disclosure__summary::-webkit-details-marker {
+  display: none;
+}
+
+.common-disclosure__summary::after {
+  content: '+';
+  flex: 0 0 auto;
+  color: var(--warn);
+  font-weight: 900;
+}
+
+.common-disclosure__details[open] .common-disclosure__summary {
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid rgba(244, 201, 93, 0.18);
+}
+
+.common-disclosure__details[open] .common-disclosure__summary::after {
+  content: '-';
+}
+
+.common-disclosure__summary-copy {
+  display: block;
+  margin-top: var(--sp-2);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.7;
+}
+
+.common-disclosure__summary-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(244, 201, 93, 0.24);
+  border-radius: 999px;
+  color: var(--warn);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .common-disclosure__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--sp-4);
+  margin-top: var(--sp-4);
 }
 
 .common-disclosure__item {
@@ -5544,6 +5706,9 @@ a.market-feature-related__pill:focus-visible {
   .beginner-conclusion-card__header,
   .decision-summary-card__header,
   .campaign-card__header,
+  .exchange-disclosure-card__summary,
+  .exchange-financial-accordion__summary,
+  .common-disclosure__summary,
   .inline-disclosure summary {
     flex-direction: column;
     align-items: flex-start;
@@ -5552,8 +5717,10 @@ a.market-feature-related__pill:focus-visible {
   .simulator-intro-card__badge,
   .quickstart-panel__badge,
   .decision-summary-badge,
+  .common-disclosure__summary-cta,
   .inline-disclosure__meta {
     text-align: left;
+    white-space: normal;
   }
 
   .decision-summary-card__actions {
