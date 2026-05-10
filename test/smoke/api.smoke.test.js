@@ -367,6 +367,15 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(exchangeHtml.body.includes('/campaigns'));
   assertCommonDisclosure(exchangeHtml.body);
 
+  const bitflyerHtml = await fetchText(baseUrl, '/exchanges/bitflyer');
+  assert.equal(bitflyerHtml.status, 200);
+  assert.ok(bitflyerHtml.body.includes('営業収益 13,567百万円'));
+  assert.ok(bitflyerHtml.body.includes('あり（bitFlyer Crypto CFD）'));
+  assert.ok(bitflyerHtml.body.includes('純資産 29,750百万円'));
+  assert.ok(bitflyerHtml.body.includes('株式会社 bitFlyer Holdings が議決権比率100%を保有'));
+  assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/financial-statement-12th.pdf'));
+  assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/business-report-12th.pdf'));
+
   const gmoLegacy = await fetch(new URL('/exchanges/gmo', baseUrl), { redirect: 'manual' });
   assert.equal(gmoLegacy.status, 301);
   assert.equal(gmoLegacy.headers.get('location'), '/exchanges/gmo-coin');
