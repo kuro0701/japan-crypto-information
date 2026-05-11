@@ -17,7 +17,7 @@
       <div class="brand-mark" aria-hidden="true">₿</div>
       <div class="brand-copy min-w-0">
         <h1 class="page-title">__EXCHANGE_NAME__ の取引所詳細</h1>
-        <div class="brand-subtitle">特徴・手数料・取扱銘柄</div>
+        <div class="brand-subtitle">手数料・スプレッド・板取引</div>
       </div>
     </div>
     <nav class="nav-menu" aria-label="ページ間ナビゲーション">
@@ -41,7 +41,11 @@
       <!-- EXCHANGE_CONCLUSION_CARD -->
     </section>
 
-    <section class="panel panel--dense">
+    <!-- EXCHANGE_CHECK_ORDER -->
+
+    <!-- EXCHANGE_TABS -->
+
+    <section class="panel panel--dense" data-exchange-tab-panel="simple">
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">基本情報</h2>
@@ -54,7 +58,7 @@
       </div>
     </section>
 
-    <section class="panel panel--dense">
+    <section class="panel panel--dense" data-exchange-tab-panel="simple">
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">向いている人・注意したい人</h2>
@@ -67,7 +71,7 @@
       </div>
     </section>
 
-    <section id="exchange-fees" class="panel panel--dense">
+    <section id="exchange-fees" class="panel panel--dense" data-exchange-tab-panel="cost" hidden>
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">手数料・スプレッド</h2>
@@ -80,7 +84,7 @@
       </div>
     </section>
 
-    <section id="exchange-liquidity" class="panel panel--dense">
+    <section id="exchange-liquidity" class="panel panel--dense" data-exchange-tab-panel="cost" hidden>
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">板取引・出来高の確認</h2>
@@ -93,7 +97,7 @@
       </div>
     </section>
 
-    <section id="exchange-coverage" class="panel panel--dense">
+    <section id="exchange-coverage" class="panel panel--dense" data-exchange-tab-panel="simple">
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">取扱銘柄</h2>
@@ -106,7 +110,7 @@
       </div>
     </section>
 
-    <section id="exchange-funding" class="panel panel--dense">
+    <section id="exchange-funding" class="panel panel--dense" data-exchange-tab-panel="cost" hidden>
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">入出金・送金条件</h2>
@@ -119,7 +123,7 @@
       </div>
     </section>
 
-    <section id="exchange-research" class="panel panel--dense">
+    <section id="exchange-research" class="panel panel--dense" data-exchange-tab-panel="trust" hidden>
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">運営会社・信頼性</h2>
@@ -132,7 +136,7 @@
       </div>
     </section>
 
-    <section id="exchange-related" class="panel panel--dense">
+    <section id="exchange-related" class="panel panel--dense" data-exchange-tab-panel="simple">
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">関連ページ</h2>
@@ -144,10 +148,21 @@
         <!-- EXCHANGE_RELATED_LINKS -->
       </div>
     </section>
+
+    <section id="exchange-faq" class="panel panel--dense" data-exchange-tab-panel="simple">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 class="panel-title">FAQ</h2>
+          <p class="text-xs text-gray-500 mt-1">__EXCHANGE_LABEL__を使う前に迷いやすい、コスト、板取引、取扱銘柄、運営会社の見方を整理しています。</p>
+        </div>
+        <span class="panel-kicker">FAQ</span>
+      </div>
+      <!-- EXCHANGE_FAQ_CARDS -->
+    </section>
   </main>
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | __EXCHANGE_NAME__</footer>
   <script src="/js/beginner-mode.js?v=5"></script>
-  <script src="/js/exchange-page.js?v=1"></script>
+  <script src="/js/exchange-page.js?v=2"></script>
 </body>
 </html>
