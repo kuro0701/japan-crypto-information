@@ -386,6 +386,23 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/financial-statement-12th.pdf'));
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/business-report-12th.pdf'));
 
+  const binanceHtml = await fetchText(baseUrl, '/exchanges/binance-japan');
+  assert.equal(binanceHtml.status, 200);
+  assert.ok(binanceHtml.body.includes('Binance Japanの特徴まとめ'));
+  assert.ok(binanceHtml.body.includes('PayPay が40%出資'));
+  assert.ok(binanceHtml.body.includes('PayPayマネー事前入金は110円'));
+  assert.ok(binanceHtml.body.includes('販売所ではBinance Japanが取引の相手方となり'));
+  assert.ok(binanceHtml.body.includes('営業収益は2022年12月期'));
+  assert.ok(binanceHtml.body.includes('2025年12月期 1,862百万円'));
+  assert.ok(binanceHtml.body.includes('純資産 17,321百万円'));
+  assert.ok(binanceHtml.body.includes('自己資本比率は約13.40%'));
+  assert.ok(binanceHtml.body.includes('公式サイトで第6期（2022年12月期）から第9期（2025年12月期）までの財務諸表を公開'));
+  assert.ok(binanceHtml.body.includes('https://www.binance.com/ja/about-legal/financial-statements-JP'));
+  assert.ok(binanceHtml.body.includes('https://www.binance.com/ja/about-legal/financial-statement-9-2025-jp'));
+  assert.ok(binanceHtml.body.includes('https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf'));
+  assert.ok(binanceHtml.body.includes('https://about.paypay.ne.jp/pr/20251009/01/'));
+  assert.ok(binanceHtml.body.includes('https://public.bnbstatic.com/static/terms_doc/Announcement_Capital_Reduction_Nov_14_ja.pdf'));
+
   const gmoLegacy = await fetch(new URL('/exchanges/gmo', baseUrl), { redirect: 'manual' });
   assert.equal(gmoLegacy.status, 301);
   assert.equal(gmoLegacy.headers.get('location'), '/exchanges/gmo-coin');
