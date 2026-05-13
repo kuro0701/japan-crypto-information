@@ -433,6 +433,20 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/disclosure_2025_12.pdf?ver=202512'));
   assert.ok(gmoHtml.body.includes('https://www.gmofh.com/ir/stock/memo.html'));
 
+  const bittradeHtml = await fetchText(baseUrl, '/exchanges/bittrade');
+  assert.equal(bittradeHtml.status, 200);
+  assert.ok(bittradeHtml.body.includes('BitTrade'));
+  assert.ok(bittradeHtml.body.includes('売上高は2022年3月期'));
+  assert.ok(bittradeHtml.body.includes('2025年3月期 2,187百万円'));
+  assert.ok(bittradeHtml.body.includes('純資産 3,094百万円'));
+  assert.ok(bittradeHtml.body.includes('自己資本比率は約12.96%'));
+  assert.ok(bittradeHtml.body.includes('SINOHOPE SG PTE. LTD.'));
+  assert.ok(bittradeHtml.body.includes('公式開示資料で第6期（2022年3月期）から第9期（2025年3月期）までの決算公告を公開'));
+  assert.ok(bittradeHtml.body.includes('https://www.bittrade.co.jp/ja-jp/disclosure/'));
+  assert.ok(bittradeHtml.body.includes('https://static.bittrade.co.jp/pdf/2024%E5%B9%B4%E5%BA%A6%E6%B1%BA%E7%AE%97%E5%85%AC%E5%91%8A%28%E7%AC%AC9%E6%9C%9F%29_01.pdf'));
+  assert.ok(bittradeHtml.body.includes('https://static.bittrade.co.jp/pdf/20241231Capital-Adequacy-Ratio.pdf'));
+  assert.ok(bittradeHtml.body.includes('https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf'));
+
   const aboutHtml = await fetchText(baseUrl, '/about');
   assert.equal(aboutHtml.status, 200);
   assert.ok(aboutHtml.body.includes('id="data-sources"'));
