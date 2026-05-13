@@ -359,6 +359,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(exchangeHtml.body.includes('公開資料で見る信頼性の要点'));
   assert.ok(exchangeHtml.body.includes('売上・利益の推移'));
   assert.ok(exchangeHtml.body.includes('自己資本比率'));
+  assert.ok(exchangeHtml.body.includes('営業収益は2021年3月期'));
+  assert.ok(exchangeHtml.body.includes('2025年3月期 2,485百万円'));
+  assert.ok(exchangeHtml.body.includes('純資産 2,145百万円'));
+  assert.ok(exchangeHtml.body.includes('自己資本比率は約5.46%'));
+  assert.ok(exchangeHtml.body.includes('公式開示資料で第4期（2020年3月期）から第9期（2025年3月期）までの決算公告'));
+  assert.ok(exchangeHtml.body.includes('https://www.okcoin.jp/pages/company/documents.html'));
+  assert.ok(exchangeHtml.body.includes('https://cdn.okcoin.jp/cdn/assets/pdf/common/2025_kessan_koukoku.pdf'));
+  assert.ok(exchangeHtml.body.includes('https://cdn.okcoin.jp/cdn/assets/pdf/common/2025_balance_sheet.pdf'));
 	  assert.ok(exchangeHtml.body.includes('行政処分歴'));
 	  assert.ok(exchangeHtml.body.includes('この情報は公開資料をもとにした参考情報'));
 	  assert.ok(exchangeHtml.body.includes('板取引対応銘柄'));
