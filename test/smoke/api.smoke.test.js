@@ -410,7 +410,20 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const gmoHtml = await fetchText(baseUrl, '/exchanges/gmo-coin');
   assert.equal(gmoHtml.status, 200);
   assert.ok(gmoHtml.body.includes('GMO Coin'));
+  assert.ok(gmoHtml.body.includes('GMOコインの特徴まとめ'));
   assert.ok(gmoHtml.body.includes('キャンペーン・プログラム一覧を公式で確認'));
+  assert.ok(gmoHtml.body.includes('営業収益は2021年12月期'));
+  assert.ok(gmoHtml.body.includes('2025年12月期 7,398百万円'));
+  assert.ok(gmoHtml.body.includes('純資産 12,354百万円'));
+  assert.ok(gmoHtml.body.includes('自己資本比率は約2.64%'));
+  assert.ok(gmoHtml.body.includes('GMOフィナンシャルホールディングス株式会社が直接100%を保有'));
+  assert.ok(gmoHtml.body.includes('公式開示情報で第6期（2021年12月期）から第10期（2025年12月期）までの決算公告・事業報告を公開'));
+  assert.ok(gmoHtml.body.includes('https://coin.z.com/jp/corp/about/kaiji/'));
+  assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/kessan_koukoku_2026_03.pdf'));
+  assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/jigyou_houkoku_2026_03.pdf'));
+  assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/capital_ratio_2026_03.pdf?ver=202603'));
+  assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/disclosure_2025_12.pdf?ver=202512'));
+  assert.ok(gmoHtml.body.includes('https://www.gmofh.com/ir/stock/memo.html'));
 
   const aboutHtml = await fetchText(baseUrl, '/about');
   assert.equal(aboutHtml.status, 200);
