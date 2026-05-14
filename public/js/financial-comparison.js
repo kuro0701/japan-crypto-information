@@ -65,11 +65,11 @@
     const revenue = numberOrNull(row && row.revenue);
     if (metricKey === 'operatingMargin') {
       const operatingProfit = numberOrNull(row && row.operatingProfit);
-      return revenue && operatingProfit != null ? (operatingProfit / revenue) * 100 : null;
+      return revenue > 0 && operatingProfit != null ? (operatingProfit / revenue) * 100 : null;
     }
     if (metricKey === 'revenueYoY' && index > 0) {
       const previousRevenue = numberOrNull(company.history[index - 1] && company.history[index - 1].revenue);
-      return revenue != null && previousRevenue ? ((revenue - previousRevenue) / Math.abs(previousRevenue)) * 100 : null;
+      return revenue > 0 && previousRevenue > 0 ? ((revenue - previousRevenue) / Math.abs(previousRevenue)) * 100 : null;
     }
     if (metricKey === 'totalAssets' || metricKey === 'equityRatio') {
       return index === company.history.length - 1 ? latestValue(company, metricKey) : null;

@@ -361,6 +361,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(financialComparisonHtml.body.includes('Coincheck'));
   assert.ok(financialComparisonHtml.body.includes('bitFlyer'));
   assert.ok(financialComparisonHtml.body.includes('GMOコイン'));
+  assert.ok(financialComparisonHtml.body.includes('Custodiem'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.custodiem.com/'));
   assert.ok(financialComparisonHtml.body.includes('マネーパートナーズ'));
   assert.ok(financialComparisonHtml.body.includes('https://www.moneypartners.co.jp/aboutus/disclosure.html'));
   assert.ok(financialComparisonHtml.body.includes('/js/financial-comparison.js'));
