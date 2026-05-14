@@ -351,6 +351,19 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(exchangesHtml.body.includes('/exchanges/gmo-coin'));
   assertCommonDisclosure(exchangesHtml.body);
 
+  const financialComparisonHtml = await fetchText(baseUrl, '/financial-comparison');
+  assert.equal(financialComparisonHtml.status, 200);
+  assert.ok(financialComparisonHtml.body.includes('財務比較ダッシュボード'));
+  assert.ok(financialComparisonHtml.body.includes('financial-comparison-data'));
+  assert.ok(financialComparisonHtml.body.includes('営業収益 / 売上高'));
+  assert.ok(financialComparisonHtml.body.includes('強み・弱みヒートマップ'));
+  assert.ok(financialComparisonHtml.body.includes('ランキングと開示元'));
+  assert.ok(financialComparisonHtml.body.includes('Coincheck'));
+  assert.ok(financialComparisonHtml.body.includes('bitFlyer'));
+  assert.ok(financialComparisonHtml.body.includes('GMOコイン'));
+  assert.ok(financialComparisonHtml.body.includes('/js/financial-comparison.js'));
+  assertCommonDisclosure(financialComparisonHtml.body);
+
   const exchangeHtml = await fetchText(baseUrl, '/exchanges/okj');
   assert.equal(exchangeHtml.status, 200);
   assert.ok(exchangeHtml.body.includes('取引所詳細'));

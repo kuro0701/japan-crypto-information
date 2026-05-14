@@ -182,6 +182,7 @@ function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/volume-share' || reqPath === '/volume-share.html') return '/volume-share';
   if (reqPath === '/derivatives' || reqPath === '/derivatives.html') return '/derivatives';
   if (reqPath === '/sales-spread' || reqPath === '/sales-spread.html') return '/sales-spread';
+  if (reqPath === '/financial-comparison' || reqPath === '/financial-comparison.html') return '/financial-comparison';
   if (reqPath === '/campaigns' || reqPath === '/campaigns.html') return '/campaigns';
   if (reqPath === '/learn' || reqPath === '/learn/') return '/learn';
   if (/^\/learn\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
