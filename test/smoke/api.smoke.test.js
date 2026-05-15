@@ -376,6 +376,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(financialComparisonHtml.body.includes('https://corp.zaif.jp/business-report/'));
   assert.ok(financialComparisonHtml.body.includes('楽天ウォレット'));
   assert.ok(financialComparisonHtml.body.includes('https://www.rakuten-wallet.co.jp/irpress/statement.html'));
+  assert.ok(financialComparisonHtml.body.includes('Gate Japan'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.gate.com/ja-jp/about-us#Company'));
+  assert.ok(financialComparisonHtml.body.includes('https://gimg2.staticimgs.com/docs/10_20260318_162037_b7114d6d9c458d66fa17b83343b0567d.pdf'));
   assert.ok(financialComparisonHtml.body.includes('/js/financial-comparison.js'));
   assertCommonDisclosure(financialComparisonHtml.body);
 
