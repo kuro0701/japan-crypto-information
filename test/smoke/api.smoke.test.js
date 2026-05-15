@@ -369,6 +369,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(financialComparisonHtml.body.includes('https://blog.btcbox.jp/financial-data'));
   assert.ok(financialComparisonHtml.body.includes('マネーパートナーズ'));
   assert.ok(financialComparisonHtml.body.includes('https://www.moneypartners.co.jp/aboutus/disclosure.html'));
+  assert.ok(financialComparisonHtml.body.includes('Zaif'));
+  assert.ok(financialComparisonHtml.body.includes('https://corp.zaif.jp/business-report/'));
   assert.ok(financialComparisonHtml.body.includes('/js/financial-comparison.js'));
   assertCommonDisclosure(financialComparisonHtml.body);
 
