@@ -363,6 +363,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(financialComparisonHtml.body.includes('GMOコイン'));
   assert.ok(financialComparisonHtml.body.includes('Custodiem'));
   assert.ok(financialComparisonHtml.body.includes('https://www.custodiem.com/'));
+  assert.ok(financialComparisonHtml.body.includes('SBI VCトレード'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.sbivc.co.jp/company-profile'));
   assert.ok(financialComparisonHtml.body.includes('BTCBOX'));
   assert.ok(financialComparisonHtml.body.includes('https://blog.btcbox.jp/financial-data'));
   assert.ok(financialComparisonHtml.body.includes('マネーパートナーズ'));
