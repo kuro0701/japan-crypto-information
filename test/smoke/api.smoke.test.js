@@ -379,6 +379,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(financialComparisonHtml.body.includes('Gate Japan'));
   assert.ok(financialComparisonHtml.body.includes('https://www.gate.com/ja-jp/about-us#Company'));
   assert.ok(financialComparisonHtml.body.includes('https://gimg2.staticimgs.com/docs/10_20260318_162037_b7114d6d9c458d66fa17b83343b0567d.pdf'));
+  assert.ok(financialComparisonHtml.body.includes('OSL Japan'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.osl.com/jp/cms/report'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.osl.com/jp/public/cdn/public_file/2025/11/99bdfd54c4ab97867b8fc5596c772b24.pdf'));
   assert.ok(financialComparisonHtml.body.includes('/js/financial-comparison.js'));
   assertCommonDisclosure(financialComparisonHtml.body);
 
