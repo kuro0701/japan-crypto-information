@@ -5868,12 +5868,17 @@ a.market-feature-related__pill:focus-visible {
 
 .financial-company-filter {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
   gap: var(--sp-2);
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-gutter: stable;
 }
 
 .financial-company-chip {
+  flex: 0 0 auto;
   min-height: 36px;
   min-width: 44px;
   padding: 0 10px;
@@ -5883,11 +5888,30 @@ a.market-feature-related__pill:focus-visible {
   background: var(--surface-2);
   font-size: var(--fs-xs);
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .financial-company-chip.is-focused {
   border-color: rgba(244, 201, 93, 0.66);
   box-shadow: inset 0 0 0 1px rgba(244, 201, 93, 0.16);
+}
+
+.financial-company-chip--action {
+  color: var(--text-2);
+  border-color: rgba(244, 201, 93, 0.3);
+  background: rgba(244, 201, 93, 0.08);
+}
+
+.financial-company-filter__count {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 4px;
+  color: var(--text-4);
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .financial-chart-grid {
@@ -6390,16 +6414,19 @@ a.market-feature-related__pill:focus-visible {
     min-height: 280px;
   }
 
-  .financial-company-filter,
   .financial-metric-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .financial-company-chip,
   .financial-metric-tab {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .financial-company-filter {
+    margin-right: -4px;
+    padding-bottom: 8px;
   }
 
   .financial-spotlight__header,

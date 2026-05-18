@@ -15,12 +15,15 @@
   const companies = model.companies;
   const metrics = model.metrics;
   const metricMap = new Map(metrics.map(metric => [metric.key, metric]));
-  const selectedIds = new Set(companies.map(company => company.exchangeId));
+  const DEFAULT_VISIBLE_COMPANY_LIMIT = 8;
+  const CHART_SERIES_LIMIT = 10;
+  const selectedIds = new Set(initialSelectedCompanyIds());
   let activeMetric = 'revenue';
-  let focusId = companies[0] && companies[0].exchangeId;
+  let focusId = Array.from(selectedIds)[0] || (companies[0] && companies[0].exchangeId);
   let barChart = null;
   let trendChart = null;
   let radarChart = null;
+  let currentBarRows = [];
 
   const palette = [
     [53, 200, 210],
@@ -57,6 +60,23 @@
 
   function latestValue(company, metricKey) {
     return numberOrNull(company && company.latest && company.latest[metricKey]);
+  }
+
+  function initialSelectedCompanyIds() {
+    if (companies.length <= DEFAULT_VISIBLE_COMPANY_LIMIT) {
+      return companies.map(company => company.exchangeId);
+    }
+    return companies
+      .slice()
+      .filter(company => latestValue(company, 'revenue') != null)
+      .sort((a, b) => {
+        const aValue = latestValue(a, 'revenue');
+        const bValue = latestValue(b, 'revenue');
+        if (aValue !== bValue) return bValue - aValue;
+        return String(a.label || a.serviceName).localeCompare(String(b.label || b.serviceName));
+      })
+      .slice(0, DEFAULT_VISIBLE_COMPANY_LIMIT)
+      .map(company => company.exchangeId);
   }
 
   function historyValue(company, row, metricKey, index) {
@@ -132,6 +152,37 @@
       });
   }
 
+  function chartCompanies(metricKey = activeMetric) {
+    const source = visibleCompanies();
+    if (source.length <= CHART_SERIES_LIMIT) return source;
+    const focused = companyById(focusId);
+    const picked = new Map();
+    if (focused && selectedIds.has(focused.exchangeId) && latestValue(focused, metricKey) != null) {
+      picked.set(focused.exchangeId, focused);
+    }
+    sortedByMetric(metricKey, source).forEach((company) => {
+      if (picked.size < CHART_SERIES_LIMIT) picked.set(company.exchangeId, company);
+    });
+    return Array.from(picked.values());
+  }
+
+  function isFeaturedSelection() {
+    const featuredIds = initialSelectedCompanyIds();
+    if (selectedIds.size !== featuredIds.length) return false;
+    return featuredIds.every(companyId => selectedIds.has(companyId));
+  }
+
+  function setSelectedCompanies(companyIds) {
+    selectedIds.clear();
+    companyIds.forEach((companyId) => {
+      if (companyById(companyId)) selectedIds.add(companyId);
+    });
+    if (!selectedIds.has(focusId)) {
+      focusId = Array.from(selectedIds)[0] || (companies[0] && companies[0].exchangeId);
+    }
+    refresh();
+  }
+
   function metricValues(metricKey, source = visibleCompanies()) {
     return source
       .map(company => latestValue(company, metricKey))
@@ -203,19 +254,30 @@
           const points = barChart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
           const point = points && points[0];
           if (!point) return;
-          const rows = sortedByMetric(activeMetric);
+          const rows = currentBarRows;
           const company = rows[point.index];
           if (company) setFocus(company.exchangeId);
         },
         scales: {
           x: {
-            ticks: { color: '#9aa6a1', callback: value => compactMetricValue(value, activeMetric) },
+            ticks: {
+              color: '#9aa6a1',
+              autoSkip: true,
+              maxRotation: 0,
+              minRotation: 0,
+              maxTicksLimit: 5,
+              callback: value => compactMetricValue(value, activeMetric),
+            },
             grid: { color: chartGridColor() },
           },
           y: {
-            ticks: { color: chartTextColor(), font: { weight: 800 } },
+            ticks: { color: chartTextColor(), font: { size: 11, weight: 800 } },
             grid: { display: false },
           },
+        },
+        plugins: {
+          ...baseChartOptions().plugins,
+          legend: { display: false },
         },
       },
     });
@@ -234,11 +296,18 @@
         elements: { point: { radius: 3, hoverRadius: 5 } },
         scales: {
           x: {
-            ticks: { color: '#9aa6a1' },
+            ticks: { color: '#9aa6a1', maxTicksLimit: 6 },
             grid: { color: chartGridColor() },
           },
           y: {
-            ticks: { color: '#9aa6a1', callback: value => compactMetricValue(value, activeMetric) },
+            ticks: {
+              color: '#9aa6a1',
+              autoSkip: true,
+              maxRotation: 0,
+              minRotation: 0,
+              maxTicksLimit: 5,
+              callback: value => compactMetricValue(value, activeMetric),
+            },
             grid: { color: chartGridColor() },
           },
         },
@@ -272,7 +341,8 @@
   function updateBarChart() {
     if (!barChart) return;
     const metric = metricConfig(activeMetric);
-    const rows = sortedByMetric(activeMetric);
+    const rows = sortedByMetric(activeMetric, chartCompanies(activeMetric));
+    currentBarRows = rows;
     barChart.data.labels = rows.map(company => company.label || company.serviceName);
     barChart.data.datasets = [{
       label: metric.label,
@@ -297,7 +367,7 @@
     const years = Array.from(new Set(companies.flatMap(company => company.history.map(row => row.fiscalYear))))
       .filter(year => Number.isFinite(Number(year)))
       .sort((a, b) => a - b);
-    const rows = visibleCompanies();
+    const rows = chartCompanies(activeMetric);
     trendChart.data.labels = years.map(year => String(year));
     trendChart.data.datasets = rows.map((company, index) => {
       const byYear = new Map(company.history.map((row, rowIndex) => [
@@ -312,6 +382,7 @@
         spanGaps: true,
         tension: 0.28,
         borderWidth: company.exchangeId === focusId ? 3 : 2,
+        pointRadius: company.exchangeId === focusId ? 3 : 2,
       };
     });
     trendChart.options.scales.y.ticks.callback = value => compactMetricValue(value, activeMetric);
@@ -365,7 +436,15 @@
   function renderCompanyFilter() {
     const target = $('financial-company-filter');
     if (!target) return;
-    target.innerHTML = companies.map((company) => {
+    const featuredLabel = companies.length > DEFAULT_VISIBLE_COMPANY_LIMIT
+      ? `主要${DEFAULT_VISIBLE_COMPANY_LIMIT}社`
+      : '全社';
+    const actionButtons = [
+      `<button type="button" class="financial-company-chip financial-company-chip--action${isFeaturedSelection() ? ' is-active' : ''}" data-company-action="featured" aria-pressed="${isFeaturedSelection() ? 'true' : 'false'}">${escapeHtml(featuredLabel)}</button>`,
+      `<button type="button" class="financial-company-chip financial-company-chip--action${selectedIds.size === companies.length ? ' is-active' : ''}" data-company-action="all" aria-pressed="${selectedIds.size === companies.length ? 'true' : 'false'}">全社</button>`,
+      `<span class="financial-company-filter__count" aria-live="polite">${escapeHtml(String(selectedIds.size))}/${escapeHtml(String(companies.length))}</span>`,
+    ];
+    const companyButtons = companies.map((company) => {
       const active = selectedIds.has(company.exchangeId);
       const focused = company.exchangeId === focusId;
       return [
@@ -373,7 +452,19 @@
         `  <span>${escapeHtml(company.label || company.serviceName)}</span>`,
         '</button>',
       ].join('');
-    }).join('');
+    });
+    target.innerHTML = actionButtons.concat(companyButtons).join('');
+
+    target.querySelectorAll('[data-company-action]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const action = button.getAttribute('data-company-action');
+        if (action === 'all') {
+          setSelectedCompanies(companies.map(company => company.exchangeId));
+        } else {
+          setSelectedCompanies(initialSelectedCompanyIds());
+        }
+      });
+    });
 
     target.querySelectorAll('[data-company-id]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -509,7 +600,12 @@
     const title = $('financial-bar-title');
     if (title) title.textContent = `${metric.label}の横比較`;
     const note = $('financial-bar-note');
-    if (note) note.textContent = `${metric.description || '選択中の指標'}を各社の最新開示期で比較します。`;
+    if (note) {
+      const selectedCount = visibleCompanies().length;
+      const chartCount = chartCompanies(activeMetric).length;
+      const subset = selectedCount > chartCount ? ` グラフは表示中${selectedCount}社のうち上位${chartCount}社に絞っています。` : '';
+      note.textContent = `${metric.description || '選択中の指標'}を各社の最新開示期で比較します。${subset}`;
+    }
   }
 
   function setMetric(metricKey) {
