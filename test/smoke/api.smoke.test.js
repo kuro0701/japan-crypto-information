@@ -388,6 +388,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(financialComparisonHtml.body.includes('CoinTrade'));
   assert.ok(financialComparisonHtml.body.includes('https://coin-trade.cc/about/company/disclosure/'));
   assert.ok(financialComparisonHtml.body.includes('https://coin-trade.cc/assets/pdf/about/company/disclosure/balancesheet_202512.pdf'));
+  assert.ok(financialComparisonHtml.body.includes('BACKSEAT Exchange'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.backseat-exchange.com/about'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.backseat-exchange.com/_files/ugd/e89f1d_c8f3ceb6fdec47da9d6e995559e1fa1c.pdf'));
   assert.ok(financialComparisonHtml.body.includes('/js/financial-comparison.js'));
   assertCommonDisclosure(financialComparisonHtml.body);
 
