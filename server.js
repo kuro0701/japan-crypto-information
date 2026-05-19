@@ -58,6 +58,7 @@ const { createSiteContentService } = require('./lib/server/site-content-service'
 const app = express();
 app.set('trust proxy', 1);
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const CHART_JS_BROWSER_PATH = path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.min.js');
 const BUNDLED_DATA_DIR = path.join(__dirname, 'data');
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
 const USE_NEON_SNAPSHOT_STORAGE = Boolean(DATABASE_URL);
@@ -310,6 +311,9 @@ registerApiRoutes(app, {
   salesSpreadStore,
   siteContentService,
   volumeShareStore,
+});
+app.get('/vendor/chart.umd.min.js', (_req, res) => {
+  res.type('application/javascript').sendFile(CHART_JS_BROWSER_PATH);
 });
 app.use(express.static(PUBLIC_DIR));
 

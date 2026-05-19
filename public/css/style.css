@@ -5857,6 +5857,61 @@ a.market-feature-related__pill:focus-visible {
 
 .financial-metric-tab {
   min-width: 92px;
+  gap: 6px;
+}
+
+.financial-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(53, 200, 210, 0.38);
+  border-radius: 999px;
+  color: var(--text-2);
+  background: rgba(13, 18, 20, 0.92);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: help;
+}
+
+.financial-help::after {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 40;
+  width: min(280px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border: 1px solid rgba(200, 220, 210, 0.2);
+  border-radius: var(--r-sm);
+  color: var(--text-1);
+  background: rgba(8, 12, 14, 0.98);
+  box-shadow: var(--shadow-md);
+  content: attr(data-tooltip);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.6;
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  transform: translate(-50%, 4px);
+  transition: opacity 150ms ease, transform 150ms ease;
+  white-space: normal;
+}
+
+.financial-help:hover::after,
+.financial-help:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.financial-help--tab {
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
 }
 
 .financial-metric-tab.is-active,
@@ -6046,14 +6101,71 @@ a.market-feature-related__pill:focus-visible {
   text-align: left;
 }
 
+.financial-heatmap-table thead th:first-child {
+  left: 0;
+  z-index: 4;
+}
+
 .financial-heatmap-table tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 3;
   width: 180px;
   color: var(--text-1);
   background: rgba(8, 12, 14, 0.78);
   text-align: left;
 }
 
-.financial-heatmap-table tbody th span,
+.financial-heatmap-metric-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.financial-heatmap-sort,
+.financial-heatmap-company-sort {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
+.financial-heatmap-sort {
+  width: auto;
+  max-width: calc(100% - 28px);
+}
+
+.financial-heatmap-sort span:first-child,
+.financial-heatmap-company-sort span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.financial-heatmap-sort.is-active,
+.financial-heatmap-company-sort.is-active {
+  color: var(--accent);
+}
+
+.financial-heatmap-sort__arrow {
+  min-width: 12px;
+  color: var(--warn);
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.financial-heatmap-benchmark-head {
+  color: var(--warn) !important;
+}
+
+.financial-heatmap-table tbody th .financial-heatmap-sort span:first-child,
 .financial-heatmap-cell strong {
   display: block;
   font-size: var(--fs-xs);
@@ -6072,6 +6184,10 @@ a.market-feature-related__pill:focus-visible {
 .financial-heatmap-cell {
   min-width: 118px;
   color: var(--text-1);
+}
+
+.financial-heatmap-cell--benchmark {
+  box-shadow: inset 2px 0 0 rgba(244, 201, 93, 0.55);
 }
 
 .financial-heatmap-cell.is-negative strong {
@@ -6427,6 +6543,66 @@ a.market-feature-related__pill:focus-visible {
   .financial-company-filter {
     margin-right: -4px;
     padding-bottom: 8px;
+  }
+
+  .financial-heatmap {
+    overflow: visible !important;
+  }
+
+  .financial-heatmap-table {
+    min-width: 0;
+    border-spacing: 0;
+  }
+
+  .financial-heatmap-table,
+  .financial-heatmap-table thead,
+  .financial-heatmap-table tbody,
+  .financial-heatmap-table tr,
+  .financial-heatmap-table th,
+  .financial-heatmap-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .financial-heatmap-table thead {
+    display: none;
+  }
+
+  .financial-heatmap-table tbody tr {
+    overflow: hidden;
+    margin-bottom: var(--sp-3);
+    border: 1px solid var(--line-weak);
+    border-radius: var(--r);
+    background: rgba(4, 7, 10, 0.42);
+  }
+
+  .financial-heatmap-table tbody th {
+    position: static;
+    width: 100%;
+    border-right: 0;
+    background: rgba(13, 18, 20, 0.96);
+  }
+
+  .financial-heatmap-cell {
+    display: grid !important;
+    grid-template-columns: minmax(112px, 0.86fr) minmax(0, 1.14fr);
+    gap: var(--sp-2);
+    min-width: 0;
+    border-right: 0 !important;
+  }
+
+  .financial-heatmap-cell::before {
+    align-self: start;
+    color: var(--text-4);
+    content: attr(data-company);
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1.45;
+  }
+
+  .financial-heatmap-cell strong,
+  .financial-heatmap-cell span {
+    grid-column: 2;
   }
 
   .financial-spotlight__header,

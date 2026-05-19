@@ -24,6 +24,8 @@
   let trendChart = null;
   let radarChart = null;
   let currentBarRows = [];
+  let heatmapSort = { kind: '', key: '', direction: 'desc' };
+  const BENCHMARK_ID = '__financial_benchmark__';
 
   const palette = [
     [53, 200, 210],
@@ -56,6 +58,16 @@
 
   function metricConfig(metricKey) {
     return metricMap.get(metricKey) || metrics[0];
+  }
+
+  function metricHelpText(metricKey) {
+    const metric = metricConfig(metricKey);
+    return metric.help || metric.description || `${metric.label}の見方を確認します。`;
+  }
+
+  function renderMetricHelp(metric) {
+    const help = metricHelpText(metric.key);
+    return `<span class="financial-help" data-tooltip="${escapeHtml(help)}" title="${escapeHtml(help)}" aria-label="${escapeHtml(metric.label)}の説明" role="img" tabindex="0">?</span>`;
   }
 
   function latestValue(company, metricKey) {
@@ -136,8 +148,12 @@
     return companies.filter(company => selectedIds.has(company.exchangeId));
   }
 
+  function findCompanyById(exchangeId) {
+    return companies.find(company => company.exchangeId === exchangeId) || null;
+  }
+
   function companyById(exchangeId) {
-    return companies.find(company => company.exchangeId === exchangeId) || companies[0];
+    return findCompanyById(exchangeId) || companies[0];
   }
 
   function sortedByMetric(metricKey, source = visibleCompanies()) {
@@ -150,6 +166,63 @@
         if (aValue !== bValue) return bValue - aValue;
         return String(a.label || a.serviceName).localeCompare(String(b.label || b.serviceName));
       });
+  }
+
+  function compareNullableValues(aValue, bValue, direction = 'desc') {
+    const aMissing = aValue == null;
+    const bMissing = bValue == null;
+    if (aMissing && bMissing) return 0;
+    if (aMissing) return 1;
+    if (bMissing) return -1;
+    const multiplier = direction === 'asc' ? 1 : -1;
+    if (aValue !== bValue) return (aValue - bValue) * multiplier;
+    return 0;
+  }
+
+  function sortedHeatmapCompanies() {
+    const source = visibleCompanies();
+    if (heatmapSort.kind !== 'metric' || !metricMap.has(heatmapSort.key)) return source;
+    return source.slice().sort((a, b) => {
+      const compared = compareNullableValues(
+        latestValue(a, heatmapSort.key),
+        latestValue(b, heatmapSort.key),
+        heatmapSort.direction
+      );
+      if (compared !== 0) return compared;
+      return String(a.label || a.serviceName).localeCompare(String(b.label || b.serviceName));
+    });
+  }
+
+  function sortedHeatmapMetrics(sourceRows) {
+    const company = findCompanyById(heatmapSort.key);
+    if (heatmapSort.kind !== 'company' || !company) return sourceRows;
+    return sourceRows.slice().sort((a, b) => {
+      const compared = compareNullableValues(
+        normalizedScore(latestValue(company, a.key), a.key, companies),
+        normalizedScore(latestValue(company, b.key), b.key, companies),
+        heatmapSort.direction
+      );
+      if (compared !== 0) return compared;
+      return String(a.label).localeCompare(String(b.label));
+    });
+  }
+
+  function heatmapSortArrow(kind, key) {
+    if (heatmapSort.kind !== kind || heatmapSort.key !== key) return '';
+    return heatmapSort.direction === 'asc' ? '↑' : '↓';
+  }
+
+  function toggleHeatmapSort(kind, key) {
+    if (!key) return;
+    const sameTarget = heatmapSort.kind === kind && heatmapSort.key === key;
+    heatmapSort = {
+      kind,
+      key,
+      direction: sameTarget && heatmapSort.direction === 'desc' ? 'asc' : 'desc',
+    };
+    if (kind === 'metric' && metricMap.has(key)) activeMetric = key;
+    if (kind === 'company' && findCompanyById(key)) focusId = key;
+    refresh();
   }
 
   function chartCompanies(metricKey = activeMetric) {
@@ -175,7 +248,7 @@
   function setSelectedCompanies(companyIds) {
     selectedIds.clear();
     companyIds.forEach((companyId) => {
-      if (companyById(companyId)) selectedIds.add(companyId);
+      if (findCompanyById(companyId)) selectedIds.add(companyId);
     });
     if (!selectedIds.has(focusId)) {
       focusId = Array.from(selectedIds)[0] || (companies[0] && companies[0].exchangeId);
@@ -187,6 +260,47 @@
     return source
       .map(company => latestValue(company, metricKey))
       .filter(value => value != null);
+  }
+
+  function average(values) {
+    const clean = values.filter(value => value != null);
+    if (clean.length === 0) return null;
+    return clean.reduce((sum, value) => sum + value, 0) / clean.length;
+  }
+
+  function averageValue(metricKey, source = companies) {
+    return average(source.map(company => latestValue(company, metricKey)));
+  }
+
+  function metricValueForChartRow(row, metricKey) {
+    if (row && row.isBenchmark) return numberOrNull(row.value);
+    return latestValue(row, metricKey);
+  }
+
+  function benchmarkRow(metricKey) {
+    const value = averageValue(metricKey, companies);
+    if (value == null) return null;
+    return {
+      exchangeId: BENCHMARK_ID,
+      label: '掲載社平均',
+      serviceName: '掲載社平均',
+      fiscalYearLabel: `${companies.length}社平均`,
+      value,
+      isBenchmark: true,
+    };
+  }
+
+  function averageHistoryValue(year, metricKey, source = companies) {
+    const values = source.map((company) => {
+      let value = null;
+      company.history.forEach((row, rowIndex) => {
+        if (Number(row && row.fiscalYear) === Number(year)) {
+          value = historyValue(company, row, metricKey, rowIndex);
+        }
+      });
+      return value;
+    });
+    return average(values);
   }
 
   function normalizedScore(value, metricKey, source = visibleCompanies()) {
@@ -256,7 +370,7 @@
           if (!point) return;
           const rows = currentBarRows;
           const company = rows[point.index];
-          if (company) setFocus(company.exchangeId);
+          if (company && !company.isBenchmark) setFocus(company.exchangeId);
         },
         scales: {
           x: {
@@ -341,18 +455,22 @@
   function updateBarChart() {
     if (!barChart) return;
     const metric = metricConfig(activeMetric);
-    const rows = sortedByMetric(activeMetric, chartCompanies(activeMetric));
+    const companyRows = sortedByMetric(activeMetric, chartCompanies(activeMetric));
+    const benchmark = benchmarkRow(activeMetric);
+    const rows = benchmark ? companyRows.concat(benchmark) : companyRows;
     currentBarRows = rows;
     barChart.data.labels = rows.map(company => company.label || company.serviceName);
     barChart.data.datasets = [{
       label: metric.label,
-      data: rows.map(company => latestValue(company, activeMetric)),
+      data: rows.map(company => metricValueForChartRow(company, activeMetric)),
       backgroundColor: rows.map((company, index) => {
-        const value = latestValue(company, activeMetric);
+        if (company.isBenchmark) return 'rgba(244, 201, 93, 0.64)';
+        const value = metricValueForChartRow(company, activeMetric);
         return value != null && value < 0 ? 'rgba(255, 107, 112, 0.62)' : color(index, 0.72);
       }),
       borderColor: rows.map((company, index) => {
-        const value = latestValue(company, activeMetric);
+        if (company.isBenchmark) return 'rgba(244, 201, 93, 0.96)';
+        const value = metricValueForChartRow(company, activeMetric);
         return value != null && value < 0 ? 'rgba(255, 107, 112, 0.95)' : color(index, 0.95);
       }),
       borderWidth: 1,
@@ -369,7 +487,7 @@
       .sort((a, b) => a - b);
     const rows = chartCompanies(activeMetric);
     trendChart.data.labels = years.map(year => String(year));
-    trendChart.data.datasets = rows.map((company, index) => {
+    const companyDatasets = rows.map((company, index) => {
       const byYear = new Map(company.history.map((row, rowIndex) => [
         Number(row.fiscalYear),
         historyValue(company, row, activeMetric, rowIndex),
@@ -385,6 +503,19 @@
         pointRadius: company.exchangeId === focusId ? 3 : 2,
       };
     });
+    const benchmarkDataset = {
+      label: '掲載社平均',
+      data: years.map(year => averageHistoryValue(year, activeMetric, companies)),
+      borderColor: 'rgba(244, 201, 93, 0.95)',
+      backgroundColor: 'rgba(244, 201, 93, 0.12)',
+      borderDash: [6, 5],
+      spanGaps: true,
+      tension: 0.28,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+    };
+    trendChart.data.datasets = companyDatasets.concat(benchmarkDataset);
     trendChart.options.scales.y.ticks.callback = value => compactMetricValue(value, activeMetric);
     trendChart.update();
   }
@@ -395,7 +526,7 @@
   }
 
   function averageRadarScores() {
-    const source = visibleCompanies();
+    const source = companies;
     if (source.length === 0) return [];
     const radarMetrics = ['revenue', 'operatingProfit', 'netIncome', 'netAssets', 'equityRatio', 'revenueYoY'];
     return radarMetrics.map((metricKey) => {
@@ -405,31 +536,47 @@
     });
   }
 
+  function radarCompanies() {
+    const selected = visibleCompanies();
+    if (selected.length === 0) return [];
+    const picked = new Map();
+    const focused = findCompanyById(focusId);
+    if (focused && selectedIds.has(focused.exchangeId)) picked.set(focused.exchangeId, focused);
+    sortedByMetric(activeMetric, selected).forEach((company) => {
+      if (picked.size < 3) picked.set(company.exchangeId, company);
+    });
+    selected.forEach((company) => {
+      if (picked.size < 3) picked.set(company.exchangeId, company);
+    });
+    return Array.from(picked.values());
+  }
+
   function updateRadarChart() {
     if (!radarChart) return;
-    const company = companyById(focusId);
+    const rows = radarCompanies();
     const labels = ['収益規模', '営業利益', '純利益', '純資産', '自己資本', '成長率'];
     radarChart.data.labels = labels;
-    radarChart.data.datasets = [
-      {
-        label: company.label || company.serviceName,
-        data: radarScoresFor(company),
-        borderColor: 'rgba(53, 224, 165, 0.95)',
-        backgroundColor: 'rgba(53, 224, 165, 0.18)',
-        pointBackgroundColor: 'rgba(53, 224, 165, 0.95)',
-        borderWidth: 2,
-      },
-      {
-        label: '掲載社平均',
-        data: averageRadarScores(),
-        borderColor: 'rgba(244, 201, 93, 0.92)',
-        backgroundColor: 'rgba(244, 201, 93, 0.12)',
-        pointBackgroundColor: 'rgba(244, 201, 93, 0.92)',
-        borderWidth: 2,
-      },
-    ];
+    radarChart.data.datasets = rows.map((company, index) => ({
+      label: company.label || company.serviceName,
+      data: radarScoresFor(company),
+      borderColor: color(index, 0.95),
+      backgroundColor: color(index, 0.13),
+      pointBackgroundColor: color(index, 0.95),
+      borderWidth: company.exchangeId === focusId ? 3 : 2,
+    })).concat({
+      label: '掲載社平均',
+      data: averageRadarScores(),
+      borderColor: 'rgba(244, 201, 93, 0.92)',
+      backgroundColor: 'rgba(244, 201, 93, 0.10)',
+      pointBackgroundColor: 'rgba(244, 201, 93, 0.92)',
+      borderDash: [5, 4],
+      borderWidth: 2,
+    });
     const note = $('financial-radar-note');
-    if (note) note.textContent = `${company.label || company.serviceName} と掲載社平均を比較します。`;
+    if (note) {
+      const labelsText = rows.map(company => company.label || company.serviceName).join('、');
+      note.textContent = `${labelsText || '選択中の会社'} と掲載社平均を最大3社で比較します。`;
+    }
     radarChart.update();
   }
 
@@ -493,30 +640,62 @@
   function renderHeatmap() {
     const target = $('financial-heatmap');
     if (!target) return;
-    const rows = metrics.filter(metric => metric.key !== 'totalAssets' || visibleCompanies().some(company => latestValue(company, metric.key) != null));
-    const headers = visibleCompanies();
+    const rows = sortedHeatmapMetrics(metrics.filter(metric => metric.key !== 'totalAssets' || visibleCompanies().some(company => latestValue(company, metric.key) != null)));
+    const headers = sortedHeatmapCompanies();
     target.innerHTML = [
       '<table class="financial-heatmap-table">',
       '  <thead>',
       '    <tr>',
       '      <th>指標</th>',
-      headers.map(company => `<th>${escapeHtml(company.label || company.serviceName)}</th>`).join(''),
+      headers.map((company) => {
+        const active = heatmapSort.kind === 'company' && heatmapSort.key === company.exchangeId;
+        const arrow = heatmapSortArrow('company', company.exchangeId);
+        return [
+          '<th>',
+          `  <button type="button" class="financial-heatmap-company-sort${active ? ' is-active' : ''}" data-heatmap-company-sort="${escapeHtml(company.exchangeId)}" aria-label="${escapeHtml(company.label || company.serviceName)}の強い指標順に並び替え">`,
+          `    <span>${escapeHtml(company.label || company.serviceName)}</span>`,
+          `    <span class="financial-heatmap-sort__arrow" aria-hidden="true">${escapeHtml(arrow)}</span>`,
+          '  </button>',
+          '</th>',
+        ].join('');
+      }).join(''),
+      '<th class="financial-heatmap-benchmark-head">掲載社平均</th>',
       '    </tr>',
       '  </thead>',
       '  <tbody>',
       rows.map((metric) => [
         '    <tr>',
-        `      <th><span>${escapeHtml(metric.label)}</span><small>${escapeHtml(metric.description || '')}</small></th>`,
+        '      <th scope="row">',
+        '        <span class="financial-heatmap-metric-line">',
+        `          <button type="button" class="financial-heatmap-sort${heatmapSort.kind === 'metric' && heatmapSort.key === metric.key ? ' is-active' : ''}" data-heatmap-metric-sort="${escapeHtml(metric.key)}" aria-label="${escapeHtml(metric.label)}で取引所を並び替え">`,
+        `            <span>${escapeHtml(metric.label)}</span>`,
+        `            <span class="financial-heatmap-sort__arrow" aria-hidden="true">${escapeHtml(heatmapSortArrow('metric', metric.key))}</span>`,
+        '          </button>',
+        `          ${renderMetricHelp(metric)}`,
+        '        </span>',
+        `        <small>${escapeHtml(metric.description || '')}</small>`,
+        '      </th>',
         headers.map((company) => {
           const value = latestValue(company, metric.key);
           const negativeClass = value != null && value < 0 ? ' is-negative' : '';
-          return `<td class="financial-heatmap-cell${negativeClass}" style="background:${heatColor(value, metric.key)}"><strong>${escapeHtml(formatMetricValue(value, metric.key))}</strong><span>${escapeHtml(company.fiscalYearLabel || '')}</span></td>`;
+          return `<td class="financial-heatmap-cell${negativeClass}" data-company="${escapeHtml(company.label || company.serviceName)}" style="background:${heatColor(value, metric.key)}"><strong>${escapeHtml(formatMetricValue(value, metric.key))}</strong><span>${escapeHtml(company.fiscalYearLabel || '')}</span></td>`;
         }).join(''),
+        (() => {
+          const value = averageValue(metric.key, companies);
+          const negativeClass = value != null && value < 0 ? ' is-negative' : '';
+          return `<td class="financial-heatmap-cell financial-heatmap-cell--benchmark${negativeClass}" data-company="掲載社平均" style="background:${heatColor(value, metric.key)}"><strong>${escapeHtml(formatMetricValue(value, metric.key))}</strong><span>${escapeHtml(companies.length)}社平均</span></td>`;
+        })(),
         '    </tr>',
       ].join('\n')).join('\n'),
       '  </tbody>',
       '</table>',
     ].join('\n');
+    target.querySelectorAll('[data-heatmap-metric-sort]').forEach((button) => {
+      button.addEventListener('click', () => toggleHeatmapSort('metric', button.getAttribute('data-heatmap-metric-sort')));
+    });
+    target.querySelectorAll('[data-heatmap-company-sort]').forEach((button) => {
+      button.addEventListener('click', () => toggleHeatmapSort('company', button.getAttribute('data-heatmap-company-sort')));
+    });
   }
 
   function renderRanking() {
@@ -604,7 +783,7 @@
       const selectedCount = visibleCompanies().length;
       const chartCount = chartCompanies(activeMetric).length;
       const subset = selectedCount > chartCount ? ` グラフは表示中${selectedCount}社のうち上位${chartCount}社に絞っています。` : '';
-      note.textContent = `${metric.description || '選択中の指標'}を各社の最新開示期で比較します。${subset}`;
+      note.textContent = `${metric.description || '選択中の指標'}を各社の最新開示期で比較します。掲載社平均もベンチマークとして表示します。${subset}`;
     }
   }
 
@@ -615,7 +794,7 @@
   }
 
   function setFocus(companyId) {
-    if (!companyId || !companyById(companyId)) return;
+    if (!companyId || !findCompanyById(companyId)) return;
     focusId = companyId;
     if (!selectedIds.has(companyId)) selectedIds.add(companyId);
     refresh();
