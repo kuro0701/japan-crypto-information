@@ -25,6 +25,8 @@
   let radarChart = null;
   let currentBarRows = [];
   let heatmapSort = { kind: '', key: '', direction: 'desc' };
+  let activeTooltipAnchor = null;
+  let tooltipNode = null;
   const BENCHMARK_ID = '__financial_benchmark__';
 
   const palette = [
@@ -67,7 +69,7 @@
 
   function renderMetricHelp(metric) {
     const help = metricHelpText(metric.key);
-    return `<span class="financial-help" data-tooltip="${escapeHtml(help)}" title="${escapeHtml(help)}" aria-label="${escapeHtml(metric.label)}の説明" role="img" tabindex="0">?</span>`;
+    return `<span class="financial-help" data-tooltip="${escapeHtml(help)}" aria-label="${escapeHtml(metric.label)}の説明" role="img" tabindex="0">?</span>`;
   }
 
   function latestValue(company, metricKey) {
@@ -767,6 +769,107 @@
     ].join('\n');
   }
 
+  function ensureTooltipNode() {
+    if (tooltipNode) return tooltipNode;
+    tooltipNode = document.createElement('div');
+    tooltipNode.id = 'financial-tooltip';
+    tooltipNode.className = 'financial-tooltip';
+    tooltipNode.setAttribute('role', 'tooltip');
+    document.body.appendChild(tooltipNode);
+    return tooltipNode;
+  }
+
+  function positionTooltip(anchor) {
+    const tooltip = ensureTooltipNode();
+    const rect = anchor.getBoundingClientRect();
+    const margin = 12;
+    const gap = 10;
+    const tooltipWidth = tooltip.offsetWidth;
+    const tooltipHeight = tooltip.offsetHeight;
+    let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+    let top = rect.top - tooltipHeight - gap;
+
+    if (top < margin) top = rect.bottom + gap;
+    left = Math.max(margin, Math.min(left, window.innerWidth - tooltipWidth - margin));
+    top = Math.max(margin, Math.min(top, window.innerHeight - tooltipHeight - margin));
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }
+
+  function showTooltip(anchor) {
+    const text = anchor && anchor.getAttribute('data-tooltip');
+    if (!text) return;
+    const tooltip = ensureTooltipNode();
+    activeTooltipAnchor = anchor;
+    tooltip.textContent = text;
+    tooltip.classList.add('is-visible');
+    anchor.setAttribute('aria-describedby', tooltip.id);
+    positionTooltip(anchor);
+  }
+
+  function hideTooltip(anchor) {
+    if (anchor && activeTooltipAnchor && anchor !== activeTooltipAnchor) return;
+    if (activeTooltipAnchor) activeTooltipAnchor.removeAttribute('aria-describedby');
+    activeTooltipAnchor = null;
+    if (tooltipNode) tooltipNode.classList.remove('is-visible');
+  }
+
+  function initFinancialTooltips() {
+    document.addEventListener('pointerover', (event) => {
+      const anchor = event.target.closest && event.target.closest('.financial-help');
+      if (!anchor || (event.relatedTarget && anchor.contains(event.relatedTarget))) return;
+      showTooltip(anchor);
+    });
+
+    document.addEventListener('pointerout', (event) => {
+      const anchor = event.target.closest && event.target.closest('.financial-help');
+      if (!anchor || (event.relatedTarget && anchor.contains(event.relatedTarget))) return;
+      hideTooltip(anchor);
+    });
+
+    document.addEventListener('mouseover', (event) => {
+      const anchor = event.target.closest && event.target.closest('.financial-help');
+      if (!anchor || (event.relatedTarget && anchor.contains(event.relatedTarget))) return;
+      showTooltip(anchor);
+    });
+
+    document.addEventListener('mouseout', (event) => {
+      const anchor = event.target.closest && event.target.closest('.financial-help');
+      if (!anchor || (event.relatedTarget && anchor.contains(event.relatedTarget))) return;
+      hideTooltip(anchor);
+    });
+
+    document.addEventListener('focusin', (event) => {
+      const anchor = event.target.closest && event.target.closest('.financial-help');
+      if (anchor) showTooltip(anchor);
+    });
+
+    document.addEventListener('focusout', (event) => {
+      const anchor = event.target.closest && event.target.closest('.financial-help');
+      if (anchor) hideTooltip(anchor);
+    });
+
+    document.addEventListener('click', (event) => {
+      const anchor = event.target.closest && event.target.closest('.financial-help');
+      if (!anchor) {
+        hideTooltip();
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      showTooltip(anchor);
+    }, true);
+
+    window.addEventListener('scroll', () => {
+      if (activeTooltipAnchor) positionTooltip(activeTooltipAnchor);
+    }, { passive: true });
+
+    window.addEventListener('resize', () => {
+      if (activeTooltipAnchor) positionTooltip(activeTooltipAnchor);
+    });
+  }
+
   function updateMetricControls() {
     document.querySelectorAll('[data-financial-metric]').forEach((button) => {
       const active = button.getAttribute('data-financial-metric') === activeMetric;
@@ -824,6 +927,7 @@
   }
 
   initMetricTabs();
+  initFinancialTooltips();
   buildBarChart();
   buildTrendChart();
   buildRadarChart();

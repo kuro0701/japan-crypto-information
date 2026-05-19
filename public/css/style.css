@@ -5861,7 +5861,6 @@ a.market-feature-related__pill:focus-visible {
 }
 
 .financial-help {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -5878,34 +5877,32 @@ a.market-feature-related__pill:focus-visible {
   cursor: help;
 }
 
-.financial-help::after {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 8px);
-  z-index: 40;
-  width: min(280px, calc(100vw - 32px));
+.financial-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: min(320px, calc(100vw - 24px));
   padding: 10px 12px;
   border: 1px solid rgba(200, 220, 210, 0.2);
   border-radius: var(--r-sm);
   color: var(--text-1);
   background: rgba(8, 12, 14, 0.98);
   box-shadow: var(--shadow-md);
-  content: attr(data-tooltip);
   font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1.6;
   opacity: 0;
   pointer-events: none;
   text-align: left;
-  transform: translate(-50%, 4px);
-  transition: opacity 150ms ease, transform 150ms ease;
+  transform: translateY(4px);
+  transition: opacity 150ms ease, transform 150ms ease, visibility 150ms ease;
+  visibility: hidden;
   white-space: normal;
 }
 
-.financial-help:hover::after,
-.financial-help:focus-visible::after {
+.financial-tooltip.is-visible {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: translateY(0);
+  visibility: visible;
 }
 
 .financial-help--tab {
