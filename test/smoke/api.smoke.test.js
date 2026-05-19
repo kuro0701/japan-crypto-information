@@ -360,8 +360,11 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(financialComparisonHtml.body.includes('ランキングと開示元'));
   assert.ok(financialComparisonHtml.body.includes('顧客預かり・自己保有暗号資産'));
   assert.ok(financialComparisonHtml.body.includes('cryptoAssetBalances'));
+  assert.ok(financialComparisonHtml.body.includes('顧客銘柄別 / 自己銘柄別'));
   assert.ok(financialComparisonHtml.body.includes('自己保有銘柄別 / 顧客合計'));
+  assert.ok(financialComparisonHtml.body.includes('https://cdn.okcoin.jp/cdn/assets/pdf/common/2025_balance_sheet.pdf'));
   assert.ok(financialComparisonHtml.body.includes('https://bitbank.cc/assets/images/corporate/docs/kessan_2025_12th.pdf'));
+  assert.ok(financialComparisonHtml.body.includes('https://blog.btcbox.jp/wp2/wp-content/uploads/2025/07/%E7%AC%AC12%E6%9C%9F-%E8%A8%88%E7%AE%97%E6%9B%B8%E9%A1%9E.pdf'));
   assert.ok(financialComparisonHtml.body.includes('Coincheck'));
   assert.ok(financialComparisonHtml.body.includes('bitFlyer'));
   assert.ok(financialComparisonHtml.body.includes('GMOコイン'));
