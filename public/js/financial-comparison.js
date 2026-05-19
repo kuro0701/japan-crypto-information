@@ -14,11 +14,13 @@
 
   const companies = model.companies;
   const metrics = model.metrics;
+  const cryptoAssetBalances = model.cryptoAssetBalances || { entries: [], assetPriority: [], unit: '百万円' };
   const metricMap = new Map(metrics.map(metric => [metric.key, metric]));
   const DEFAULT_VISIBLE_COMPANY_LIMIT = 8;
   const CHART_SERIES_LIMIT = 10;
   const selectedIds = new Set(initialSelectedCompanyIds());
   let activeMetric = 'revenue';
+  let activeAssetSymbol = defaultAssetSymbol();
   let focusId = Array.from(selectedIds)[0] || (companies[0] && companies[0].exchangeId);
   let barChart = null;
   let trendChart = null;
@@ -115,6 +117,20 @@
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return '-';
     return new Intl.NumberFormat('ja-JP', { maximumFractionDigits }).format(numeric);
+  }
+
+  function formatAssetValue(value) {
+    const numeric = numberOrNull(value);
+    if (numeric == null) return '-';
+    const digits = Math.abs(numeric) >= 100 ? 0 : Math.abs(numeric) >= 10 ? 1 : 3;
+    return `${formatNumber(numeric, digits)}百万円`;
+  }
+
+  function formatAssetQuantity(value, unit) {
+    const numeric = numberOrNull(value);
+    if (numeric == null) return '-';
+    const digits = Math.abs(numeric) >= 1000 ? 0 : 3;
+    return `${formatNumber(numeric, digits)}${unit ? ` ${unit}` : ''}`;
   }
 
   function formatMetricValue(value, metricKey) {
@@ -245,6 +261,253 @@
     const featuredIds = initialSelectedCompanyIds();
     if (selectedIds.size !== featuredIds.length) return false;
     return featuredIds.every(companyId => selectedIds.has(companyId));
+  }
+
+  function cryptoAssetEntries() {
+    return Array.isArray(cryptoAssetBalances.entries) ? cryptoAssetBalances.entries : [];
+  }
+
+  function visibleCryptoAssetEntries() {
+    return cryptoAssetEntries();
+  }
+
+  function findCryptoAssetCompany(entry) {
+    return entry && findCompanyById(entry.exchangeId);
+  }
+
+  function sortedCryptoAssetSymbols() {
+    const priority = Array.isArray(cryptoAssetBalances.assetPriority) ? cryptoAssetBalances.assetPriority : [];
+    const symbols = new Set();
+    cryptoAssetEntries().forEach((entry) => {
+      (entry.assets || []).forEach((asset) => {
+        if (asset && asset.symbol && asset.symbol !== 'OTHER') symbols.add(asset.symbol);
+      });
+    });
+    return Array.from(symbols).sort((a, b) => {
+      const ai = priority.indexOf(a);
+      const bi = priority.indexOf(b);
+      if (ai !== -1 || bi !== -1) {
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      }
+      return a.localeCompare(b);
+    });
+  }
+
+  function defaultAssetSymbol() {
+    const symbols = sortedCryptoAssetSymbols();
+    return symbols.includes('BTC') ? 'BTC' : (symbols[0] || '__total__');
+  }
+
+  function assetLabel(symbol) {
+    if (symbol === '__total__') return '総暗号資産';
+    const entry = cryptoAssetEntries().find(item => (item.assets || []).some(asset => asset.symbol === symbol));
+    const asset = entry && (entry.assets || []).find(item => item.symbol === symbol);
+    return asset ? `${asset.symbol} / ${asset.name}` : symbol;
+  }
+
+  function assetRowForEntry(entry, symbol) {
+    if (!entry) return null;
+    if (symbol === '__total__') {
+      const totals = entry.totals || {};
+      return {
+        symbol: '__total__',
+        name: '総暗号資産',
+        customerValueMJPY: totals.customerValueMJPY,
+        companyValueMJPY: totals.companyValueMJPY,
+        combinedValueMJPY: totals.combinedValueMJPY,
+        isTotal: true,
+      };
+    }
+    return (entry.assets || []).find(asset => asset.symbol === symbol) || null;
+  }
+
+  function ratioText(companyValue, customerValue) {
+    const companyNumber = numberOrNull(companyValue);
+    const customerNumber = numberOrNull(customerValue);
+    if (companyNumber == null || customerNumber == null || customerNumber <= 0) return '-';
+    return `${formatNumber((companyNumber / customerNumber) * 100, 2)}%`;
+  }
+
+  function missingAssetText(entry, kind) {
+    if (!entry || !entry.coverage) return '未開示';
+    if (kind === 'customer' && !entry.coverage.customerByAsset) return '銘柄別未開示';
+    if (kind === 'company' && !entry.coverage.companyByAsset) return '銘柄別未開示';
+    if (kind === 'combined' && !entry.coverage.combinedByAsset) return '銘柄別未開示';
+    return '該当なし';
+  }
+
+  function assetValueCell(row, entry, kind) {
+    if (!row) return missingAssetText(entry, kind);
+    const key = `${kind}ValueMJPY`;
+    const value = row[key];
+    if (value != null) return formatAssetValue(value);
+    if (kind === 'combined') {
+      const customerValue = numberOrNull(row.customerValueMJPY);
+      const companyValue = numberOrNull(row.companyValueMJPY);
+      if (customerValue != null && companyValue != null) return formatAssetValue(customerValue + companyValue);
+    }
+    if (row.isTotal) return '-';
+    return missingAssetText(entry, kind);
+  }
+
+  function assetQuantityCell(row) {
+    if (!row || row.isTotal) return '-';
+    if (row.customerQuantity != null) return formatAssetQuantity(row.customerQuantity, row.quantityUnit);
+    if (row.companyQuantity != null) return formatAssetQuantity(row.companyQuantity, row.quantityUnit);
+    if (row.combinedQuantity != null) return formatAssetQuantity(row.combinedQuantity, row.quantityUnit);
+    return '-';
+  }
+
+  function disclosureLabel(entry, row) {
+    if (!entry) return '未開示';
+    if (row && row.isTotal) return '区分別合計';
+    if (!row) return '銘柄別未開示';
+    if (row.customerValueMJPY != null && row.companyValueMJPY != null) return '顧客/自己を銘柄別';
+    if (row.companyValueMJPY != null) return '自己のみ銘柄別';
+    if (row.customerValueMJPY != null) return '顧客のみ銘柄別';
+    if (row.combinedValueMJPY != null) return '合計のみ銘柄別';
+    return entry.disclosureBasis || '確認中';
+  }
+
+  function firstSourceLink(entry) {
+    return entry && Array.isArray(entry.sourceLinks) && entry.sourceLinks.length > 0 ? entry.sourceLinks[0] : null;
+  }
+
+  function renderAssetBalanceSummary() {
+    const target = $('financial-asset-balance-summary');
+    if (!target) return;
+    const entries = visibleCryptoAssetEntries();
+    if (entries.length === 0) {
+      target.innerHTML = '<p class="financial-asset-empty">暗号資産の預かり・自己保有データは準備中です。</p>';
+      return;
+    }
+    const customerLeader = entries
+      .slice()
+      .filter(entry => numberOrNull(entry.totals && entry.totals.customerValueMJPY) != null)
+      .sort((a, b) => Number(b.totals.customerValueMJPY) - Number(a.totals.customerValueMJPY))[0];
+    const companyLeader = entries
+      .slice()
+      .filter(entry => numberOrNull(entry.totals && entry.totals.companyValueMJPY) != null)
+      .sort((a, b) => Number(b.totals.companyValueMJPY) - Number(a.totals.companyValueMJPY))[0];
+    const byAssetCount = entries.filter(entry => (entry.assets || []).length > 0).length;
+    const combinedByAssetCount = entries.filter(entry => entry.coverage && entry.coverage.combinedByAsset).length;
+    const summaryCards = [
+      ['掲載社', `${entries.length}社`, `${byAssetCount}社で銘柄別表あり`],
+      ['顧客預かり最大', customerLeader ? (findCryptoAssetCompany(customerLeader) || customerLeader).label || customerLeader.exchangeId : '-', customerLeader ? formatAssetValue(customerLeader.totals.customerValueMJPY) : '-'],
+      ['自己保有最大', companyLeader ? (findCryptoAssetCompany(companyLeader) || companyLeader).label || companyLeader.exchangeId : '-', companyLeader ? formatAssetValue(companyLeader.totals.companyValueMJPY) : '-'],
+      ['開示粒度', `${combinedByAssetCount}社`, '合計銘柄別まで確認'],
+    ];
+    target.innerHTML = summaryCards.map(([label, value, meta]) => [
+      '<article class="financial-asset-summary-card">',
+      `  <span>${escapeHtml(label)}</span>`,
+      `  <strong>${escapeHtml(value)}</strong>`,
+      `  <small>${escapeHtml(meta)}</small>`,
+      '</article>',
+    ].join('\n')).join('\n');
+  }
+
+  function renderAssetBalanceControls() {
+    const target = $('financial-asset-filter');
+    if (!target) return;
+    const symbols = ['__total__'].concat(sortedCryptoAssetSymbols());
+    if (!symbols.includes(activeAssetSymbol)) activeAssetSymbol = symbols[0] || '__total__';
+    target.innerHTML = symbols.map((symbol) => [
+      `<button type="button" class="financial-asset-chip${symbol === activeAssetSymbol ? ' is-active' : ''}" data-financial-asset="${escapeHtml(symbol)}" aria-pressed="${symbol === activeAssetSymbol ? 'true' : 'false'}">`,
+      `  <span>${escapeHtml(symbol === '__total__' ? '総額' : symbol)}</span>`,
+      '</button>',
+    ].join('')).join('');
+    target.querySelectorAll('[data-financial-asset]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const symbol = button.getAttribute('data-financial-asset');
+        if (!symbol) return;
+        activeAssetSymbol = symbol;
+        renderAssetBalances();
+      });
+    });
+  }
+
+  function renderAssetBalanceTable() {
+    const target = $('financial-asset-balance-table');
+    if (!target) return;
+    const entries = visibleCryptoAssetEntries();
+    if (entries.length === 0) {
+      target.innerHTML = '<p class="financial-asset-empty">表示できるデータがありません。</p>';
+      return;
+    }
+    const rows = entries
+      .map((entry) => {
+        const company = findCryptoAssetCompany(entry);
+        const row = assetRowForEntry(entry, activeAssetSymbol);
+        const source = firstSourceLink(entry);
+        const companyLabel = company ? company.label : entry.exchangeId;
+        const assetName = row ? `${row.symbol === '__total__' ? '総額' : row.symbol} ${row.name || ''}` : assetLabel(activeAssetSymbol);
+        return {
+          entry,
+          row,
+          source,
+          companyLabel,
+          assetName,
+          sortValue: numberOrNull(row && (row.combinedValueMJPY || row.companyValueMJPY || row.customerValueMJPY)) || 0,
+        };
+      })
+      .sort((a, b) => {
+        if (a.sortValue !== b.sortValue) return b.sortValue - a.sortValue;
+        return String(a.companyLabel).localeCompare(String(b.companyLabel));
+      });
+    target.innerHTML = [
+      '<table class="financial-asset-table">',
+      '  <thead>',
+      '    <tr>',
+      '      <th>取引所</th>',
+      '      <th>銘柄</th>',
+      '      <th>期末</th>',
+      '      <th>顧客預かり</th>',
+      '      <th>自己保有</th>',
+      '      <th>銘柄合計</th>',
+      '      <th>数量</th>',
+      '      <th>自己/顧客</th>',
+      '      <th>開示粒度</th>',
+      '      <th>出典</th>',
+      '    </tr>',
+      '  </thead>',
+      '  <tbody>',
+      rows.map(({ entry, row, source, companyLabel, assetName }) => [
+        '    <tr>',
+        `      <th scope="row"><strong>${escapeHtml(companyLabel)}</strong><span>${escapeHtml(entry.statementName || '')}</span></th>`,
+        `      <td data-label="銘柄"><strong>${escapeHtml(assetName)}</strong></td>`,
+        `      <td data-label="期末">${escapeHtml(entry.reportingDate || entry.fiscalYearLabel || '')}</td>`,
+        `      <td data-label="顧客預かり">${escapeHtml(assetValueCell(row, entry, 'customer'))}</td>`,
+        `      <td data-label="自己保有">${escapeHtml(assetValueCell(row, entry, 'company'))}</td>`,
+        `      <td data-label="銘柄合計">${escapeHtml(assetValueCell(row, entry, 'combined'))}</td>`,
+        `      <td data-label="数量">${escapeHtml(assetQuantityCell(row))}</td>`,
+        `      <td data-label="自己/顧客">${escapeHtml(ratioText(row && row.companyValueMJPY, row && row.customerValueMJPY))}</td>`,
+        `      <td data-label="開示粒度"><span class="financial-asset-disclosure">${escapeHtml(disclosureLabel(entry, row))}</span></td>`,
+        `      <td data-label="出典">${source ? `<a class="table-link" href="${escapeHtml(source.href)}" target="_blank" rel="noopener">${escapeHtml(source.title)}</a>` : '-'}</td>`,
+        '    </tr>',
+      ].join('\n')).join('\n'),
+      '  </tbody>',
+      '</table>',
+    ].join('\n');
+  }
+
+  function renderAssetBalanceNote() {
+    const target = $('financial-asset-balance-note');
+    if (!target) return;
+    const entries = visibleCryptoAssetEntries();
+    const notes = new Set();
+    entries.forEach((entry) => {
+      (entry.notes || []).slice(0, 1).forEach(note => notes.add(note));
+    });
+    target.textContent = `表示中: ${assetLabel(activeAssetSymbol)}。${Array.from(notes).slice(0, 3).join(' ')}`;
+  }
+
+  function renderAssetBalances() {
+    renderAssetBalanceSummary();
+    renderAssetBalanceControls();
+    renderAssetBalanceTable();
+    renderAssetBalanceNote();
   }
 
   function setSelectedCompanies(companyIds) {
@@ -913,6 +1176,7 @@
     renderHeatmap();
     renderRanking();
     renderSpotlight();
+    renderAssetBalances();
   }
 
   function initMetricTabs() {

@@ -358,6 +358,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(financialComparisonHtml.body.includes('営業収益 / 売上高'));
   assert.ok(financialComparisonHtml.body.includes('強み・弱みヒートマップ'));
   assert.ok(financialComparisonHtml.body.includes('ランキングと開示元'));
+  assert.ok(financialComparisonHtml.body.includes('顧客預かり・自己保有暗号資産'));
+  assert.ok(financialComparisonHtml.body.includes('cryptoAssetBalances'));
+  assert.ok(financialComparisonHtml.body.includes('自己保有銘柄別 / 顧客合計'));
+  assert.ok(financialComparisonHtml.body.includes('https://bitbank.cc/assets/images/corporate/docs/kessan_2025_12th.pdf'));
   assert.ok(financialComparisonHtml.body.includes('Coincheck'));
   assert.ok(financialComparisonHtml.body.includes('bitFlyer'));
   assert.ok(financialComparisonHtml.body.includes('GMOコイン'));
