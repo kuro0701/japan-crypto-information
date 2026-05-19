@@ -391,6 +391,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(financialComparisonHtml.body.includes('BACKSEAT Exchange'));
   assert.ok(financialComparisonHtml.body.includes('https://www.backseat-exchange.com/about'));
   assert.ok(financialComparisonHtml.body.includes('https://www.backseat-exchange.com/_files/ugd/e89f1d_c8f3ceb6fdec47da9d6e995559e1fa1c.pdf'));
+  assert.ok(financialComparisonHtml.body.includes('Tokyo Hash'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.tokyohash.co.jp/company/profile/'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.tokyohash.co.jp/wp-content/uploads/2026/03/financial-statement-8th.pdf'));
   assert.ok(financialComparisonHtml.body.includes('/js/financial-comparison.js'));
   assertCommonDisclosure(financialComparisonHtml.body);
 
