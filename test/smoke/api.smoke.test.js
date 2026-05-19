@@ -394,6 +394,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(financialComparisonHtml.body.includes('Tokyo Hash'));
   assert.ok(financialComparisonHtml.body.includes('https://www.tokyohash.co.jp/company/profile/'));
   assert.ok(financialComparisonHtml.body.includes('https://www.tokyohash.co.jp/wp-content/uploads/2026/03/financial-statement-8th.pdf'));
+  assert.ok(financialComparisonHtml.body.includes('GAIA BTM'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.gaia-btm.com/company/'));
+  assert.ok(financialComparisonHtml.body.includes('https://www.gaia-btm.com/financial_statements_18.pdf'));
   assert.ok(financialComparisonHtml.body.includes('/js/financial-comparison.js'));
   assertCommonDisclosure(financialComparisonHtml.body);
 
