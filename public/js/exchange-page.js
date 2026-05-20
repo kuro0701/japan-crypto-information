@@ -82,6 +82,57 @@
     });
   }
 
+  function clampPercent(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0;
+    return Math.max(0, Math.min(100, numeric));
+  }
+
+  function impactGaugePercent(value) {
+    const impact = numberOrNull(value);
+    if (impact == null) return 0;
+    return clampPercent(Math.max(4, impact * 100));
+  }
+
+  function impactTone(value) {
+    const impact = numberOrNull(value);
+    if (impact == null) return 'neutral';
+    if (impact >= 1) return 'danger';
+    if (impact >= 0.35) return 'warning';
+    return 'calm';
+  }
+
+  function depthGaugePercent(value) {
+    const depth = numberOrNull(value);
+    if (depth == null || depth <= 0) return 0;
+    return clampPercent(Math.max(6, (depth / 1000000000) * 100));
+  }
+
+  function depthTone(value) {
+    const depth = numberOrNull(value);
+    if (depth == null || depth <= 0) return 'neutral';
+    if (depth >= 100000000) return 'calm';
+    if (depth >= 10000000) return 'warning';
+    return 'danger';
+  }
+
+  function setGaugeField(field, options = {}) {
+    document.querySelectorAll(`[data-exchange-gauge-field="${field}"]`).forEach((node) => {
+      const valueNode = node.querySelector('[data-exchange-gauge-value]');
+      const fillNode = node.querySelector('[data-exchange-gauge-fill]');
+      const state = options.state || 'ready';
+      const tone = options.tone || 'neutral';
+      if (valueNode) valueNode.textContent = options.value || 'データ待ち';
+      if (fillNode) fillNode.style.width = `${clampPercent(options.percent).toFixed(2)}%`;
+      node.classList.toggle(waitingClass, state === 'waiting');
+      node.classList.toggle(staleClass, state === 'stale');
+      node.classList.toggle(errorClass, state === 'error');
+      node.dataset.state = state;
+      node.dataset.tone = tone;
+      node.setAttribute('aria-label', `${node.querySelector('.exchange-visual-meter__topline span')?.textContent || field}: ${options.value || 'データ待ち'}`);
+    });
+  }
+
   function tabForHash(hash) {
     if (!hash || hash.length < 2) return null;
     const target = document.querySelector(hash);
@@ -105,6 +156,16 @@
       });
     }
 
+    function setActiveNavLink(hash) {
+      const links = Array.from(document.querySelectorAll('.exchange-sticky-nav__links a[href^="#"]'));
+      links.forEach((link) => {
+        const active = Boolean(hash) && link.getAttribute('href') === hash;
+        link.classList.toggle('is-active', active);
+        if (active) link.setAttribute('aria-current', 'true');
+        else link.removeAttribute('aria-current');
+      });
+    }
+
     buttons.forEach((button) => {
       button.addEventListener('click', () => activate(button.getAttribute('data-exchange-tab')));
     });
@@ -114,14 +175,17 @@
       if (!link) return;
       const tab = tabForHash(link.getAttribute('href'));
       if (tab) activate(tab);
+      setActiveNavLink(link.getAttribute('href'));
     });
 
     window.addEventListener('hashchange', () => {
       const tab = tabForHash(window.location.hash);
       if (tab) activate(tab);
+      setActiveNavLink(window.location.hash);
     });
 
     activate(tabForHash(window.location.hash) || 'simple');
+    setActiveNavLink(window.location.hash);
   }
 
   function initCoverageTool() {
@@ -257,8 +321,15 @@
 
     if (visibleDepth != null && visibleDepth > 0) {
       setLiveField('depth', `${marketLabel}: 可視板厚 ${formatJpyCompact(visibleDepth)}（Bid+Ask）${stateSuffix(state)}`, state);
+      setGaugeField('depth', {
+        value: formatJpyCompact(visibleDepth),
+        percent: depthGaugePercent(visibleDepth),
+        tone: depthTone(visibleDepth),
+        state,
+      });
     } else {
       setLiveField('depth', `${marketLabel}: 可視板厚は公式画面で確認してください。`, 'stale');
+      setGaugeField('depth', { value: '公式確認', percent: 0, tone: 'neutral', state: 'stale' });
     }
   }
 
@@ -273,6 +344,8 @@
     if (impact == null) {
       setLiveField('effectiveCost', `${marketLabel}: 10万円買いの実質コストは公式画面で確認してください。`, 'stale');
       setLiveField('slippage', `${marketLabel}: スリッページ傾向は公式画面で確認してください。`, 'stale');
+      setGaugeField('impact', { value: '公式確認', percent: 0, tone: 'neutral', state: 'stale' });
+      setGaugeField('slippage', { value: '公式確認', percent: 0, tone: 'neutral', state: 'stale' });
       return;
     }
 
@@ -280,6 +353,18 @@
     const statusText = statusLabel ? ` / ${statusLabel}` : '';
     setLiveField('effectiveCost', `${marketLabel}: 10万円買い参考 Impact ${formatPct(impact)}${vwapText} / 手数料 ${feeLabel}${statusText}`, 'ready');
     setLiveField('slippage', `${marketLabel}: 10万円買いの価格影響 ${formatPct(impact)}${statusText}`, 'ready');
+    setGaugeField('impact', {
+      value: formatPct(impact),
+      percent: impactGaugePercent(impact),
+      tone: impactTone(impact),
+      state: 'ready',
+    });
+    setGaugeField('slippage', {
+      value: formatPct(impact),
+      percent: impactGaugePercent(impact),
+      tone: impactTone(impact),
+      state: 'ready',
+    });
   }
 
   async function loadExchangeMarket() {
@@ -290,6 +375,9 @@
     setLiveField('depth', '代表銘柄の板厚を読み込み中', 'waiting');
     setLiveField('effectiveCost', '代表銘柄の10万円買い参考値を読み込み中', 'waiting');
     setLiveField('slippage', '代表銘柄のスリッページ傾向を読み込み中', 'waiting');
+    setGaugeField('depth', { value: '読み込み中', percent: 0, tone: 'neutral', state: 'waiting' });
+    setGaugeField('impact', { value: '読み込み中', percent: 0, tone: 'neutral', state: 'waiting' });
+    setGaugeField('slippage', { value: '読み込み中', percent: 0, tone: 'neutral', state: 'waiting' });
 
     const response = await fetch(`/api/markets/${encodeURIComponent(instrumentId)}`, {
       headers: { Accept: 'application/json' },
@@ -309,6 +397,9 @@
       setLiveField('depth', `${marketLabel}: この取引所の板厚データは対象外です。公式画面で確認してください。`, 'stale');
       setLiveField('effectiveCost', `${marketLabel}: この取引所の実質コストは対象外です。公式画面で確認してください。`, 'stale');
       setLiveField('slippage', `${marketLabel}: この取引所のスリッページ傾向は対象外です。公式画面で確認してください。`, 'stale');
+      setGaugeField('depth', { value: '対象外', percent: 0, tone: 'neutral', state: 'stale' });
+      setGaugeField('impact', { value: '対象外', percent: 0, tone: 'neutral', state: 'stale' });
+      setGaugeField('slippage', { value: '対象外', percent: 0, tone: 'neutral', state: 'stale' });
       return;
     }
 
@@ -325,5 +416,8 @@
     setLiveField('depth', '板厚を取得できませんでした。公式画面で確認してください。', 'error');
     setLiveField('effectiveCost', '実質コストを取得できませんでした。公式画面で確認してください。', 'error');
     setLiveField('slippage', 'スリッページ傾向を取得できませんでした。公式画面で確認してください。', 'error');
+    setGaugeField('depth', { value: '取得失敗', percent: 0, tone: 'neutral', state: 'error' });
+    setGaugeField('impact', { value: '取得失敗', percent: 0, tone: 'neutral', state: 'error' });
+    setGaugeField('slippage', { value: '取得失敗', percent: 0, tone: 'neutral', state: 'error' });
   });
 }());

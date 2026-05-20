@@ -241,8 +241,13 @@
       return {
         eyebrow: 'Beginner Mode',
         title: '取引所詳細は手数料から確認します',
-        summary: 'まず「既定taker手数料」「取扱銘柄数」「次に見る」を確認し、実際に買う銘柄は板シミュレーターで実効コストまで見てください。',
-        metrics: ['既定taker手数料', '取扱銘柄数', '板シミュレーター導線'],
+        summary: 'まず「既定手数料」「取扱銘柄数」「次に見る」を確認し、実際に買う銘柄は板シミュレーターで実効コストまで見てください。',
+        metrics: ['既定手数料', '取扱銘柄数', '板シミュレーター導線'],
+        visuals: [
+          { mark: '1', title: 'コスト', body: '10万円買いの実質コストを先に見ます。' },
+          { mark: '2', title: '板の厚み', body: 'ゲージが弱いときは注文サイズを下げます。' },
+          { mark: '?', title: '用語', body: '専門用語は見出し横の「?」で確認します。' },
+        ],
         terms: ['taker-fee', 'orderbook', 'effective-cost', 'sales-spread'],
         warning: '手数料が低くても、板が薄い銘柄ではImpactで不利になることがあります。',
         links: [
@@ -284,6 +289,14 @@
     const metricsHtml = (profile.metrics || [])
       .map(metric => `<span class="beginner-guide-chip">${escapeHtml(metric)}</span>`)
       .join('');
+    const visualsHtml = (profile.visuals || [])
+      .map(item => `
+        <div class="beginner-guide-visual">
+          <span class="beginner-guide-visual__mark">${escapeHtml(item.mark)}</span>
+          <strong>${escapeHtml(item.title)}</strong>
+          <small>${escapeHtml(item.body)}</small>
+        </div>
+      `).join('');
     const linksHtml = (profile.links || [])
       .map(link => `<a class="beginner-guide-link" href="${escapeHtml(link.href)}">${escapeHtml(link.label)}</a>`)
       .join('');
@@ -301,6 +314,7 @@
         <span class="beginner-guide-panel__badge">ON</span>
       </div>
       <p class="beginner-guide-panel__summary">${escapeHtml(profile.summary)}</p>
+      ${visualsHtml ? `<div class="beginner-guide-visual-grid">${visualsHtml}</div>` : ''}
       ${metricsHtml ? `<div class="beginner-guide-section"><strong>最初に見る指標</strong><div class="beginner-guide-chip-row">${metricsHtml}</div></div>` : ''}
       ${termsHtml ? `<div class="beginner-guide-section"><strong>用語の意味</strong><dl class="beginner-guide-term-grid">${termsHtml}</dl></div>` : ''}
       ${profile.warning ? `<div class="beginner-guide-warning"><strong>注文サイズの注意</strong><span>${escapeHtml(profile.warning)}</span></div>` : ''}
