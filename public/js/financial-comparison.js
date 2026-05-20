@@ -27,6 +27,8 @@
   let radarChart = null;
   let currentBarRows = [];
   let heatmapSort = { kind: '', key: '', direction: 'desc' };
+  let companyFilterExpanded = false;
+  let companyFilterQuery = '';
   let activeTooltipAnchor = null;
   let tooltipNode = null;
   const BENCHMARK_ID = '__financial_benchmark__';
@@ -72,6 +74,16 @@
   function renderMetricHelp(metric) {
     const help = metricHelpText(metric.key);
     return `<span class="financial-help" data-tooltip="${escapeHtml(help)}" aria-label="${escapeHtml(metric.label)}の説明" role="img" tabindex="0">?</span>`;
+  }
+
+  function companySearchText(company) {
+    return [
+      company.label,
+      company.serviceName,
+      company.companyName,
+      company.fullName,
+      company.exchangeId,
+    ].filter(Boolean).join(' ').toLowerCase();
   }
 
   function latestValue(company, metricKey) {
@@ -226,7 +238,7 @@
   }
 
   function heatmapSortArrow(kind, key) {
-    if (heatmapSort.kind !== kind || heatmapSort.key !== key) return '';
+    if (heatmapSort.kind !== kind || heatmapSort.key !== key) return '↕';
     return heatmapSort.direction === 'asc' ? '↑' : '↓';
   }
 
@@ -860,12 +872,53 @@
       const active = selectedIds.has(company.exchangeId);
       const focused = company.exchangeId === focusId;
       return [
-        `<button type="button" class="financial-company-chip${active ? ' is-active' : ''}${focused ? ' is-focused' : ''}" data-company-id="${escapeHtml(company.exchangeId)}" aria-pressed="${active ? 'true' : 'false'}">`,
+        `<button type="button" class="financial-company-chip${active ? ' is-active' : ''}${focused ? ' is-focused' : ''}" data-company-id="${escapeHtml(company.exchangeId)}" data-company-search="${escapeHtml(companySearchText(company))}" aria-pressed="${active ? 'true' : 'false'}">`,
+        '  <span class="financial-company-chip__check" aria-hidden="true">✓</span>',
         `  <span>${escapeHtml(company.label || company.serviceName)}</span>`,
         '</button>',
       ].join('');
     });
-    target.innerHTML = actionButtons.concat(companyButtons).join('');
+    target.innerHTML = [
+      '<div class="financial-company-filter__quick">',
+      actionButtons.join(''),
+      '</div>',
+      `<details class="financial-company-customizer"${companyFilterExpanded ? ' open' : ''}>`,
+      '  <summary>',
+      '    <span>カスタマイズ</span>',
+      '    <small>個別に選ぶ</small>',
+      '  </summary>',
+      '  <div class="financial-company-search">',
+      '    <label class="sr-only" for="financial-company-search-input">会社名で絞り込み</label>',
+      `    <input id="financial-company-search-input" type="search" value="${escapeHtml(companyFilterQuery)}" placeholder="会社名で絞り込み" autocomplete="off">`,
+      '  </div>',
+      '  <div class="financial-company-chip-list">',
+      companyButtons.join(''),
+      '  </div>',
+      '</details>',
+    ].join('');
+
+    const details = target.querySelector('.financial-company-customizer');
+    if (details) {
+      details.addEventListener('toggle', () => {
+        companyFilterExpanded = details.open;
+      });
+    }
+
+    const searchInput = target.querySelector('#financial-company-search-input');
+    const applySearch = () => {
+      const query = companyFilterQuery.trim().toLowerCase();
+      target.querySelectorAll('[data-company-id]').forEach((button) => {
+        const haystack = button.getAttribute('data-company-search') || '';
+        button.hidden = Boolean(query) && !haystack.includes(query);
+      });
+    };
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        companyFilterQuery = searchInput.value;
+        applySearch();
+      });
+    }
+    applySearch();
 
     target.querySelectorAll('[data-company-action]').forEach((button) => {
       button.addEventListener('click', () => {
