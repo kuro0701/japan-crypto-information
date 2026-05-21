@@ -451,6 +451,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bitflyerHtml.body.includes('株式会社 bitFlyer Holdings が議決権比率100%を保有'));
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/financial-statement-12th.pdf'));
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/business-report-12th.pdf'));
+  assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
+  assert.ok(bitflyerHtml.body.includes('招待コード: ml1wjtkl'));
+  assert.ok(bitflyerHtml.body.includes('rel="sponsored noopener noreferrer"'));
+  assert.ok(bitflyerHtml.body.includes('紹介条件を見る'));
 
   const binanceHtml = await fetchText(baseUrl, '/exchanges/binance-japan');
   assert.equal(binanceHtml.status, 200);
@@ -604,6 +608,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(campaignsPage.body.includes('紹介リンク/アフィリエイトリンク'));
   assert.ok(campaignsPage.body.includes('PR / アフィリエイト表記'));
   assert.ok(campaignsPage.body.includes('/campaigns/gmo-coin'));
+  assert.ok(campaignsPage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
+  assert.ok(campaignsPage.body.includes('招待コード: ml1wjtkl'));
   assertCommonDisclosure(campaignsPage.body);
 
   const gmoCampaignLegacy = await fetch(new URL('/campaigns/gmo', baseUrl), { redirect: 'manual' });
@@ -618,6 +624,13 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(gmoCampaignPage.body.includes('キャンペーン内容だけでなく、手数料・スプレッド・板の厚みも確認した上で利用を検討してください。'));
   assert.ok(gmoCampaignPage.body.includes('/simulator?exchange=gmo&amp;market=BTC-JPY'));
   assertCommonDisclosure(gmoCampaignPage.body);
+
+  const bitflyerCampaignPage = await fetchText(baseUrl, '/campaigns/bitflyer');
+  assert.equal(bitflyerCampaignPage.status, 200);
+  assert.ok(bitflyerCampaignPage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
+  assert.ok(bitflyerCampaignPage.body.includes('招待コード: ml1wjtkl'));
+  assert.ok(bitflyerCampaignPage.body.includes('紹介リンクを開く'));
+  assertCommonDisclosure(bitflyerCampaignPage.body);
 
   const adminAnalyticsPage = await fetchText(baseUrl, '/admin-analytics.html');
   assert.equal(adminAnalyticsPage.status, 200);
