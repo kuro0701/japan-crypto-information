@@ -29,6 +29,8 @@ test('bitFlyer referral link is populated by default', () => {
   withEnvValue('BITFLYER_REFERRAL_URL', undefined, () => {
     assert.equal(getCampaign('bitflyer').affiliateUrl, BITFLYER_REFERRAL_URL);
     assert.equal(getCampaign('bitflyer').referralCode, 'ml1wjtkl');
+    assert.equal(getCampaign('bitflyer').inviteeBenefit, '1,500円分のビットコイン');
+    assert.equal(getCampaign('bitflyer').referrerBenefit, '1,500円分のビットコイン');
     assert.equal(getExchangePageContent('bitflyer').referralUrl, BITFLYER_REFERRAL_URL);
     assert.equal(getExchangePageContent('bitflyer').referralCode, 'ml1wjtkl');
   });

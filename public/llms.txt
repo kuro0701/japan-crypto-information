@@ -21,6 +21,7 @@
 - [財務比較](https://japan-crypto-information.onrender.com/financial-comparison): 国内暗号資産取引所の運営会社について、公開財務諸表をもとに営業収益、営業利益、純利益、純資産、総資産、自己資本比率を比較できます。
 - [銘柄ページ一覧](https://japan-crypto-information.onrender.com/markets): 銘柄別に、銘柄特徴、国内取引所比較、板、出来高、販売所スプレッドを確認できます。
 - [キャンペーン一覧](https://japan-crypto-information.onrender.com/campaigns): 国内暗号資産取引所のキャンペーン、公式URL、紹介リンク/アフィリエイトリンク、注意事項を一覧で確認できます。
+- [紹介特典比較](https://japan-crypto-information.onrender.com/campaigns/referrals): 招待した方・招待された方の紹介特典、招待コード、公式条件、紹介リンクを取引所別に比較できます。
 - [キャンペーン詳細](https://japan-crypto-information.onrender.com/campaigns/gmo-coin): 取引所ごとに特典内容、対象者、達成条件、注意点、コスト比較、取扱銘柄、板シミュレーター導線を確認できます。
 
 ## Data endpoints

@@ -608,9 +608,21 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(campaignsPage.body.includes('紹介リンク/アフィリエイトリンク'));
   assert.ok(campaignsPage.body.includes('PR / アフィリエイト表記'));
   assert.ok(campaignsPage.body.includes('/campaigns/gmo-coin'));
+  assert.ok(campaignsPage.body.includes('/campaigns/referrals'));
   assert.ok(campaignsPage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
   assert.ok(campaignsPage.body.includes('招待コード: ml1wjtkl'));
   assertCommonDisclosure(campaignsPage.body);
+
+  const referralBenefitsPage = await fetchText(baseUrl, '/campaigns/referrals');
+  assert.equal(referralBenefitsPage.status, 200);
+  assert.ok(referralBenefitsPage.body.includes('紹介特典比較'));
+  assert.ok(referralBenefitsPage.body.includes('招待した方と、招待された方に 1,500 円分のビットコインをプレゼント！'));
+  assert.ok(referralBenefitsPage.body.includes('1,500円分のビットコイン'));
+  assert.ok(referralBenefitsPage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
+  assert.ok(referralBenefitsPage.body.includes('https://bitflyer.com/ja-jp/faq/referral'));
+  assert.ok(referralBenefitsPage.body.includes('Coincheck'));
+  assert.ok(referralBenefitsPage.body.includes('招待された方'));
+  assertCommonDisclosure(referralBenefitsPage.body);
 
   const gmoCampaignLegacy = await fetch(new URL('/campaigns/gmo', baseUrl), { redirect: 'manual' });
   assert.equal(gmoCampaignLegacy.status, 301);
@@ -641,6 +653,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(sitemap.status, 200);
   assert.ok(sitemap.body.includes('/research'));
   assert.ok(sitemap.body.includes('/derivatives'));
+  assert.ok(sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
   assert.ok(sitemap.body.includes('/learn/exchange-checklist'));
   assert.ok(sitemap.body.includes('/learn/crypto-withdrawal-fees'));
