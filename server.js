@@ -23,7 +23,7 @@ const AnalyticsStore = require('./lib/analytics-store');
 const { NeonStateStore } = require('./lib/neon-state-store');
 const { ensureDataDirHealth, resolveDataDir } = require('./lib/data-storage');
 const { calculateImpact } = require('./lib/impact-calculator');
-const { renderHeadMeta } = require('./lib/head-meta');
+const { injectGoogleTag, renderHeadMeta } = require('./lib/head-meta');
 const { getArticle, listArticles } = require('./lib/content');
 const {
   CORE_SALES_SNAPSHOT_EXCHANGE_IDS,
@@ -216,6 +216,34 @@ app.use((req, res, next) => {
       }
     }
   });
+  next();
+});
+app.use((req, res, next) => {
+  const send = res.send.bind(res);
+
+  res.send = function sendWithGoogleTag(body) {
+    const contentType = String(res.getHeader('Content-Type') || '');
+    const bodyText = typeof body === 'string' ? body : (Buffer.isBuffer(body) ? body.toString('utf8') : '');
+    const isHtmlResponse = req.method === 'GET' && (/\bhtml\b/i.test(contentType) || (!contentType && /<head>/i.test(bodyText)));
+    if (!isHtmlResponse) {
+      return send(body);
+    }
+
+    if (typeof body === 'string') {
+      const taggedBody = injectGoogleTag(bodyText);
+      if (taggedBody !== body) res.removeHeader('Content-Length');
+      return send(taggedBody);
+    }
+
+    if (Buffer.isBuffer(body)) {
+      const taggedBody = injectGoogleTag(bodyText);
+      if (taggedBody !== bodyText) res.removeHeader('Content-Length');
+      return send(Buffer.from(taggedBody, 'utf8'));
+    }
+
+    return send(body);
+  };
+
   next();
 });
 

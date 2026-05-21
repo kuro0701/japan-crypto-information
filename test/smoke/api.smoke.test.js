@@ -103,6 +103,12 @@ function assertCommonDisclosure(body) {
   assert.ok(body.includes('キャンペーン情報の最終確認日は'));
 }
 
+function assertGoogleTag(body) {
+  assert.equal((body.match(/gtag\/js\?id=G-567R0GYNVQ/g) || []).length, 1);
+  assert.ok(body.includes("gtag('config', 'G-567R0GYNVQ')"));
+  assert.ok(body.indexOf('<head>') < body.indexOf('gtag/js?id=G-567R0GYNVQ'));
+}
+
 test('major public APIs return seeded test data over HTTP', async (t) => {
   const tempDir = createTempDir('okj-smoke-');
   const previousEnv = new Map(TEST_ENV_KEYS.map((key) => [key, process.env[key]]));
@@ -212,6 +218,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(homePage.body.includes('/learn/crypto-fees'));
   assert.ok(homePage.body.includes('/learn/crypto-withdrawal-fees'));
   assertCommonDisclosure(homePage.body);
+  assertGoogleTag(homePage.body);
 
   const researchPage = await fetchText(baseUrl, '/research');
   assert.equal(researchPage.status, 200);
@@ -230,6 +237,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(researchPage.body.includes('/learn/exchange-company-analysis'));
   assert.ok(researchPage.body.includes('/learn/crypto-withdrawal-fees'));
   assertCommonDisclosure(researchPage.body);
+  assertGoogleTag(researchPage.body);
 
   const learnIndex = await fetchText(baseUrl, '/learn');
   assert.equal(learnIndex.status, 200);
