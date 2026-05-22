@@ -103,6 +103,16 @@ function assertCommonDisclosure(body) {
   assert.ok(body.includes('キャンペーン情報の最終確認日は'));
 }
 
+function assertHomeDisclosure(body) {
+  assert.ok(body.includes('サイトのご利用にあたって（免責事項・PR表記）'));
+  assert.ok(body.includes('投資判断について'));
+  assert.ok(body.includes('当サイトの情報は比較・情報提供を目的としており、投資助言ではありません。'));
+  assert.ok(body.includes('データについて'));
+  assert.ok(body.includes('実際の約定価格を保証するものではありません。'));
+  assert.ok(body.includes('広告・PRについて'));
+  assert.ok(body.includes('広告の有無によって比較ロジックや掲載順位を変更することはありません。'));
+}
+
 function assertGoogleTag(body) {
   assert.equal((body.match(/gtag\/js\?id=G-567R0GYNVQ/g) || []).length, 1);
   assert.ok(body.includes("gtag('config', 'G-567R0GYNVQ')"));
@@ -202,25 +212,28 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const homePage = await fetchText(baseUrl, '/');
   assert.equal(homePage.status, 200);
   assert.ok(homePage.body.includes('/markets?q={search_term_string}'));
-  assert.ok(homePage.body.includes('国内暗号資産取引所の板情報・スプレッド・手数料・出来高データを総合し'));
+  assert.ok(homePage.body.includes('国内暗号資産取引所の'));
+  assert.ok(homePage.body.includes('「実質コスト」を比較'));
+  assert.ok(homePage.body.includes('取引所の板情報・スプレッド・各種手数料のデータを総合し'));
   assert.ok(homePage.body.includes('比較ツール'));
-  assert.ok(homePage.body.includes('販売所スプレッドを見る'));
+  assert.ok(homePage.body.includes('10万円分のBTC比較を見る'));
+  assert.ok(homePage.body.includes('販売所のスプレッド（手数料）を比較'));
   assert.ok(homePage.body.includes('銘柄から探す'));
   assert.ok(homePage.body.includes('リサーチ総合ページ'));
-  assert.ok(homePage.body.includes('取引所・銘柄を調べる'));
-  assert.ok(homePage.body.includes('取引所や銘柄の詳細データ、初心者ガイドをまとめて確認'));
+  assert.ok(homePage.body.includes('取引所・銘柄をくわしく調べる'));
+  assert.ok(homePage.body.includes('取引所や銘柄の詳細、初心者ガイドなどをまとめて確認'));
   assert.ok(homePage.body.includes('/research#research-exchanges'));
-  assert.ok(homePage.body.includes('販売所と取引所の違い、スプレッド、板取引を学ぶ'));
+  assert.ok(homePage.body.includes('販売所と取引所の違い、スプレッドの仕組みなどを基礎から学ぶ'));
   assert.ok(homePage.body.includes('人気ページ'));
   assert.ok(homePage.body.includes('サイトのご利用にあたって（免責事項・PR表記）'));
-  assert.ok(homePage.body.includes('ビットコインを徹底的に調べる'));
-  assert.ok(homePage.body.includes('BTCを買える取引所'));
+  assert.ok(homePage.body.includes('ビットコイン（BTC）の購入コストを調べる'));
+  assert.ok(homePage.body.includes('BTCが買える取引所'));
   assert.ok(homePage.body.includes('取引コストの仕組みと違いを学ぶ'));
   assert.ok(homePage.body.includes('/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000'));
   assert.ok(homePage.body.includes('/learn/exchange-vs-broker'));
   assert.ok(homePage.body.includes('/learn/crypto-fees'));
   assert.ok(homePage.body.includes('/learn/crypto-withdrawal-fees'));
-  assertCommonDisclosure(homePage.body);
+  assertHomeDisclosure(homePage.body);
   assertGoogleTag(homePage.body);
 
   const researchPage = await fetchText(baseUrl, '/research');
