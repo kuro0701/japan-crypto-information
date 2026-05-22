@@ -2,7 +2,7 @@
 > 国内暗号資産取引所の板・出来高・販売所スプレッド・手数料を比較し、どこで買うと実質コストが低いかを確認するためのサイト。
 
 ## Pages
-- [ホーム](https://japan-crypto-information.onrender.com/): 国内暗号資産取引所の板・スプレッド・手数料・出来高を横断し、10万円分のBTC比較、販売所スプレッド、銘柄ページ、リサーチ、人気ページへ案内する入口ページです。
+- [ホーム](https://japan-crypto-information.onrender.com/): 国内暗号資産取引所の板情報・スプレッド・手数料・出来高データを総合し、10万円分のBTC比較、販売所スプレッド、銘柄ページ、リサーチ、人気ページへ案内する入口ページです。
 - [初心者ガイド](https://japan-crypto-information.onrender.com/learn): 販売所と取引所の違い、スプレッド、板取引、手数料、日本円出金手数料、暗号資産出金手数料、10万円分買う前の確認、販売所で損しやすい理由、取引所選びのチェックリストを学べます。
 - [販売所と取引所の違い](https://japan-crypto-information.onrender.com/learn/exchange-vs-broker): 販売所の表示価格と取引所の板取引の違いを説明し、販売所スプレッド比較と板シミュレーターへ案内します。
 - [スプレッドとは？](https://japan-crypto-information.onrender.com/learn/spread): 販売所と取引所で使われるスプレッドを説明し、販売所スプレッド比較へ案内します。
