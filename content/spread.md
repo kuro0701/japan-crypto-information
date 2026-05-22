@@ -40,4 +40,4 @@ path: /learn/spread
 
 [BTC/JPY の販売所スプレッドを確認する](/sales-spread?instrumentId=BTC-JPY) と、実際の販売所スプレッドの広さを見られます。次に [販売所と取引所の違い](/learn/exchange-vs-broker) で価格の決まり方を整理すると、販売所スプレッドと取引所板を比べやすくなります。
 
-取引所で同じ金額を買う場合は、[板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で成行注文時の平均約定価格を確認してください。販売所で損しやすい場面は [初心者が販売所で損しやすい理由](/learn/broker-loss-reasons) にまとめています。
+取引所で同じ金額を買う場合は、[取引コスト計算（板シミュレーター）](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で成行注文時の平均約定価格を確認してください。販売所で損しやすい場面は [初心者が販売所で損しやすい理由](/learn/broker-loss-reasons) にまとめています。

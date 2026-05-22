@@ -774,12 +774,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       setText('volume-summary-lead', '表示中の条件では、出来高データをまだ集計できていません。');
       setText('volume-summary-body', 'フィルター条件を変えるか、次回更新後にもう一度確認してください。');
-      setText('volume-summary-note', '大きめの注文を出す前には、板シミュレーターで実効コストも確認してください。');
+      setText('volume-summary-note', '大きめの注文を出す前には、取引コスト計算で実効コストも確認してください。');
       setHtml('volume-summary-chips', '<span class="decision-summary-chip">集計待ち</span>');
       const link = $('volume-summary-link');
       if (link) {
         link.href = simulatorUrlForSummary(null, null);
-        link.textContent = '板シミュレーターを開く';
+        link.textContent = '取引コスト計算を開く';
       }
       return;
     }
@@ -810,7 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const dailyChangeText = summaryParts.dailyChange.value !== '-'
       ? `${summaryParts.dailyChange.label} は ${summaryParts.dailyChange.value} です。`
       : `${summaryParts.dailyChange.label} はまだ計算できません。`;
-    const note = `${dailyChangeText} 大きめの注文を出す場合は、板シミュレーターで実効コストも確認してください。`;
+    const note = `${dailyChangeText} 大きめの注文を出す場合は、取引コスト計算で実効コストも確認してください。`;
 
     setText('volume-summary-lead', lead);
     setText('volume-summary-body', body);
@@ -834,8 +834,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (link) {
       link.href = simulatorUrlForSummary(primaryRow, topExchange);
       link.textContent = primaryRow && primaryRow.instrumentLabel
-        ? `${primaryRow.instrumentLabel} を板シミュレーターで確認`
-        : '板シミュレーターで確認';
+        ? `${primaryRow.instrumentLabel} を取引コスト計算で確認`
+        : '取引コスト計算で確認';
     }
   }
 

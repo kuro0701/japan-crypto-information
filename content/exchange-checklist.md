@@ -28,7 +28,7 @@ path: /learn/exchange-checklist
 
 取引所形式で買う場合は、板の厚みと出来高を見ます。板が薄いと、少し大きめの成行注文でも平均約定価格が不利になることがあります。
 
-[板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で10万円買いを試し、Impactや実効コストが極端に悪化しないか確認してください。流動性の集中先は [出来高シェア](/volume-share?instrumentId=BTC-JPY) でも確認できます。
+[取引コスト計算（板シミュレーター）](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で10万円買いを試し、Impactや実効コストが極端に悪化しないか確認してください。流動性の集中先は [出来高シェア](/volume-share?instrumentId=BTC-JPY) でも確認できます。
 
 ## 4. 手数料とスプレッドを分けて見たか
 

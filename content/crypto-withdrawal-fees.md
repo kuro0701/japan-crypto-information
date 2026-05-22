@@ -41,4 +41,4 @@ path: /learn/crypto-withdrawal-fees
 
 取引所選びでは、暗号資産の出金手数料だけでなく、日本円を銀行口座へ戻すコストも確認します。日本円の条件は [日本円出金手数料の比較](/learn/jpy-withdrawal-fees) にまとめています。
 
-売買コスト全体を整理したい場合は [暗号資産の手数料の見方](/learn/crypto-fees) から確認し、実際に買う銘柄は [銘柄ページ一覧](/markets) や [板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で比較してください。
+売買コスト全体を整理したい場合は [暗号資産の手数料の見方](/learn/crypto-fees) から確認し、実際に買う銘柄は [銘柄ページ一覧](/markets) や [取引コスト計算（板シミュレーター）](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で比較してください。

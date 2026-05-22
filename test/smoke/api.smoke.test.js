@@ -264,7 +264,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
-  assert.ok(simulatorPage.body.includes('成行取引リアルタイム板シミュレーター'));
+  assert.ok(simulatorPage.body.includes('取引コスト計算（板シミュレーター）'));
   assert.ok(simulatorPage.body.includes('app.js?v='));
   assert.ok(simulatorPage.body.includes('/learn/order-book-trading'));
   assert.ok(simulatorPage.body.includes('/learn/buying-100k-points'));

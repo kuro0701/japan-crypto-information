@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const ROUTE_LABELS = {
     '/': 'ホーム',
-    '/simulator': '板シミュレーター',
+    '/simulator': '取引コスト計算（板シミュレーター）',
     '/volume-share': '出来高シェア',
     '/derivatives': 'デリバティブ',
     '/sales-spread': '販売所スプレッド',

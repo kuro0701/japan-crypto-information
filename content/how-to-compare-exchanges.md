@@ -42,6 +42,6 @@ path: /learn/how-to-compare-exchanges
 
 ## 実際に比較する
 
-まず [BTC 10万円買いの板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で、取引所ごとの成行コストを見ます。次に [BTC/JPY の販売所スプレッド](/sales-spread?instrumentId=BTC-JPY) を見て、販売所で買う場合のコスト感を確認します。
+まず [BTC 10万円買いの取引コスト計算（板シミュレーター）](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で、取引所ごとの成行コストを見ます。次に [BTC/JPY の販売所スプレッド](/sales-spread?instrumentId=BTC-JPY) を見て、販売所で買う場合のコスト感を確認します。
 
 用語から復習したい場合は、[販売所と取引所の違い](/learn/exchange-vs-broker)、[スプレッドとは？](/learn/spread)、[成行注文のリスク](/learn/market-order-risk) を順番に読むと、比較軸がつながります。最終確認には [取引所選びのチェックリスト](/learn/exchange-checklist) も使えます。

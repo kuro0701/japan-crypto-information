@@ -4,16 +4,16 @@
 ## Pages
 - [ホーム](https://japan-crypto-information.onrender.com/): 国内暗号資産取引所の板情報・スプレッド・手数料・出来高データを総合し、10万円分のBTC比較、販売所スプレッド、銘柄ページ、リサーチ、人気ページへ案内する入口ページです。
 - [初心者ガイド](https://japan-crypto-information.onrender.com/learn): 販売所と取引所の違い、スプレッド、板取引、手数料、日本円出金手数料、暗号資産出金手数料、10万円分買う前の確認、販売所で損しやすい理由、取引所選びのチェックリストを学べます。
-- [販売所と取引所の違い](https://japan-crypto-information.onrender.com/learn/exchange-vs-broker): 販売所の表示価格と取引所の板取引の違いを説明し、販売所スプレッド比較と板シミュレーターへ案内します。
+- [販売所と取引所の違い](https://japan-crypto-information.onrender.com/learn/exchange-vs-broker): 販売所の表示価格と取引所の板取引の違いを説明し、販売所スプレッド比較と取引コスト計算（板シミュレーター）へ案内します。
 - [スプレッドとは？](https://japan-crypto-information.onrender.com/learn/spread): 販売所と取引所で使われるスプレッドを説明し、販売所スプレッド比較へ案内します。
-- [板取引とは？](https://japan-crypto-information.onrender.com/learn/order-book-trading): 取引所の注文板、成行注文、指値注文、板の厚みを説明し、板シミュレーターへ案内します。
+- [板取引とは？](https://japan-crypto-information.onrender.com/learn/order-book-trading): 取引所の注文板、成行注文、指値注文、板の厚みを説明し、取引コスト計算（板シミュレーター）へ案内します。
 - [暗号資産の手数料の見方](https://japan-crypto-information.onrender.com/learn/crypto-fees): maker / taker、販売所スプレッド、入出金手数料を分けて整理します。
 - [日本円出金手数料の比較](https://japan-crypto-information.onrender.com/learn/jpy-withdrawal-fees): OKJ、Coincheck、bitFlyer、bitbank、GMOコイン、Binance Japan、BitTradeの日本円出金手数料を条件別に比較します。
 - [暗号資産出金手数料の比較](https://japan-crypto-information.onrender.com/learn/crypto-withdrawal-fees): OKJ、Coincheck、bitFlyer、bitbank、GMOコイン、Binance Japan、BitTradeの暗号資産出金手数料を全銘柄・ネットワーク別に比較します。
 - [10万円分買うときに見るべきポイント](https://japan-crypto-information.onrender.com/learn/buying-100k-points): 10万円購入前に見る販売所スプレッド、板、手数料、入出金条件を整理します。
 - [初心者が販売所で損しやすい理由](https://japan-crypto-information.onrender.com/learn/broker-loss-reasons): 手数料無料表示と販売所スプレッドの見落としを説明します。
 - [取引所選びのチェックリスト](https://japan-crypto-information.onrender.com/learn/exchange-checklist): 取扱銘柄、注文方式、板、手数料、入出金、運営会社、キャンペーン条件を確認できます。
-- [スリッページとは？](https://japan-crypto-information.onrender.com/learn/slippage): 成行注文で平均約定価格がずれる理由を説明し、板シミュレーターで確認できます。
+- [スリッページとは？](https://japan-crypto-information.onrender.com/learn/slippage): 成行注文で平均約定価格がずれる理由を説明し、取引コスト計算（板シミュレーター）で確認できます。
 - [成行注文シミュレーター](https://japan-crypto-information.onrender.com/simulator): 国内暗号資産取引所のリアルタイム板を使い、成行注文の執行価格・スリッページ・マーケットインパクトを比較できます。
 - [出来高シェア](https://japan-crypto-information.onrender.com/volume-share): 国内主要取引所の BTC・ETH 他銘柄の出来高シェアを JPY 換算で集計し、取引所ごとの流動性集中度や対応範囲を日次・週次・月次で確認できます。
 - [デリバティブ](https://japan-crypto-information.onrender.com/derivatives): bitFlyer Crypto CFD とGMOコイン暗号資産FXの出来高シェア、流動性集中度、履歴変化、自動インサイトを確認できます。
@@ -22,7 +22,7 @@
 - [銘柄ページ一覧](https://japan-crypto-information.onrender.com/markets): 銘柄別に、銘柄特徴、国内取引所比較、板、出来高、販売所スプレッドを確認できます。
 - [キャンペーン一覧](https://japan-crypto-information.onrender.com/campaigns): 国内暗号資産取引所のキャンペーン、公式URL、紹介リンク/アフィリエイトリンク、注意事項を一覧で確認できます。
 - [紹介特典比較](https://japan-crypto-information.onrender.com/campaigns/referrals): 招待した方・招待された方の紹介特典、招待コード、公式条件、紹介リンクを取引所別に比較できます。
-- [キャンペーン詳細](https://japan-crypto-information.onrender.com/campaigns/gmo-coin): 取引所ごとに特典内容、対象者、達成条件、注意点、コスト比較、取扱銘柄、板シミュレーター導線を確認できます。
+- [キャンペーン詳細](https://japan-crypto-information.onrender.com/campaigns/gmo-coin): 取引所ごとに特典内容、対象者、達成条件、注意点、コスト比較、取扱銘柄、取引コスト計算（板シミュレーター）導線を確認できます。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧

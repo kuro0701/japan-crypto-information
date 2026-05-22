@@ -22,7 +22,7 @@ path: /learn/broker-loss-reasons
 
 販売所の画面は、金額を入力して購入ボタンを押すだけの形が多く、取引所ごとの価格差を見比べないまま買いやすくなります。
 
-購入前は、少なくとも [販売所スプレッド比較](/sales-spread?instrumentId=BTC-JPY) で同じ銘柄のスプレッドを見ます。スプレッドが広い場合は、[板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で取引所形式の参考コストも確認してください。
+購入前は、少なくとも [販売所スプレッド比較](/sales-spread?instrumentId=BTC-JPY) で同じ銘柄のスプレッドを見ます。スプレッドが広い場合は、[取引コスト計算（板シミュレーター）](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で取引所形式の参考コストも確認してください。
 
 ## 板取引との違いを知らない
 

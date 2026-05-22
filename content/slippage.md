@@ -40,6 +40,6 @@ path: /learn/slippage
 
 ## 実際に確認する
 
-[10万円分の BTC 買いで板シミュレーターを開く](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) と、取引所ごとの平均約定価格、スリッページ、マーケットインパクトを確認できます。金額を増やすと、板の厚みによって結果が変わることが分かります。
+[10万円分の BTC 買いで取引コスト計算（板シミュレーター）を開く](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) と、取引所ごとの平均約定価格、スリッページ、マーケットインパクトを確認できます。金額を増やすと、板の厚みによって結果が変わることが分かります。
 
 成行注文そのものの注意点を整理したい場合は、[成行注文のリスク](/learn/market-order-risk) も続けて確認してください。

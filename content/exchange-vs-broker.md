@@ -26,7 +26,7 @@ path: /learn/exchange-vs-broker
 
 取引所では、販売所よりスプレッドが狭く見えることがあります。ただし、注文サイズが板の厚みを超えると、複数の価格帯を食いながら約定して平均価格がずれることがあります。これがスリッページです。
 
-取引所で成行注文を使う前は、[10万円分の BTC 買いで板シミュレーターを開く](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) と、注文金額に対してどの価格帯まで約定しそうかを確認できます。
+取引所で成行注文を使う前は、[10万円分の BTC 買いで取引コスト計算（板シミュレーター）を開く](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) と、注文金額に対してどの価格帯まで約定しそうかを確認できます。
 
 ## どちらを使うべきか
 
@@ -45,4 +45,4 @@ path: /learn/exchange-vs-broker
 
 まずは [スプレッドとは？](/learn/spread) で販売所の実質コストを理解し、そのあと [板取引とは？](/learn/order-book-trading) と [スリッページとは？](/learn/slippage) で取引所の注意点を見るとつながりやすくなります。
 
-実際のデータで確認する場合は、まず [販売所スプレッド比較](/sales-spread?instrumentId=BTC-JPY) で販売所側のコストを見てから、[板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で取引所板の10万円買いを比べるとつながります。10万円分買う前の確認順は [10万円分買うときに見るべきポイント](/learn/buying-100k-points) も参考にしてください。表示値は参考情報であり、実際の約定価格や取引判断を保証するものではありません。
+実際のデータで確認する場合は、まず [販売所スプレッド比較](/sales-spread?instrumentId=BTC-JPY) で販売所側のコストを見てから、[取引コスト計算（板シミュレーター）](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で取引所板の10万円買いを比べるとつながります。10万円分買う前の確認順は [10万円分買うときに見るべきポイント](/learn/buying-100k-points) も参考にしてください。表示値は参考情報であり、実際の約定価格や取引判断を保証するものではありません。

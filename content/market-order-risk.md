@@ -40,6 +40,6 @@ path: /learn/market-order-risk
 
 ## 実際に確認する
 
-[板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) では、成行注文の想定平均約定価格、手数料、スリッページ、約定明細を確認できます。金額を 10万円、50万円、100万円のように変えてみると、板の薄さによる違いが見えます。
+[取引コスト計算（板シミュレーター）](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) では、成行注文の想定平均約定価格、手数料、スリッページ、約定明細を確認できます。金額を 10万円、50万円、100万円のように変えてみると、板の薄さによる違いが見えます。
 
 流動性の集中先も見たい場合は、[BTC/JPY の出来高シェア](/volume-share?instrumentId=BTC-JPY) で、取引が集まりやすい取引所を確認できます。

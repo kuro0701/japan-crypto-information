@@ -32,6 +32,6 @@ path: /learn/order-book-trading
 
 ## 実際に確認する
 
-[板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) では、公開板をもとに、成行注文時の平均約定価格、手数料込みの実効コスト、マーケットインパクトを確認できます。最初は [10万円分買うときに見るべきポイント](/learn/buying-100k-points) の順番で確認すると迷いにくくなります。
+[取引コスト計算（板シミュレーター）](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) では、公開板をもとに、成行注文時の平均約定価格、手数料込みの実効コスト、マーケットインパクトを確認できます。最初は [10万円分買うときに見るべきポイント](/learn/buying-100k-points) の順番で確認すると迷いにくくなります。
 
 販売所で買う場合との違いを整理したい場合は、[販売所と取引所の違い](/learn/exchange-vs-broker) と [販売所スプレッド比較](/sales-spread?instrumentId=BTC-JPY) もあわせて確認してください。

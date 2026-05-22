@@ -851,7 +851,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setText('spread-top-note', 'スプレッドデータを取得できた販売所から順に比較します。');
       if (cta) {
         cta.href = '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000';
-        cta.textContent = '板シミュレーターで確認';
+        cta.textContent = '取引コスト計算で確認';
       }
       return;
     }

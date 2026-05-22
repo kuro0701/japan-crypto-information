@@ -134,7 +134,7 @@
     const path = currentPath();
     if (path === '/simulator' || path === '/simulator.html') {
       return {
-        eyebrow: 'Beginner Mode',
+        eyebrow: '🔰 初心者モード',
         title: 'まず見る場所を3つに絞ります',
         summary: 'まずは「実効コスト」「Impact」「販売所スプレッド」の3つを見ると判断しやすいです。Impactが高いときは、成行注文を分けるか指値注文も検討してください。',
         metrics: ['実効コスト', 'Impact', '販売所スプレッド'],
@@ -149,9 +149,9 @@
     }
     if (path === '/sales-spread' || path === '/sales-spread.html') {
       return {
-        eyebrow: 'Beginner Mode',
+        eyebrow: '🔰 初心者モード',
         title: '販売所はスプレッドから見ます',
-        summary: '販売所では手数料が無料に見えても、買値と売値の差が実質コストになります。まず「現在スプレッド」と「24h平均」を見て、広い銘柄は板シミュレーターでも確認してください。',
+        summary: '販売所では手数料が無料に見えても、買値と売値の差が実質コストになります。まず「現在スプレッド」と「24h平均」を見て、広い銘柄は取引コスト計算でも確認してください。',
         metrics: ['現在スプレッド', '24h平均', '板比較への候補'],
         terms: ['sales-spread', 'effective-cost', 'orderbook'],
         warning: 'スプレッドが大きい銘柄を販売所でまとめて買うと、取引所板より不利になる可能性があります。',
@@ -164,14 +164,14 @@
     }
     if (path === '/volume-share' || path === '/volume-share.html') {
       return {
-        eyebrow: 'Beginner Mode',
+        eyebrow: '🔰 初心者モード',
         title: '出来高は流動性の入口として見ます',
         summary: '出来高シェアは、どの取引所に売買が集まりやすいかを見る指標です。最初は「首位取引所」「上位3社集中度」「データ信頼度」を確認してください。',
         metrics: ['首位取引所', '上位3社集中度', 'データ信頼度'],
         terms: ['volume-share', 'liquidity', 'orderbook', 'effective-cost'],
-        warning: '出来高が多くても、その瞬間の板が薄い場合は実効コストが悪化します。大きめの注文は必ず板シミュレーターで確認してください。',
+        warning: '出来高が多くても、その瞬間の板が薄い場合は実効コストが悪化します。大きめの注文は必ず取引コスト計算で確認してください。',
         links: [
-          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '板シミュレーターで確認' },
+          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '取引コスト計算で確認' },
           { href: '/sales-spread?instrumentId=BTC-JPY', label: '販売所スプレッドを見る' },
           { href: '/markets/BTC-JPY', label: '銘柄ページへ' },
         ],
@@ -179,7 +179,7 @@
     }
     if (path === '/derivatives' || path === '/derivatives.html') {
       return {
-        eyebrow: 'Beginner Mode',
+        eyebrow: '🔰 初心者モード',
         title: 'デリバティブは流動性と条件を分けて見ます',
         summary: 'Crypto CFDや暗号資産FXは、まず「首位取引所」「上位3社集中度」「データ信頼度」を確認し、その後に板、証拠金、ロスカット条件を公式情報で確認してください。',
         metrics: ['首位取引所', '上位3社集中度', 'データ信頼度'],
@@ -194,7 +194,7 @@
     }
     if (path === '/markets' || path === '/markets.html') {
       return {
-        eyebrow: 'Beginner Mode',
+        eyebrow: '🔰 初心者モード',
         title: '銘柄を選んだらコスト確認へ進みます',
         summary: '最初は「対応取引所数」と「銘柄ページへのリンク」を見て、買いたい銘柄を選びます。銘柄ページでは板、出来高、販売所スプレッドをまとめて確認できます。',
         metrics: ['対応取引所数', '銘柄検索', '銘柄ページリンク'],
@@ -209,7 +209,7 @@
     }
     if (path.startsWith('/markets/')) {
       return {
-        eyebrow: 'Beginner Mode',
+        eyebrow: '🔰 初心者モード',
         title: 'この銘柄は要点から見ます',
         summary: 'まずページ上部の結論カードと比較サマリーを見てから、「取引所別コスト比較」「出来高シェア」「販売所スプレッド」の順に確認してください。',
         metrics: ['取引所別コスト比較', 'Impact', '販売所スプレッド'],
@@ -218,13 +218,13 @@
         links: [
           { href: '/learn/exchange-vs-broker', label: '販売所と取引所の違い' },
           { href: '/learn/buying-100k-points', label: '10万円分買う前のポイント' },
-          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '板シミュレーターで再計算' },
+          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '取引コスト計算で再計算' },
         ],
       };
     }
     if (path === '/campaigns' || path.startsWith('/campaigns/')) {
       return {
-        eyebrow: 'Beginner Mode',
+        eyebrow: '🔰 初心者モード',
         title: 'キャンペーンは条件とコストを分けて見ます',
         summary: '特典だけで判断せず、「条件」「期間」「手数料・スプレッド」を順番に確認してください。申込前は公式ページの最新条件を優先します。',
         metrics: ['特典', '条件', '手数料・スプレッド'],
@@ -239,10 +239,10 @@
     }
     if (path.startsWith('/exchanges/')) {
       return {
-        eyebrow: 'Beginner Mode',
+        eyebrow: '🔰 初心者モード',
         title: '取引所詳細は手数料から確認します',
-        summary: 'まず「既定手数料」「取扱銘柄数」「次に見る」を確認し、実際に買う銘柄は板シミュレーターで実効コストまで見てください。',
-        metrics: ['既定手数料', '取扱銘柄数', '板シミュレーター導線'],
+        summary: 'まず「既定手数料」「取扱銘柄数」「次に見る」を確認し、実際に買う銘柄は取引コスト計算で実効コストまで見てください。',
+        metrics: ['既定手数料', '取扱銘柄数', '取引コスト計算への導線'],
         visuals: [
           { mark: '1', title: 'コスト', body: '10万円買いの実質コストを先に見ます。' },
           { mark: '2', title: '板の厚み', body: 'ゲージが弱いときは注文サイズを下げます。' },
@@ -251,14 +251,14 @@
         terms: ['taker-fee', 'orderbook', 'effective-cost', 'sales-spread'],
         warning: '手数料が低くても、板が薄い銘柄ではImpactで不利になることがあります。',
         links: [
-          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '板シミュレーターへ' },
+          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '取引コスト計算へ' },
           { href: '/markets', label: '銘柄一覧へ' },
           { href: '/campaigns', label: 'キャンペーン一覧へ' },
         ],
       };
     }
     return {
-      eyebrow: 'Beginner Mode',
+      eyebrow: '🔰 初心者モード',
       title: '最初はコスト、流動性、スプレッドを見ます',
       summary: 'このサイトでは、買う前に「実効コスト」「Impact」「販売所スプレッド」を確認すると迷いにくくなります。',
       metrics: ['実効コスト', 'Impact', '販売所スプレッド'],

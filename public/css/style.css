@@ -339,6 +339,13 @@ body.terminal-body {
   grid-area: status;
   justify-self: end;
   max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.status-cluster > * {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .exchange-switcher label,
@@ -7208,6 +7215,11 @@ a.market-feature-related__pill:focus-visible {
   .nav-menu {
     flex-wrap: wrap;
     width: 100%;
+  }
+
+  .status-cluster {
+    overflow: visible;
+    white-space: normal;
   }
 
   .brand-cluster,

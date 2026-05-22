@@ -32,7 +32,7 @@ path: /learn/buying-100k-points
 
 取引所では、板に並んでいる売り注文を相手に買います。最良売気配だけを見ても、10万円分をすべてその価格で買えるとは限りません。
 
-[板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) では、10万円分の買い注文がどの価格帯まで約定しそうか、平均約定価格、Impact、手数料込みの参考コストを確認できます。
+[取引コスト計算（板シミュレーター）](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) では、10万円分の買い注文がどの価格帯まで約定しそうか、平均約定価格、Impact、手数料込みの参考コストを確認できます。
 
 ## 10万円で見落としやすい点
 
@@ -44,7 +44,7 @@ path: /learn/buying-100k-points
 
 1. 買いたい銘柄の [銘柄ページ](/markets/BTC-JPY) を開く。
 2. 販売所スプレッドと取引所板の両方があるか見る。
-3. [10万円買いの板シミュレーター](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で実効コストを確認する。
+3. [10万円買いの取引コスト計算（板シミュレーター）](/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000) で実効コストを確認する。
 4. [販売所スプレッド比較](/sales-spread?instrumentId=BTC-JPY) で販売所側のコスト感を見る。
 5. 最後に公式手数料表、最小注文数量、入出金条件を確認する。
 

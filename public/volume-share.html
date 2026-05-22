@@ -33,7 +33,7 @@
     <nav class="nav-menu" aria-label="ページ間ナビゲーション">
       <a class="nav-link" href="/">ホーム</a>
       <a class="nav-link" href="/research">調べる</a>
-      <a class="nav-link" href="/simulator">板シミュレーター</a>
+      <a class="nav-link" href="/simulator">取引コスト計算</a>
       <a class="nav-link" href="/markets">銘柄ページ</a>
       <a class="nav-link is-active" href="/volume-share" aria-current="page">出来高シェア</a>
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
@@ -60,7 +60,7 @@
         <span class="decision-summary-chip">期間を計算中</span>
       </div>
       <div class="decision-summary-card__actions">
-        <a id="volume-summary-link" class="btn btn-secondary" href="/simulator">板シミュレーターで確認</a>
+        <a id="volume-summary-link" class="btn btn-secondary" href="/simulator">取引コスト計算で確認</a>
       </div>
     </section>
 
@@ -230,22 +230,22 @@
       <div class="panel-title-row mb-4">
         <div>
           <h2 id="volume-share-compare-tools-title" class="panel-title">比較する</h2>
-          <p class="text-xs text-gray-500 mt-1">比較ツール導線。板、販売所、出来高、デリバティブから注文前の実質コストを確認できます。</p>
+          <p class="text-xs text-gray-500 mt-1">注文する前に、実際の取引価格（板情報）・販売所の手数料相当額（スプレッド）・取引の活発さ（出来高/流動性）を銘柄ごとに比較・確認できます。</p>
         </div>
-        <span class="panel-kicker">比較ツール導線</span>
+        <span class="panel-kicker">📊 比較ツール</span>
       </div>
       <div class="home-compare-link-grid">
         <a class="home-compare-link" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
-          <strong>板シミュレーター</strong>
-          <span>実際の板情報から、成行注文時の想定コストを比較</span>
+          <strong>取引コスト計算（板シミュレーター）</strong>
+          <span>実際の取引価格（板情報）から、成行注文時の想定コストを計算</span>
         </a>
         <a class="home-compare-link" href="/sales-spread?instrumentId=BTC-JPY">
           <strong>販売所スプレッド比較</strong>
-          <span>販売所で買う場合の実質コストを確認</span>
+          <span>販売所の手数料相当額（スプレッド）を確認</span>
         </a>
         <a class="home-compare-link" href="/volume-share?instrumentId=BTC-JPY">
           <strong>出来高シェア</strong>
-          <span>どの取引所に流動性があるかを見る</span>
+          <span>取引の活発さ（出来高/流動性）を見る</span>
         </a>
         <a class="home-compare-link" href="/derivatives">
           <strong>デリバティブ</strong>

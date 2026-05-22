@@ -841,7 +841,7 @@ function startRuntime(options = {}) {
 
         if (shouldLog) {
           const storageLabel = USE_NEON_SNAPSHOT_STORAGE ? 'snapshot history: Neon' : 'snapshot history: JSON';
-          console.log(`成行取引リアルタイム板シミュレーター running on http://${displayHost}:${actualPort} (${EXCHANGES.map(exchange => exchange.label).join(', ')}; ${storageLabel})`);
+          console.log(`取引コスト計算（板シミュレーター） running on http://${displayHost}:${actualPort} (${EXCHANGES.map(exchange => exchange.label).join(', ')}; ${storageLabel})`);
         }
 
         if (startClients && !exchangeClientsStarted) {
