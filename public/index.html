@@ -72,20 +72,20 @@
       <div class="panel-title-row mb-4">
         <div>
           <h2 id="home-journey-title" class="panel-title">目的別に探す</h2>
-          <p class="text-xs text-gray-500 mt-1">比較ツールや銘柄・取引所の詳細、初心者向け学習ページなど、目的のページへスムーズにアクセスできます。</p>
+          <p class="text-xs text-gray-500 mt-1">比較ツールや銘柄データ、初心者ガイドなど、知りたい情報へすぐにアクセスできます。</p>
         </div>
         <span class="panel-kicker">🧭 目的別</span>
       </div>
       <div class="home-flow-grid">
         <article class="home-flow-card">
           <div class="home-flow-card__header">
-            <span class="home-flow-card__label">💰 購入コスト</span>
-            <h3>ビットコインの購入コストと安全性を調べる</h3>
+            <span class="home-flow-card__label">💰 BTCリサーチ</span>
+            <h3>ビットコインを徹底的に調べる</h3>
           </div>
           <ol class="home-flow-card__steps">
-            <li><a href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">10万円分の購入コストを計算</a></li>
-            <li><a href="/markets/BTC-JPY">BTCの銘柄情報を見る</a></li>
-            <li><a href="/markets/BTC-JPY#market-exchange-comparison">BTC対応取引所を比較</a></li>
+            <li><a href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">10万円分のBTC購入コスト</a></li>
+            <li><a href="/markets/BTC-JPY">BTCの基本データ</a></li>
+            <li><a href="/markets/BTC-JPY#market-exchange-comparison">BTCを買える取引所</a></li>
             <li><a href="/learn/exchange-company-analysis">取引所の安全性・財務を見る</a></li>
           </ol>
         </article>
@@ -93,25 +93,25 @@
         <article class="home-flow-card">
           <div class="home-flow-card__header">
             <span class="home-flow-card__label">🏦 ETH取扱取引所</span>
-            <h3>イーサリアム（ETH）を買える取引所を探す</h3>
+            <h3>イーサリアム（ETH）の取扱取引所を探す</h3>
           </div>
           <ol class="home-flow-card__steps">
-            <li><a href="/markets">買いたい銘柄を探す</a></li>
-            <li><a href="/markets/ETH-JPY">ETHの銘柄情報を見る</a></li>
-            <li><a href="/markets/ETH-JPY#market-exchange-comparison">ETHを扱う取引所を比較</a></li>
-            <li><a href="/exchanges">各取引所の詳細を確認</a></li>
+            <li><a href="/markets">銘柄一覧でETHを探す</a></li>
+            <li><a href="/markets/ETH-JPY">ETHの基本データ</a></li>
+            <li><a href="/markets/ETH-JPY#market-exchange-comparison">ETHを買える取引所</a></li>
+            <li><a href="/exchanges">各取引所の詳細</a></li>
           </ol>
         </article>
 
         <article class="home-flow-card">
           <div class="home-flow-card__header">
             <span class="home-flow-card__label">🔰 初心者向け</span>
-            <h3>販売所と取引所（板）のコスト差を比較する</h3>
+            <h3>取引コストの仕組みと違いを学ぶ</h3>
           </div>
           <ol class="home-flow-card__steps">
-            <li><a href="/sales-spread?instrumentId=BTC-JPY">販売所の価格差を確認</a></li>
-            <li><a href="/learn/spread">スプレッドの意味を確認</a></li>
-            <li><a href="/learn/exchange-vs-broker">販売所と取引所の違いを整理</a></li>
+            <li><a href="/sales-spread?instrumentId=BTC-JPY">販売所スプレッド比較</a></li>
+            <li><a href="/learn/spread">スプレッドの意味</a></li>
+            <li><a href="/learn/exchange-vs-broker">販売所と取引所の違い</a></li>
             <li><a href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">取引コスト計算を試す</a></li>
           </ol>
         </article>
@@ -122,7 +122,7 @@
       <div class="panel-title-row mb-4">
         <div>
           <h2 id="home-tools-title" class="panel-title">比較する</h2>
-          <p class="text-xs text-gray-500 mt-1">注文する前に、実際の取引価格（板情報）・販売所の手数料相当額（スプレッド）・取引の活発さ（出来高/流動性）を銘柄ごとに比較・確認できるツールです。</p>
+          <p class="text-xs text-gray-500 mt-1">注文する前に、実際の取引価格（板情報）・販売所の手数料相当額（スプレッド）・取引の活発さ（出来高）を銘柄ごとに比較・確認できるツールです。</p>
         </div>
         <span class="panel-kicker">📊 比較ツール</span>
       </div>
@@ -137,11 +137,11 @@
         </a>
         <a class="home-compare-link" href="/volume-share?instrumentId=BTC-JPY">
           <strong>出来高シェア</strong>
-          <span>取引の活発さ（出来高/流動性）を見る</span>
+          <span>取引の活発さ（出来高）を見る</span>
         </a>
         <a class="home-compare-link" href="/derivatives">
           <strong>デリバティブ</strong>
-          <span>Crypto CFD・暗号資産FXの流動性と出来高シェアを見る</span>
+          <span>Crypto CFD・暗号資産FXの取引の活発さ（出来高）を見る</span>
         </a>
         <a class="home-compare-link" href="/financial-comparison">
           <strong>財務比較</strong>
@@ -218,28 +218,53 @@
       </div>
     </section>
 
-    <section class="panel panel--dense" aria-labelledby="home-policy-title">
+    <section class="panel panel--dense common-disclosure home-policy-disclosure info-layer info-layer--bottom" data-info-layer="bottom" aria-labelledby="home-policy-title">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 id="home-policy-title" class="panel-title">ご利用にあたって</h2>
-          <p class="text-xs text-gray-500 mt-1">比較結果を見る前に確認したいデータ・免責・PR表記です。</p>
+          <h2 id="home-policy-title" class="panel-title">サイトのご利用にあたって（免責事項・PR表記）</h2>
+          <p class="text-xs text-gray-500 mt-1">データの扱い、投資判断の注意点、広告・PR表記をまとめています。</p>
         </div>
         <span class="panel-kicker">⚠️ 確認事項</span>
       </div>
       <div class="home-disclosure-grid home-disclosure-grid--three">
         <article class="home-disclosure-card">
-          <h3>データ</h3>
+          <h3>データの確認</h3>
           <p>板、出来高、販売所価格は各取引所の公開API / WebSocketをもとに機械的に集計しています。</p>
         </article>
         <article class="home-disclosure-card">
-          <h3>免責</h3>
+          <h3>投資判断の注意</h3>
           <p>表示値は参考情報であり、投資助言ではありません。実際の約定価格や注文条件は各取引所で確認してください。</p>
         </article>
         <article id="campaign-policy" class="home-disclosure-card">
-          <h3>PR表記</h3>
+          <h3>広告・PR</h3>
           <p>広告・提携リンクを掲載する場合は明示します。広告の有無で比較ロジックや並び順は変更しません。</p>
         </article>
       </div>
+      <details class="common-disclosure__details home-policy-disclosure__details">
+        <summary class="common-disclosure__summary">
+          <div>
+            <span class="common-disclosure__summary-copy">価格変動リスク、データ取得遅延、広告・PRの可能性などを詳しく確認できます。</span>
+          </div>
+          <span class="common-disclosure__summary-cta">詳細を確認する</span>
+        </summary>
+        <div class="common-disclosure__grid">
+          <div class="common-disclosure__item">
+            <h3>投資判断とリスク</h3>
+            <p>本サイトの情報は、暗号資産取引所の比較・情報提供を目的としたものであり、投資助言ではありません。暗号資産は価格変動リスクがあり、元本が保証されるものではありません。</p>
+            <p>取引・口座開設の判断は、各取引所の公式情報、手数料、注文条件、リスク説明を確認のうえ、ご自身の責任で行ってください。</p>
+          </div>
+          <div class="common-disclosure__item">
+            <h3>データと更新</h3>
+            <p>表示している価格、出来高、スプレッド、手数料、シミュレーション結果は、公開情報と取得時点データを機械的に整理した参考値です。実際の約定価格、約定可否、損益を保証するものではありません。</p>
+            <p>公開API / WebSocket の取得失敗、配信遅延、一時停止、欠損により、表示内容が最新の公式画面と異なる場合があります。</p>
+          </div>
+          <div class="common-disclosure__item">
+            <h3>広告・アフィリエイト</h3>
+            <p>本ページには広告・PR・アフィリエイトリンクが含まれる場合があります。紹介リンクの有無は各ページの公式リンク欄やキャンペーン一覧で確認できます。</p>
+            <p>掲載順位や評価基準は、各ページの比較基準・データ定義に基づきます。キャンペーン情報の最終確認日は、キャンペーン一覧・詳細ページの「最終確認日」を確認してください。</p>
+          </div>
+        </div>
+      </details>
     </section>
   </main>
 

@@ -95,7 +95,7 @@ async function fetchText(baseUrl, route) {
 }
 
 function assertCommonDisclosure(body) {
-  assert.ok(body.includes('重要な注意事項 / PR表記'));
+  assert.ok(body.includes('サイトのご利用にあたって（免責事項・PR表記）'));
   assert.ok(body.includes('投資助言ではありません'));
   assert.ok(body.includes('暗号資産は価格変動リスクがあり'));
   assert.ok(body.includes('公開API / WebSocket の取得失敗'));
@@ -212,7 +212,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(homePage.body.includes('/research#research-exchanges'));
   assert.ok(homePage.body.includes('販売所と取引所の違い、スプレッド、板取引を学ぶ'));
   assert.ok(homePage.body.includes('人気ページ'));
-  assert.ok(homePage.body.includes('ご利用にあたって'));
+  assert.ok(homePage.body.includes('サイトのご利用にあたって（免責事項・PR表記）'));
+  assert.ok(homePage.body.includes('ビットコインを徹底的に調べる'));
+  assert.ok(homePage.body.includes('BTCを買える取引所'));
+  assert.ok(homePage.body.includes('取引コストの仕組みと違いを学ぶ'));
   assert.ok(homePage.body.includes('/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000'));
   assert.ok(homePage.body.includes('/learn/exchange-vs-broker'));
   assert.ok(homePage.body.includes('/learn/crypto-fees'));
