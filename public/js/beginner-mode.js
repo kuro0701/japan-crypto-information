@@ -151,14 +151,14 @@
       return {
         eyebrow: '🔰 初心者モード',
         title: '販売所はスプレッドから見ます',
-        summary: '販売所では手数料が無料に見えても、買値と売値の差が実質コストになります。まず「現在スプレッド」と「24h平均」を見て、広い銘柄は取引コスト計算でも確認してください。',
-        metrics: ['現在スプレッド', '24h平均', '板比較への候補'],
+        summary: '販売所では手数料が無料に見えても、買値と売値の差が実質コストになります。まず「現在のスプレッド率」と「24h平均」を見て、広い銘柄は購入コストのシミュレーションでも確認してください。',
+        metrics: ['現在のスプレッド率', '24h平均', '板取引の比較候補'],
         terms: ['sales-spread', 'effective-cost', 'orderbook'],
-        warning: 'スプレッドが大きい銘柄を販売所でまとめて買うと、取引所板より不利になる可能性があります。',
+        warning: 'スプレッドが大きい銘柄を販売所でまとめて買うと、取引所（板取引）より不利になる可能性があります。',
         links: [
           { href: '/learn/spread', label: 'スプレッドとは？' },
           { href: '/learn/broker-loss-reasons', label: '販売所で損しやすい理由' },
-          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '取引所板で10万円買いを比較' },
+          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '10万円買いをシミュレーション' },
         ],
       };
     }
@@ -446,9 +446,10 @@
   function syncToggleButtons() {
     ensurePageToggle();
     document.querySelectorAll('[data-beginner-toggle]').forEach((button) => {
+      const label = button.dataset.beginnerToggleLabel || '初心者モード';
       button.classList.toggle('is-active', beginnerMode);
       button.setAttribute('aria-pressed', beginnerMode ? 'true' : 'false');
-      button.textContent = beginnerMode ? '初心者モード ON' : '初心者モード OFF';
+      button.textContent = `${label}: ${beginnerMode ? 'ON' : 'OFF'}`;
       button.title = beginnerMode
         ? '用語説明を表示しやすくしています'
         : '用語説明を見やすくする初心者モードを有効化';

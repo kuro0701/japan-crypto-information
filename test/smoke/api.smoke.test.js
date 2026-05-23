@@ -649,15 +649,15 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const salesSpreadPage = await fetchText(baseUrl, '/sales-spread?instrumentId=BTC-JPY');
   assert.equal(salesSpreadPage.status, 200);
-  assert.ok(salesSpreadPage.body.includes('販売所で買う前に見る結論'));
+  assert.ok(salesSpreadPage.body.includes('今のスプレッド状況（実質コストの目安）'));
   assert.ok(salesSpreadPage.body.includes('data-info-layer="top"'));
   assert.ok(salesSpreadPage.body.includes('data-info-layer="middle"'));
   assert.ok(salesSpreadPage.body.includes('data-info-layer="bottom"'));
   assert.ok(salesSpreadPage.body.includes('販売所スプレッドとは？'));
   assert.ok(salesSpreadPage.body.includes('/learn/spread'));
   assert.ok(salesSpreadPage.body.includes('/learn/broker-loss-reasons'));
-  assert.ok(salesSpreadPage.body.includes('現在スプレッドが狭い銘柄TOP10'));
-  assert.ok(salesSpreadPage.body.includes('BTC/JPYの取引所コストを確認する'));
+  assert.ok(salesSpreadPage.body.includes('スプレッドが狭い（コストを抑えやすい）銘柄 TOP10'));
+  assert.ok(salesSpreadPage.body.includes('BTC/JPYの購入コストをシミュレーション'));
   assertCommonDisclosure(salesSpreadPage.body);
 
   const campaignsPage = await fetchText(baseUrl, '/campaigns');

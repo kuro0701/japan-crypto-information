@@ -379,6 +379,21 @@ body.terminal-body {
   color: var(--text-2);
 }
 
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--danger);
+  box-shadow: 0 0 0 4px rgba(255, 107, 112, 0.12);
+}
+
+.status-updated,
+.status-separator {
+  color: var(--text-4);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+
 .beginner-toggle {
   display: inline-flex;
   align-items: center;

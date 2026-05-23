@@ -596,8 +596,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!container) return;
 
     if (!items || items.length === 0) {
-      container.innerHTML = '<p class="spread-orderbook-empty">板比較に進める候補はまだありません。</p>';
-      setText('spread-orderbook-meta', '現在値の比較データが揃うと、板比較に進みやすい銘柄を表示します。');
+      container.innerHTML = '<p class="spread-orderbook-empty">取引所（板取引）の比較に進める候補はまだありません。</p>';
+      setText('spread-orderbook-meta', '現在値の比較データが揃うと、取引所（板取引）の価格も確認したい銘柄を表示します。');
       if (badge) {
         badge.className = 'decision-summary-badge decision-summary-badge--loading';
         badge.textContent = '候補待ち';
@@ -611,19 +611,19 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
         : null;
       const description = widestLabel
-        ? `販売所平均 ${fmtPct(item.current.spreadPct)}。最も広い販売所は ${widestLabel} です。取引所板と成行コストも続けて確認できます。`
-        : `販売所平均 ${fmtPct(item.current.spreadPct)}。取引所板と成行コストも続けて確認できます。`;
+        ? `販売所平均 ${fmtPct(item.current.spreadPct)}。最も広い販売所は ${widestLabel} です。取引所（板取引）と成行コストも続けて確認できます。`
+        : `販売所平均 ${fmtPct(item.current.spreadPct)}。取引所（板取引）と成行コストも続けて確認できます。`;
       return [
         `<a class="market-context-card" href="${marketPageUrl(item.instrumentId)}">`,
-        '  <span class="market-context-card__eyebrow">Order Book</span>',
-        `  <strong class="market-context-card__title">${escapeHtml(item.instrumentLabel)} の取引所板へ</strong>`,
+        '  <span class="market-context-card__eyebrow">板取引を比較</span>',
+        `  <strong class="market-context-card__title">${escapeHtml(item.instrumentLabel)} の取引所（板取引）へ</strong>`,
         `  <span class="market-context-card__description">${escapeHtml(description)}</span>`,
-        '  <span class="market-context-card__cta">板比較へ</span>',
+        '  <span class="market-context-card__cta">コストを確認</span>',
         '</a>',
       ].join('\n');
     }).join('');
 
-    setText('spread-orderbook-meta', `${suggestions.length}銘柄をピックアップしました。広めの販売所スプレッドを見つけたら、板のBid/Askとシミュレーターも合わせて確認できます。`);
+    setText('spread-orderbook-meta', `スプレッドが広い銘柄は、ユーザー同士で売買する「取引所」を使うことでコストを大幅に抑えられる可能性があります。以下の${suggestions.length}銘柄の実際の購入コストをシミュレーションしてみましょう。`);
     if (badge) {
       badge.className = 'decision-summary-badge decision-summary-badge--ready';
       badge.textContent = `${suggestions.length}銘柄`;
@@ -648,7 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `最狭 ${item.narrowestExchange.exchangeLabel} ${fmtPct(item.narrowestExchange.spreadPct)} / 最広 ${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
           : '現在値ベース',
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '取引所板を見る',
+        actionLabel: '板取引を見る',
       }));
 
     const wideSources = currentItems
@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `最も広い販売所 ${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
           : '現在値ベース',
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '取引所板を見る',
+        actionLabel: '板取引を見る',
       }));
 
     const widerThan7dSources = currentItems
@@ -687,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
         note: `現在 ${fmtPct(item.current.spreadPct)}`,
         delta: `7日平均 ${fmtPct(item.averages['7d'].spreadPct)}`,
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '取引所板を見る',
+        actionLabel: '板取引を見る',
       }));
 
     const improvedFrom30dSources = currentItems
@@ -708,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
         note: `現在 ${fmtPct(item.current.spreadPct)}`,
         delta: `30日平均 ${fmtPct(item.averages['30d'].spreadPct)}`,
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '取引所板を見る',
+        actionLabel: '板取引を見る',
       }));
 
     return {
@@ -785,7 +785,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
           <td class="is-num text-right font-mono text-red-300" data-label="買値">${fmtJpyPrice(latest.buyPrice, precision)}</td>
           <td class="is-num text-right font-mono text-green-300" data-label="売値">${fmtJpyPrice(latest.sellPrice, precision)}</td>
-          <td class="is-num text-right" data-label="現在">${latestSpreadCell(row)}</td>
+          <td class="is-num text-right" data-label="現在のスプレッド率">${latestSpreadCell(row)}</td>
           <td class="is-num text-right" data-label="24h平均">${spreadCell(averages['1d'], precision)}</td>
           <td class="is-num text-right" data-label="7日平均">${spreadCell(averages['7d'], precision)}</td>
           <td class="is-num text-right" data-label="30日平均">${spreadCell(averages['30d'], precision)}</td>
@@ -851,7 +851,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setText('spread-top-note', 'スプレッドデータを取得できた販売所から順に比較します。');
       if (cta) {
         cta.href = '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000';
-        cta.textContent = '取引コスト計算で確認';
+        cta.textContent = '購入コストをシミュレーション';
       }
       return;
     }
@@ -872,20 +872,20 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     setText(
       'spread-top-caution-meta',
-      wideSummary ? `最大 ${fmtPct(wideSummary.spreadPct)} | 板比較も確認` : '表示価格は参考値です'
+      wideSummary ? `最大 ${fmtPct(wideSummary.spreadPct)} | 板取引も比較` : '表示価格は参考値です'
     );
     setText(
       'spread-top-note',
       widest
-        ? `${widest.row.instrumentLabel} のようにスプレッドが広い候補は、販売所だけで判断せず取引所板の実効コストも確認してください。`
-        : 'スプレッドが広い場合は、同じ銘柄を取引所板でも比較してください。'
+        ? `${widest.row.instrumentLabel} などのスプレッドが広い（コストが高い）銘柄は、販売所ではなく「取引所（板取引）」での購入も比較することをおすすめします。`
+        : 'スプレッドが広い場合は、同じ銘柄を「取引所（板取引）」でも比較してください。'
     );
 
     if (cta) {
       const instrumentId = narrowest && narrowest.row.instrumentId ? narrowest.row.instrumentId : 'BTC-JPY';
       const label = narrowest && narrowest.row.instrumentLabel ? narrowest.row.instrumentLabel : instrumentId.replace(/-/g, '/');
       cta.href = `/simulator?market=${encodeURIComponent(instrumentId)}&side=buy&amountType=jpy&amount=100000`;
-      cta.textContent = `${label}を板で確認`;
+      cta.textContent = `${label}の購入コストをシミュレーション`;
     }
   }
 
@@ -904,7 +904,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setText('narrowest-spread', narrowest ? spreadHighlightLabel(narrowest.row) : '-');
     setText('widest-spread', widest ? spreadHighlightLabel(widest.row) : '-');
     renderTopDecision(narrowest, widest, rowsWithSpread.length);
-    setText('spread-status', status.running ? '更新中' : (allRows.length > 0 ? '集計済み' : '取得中'));
+    setText('spread-status', status.running || allRows.length > 0 ? 'リアルタイム更新中' : 'データ取得中');
     setText('spread-updated-at', fmtDateTime(latestMeta.latestCapturedAt || latestMeta.generatedAt));
   }
 
@@ -1132,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadSpread() {
-    setText('spread-status', '読み込み中');
+    setText('spread-status', 'データ取得中');
     if (spreadAbortController) {
       spreadAbortController.abort();
       spreadAbortController = null;
