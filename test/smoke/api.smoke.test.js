@@ -211,6 +211,41 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const homePage = await fetchText(baseUrl, '/');
   assert.equal(homePage.status, 200);
+  [
+    '取引所（板）のコスト計算',
+    '販売所のスプレッド比較',
+    '出来高・流動性（取引の活発さ）',
+    'レバレッジ（FX・CFD）比較',
+    '財務・安全性データの比較',
+    '取引手数料の比較',
+    '日本円の入出金手数料',
+    '暗号資産の送金（出金）コスト',
+    'すべての銘柄を見る',
+    'ビットコイン（BTC）',
+    'イーサリアム（ETH）',
+    'リップル（XRP）',
+    'ソラナ（SOL）',
+    'すべての取引所を見る',
+    'bitFlyer（ビットフライヤー）',
+    'Coincheck（コインチェック）',
+    'bitbank（ビットバンク）',
+    '初心者ガイド トップ',
+    '【重要】販売所と取引所の違い',
+    'スプレッド（実質手数料）とは？',
+    '板取引の仕組みとやり方',
+    '失敗しない！10万円分の買い方',
+    'なぜ販売所は損しやすいのか？',
+    '取引所選びのチェックリスト',
+    'PR・広告表記について',
+    '免責事項・利用規約',
+    '開催中のキャンペーン総合',
+    '友達招待コード・特典まとめ',
+    'bitFlyer 招待プログラム',
+    'Coincheck お得な始め方',
+    'GMOコイン キャンペーン情報',
+  ].forEach((label) => {
+    assert.ok(homePage.body.includes(label), `home navigation includes ${label}`);
+  });
   assert.ok(homePage.body.includes('/markets?q={search_term_string}'));
   assert.ok(homePage.body.includes('国内暗号資産取引所の'));
   assert.ok(homePage.body.includes('「実質コスト」を比較'));

@@ -267,6 +267,8 @@ body.terminal-body {
   top: calc(100% + 8px);
   left: 50%;
   min-width: 224px;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 32px));
   display: grid;
   gap: var(--sp-1);
   padding: var(--sp-2);
@@ -298,7 +300,7 @@ body.terminal-body {
   font-weight: 700;
   line-height: var(--lh-normal);
   text-decoration: none;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .nav-dropdown__link:hover,
