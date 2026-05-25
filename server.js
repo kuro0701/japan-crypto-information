@@ -720,11 +720,17 @@ function captureRollingSalesSpreadSnapshot(result, reason = 'refresh-snapshot') 
   if (!result || result.records.length === 0) return;
   const capturedAt = new Date(result.capturedAt);
   const parts = SalesSpreadStore.getJstParts(capturedAt);
+  const previousSpreadDateJst = SalesSpreadStore.getPreviousJstDate(capturedAt);
+  const missingPreviousSnapshot = !salesSpreadStore.hasDailySnapshot(previousSpreadDateJst);
   // Before 02:00 JST, keep treating the first wake-up as a catch-up for yesterday.
   const isEarlyMorning = parts.hour <= 1;
-  const spreadDateJst = isEarlyMorning
-    ? SalesSpreadStore.getPreviousJstDate(capturedAt)
-    : parts.date;
+  const shouldBackfillPreviousDay = !isEarlyMorning && missingPreviousSnapshot;
+  if (shouldBackfillPreviousDay) {
+    captureSalesSpreadSnapshotFromResult(result, 'late-catchup', {
+      spreadDateJst: previousSpreadDateJst,
+    });
+  }
+  const spreadDateJst = isEarlyMorning ? previousSpreadDateJst : parts.date;
 
   return captureSalesSpreadSnapshotFromResult(result, isEarlyMorning ? 'early-morning-catchup' : reason, {
     spreadDateJst,
