@@ -224,8 +224,8 @@
     <section id="sales-spread-table-section" class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
       <div class="panel-title-row mb-3"><h2 class="panel-title">銘柄別スプレッド</h2><span class="panel-kicker">銘柄別</span></div>
       <div class="overflow-auto scrollbar-thin max-h-[760px]">
-        <table class="data-table data-table--cards text-xs">
-          <thead class="sticky"><tr><th class="text-left">銘柄</th><th class="text-left">取引所</th><th class="is-num text-right">買値</th><th class="is-num text-right">売値</th><th class="is-num text-right">現在のスプレッド率</th><th class="is-num text-right">24h平均</th><th class="is-num text-right">7日平均</th><th class="is-num text-right">30日平均</th></tr></thead>
+        <table class="data-table data-table--cards sales-spread-table text-xs">
+          <thead class="sticky"><tr><th class="text-left">銘柄</th><th class="text-left">取引所</th><th class="is-num text-right">買値</th><th class="is-num text-right">売値</th><th class="is-num text-right">現在の実質コスト</th><th class="is-num text-right">24時間平均</th><th class="is-num text-right">7日間平均</th><th class="is-num text-right">30日間平均</th></tr></thead>
           <tbody id="sales-spread-tbody"><tr><td colspan="8" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
         </table>
       </div>
@@ -290,14 +290,14 @@
       <div class="panel-title-row mb-4">
         <div>
           <h2 id="sales-spread-compare-tools-title" class="panel-title">比較する</h2>
-          <p class="text-xs text-gray-500 mt-1">注文する前に、実際の取引価格（板情報）・販売所の手数料相当額（スプレッド）・取引の活発さ（出来高）を銘柄ごとに比較・確認できます。</p>
+          <p class="text-xs text-gray-500 mt-1">注文する前に、取引所の「買値・売値」、販売所の価格差、取引の活発さを銘柄ごとに比較できます。</p>
         </div>
         <span class="panel-kicker">比較ツール</span>
       </div>
       <div class="home-compare-link-grid">
         <a class="home-compare-link" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
           <strong>購入コストシミュレーター</strong>
-          <span>実際の取引価格（板情報）から、成行注文時の想定コストを計算</span>
+          <span>取引所の買値・売値から、今すぐ買った場合の実際に近い購入コストを計算</span>
         </a>
         <a class="home-compare-link" href="/sales-spread?instrumentId=BTC-JPY">
           <strong>販売所スプレッド比較</strong>
@@ -338,6 +338,6 @@
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/sales-spread.js?v=sales-spread-19"></script>
+  <script src="js/sales-spread.js?v=sales-spread-20"></script>
 </body>
 </html>

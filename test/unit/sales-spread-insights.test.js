@@ -62,6 +62,8 @@ test('generateSalesSpreadInsights emits narrowing and widening insights', () => 
   assert.equal(types.has('top_narrowing'), true);
   assert.equal(types.has('top_widening'), true);
   assert.match(result.insights.find(insight => insight.type === 'top_narrowing').messageJa, /% → /);
+  assert.doesNotMatch(result.insights.find(insight => insight.type === 'top_widening').messageJa, /pt/);
+  assert.match(result.insights.find(insight => insight.type === 'top_widening').messageJa, /前日より約/);
 });
 
 test('generateSalesSpreadInsights can compare seven days back', () => {
@@ -100,6 +102,9 @@ test('zscore and streak insights are generated with enough spread history', () =
 
   assert.equal(types.has('zscore_outlier'), true);
   assert.equal(types.has('narrowing_streak') || types.has('widening_streak'), true);
+  const zscoreInsight = result.insights.find(insight => insight.type === 'zscore_outlier');
+  assert.doesNotMatch(zscoreInsight.messageJa, /σ/);
+  assert.match(zscoreInsight.messageJa, /平均から大きく外れて/);
 });
 
 test('renderSalesSpreadInsightsJa returns non-empty report', () => {

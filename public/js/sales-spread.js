@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     above_gap_widen: '🔴 上位との差が拡大',
     narrowing_streak: '🟢 コスト低下が継続',
     widening_streak: '🔴 コスト上昇が継続',
-    zscore_outlier: '今日の注目ポイント',
+    zscore_outlier: '要注意（コスト急変動）',
   };
   const INSIGHT_PERIOD_VALUES = new Set(Object.keys(INSIGHT_PERIODS));
   const TOP_RANKING_LIMIT = 10;
@@ -224,8 +224,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function spreadCell(summary, precision) {
     if (!summary) return '<span class="text-gray-600">-</span>';
     return `
-      <div class="font-mono text-yellow-300">${fmtJpyPrice(summary.spread, precision)}</div>
-      <div class="text-[10px] text-gray-500">${fmtPct(summary.spreadPct)} / n=${summary.sampleCount}</div>
+      <div class="spread-cost-cell">
+        <div class="spread-cost-cell__rate">${fmtPct(summary.spreadPct)}</div>
+        <div class="spread-cost-cell__amount">(${fmtJpyPrice(summary.spread, precision)})</div>
+      </div>
     `;
   }
 
@@ -233,8 +235,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const latest = row.latest;
     if (!latest) return '<span class="text-gray-600">-</span>';
     return `
-      <div class="font-mono text-gray-200">${fmtJpyPrice(latest.spread, latest.quotePrecision)}</div>
-      <div class="text-[10px] text-gray-500">${fmtPct(latest.spreadPct)}</div>
+      <div class="spread-cost-cell spread-cost-cell--current">
+        <div class="spread-cost-cell__rate">${fmtPct(latest.spreadPct)}</div>
+        <div class="spread-cost-cell__amount">(${fmtJpyPrice(latest.spread, latest.quotePrecision)})</div>
+      </div>
     `;
   }
 
@@ -358,11 +362,24 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${value}販売所`;
   }
 
-  function formatPointDelta(value, { signed = true } = {}) {
+  function formatApproxPct(value) {
     const number = Number(value);
     if (!Number.isFinite(number)) return '-';
-    const prefix = signed && number > 0 ? '+' : '';
-    return `${prefix}${number.toFixed(2)}pt`;
+    const abs = Math.abs(number);
+    const decimals = abs >= 10 ? 0 : (abs >= 1 ? 1 : 2);
+    return `約${abs.toFixed(decimals)}%`;
+  }
+
+  function formatCostChange(value, { direction = null } = {}) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '-';
+    const isWorse = direction ? direction === 'worse' : number > 0;
+    return `${formatApproxPct(number)}${isWorse ? '悪化' : '改善'}`;
+  }
+
+  function simulatorUrl(instrumentId) {
+    const normalized = String(instrumentId || 'BTC-JPY').trim().toUpperCase() || 'BTC-JPY';
+    return `/simulator?market=${encodeURIComponent(normalized)}&side=buy&amountType=jpy&amount=100000`;
   }
 
   function currentSpreadValueClass(spreadPct) {
@@ -600,19 +617,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const suggestions = items.slice(0, ORDERBOOK_SUGGESTION_LIMIT);
     container.innerHTML = suggestions.map((item) => {
-      const widestLabel = item.widestExchange
-        ? `${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
-        : null;
-      const description = widestLabel
-        ? `販売所平均 ${fmtPct(item.current.spreadPct)}。最も広い販売所は ${widestLabel} です。取引所（板取引）と成行コストも続けて確認できます。`
-        : `販売所平均 ${fmtPct(item.current.spreadPct)}。取引所（板取引）と成行コストも続けて確認できます。`;
+      const widestPct = item.widestExchange ? fmtPct(item.widestExchange.spreadPct) : null;
+      const widestExchangeLabel = item.widestExchange ? item.widestExchange.exchangeLabel : null;
+      const description = widestPct
+        ? `販売所のスプレッドが非常に広いため（最大 ${widestPct}）、取引所（板取引）を使った場合の価格をシミュレーションしてみましょう。`
+        : `販売所平均は ${fmtPct(item.current.spreadPct)} です。取引所（板取引）を使った場合の価格をシミュレーションしてみましょう。`;
+      const note = widestExchangeLabel
+        ? `最も広い販売所: ${widestExchangeLabel} / 販売所平均 ${fmtPct(item.current.spreadPct)}`
+        : `販売所平均 ${fmtPct(item.current.spreadPct)}`;
+      const href = simulatorUrl(item.instrumentId);
       return [
-        `<a class="market-context-card" href="${marketPageUrl(item.instrumentId)}">`,
-        '  <span class="market-context-card__eyebrow">板取引を比較</span>',
-        `  <strong class="market-context-card__title">${escapeHtml(item.instrumentLabel)} の取引所（板取引）へ</strong>`,
-        `  <span class="market-context-card__description">${escapeHtml(description)}</span>`,
-        '  <span class="market-context-card__cta">コストを確認</span>',
-        '</a>',
+        '<article class="market-context-card spread-orderbook-suggestion">',
+        '  <span class="market-context-card__eyebrow">購入前チェック</span>',
+        `  <a class="market-context-card__title spread-orderbook-suggestion__title" href="${href}">${escapeHtml(item.instrumentLabel)} の実際のコストを計算する</a>`,
+        `  <p class="market-context-card__description">${escapeHtml(description)}</p>`,
+        `  <span class="spread-orderbook-suggestion__note">${escapeHtml(note)}</span>`,
+        '  <span class="market-context-card__cta">シミュレーションへ</span>',
+        '</article>',
       ].join('\n');
     }).join('');
 
@@ -675,7 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
         title: item.instrumentLabel,
         titleHref: marketPageUrl(item.instrumentId),
         subtitle: `${formatVenueCount(item.current.venueCount)}平均`,
-        value: formatPointDelta(diff),
+        value: formatCostChange(diff, { direction: 'worse' }),
         valueClass: 'spread-ranking-item__value--danger',
         note: `現在 ${fmtPct(item.current.spreadPct)}`,
         delta: `7日平均 ${fmtPct(item.averages['7d'].spreadPct)}`,
@@ -696,7 +717,7 @@ document.addEventListener('DOMContentLoaded', () => {
         title: item.instrumentLabel,
         titleHref: marketPageUrl(item.instrumentId),
         subtitle: `${formatVenueCount(item.current.venueCount)}平均`,
-        value: formatPointDelta(diff, { signed: false }),
+        value: formatCostChange(diff, { direction: 'better' }),
         valueClass: 'spread-ranking-item__value--positive',
         note: `現在 ${fmtPct(item.current.spreadPct)}`,
         delta: `30日平均 ${fmtPct(item.averages['30d'].spreadPct)}`,
@@ -778,10 +799,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
           <td class="is-num text-right font-mono text-red-300" data-label="買値">${fmtJpyPrice(latest.buyPrice, precision)}</td>
           <td class="is-num text-right font-mono text-green-300" data-label="売値">${fmtJpyPrice(latest.sellPrice, precision)}</td>
-          <td class="is-num text-right" data-label="現在のスプレッド率">${latestSpreadCell(row)}</td>
-          <td class="is-num text-right" data-label="24h平均">${spreadCell(averages['1d'], precision)}</td>
-          <td class="is-num text-right" data-label="7日平均">${spreadCell(averages['7d'], precision)}</td>
-          <td class="is-num text-right" data-label="30日平均">${spreadCell(averages['30d'], precision)}</td>
+          <td class="is-num text-right" data-label="現在の実質コスト">${latestSpreadCell(row)}</td>
+          <td class="is-num text-right" data-label="24時間平均">${spreadCell(averages['1d'], precision)}</td>
+          <td class="is-num text-right" data-label="7日間平均">${spreadCell(averages['7d'], precision)}</td>
+          <td class="is-num text-right" data-label="30日間平均">${spreadCell(averages['30d'], precision)}</td>
         </tr>
       `;
     }).join('');
@@ -876,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cta) {
       const instrumentId = narrowest && narrowest.row.instrumentId ? narrowest.row.instrumentId : 'BTC-JPY';
       const label = narrowest && narrowest.row.instrumentLabel ? narrowest.row.instrumentLabel : instrumentId.replace(/-/g, '/');
-      cta.href = `/simulator?market=${encodeURIComponent(instrumentId)}&side=buy&amountType=jpy&amount=100000`;
+      cta.href = simulatorUrl(instrumentId);
       cta.textContent = `${label}の購入コストをシミュレーション`;
     }
   }

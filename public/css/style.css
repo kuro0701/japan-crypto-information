@@ -1957,6 +1957,39 @@ a.ui-source-link-card:focus-visible {
     linear-gradient(135deg, rgba(8, 15, 14, 0.96), rgba(8, 12, 14, 0.96));
 }
 
+.spread-orderbook-suggestion {
+  min-height: 0;
+}
+
+.spread-orderbook-suggestion__title {
+  display: inline-flex;
+  width: fit-content;
+  color: var(--text-1);
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  line-height: var(--lh-tight);
+  text-decoration: none;
+}
+
+.spread-orderbook-suggestion__title:hover,
+.spread-orderbook-suggestion__title:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.spread-orderbook-suggestion .market-context-card__description {
+  margin: 0;
+}
+
+.spread-orderbook-suggestion__note {
+  color: var(--text-4);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
 .spread-ranking-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -2122,6 +2155,44 @@ a.ui-source-link-card:focus-visible {
   color: var(--text-3);
   font-size: var(--fs-xs);
   font-weight: 700;
+}
+
+.spread-cost-cell {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+  min-width: 0;
+}
+
+.spread-cost-cell__rate {
+  color: var(--warn);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.spread-cost-cell--current .spread-cost-cell__rate {
+  color: var(--text-1);
+  font-size: var(--fs-base);
+}
+
+.spread-cost-cell__amount {
+  color: var(--text-4);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.data-table.sales-spread-table thead th,
+.data-table.sales-spread-table thead.sticky th {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+.data-table.sales-spread-table.data-table--cards td::before {
+  text-transform: none !important;
+  letter-spacing: 0 !important;
 }
 
 .comparison-row-link {
