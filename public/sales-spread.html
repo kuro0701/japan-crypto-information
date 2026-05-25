@@ -81,7 +81,7 @@
         <div class="metric-row metric-row--hero ask"><span class="metric-label">最大スプレッド</span><span id="widest-spread" class="metric-value metric-value--market text-red-300">-</span></div>
       </div>
       <div class="filter-grid" aria-label="販売所スプレッドフィルター">
-        <label class="filter-control" for="spread-filter"><span>銘柄検索</span><input id="spread-filter" class="field font-mono" type="search" placeholder="BTC"></label>
+        <label class="filter-control" for="spread-filter"><span>銘柄検索</span><input id="spread-filter" class="field font-mono" type="search" placeholder="例: BTC, XRP, ソラナ"></label>
         <label class="filter-control" for="spread-exchange-filter"><span>取引所</span><select id="spread-exchange-filter" class="field" aria-label="取引所で絞り込み"><option value="__all__">すべて</option></select></label>
       </div>
     </section>
@@ -178,10 +178,10 @@
     <section class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">スプレッド推移</h2>
-          <p id="spread-history-meta" class="text-xs text-gray-500 mt-1">日次スナップショットを読み込み中</p>
+          <h2 class="panel-title">コストの変化を見る</h2>
+          <p id="spread-history-meta" class="text-xs text-gray-500 mt-1">コスト推移を読み込み中</p>
         </div>
-        <span class="panel-kicker">推移</span>
+        <span class="panel-kicker">コスト変化</span>
       </div>
       <div class="history-toolbar">
         <div class="tab-group" role="tablist" aria-label="スプレッド履歴期間">
@@ -197,8 +197,8 @@
       <div class="history-chart-grid mt-3">
         <div class="history-chart-block">
           <div class="history-chart-heading">
-            <h3>販売所スプレッド推移</h3>
-            <p>選択中の銘柄で、販売所ごとのスプレッド率を追います</p>
+            <h3>販売所ごとのコスト変化</h3>
+            <p>選択中の銘柄で、販売所ごとのコストがどう変わったかを確認できます</p>
           </div>
           <div class="chart-container history-chart-container">
             <canvas id="spread-history-chart"></canvas>
@@ -206,8 +206,8 @@
         </div>
         <div class="history-chart-block volume-insights-report-block beginner-focus" data-beginner-focus="true" aria-labelledby="sales-spread-insights-title">
           <div class="history-chart-heading">
-            <h3 id="sales-spread-insights-title">銘柄別インサイト</h3>
-            <p id="sales-spread-insights-meta">履歴データから変化を確認中</p>
+            <h3 id="sales-spread-insights-title">本日のスプレッド動向（自動分析）</h3>
+            <p id="sales-spread-insights-meta">注目ポイントを確認中</p>
           </div>
           <div class="tab-group mb-3" role="tablist" aria-label="販売所インサイト期間">
             <button class="btn btn-tab window-tab active" data-spread-insight-period="24h" type="button" role="tab" aria-selected="true">24h</button>
@@ -215,7 +215,7 @@
             <button class="btn btn-tab window-tab" data-spread-insight-period="30d" type="button" role="tab" aria-selected="false">30日</button>
           </div>
           <ul id="sales-spread-insights-list" class="volume-insights-list volume-insights-list--report" aria-live="polite">
-            <li class="volume-insight-item volume-insight-item--loading">インサイトを生成中です。</li>
+            <li class="volume-insight-item volume-insight-item--loading">注目ポイントを生成中です。</li>
           </ul>
         </div>
       </div>
@@ -315,13 +315,18 @@
     </section>
 
     <section class="panel panel--dense info-layer info-layer--bottom" data-info-layer="bottom">
-      <div class="panel-title-row mb-3"><div><h2 class="panel-title">データ鮮度・信頼度</h2><p id="spread-quality-meta" class="text-xs text-gray-500 mt-1">販売所ごとの取得状況を確認中</p></div><span class="panel-kicker">データ品質</span></div>
-      <div class="overflow-auto scrollbar-thin">
-        <table class="data-table data-table--cards text-xs">
-          <thead class="sticky"><tr><th class="text-left">販売所</th><th class="text-left">API</th><th class="text-left">経路</th><th class="is-num text-right">サンプル</th><th class="text-left">種別</th><th class="text-right">最終取得</th></tr></thead>
-          <tbody id="spread-quality-tbody"><tr><td colspan="6" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
-        </table>
-      </div>
+      <div class="panel-title-row mb-3"><div><h2 class="panel-title">データ鮮度・信頼度</h2><p id="spread-quality-meta" class="text-xs text-gray-500 mt-1">データ取得状況を確認中</p></div><span class="panel-kicker">信頼度</span></div>
+      <details class="ui-accordion mt-3">
+        <summary class="ui-accordion__summary">詳細な取得ログを見る</summary>
+        <div class="ui-accordion__body">
+          <div class="overflow-auto scrollbar-thin">
+            <table class="data-table data-table--cards text-xs">
+              <thead class="sticky"><tr><th class="text-left">販売所</th><th class="text-left">取得状況</th><th class="text-left">取得方法</th><th class="is-num text-right">件数</th><th class="text-left">データ</th><th class="text-right">最終取得</th></tr></thead>
+              <tbody id="spread-quality-tbody"><tr><td colspan="6" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </details>
     </section>
   </main>
 
@@ -333,6 +338,6 @@
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/sales-spread.js?v=sales-spread-18"></script>
+  <script src="js/sales-spread.js?v=sales-spread-19"></script>
 </body>
 </html>

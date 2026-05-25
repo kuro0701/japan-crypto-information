@@ -3,11 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const AppFmt = window.AppFormatters;
   const AppUtil = window.AppUtils;
   const pagePoller = window.PagePoller.create();
-  const WINDOW_LABELS = {
-    '1d': '24h',
-    '7d': '7日',
-    '30d': '30日',
-  };
   const ALL_VALUE = '__all__';
   let allRows = [];
   let filterText = '';
@@ -28,7 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const SPREAD_INSIGHTS_REFRESH_MS = 600000;
   const EMPTY_FILTER_MESSAGE = '条件に合う販売所スプレッドデータがありません。銘柄名や取引所フィルターを変更してください。';
   const WAITING_DATA_MESSAGE = '販売所価格を取得中です。取得できた販売所から順に比較します。';
-  const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
 
   const $ = AppUtil.byId;
   const setText = AppUtil.setText;
@@ -47,22 +41,22 @@ document.addEventListener('DOMContentLoaded', () => {
     '30d': { label: '30日', periods: 30, periodLabel: '30d' },
   };
   const INSIGHT_TYPE_LABELS = {
-    top_narrowing: '改善',
-    top_widening: '注意',
-    spread_narrowing: '改善',
-    spread_widening: '拡大',
-    narrowest_change: '最狭更新',
-    narrowest_hold: '最狭',
-    narrowest_gap_change: '差分変化',
-    rank_up: '順位改善',
-    rank_down: '順位悪化',
-    narrowest_gap_narrow: '差分縮小',
-    narrowest_gap_widen: '差分拡大',
-    above_gap_narrow: '差分縮小',
-    above_gap_widen: '差分拡大',
-    narrowing_streak: '連続改善',
-    widening_streak: '連続拡大',
-    zscore_outlier: '外れ値',
+    top_narrowing: '🟢 コスト低下（スプレッド改善）',
+    top_widening: '🔴 コスト上昇に注意（スプレッド拡大）',
+    spread_narrowing: '🟢 コスト低下（スプレッド改善）',
+    spread_widening: '🔴 コスト上昇に注意（スプレッド拡大）',
+    narrowest_change: '🟢 コスト低下（最安候補の変化）',
+    narrowest_hold: '🟢 コスト低めを維持',
+    narrowest_gap_change: '今日の注目ポイント',
+    rank_up: '🟢 コスト順位が改善',
+    rank_down: '🔴 コスト順位の悪化に注意',
+    narrowest_gap_narrow: '🟢 最安候補との差が縮小',
+    narrowest_gap_widen: '🔴 最安候補との差が拡大',
+    above_gap_narrow: '🟢 上位との差が縮小',
+    above_gap_widen: '🔴 上位との差が拡大',
+    narrowing_streak: '🟢 コスト低下が継続',
+    widening_streak: '🔴 コスト上昇が継続',
+    zscore_outlier: '今日の注目ポイント',
   };
   const INSIGHT_PERIOD_VALUES = new Set(Object.keys(INSIGHT_PERIODS));
   const TOP_RANKING_LIMIT = 10;
@@ -147,45 +141,51 @@ document.addEventListener('DOMContentLoaded', () => {
   selectedInsightPeriod = initialState.insightPeriod;
   selectedHistoryInstrument = initialState.historyInstrumentId;
 
-  function sourceLabel(windowMeta) {
-    if (!windowMeta) return 'データ取得中';
-    if (windowMeta.source === 'daily-snapshots') return `スプレッドスナップショット ${windowMeta.sampleSnapshotCount}件`;
-    if (windowMeta.source === 'daily-snapshot') return 'スプレッドスナップショット';
-    if (windowMeta.source === 'latest-fallback') return '最新収集値';
-    if (windowMeta.source === 'latest') return '最新収集値';
-    return 'データ取得中';
+  function formatDateForRange(value, { includeYear = false } = {}) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return '';
+    const [, year, month, day] = match;
+    return includeYear ? `${year}/${month}/${day}` : `${month}/${day}`;
   }
 
-  function provisionalSnapshotNote(meta, latestKey, countKey) {
-    if (!meta) return '';
-    const latestDate = meta[latestKey];
-    const count = Number(meta[countKey]) || 0;
-    if (!latestDate) return '';
-    return count > 1
-      ? `暫定 ${latestDate} を含む ${count}件あり`
-      : `暫定 ${latestDate} あり`;
+  function laterDate(left, right) {
+    const leftTime = Date.parse(left || '');
+    const rightTime = Date.parse(right || '');
+    if (!Number.isFinite(leftTime)) return right || left || '';
+    if (!Number.isFinite(rightTime)) return left || right || '';
+    return rightTime > leftTime ? right : left;
   }
 
-  function partialSnapshotNote(meta, latestKey, countKey) {
-    if (!meta) return '';
-    const latestDate = meta[latestKey];
-    const count = Number(meta[countKey]) || 0;
-    if (!latestDate || count < 1) return '';
-    return count > 1
-      ? `欠損あり ${latestDate} まで ${count}件`
-      : `欠損あり ${latestDate}`;
+  function dateRangeLabel(startDate, endDate) {
+    if (!startDate || !endDate) return '';
+    return `${formatDateForRange(startDate, { includeYear: true })} - ${formatDateForRange(endDate)}`;
+  }
+
+  function expectedHistorySnapshotCount(windowKey) {
+    if (windowKey === '24h') return 1;
+    if (windowKey === '7d') return 7;
+    return 30;
+  }
+
+  function historyWindowDescription(windowKey, meta = {}) {
+    const expectedCount = expectedHistorySnapshotCount(windowKey);
+    const actualCount = Number(meta.historySnapshotCount || meta.sampleSnapshotCount);
+    if (expectedCount > 1 && actualCount > 0 && actualCount < expectedCount) return '直近データ';
+    if (windowKey === '24h') return '過去24時間';
+    if (windowKey === '7d') return '過去7日間';
+    return '過去30日間';
   }
 
   const API_STATUS_LABELS = {
-    success: '成功',
-    partial: '一部API未取得',
-    failed: '失敗',
+    success: '取得OK',
+    partial: '一部要確認',
+    failed: '取得失敗',
     waiting: '待機中',
   };
 
   const DATA_KIND_LABELS = {
-    measured: '実測',
-    estimated: '推定',
+    measured: '取得値',
+    estimated: '参考推定',
     mixed: '推定含む',
     unknown: '-',
   };
@@ -208,13 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const label = API_STATUS_LABELS[status] || status;
     const note = row.message ? `<div class="quality-note" title="${escapeHtml(row.message)}">${escapeHtml(row.message)}</div>` : '';
     return `<span class="quality-badge quality-badge--${escapeHtml(status)}">${escapeHtml(label)}</span>${note}`;
-  }
-
-  function historySourceLabel(meta) {
-    if (!meta) return 'データ取得中';
-    if (meta.source === 'daily-snapshots') return `日次 ${meta.historySnapshotCount}件`;
-    if (meta.source === 'latest-fallback') return '最新収集値';
-    return 'データ取得中';
   }
 
   function selectedOptionLabel(selectId, fallback) {
@@ -803,26 +796,25 @@ document.addEventListener('DOMContentLoaded', () => {
     ));
     if (rows.length === 0) {
       tbody.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 py-4">${WAITING_DATA_MESSAGE}</td></tr>`;
-      setText('spread-quality-meta', '販売所APIの取得状況を確認中です。');
+      setText('spread-quality-meta', '各取引所の公開データを確認中です。');
       return;
     }
 
-    const successCount = rows.filter(row => row.apiStatus === 'success').length;
     const issueCount = rows.filter(row => row.apiStatus === 'partial' || row.apiStatus === 'failed').length;
-    const measuredCount = rows.reduce((sum, row) => sum + (Number(row.measuredCount) || 0), 0);
-    const estimatedCount = rows.reduce((sum, row) => sum + (Number(row.estimatedCount) || 0), 0);
+    const scopeLabel = selectedExchange === ALL_VALUE ? '各取引所' : '選択中の取引所';
+    const statusLabel = issueCount > 0 ? `（${issueCount}件を確認中）` : '（現在エラーなし）';
     setText(
       'spread-quality-meta',
-      `${rows.length}販売所 | 成功 ${successCount} | 要確認 ${issueCount} | 実測 ${measuredCount} / 推定 ${estimatedCount}${issueCount > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`
+      `${scopeLabel}の公開API・WebSocket等からデータを取得し、スプレッド（実質コスト）を算出しています。${statusLabel}`
     );
 
     tbody.innerHTML = rows.map(row => `
       <tr class="border-b border-gray-800/60">
         <td class="font-bold text-gray-200" data-label="販売所">${escapeHtml(row.exchangeLabel || row.exchangeId)}</td>
-        <td class="text-gray-300" data-label="API">${qualityStatusCell(row)}</td>
-        <td class="text-gray-300" data-label="経路">${escapeHtml(transportLabel(row.transportSources))}</td>
-        <td class="is-num text-right font-mono text-gray-300" data-label="サンプル">${Number(row.sampleCount) || 0}</td>
-        <td class="text-gray-300" data-label="種別">${escapeHtml(DATA_KIND_LABELS[row.dataKind] || row.dataKind || '-')}</td>
+        <td class="text-gray-300" data-label="取得状況">${qualityStatusCell(row)}</td>
+        <td class="text-gray-300" data-label="取得方法">${escapeHtml(transportLabel(row.transportSources))}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="件数">${Number(row.sampleCount) || 0}</td>
+        <td class="text-gray-300" data-label="データ">${escapeHtml(DATA_KIND_LABELS[row.dataKind] || row.dataKind || '-')}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="最終取得">
           ${escapeHtml(fmtDateTime(row.lastFetchedAt))}
           <div class="text-[10px] text-gray-500">元データ ${escapeHtml(fmtDateTime(row.lastSourceAt))}</div>
@@ -908,31 +900,25 @@ document.addEventListener('DOMContentLoaded', () => {
     setText('spread-updated-at', fmtDateTime(latestMeta.latestCapturedAt || latestMeta.generatedAt));
   }
 
-  function renderMeta(rows) {
+  function renderMeta() {
     const windows = latestMeta.windows || {};
-    const range30d = windows['30d'] && windows['30d'].earliestSpreadDateJst && windows['30d'].latestSpreadDateJst
-      ? `${windows['30d'].earliestSpreadDateJst} - ${windows['30d'].latestSpreadDateJst}`
-      : '最新収集値';
-    const visibleCountLabel = hasActiveFilters() ? `${rows.length}/${allRows.length}件` : `${allRows.length}件`;
-    const provisionalNote = provisionalSnapshotNote(latestMeta, 'latestProvisionalSpreadDateJst', 'provisionalDailySnapshotCount');
-    const partialNote = partialSnapshotNote(latestMeta, 'latestPartialSpreadDateJst', 'partialDailySnapshotCount');
+    const window30d = windows['30d'] || {};
+    const rangeEnd = laterDate(window30d.latestSpreadDateJst, latestMeta.latestProvisionalSpreadDateJst);
+    const rangeLabel = dateRangeLabel(window30d.earliestSpreadDateJst, rangeEnd || window30d.latestSpreadDateJst);
+    const periodLabel = historyWindowDescription('30d', window30d);
 
     setText(
       'spread-meta',
-      [
-        `${Object.keys(WINDOW_LABELS).map(key => `${WINDOW_LABELS[key]} ${sourceLabel(windows[key])}`).join(' | ')}`,
-        range30d,
-        visibleCountLabel,
-        provisionalNote,
-        partialNote,
-      ].filter(Boolean).join(' | ')
+      rangeLabel
+        ? `集計期間: ${periodLabel}（${rangeLabel}）の最新データ`
+        : '集計期間: 最新データを確認中'
     );
   }
 
   function renderView() {
     const rows = getFilteredRows();
     renderSummary(rows);
-    renderMeta(rows);
+    renderMeta();
     renderRankings(rows);
     renderRows(rows);
     renderQualityRows(latestMeta.quality || []);
@@ -1065,14 +1051,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const selectedOption = $('spread-history-instrument')?.selectedOptions?.[0];
     const instrumentLabel = selectedOption ? selectedOption.textContent : selectedHistoryInstrument;
-    const range = spreadHistoryMeta.earliestSpreadDateJst && spreadHistoryMeta.latestSpreadDateJst
-      ? `${spreadHistoryMeta.earliestSpreadDateJst} - ${spreadHistoryMeta.latestSpreadDateJst}`
-      : '履歴データ待ち';
-    const provisionalNote = provisionalSnapshotNote(spreadHistoryMeta, 'latestProvisionalSpreadDateJst', 'provisionalDailySnapshotCount');
-    const partialNote = partialSnapshotNote(spreadHistoryMeta, 'latestPartialSpreadDateJst', 'partialDailySnapshotCount');
     setText(
       'spread-history-meta',
-      [instrumentLabel, range, series.length > 0 ? `${series.length}系列` : '該当なし', historySourceLabel(spreadHistoryMeta), provisionalNote, partialNote].filter(Boolean).join(' | ')
+      `${instrumentLabel} の${historyWindowDescription(selectedHistoryWindow, spreadHistoryMeta)}のコスト推移`
     );
     writeUrlState();
   }
@@ -1096,25 +1077,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const exchangeLabel = selectedExchange !== ALL_VALUE
       ? selectedOptionLabel('spread-exchange-filter', selectedExchange)
       : '全販売所';
-    const range = meta.earliestDate && meta.latestDate ? `${meta.earliestDate} - ${meta.latestDate}` : '履歴データ待ち';
-    const provisionalNote = provisionalSnapshotNote(meta, 'latestProvisionalSpreadDateJst', 'provisionalDailySnapshotCount');
-    const partialNote = partialSnapshotNote(meta, 'latestPartialSpreadDateJst', 'partialDailySnapshotCount');
 
     setText(
       'sales-spread-insights-meta',
-      [
-        periodConfig.label,
-        period.comparisonLabel || '前回比',
-        instrumentLabel,
-        exchangeLabel,
-        range,
-        provisionalNote,
-        partialNote,
-      ].filter(Boolean).join(' | ')
+      `${instrumentLabel} / ${exchangeLabel} / ${period.comparisonLabel || `${periodConfig.label}の変化`}`
     );
 
     if (insights.length === 0) {
-      list.innerHTML = '<li class="volume-insight-item volume-insight-item--empty">有意な変化は検出されませんでした。</li>';
+      list.innerHTML = '<li class="volume-insight-item volume-insight-item--empty">大きな変化は検出されませんでした。</li>';
       return;
     }
 
@@ -1156,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function loadSpreadHistory() {
-    setText('spread-history-meta', '日次スナップショットを読み込み中');
+    setText('spread-history-meta', 'コスト推移を読み込み中');
     if (spreadHistoryAbortController) {
       spreadHistoryAbortController.abort();
       spreadHistoryAbortController = null;
@@ -1183,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function loadSalesSpreadInsights() {
     const list = $('sales-spread-insights-list');
     if (list) {
-      list.innerHTML = '<li class="volume-insight-item volume-insight-item--loading">インサイトを生成中です。</li>';
+      list.innerHTML = '<li class="volume-insight-item volume-insight-item--loading">注目ポイントを生成中です。</li>';
     }
     if (spreadInsightsAbortController) {
       spreadInsightsAbortController.abort();
@@ -1209,7 +1179,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderSalesSpreadInsights(data);
     } catch (err) {
       if (err.name === 'AbortError') return;
-      setText('sales-spread-insights-meta', 'インサイトを取得できませんでした。');
+      setText('sales-spread-insights-meta', '注目ポイントを取得できませんでした。');
       if (list) {
         list.innerHTML = '<li class="volume-insight-item volume-insight-item--empty">時間をおいて再読み込みしてください。</li>';
       }
