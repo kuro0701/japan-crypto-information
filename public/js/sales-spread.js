@@ -161,52 +161,19 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${formatDateForRange(startDate, { includeYear: true })} - ${formatDateForRange(endDate)}`;
   }
 
-  function expectedHistorySnapshotCount(windowKey) {
-    if (windowKey === '24h') return 1;
-    if (windowKey === '7d') return 7;
-    return 30;
-  }
-
-  function historyWindowDescription(windowKey, meta = {}) {
-    const expectedCount = expectedHistorySnapshotCount(windowKey);
-    const actualCount = Number(meta.historySnapshotCount || meta.sampleSnapshotCount);
-    if (expectedCount > 1 && actualCount > 0 && actualCount < expectedCount) return '直近データ';
-    if (windowKey === '24h') return '過去24時間';
-    if (windowKey === '7d') return '過去7日間';
-    return '過去30日間';
-  }
-
   const API_STATUS_LABELS = {
-    success: '取得OK',
-    partial: '一部要確認',
-    failed: '取得失敗',
-    waiting: '待機中',
+    success: '🟢 正常',
+    partial: '🟡 確認中',
+    failed: '🔴 取得できません',
+    waiting: '🟡 確認中',
   };
-
-  const DATA_KIND_LABELS = {
-    measured: '取得値',
-    estimated: '参考推定',
-    mixed: '推定含む',
-    unknown: '-',
-  };
-
-  const TRANSPORT_LABELS = {
-    websocket: 'WebSocket',
-    rest: 'REST',
-    web: 'Web',
-  };
-
-  function transportLabel(sources) {
-    const labels = (sources || [])
-      .map(source => TRANSPORT_LABELS[source] || source)
-      .filter(Boolean);
-    return labels.length > 0 ? labels.join(' + ') : '-';
-  }
 
   function qualityStatusCell(row) {
     const status = row.apiStatus || 'waiting';
     const label = API_STATUS_LABELS[status] || status;
-    const note = row.message ? `<div class="quality-note" title="${escapeHtml(row.message)}">${escapeHtml(row.message)}</div>` : '';
+    const note = status === 'success'
+      ? ''
+      : '<div class="quality-note">最新データを確認中です</div>';
     return `<span class="quality-badge quality-badge--${escapeHtml(status)}">${escapeHtml(label)}</span>${note}`;
   }
 
@@ -621,10 +588,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return [
         '<article class="market-context-card spread-orderbook-suggestion">',
         '  <span class="market-context-card__eyebrow">購入前チェック</span>',
-        `  <a class="market-context-card__title spread-orderbook-suggestion__title" href="${href}">${escapeHtml(item.instrumentLabel)} の板取引価格と比較する</a>`,
+        `  <a class="market-context-card__title spread-orderbook-suggestion__title" href="${href}">${escapeHtml(item.instrumentLabel)} の板取引価格を見る</a>`,
         `  <p class="market-context-card__description">${escapeHtml(description)}</p>`,
         `  <span class="spread-orderbook-suggestion__note">${escapeHtml(note)}</span>`,
-        '  <span class="market-context-card__cta">板取引の価格と比較</span>',
+        '  <span class="market-context-card__cta">板取引の価格を見る</span>',
         '</article>',
       ].join('\n');
     }).join('');
@@ -654,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `最狭 ${item.narrowestExchange.exchangeLabel} ${fmtPct(item.narrowestExchange.spreadPct)} / 最広 ${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
           : '現在値ベース',
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '板取引の価格と比較',
+        actionLabel: '板取引の価格を見る',
       }));
 
     const wideSources = currentItems
@@ -672,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `最も広い販売所 ${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
           : '現在値ベース',
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '板取引の価格と比較',
+        actionLabel: '板取引の価格を見る',
       }));
 
     const widerThan7dSources = currentItems
@@ -693,7 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
         note: `現在 ${fmtPct(item.current.spreadPct)}（7日平均 ${fmtPct(item.averages['7d'].spreadPct)}）`,
         delta: '7日平均より広がっています',
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '板取引の価格と比較',
+        actionLabel: '板取引の価格を見る',
       }));
 
     const improvedFrom30dSources = currentItems
@@ -714,7 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
         note: `現在 ${fmtPct(item.current.spreadPct)}（30日平均 ${fmtPct(item.averages['30d'].spreadPct)}）`,
         delta: '30日平均より改善しています',
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '板取引の価格と比較',
+        actionLabel: '板取引の価格を見る',
       }));
 
     return {
@@ -739,7 +706,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? `最狭 ${item.narrowestInstrument.instrumentLabel} ${fmtPct(item.narrowestInstrument.spreadPct)} / 最広 ${item.widestInstrument.instrumentLabel} ${fmtPct(item.widestInstrument.spreadPct)}`
         : '集計中',
       actionHref: exchangePageUrl(item.exchangeId),
-      actionLabel: '取引所詳細へ',
+      actionLabel: 'この取引所の詳細を見る',
     }));
   }
 
@@ -786,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
           <td class="is-num text-right font-mono text-red-300" data-label="買値">${fmtJpyPrice(latest.buyPrice, precision)}</td>
           <td class="is-num text-right font-mono text-green-300" data-label="売値">${fmtJpyPrice(latest.sellPrice, precision)}</td>
-          <td class="is-num text-right" data-label="現在の実質コスト">${latestSpreadCell(row)}</td>
+          <td class="is-num text-right" data-label="現在のスプレッド">${latestSpreadCell(row)}</td>
           <td class="is-num text-right" data-label="24時間平均">${spreadCell(averages['1d'], precision)}</td>
           <td class="is-num text-right" data-label="7日間平均">${spreadCell(averages['7d'], precision)}</td>
           <td class="is-num text-right" data-label="30日間平均">${spreadCell(averages['30d'], precision)}</td>
@@ -803,29 +770,30 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange
     ));
     if (rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-gray-500 py-4">${WAITING_DATA_MESSAGE}</td></tr>`;
-      setText('spread-quality-meta', '各取引所の公開データを確認中です。');
+      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500 py-4">${WAITING_DATA_MESSAGE}</td></tr>`;
+      setText('spread-quality-meta', '公式の最新データを確認中です。');
       return;
     }
 
     const issueCount = rows.filter(row => row.apiStatus === 'partial' || row.apiStatus === 'failed').length;
-    const scopeLabel = selectedExchange === ALL_VALUE ? '各取引所' : '選択中の取引所';
-    const statusLabel = issueCount > 0 ? `（${issueCount}件を確認中）` : '（現在エラーなし）';
+    const statusLabel = issueCount > 0
+      ? (selectedExchange === ALL_VALUE
+        ? `全${rows.length}取引所のうち、${issueCount}取引所のデータ取得を確認中です。取得できた公式データをもとに表示しています。`
+        : '選択中の取引所のデータ取得を確認中です。取得できた公式データをもとに表示しています。')
+      : (selectedExchange === ALL_VALUE
+        ? `全${rows.length}取引所から、公式の最新データを正常に取得しています。`
+        : '選択中の取引所から、公式の最新データを正常に取得しています。');
     setText(
       'spread-quality-meta',
-      `${scopeLabel}の公開API・WebSocket等からデータを取得し、スプレッド（実質コスト）を算出しています。${statusLabel}`
+      statusLabel
     );
 
     tbody.innerHTML = rows.map(row => `
       <tr class="border-b border-gray-800/60">
-        <td class="font-bold text-gray-200" data-label="販売所">${escapeHtml(row.exchangeLabel || row.exchangeId)}</td>
-        <td class="text-gray-300" data-label="取得状況">${qualityStatusCell(row)}</td>
-        <td class="text-gray-300" data-label="取得方法">${escapeHtml(transportLabel(row.transportSources))}</td>
-        <td class="is-num text-right font-mono text-gray-300" data-label="件数">${Number(row.sampleCount) || 0}</td>
-        <td class="text-gray-300" data-label="データ">${escapeHtml(DATA_KIND_LABELS[row.dataKind] || row.dataKind || '-')}</td>
-        <td class="is-num text-right font-mono text-gray-300" data-label="最終取得">
-          ${escapeHtml(fmtDateTime(row.lastFetchedAt))}
-          <div class="text-[10px] text-gray-500">元データ ${escapeHtml(fmtDateTime(row.lastSourceAt))}</div>
+        <td class="font-bold text-gray-200" data-label="取引所">${escapeHtml(row.exchangeLabel || row.exchangeId)}</td>
+        <td class="text-gray-300" data-label="ステータス">${qualityStatusCell(row)}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="データ取得日時">
+          ${escapeHtml(fmtDateTime(row.lastFetchedAt || row.lastSourceAt))}
         </td>
       </tr>
     `).join('');
@@ -851,7 +819,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setText('spread-top-note', 'スプレッドデータを取得できた販売所から順に比較します。');
       if (cta) {
         cta.href = '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000';
-        cta.textContent = 'BTC/JPYの板取引価格と比較';
+        cta.textContent = 'BTC/JPYの板取引価格を見る';
       }
       return;
     }
@@ -885,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const instrumentId = narrowest && narrowest.row.instrumentId ? narrowest.row.instrumentId : 'BTC-JPY';
       const label = narrowest && narrowest.row.instrumentLabel ? narrowest.row.instrumentLabel : instrumentId.replace(/-/g, '/');
       cta.href = simulatorUrl(instrumentId);
-      cta.textContent = `${label}の板取引価格と比較`;
+      cta.textContent = `${label}の板取引価格を見る`;
     }
   }
 
@@ -1055,11 +1023,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     spreadHistoryChart.update('none');
 
-    const selectedOption = $('spread-history-instrument')?.selectedOptions?.[0];
-    const instrumentLabel = selectedOption ? selectedOption.textContent : selectedHistoryInstrument;
+    const targetLabel = selectedExchange === ALL_VALUE
+      ? `対象: 国内${series.length || ''}取引所`
+      : `対象: ${selectedOptionLabel('spread-exchange-filter', selectedExchange)}`;
     setText(
       'spread-history-meta',
-      `${instrumentLabel} の${historyWindowDescription(selectedHistoryWindow, spreadHistoryMeta)}のコスト推移`
+      targetLabel
     );
     writeUrlState();
   }

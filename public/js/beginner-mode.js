@@ -158,8 +158,8 @@
       return {
         eyebrow: '🔰 初心者モード',
         title: '販売所はスプレッドから見ます',
-        summary: '販売所では手数料が無料に見えても、買値と売値の差が実質コストになります。まず「現在の実質コスト」と「24時間平均」を見て、広い銘柄は購入コストのシミュレーションでも確認してください。',
-        metrics: ['現在の実質コスト', '24時間平均', '購入コストの計算候補'],
+        summary: '販売所では手数料が無料に見えても、買値と売値の差が実質コストになります。まず「現在のスプレッド」と「24時間平均」を見て、広い銘柄は購入コストのシミュレーションでも確認してください。',
+        metrics: ['現在のスプレッド', '24時間平均', '購入コストの計算候補'],
         terms: ['sales-spread', 'effective-cost', 'orderbook'],
         warning: 'スプレッドが大きい銘柄を販売所でまとめて買うと、取引所（板取引）より不利になる可能性があります。',
         links: [
@@ -187,13 +187,13 @@
     if (path === '/derivatives' || path === '/derivatives.html') {
       return {
         eyebrow: '🔰 初心者モード',
-        title: 'デリバティブは流動性と条件を分けて見ます',
+        title: 'レバレッジ・FXは流動性と条件を分けて見ます',
         summary: 'Crypto CFDや暗号資産FXは、まず「首位取引所」「上位3社集中度」「データ信頼度」を確認し、その後に板、証拠金、ロスカット条件を公式情報で確認してください。',
         metrics: ['首位取引所', '上位3社集中度', 'データ信頼度'],
         terms: ['volume-share', 'liquidity', 'orderbook', 'effective-cost'],
         warning: 'レバレッジ取引は現物より損失が大きくなる場合があります。出来高が多くても、注文サイズや急変時の板で約定コストは変わります。',
         links: [
-          { href: '/simulator?market=BTC-CFD-JPY&exchange=bitflyer&side=buy&amountType=jpy&amount=100000', label: 'デリバティブ板を確認' },
+          { href: '/simulator?market=BTC-CFD-JPY&exchange=bitflyer&side=buy&amountType=jpy&amount=100000', label: 'レバレッジ・FXの板を確認' },
           { href: '/volume-share?instrumentId=BTC-JPY', label: '現物の出来高を見る' },
           { href: '/markets/BTC-CFD-JPY', label: 'BTC-CFDページへ' },
         ],

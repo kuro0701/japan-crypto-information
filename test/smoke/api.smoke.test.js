@@ -657,7 +657,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(salesSpreadPage.body.includes('/learn/spread'));
   assert.ok(salesSpreadPage.body.includes('/learn/broker-loss-reasons'));
   assert.ok(salesSpreadPage.body.includes('スプレッドが狭い（コストを抑えやすい）銘柄 TOP10'));
-  assert.ok(salesSpreadPage.body.includes('BTC/JPYの板取引価格と比較'));
+  assert.ok(salesSpreadPage.body.includes('BTC/JPYの板取引価格を見る'));
+  assert.ok(salesSpreadPage.body.includes('現在のスプレッド'));
+  assert.ok(salesSpreadPage.body.includes('システム稼働状況（データの正確性）'));
   assert.ok(salesSpreadPage.body.includes('コストが高い銘柄は、「取引所（ユーザー間取引）」も検討する'));
   assertCommonDisclosure(salesSpreadPage.body);
 

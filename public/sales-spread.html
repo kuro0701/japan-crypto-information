@@ -69,7 +69,7 @@
       </div>
       <p id="spread-top-note" class="decision-summary-card__body">コストが高い銘柄は、「取引所（ユーザー間取引）」も検討してみてください。</p>
       <div class="info-layer-primary-actions decision-summary-card__actions">
-        <a id="spread-top-cta" class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">BTC/JPYの板取引価格と比較</a>
+        <a id="spread-top-cta" class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">BTC/JPYの板取引価格を見る</a>
         <a class="btn btn-ghost px-4 py-3 rounded-lg font-bold text-sm" href="#sales-spread-table-section">銘柄別スプレッドを見る</a>
       </div>
     </section>
@@ -160,19 +160,19 @@
         <span id="spread-orderbook-badge" class="decision-summary-badge decision-summary-badge--loading">準備中</span>
       </div>
       <p class="decision-summary-card__lead">販売所のスプレッドが広い銘柄は、ユーザー同士で売買する「取引所（板取引）」の価格と比べることで、コスト差に気づきやすくなります。</p>
-      <p id="spread-orderbook-meta" class="decision-summary-card__body">現在スプレッドが広めの銘柄から、板取引の価格と比較できます。</p>
+      <p id="spread-orderbook-meta" class="decision-summary-card__body">現在スプレッドが広めの銘柄から、板取引の価格を確認できます。</p>
       <div id="spread-orderbook-links" class="market-context-grid market-context-grid--links">
         <p class="spread-orderbook-empty">候補を読み込み中です。</p>
       </div>
       <div class="decision-summary-card__actions">
-        <a class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">BTC/JPYの板取引価格と比較</a>
+        <a class="btn btn-secondary px-4 py-3 rounded-lg font-bold text-sm" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">BTC/JPYの板取引価格を見る</a>
       </div>
     </section>
 
     <section class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">コストの変化を見る</h2>
+          <h2 class="panel-title">スプレッド（コスト）の変化を見る</h2>
           <p id="spread-history-meta" class="text-xs text-gray-500 mt-1">コスト推移を読み込み中</p>
         </div>
         <span class="panel-kicker">コスト変化</span>
@@ -191,8 +191,8 @@
       <div class="history-chart-grid mt-3">
         <div class="history-chart-block">
           <div class="history-chart-heading">
-            <h3>販売所ごとのコスト変化</h3>
-            <p>選択中の銘柄で、販売所ごとのコストがどう変わったかを確認できます</p>
+            <h3>販売所ごとのスプレッド推移</h3>
+            <p>各取引所のスプレッド（コスト）が、過去から現在にかけてどう変化しているかを確認できます。</p>
           </div>
           <div class="chart-container history-chart-container">
             <canvas id="spread-history-chart"></canvas>
@@ -219,7 +219,7 @@
       <div class="panel-title-row mb-3"><h2 class="panel-title">銘柄別スプレッド</h2><span class="panel-kicker">銘柄別</span></div>
       <div class="overflow-auto scrollbar-thin max-h-[760px]">
         <table class="data-table data-table--cards sales-spread-table text-xs">
-          <thead class="sticky"><tr><th class="text-left">銘柄</th><th class="text-left">取引所</th><th class="is-num text-right">買値</th><th class="is-num text-right">売値</th><th class="is-num text-right">現在の実質コスト</th><th class="is-num text-right">24時間平均</th><th class="is-num text-right">7日間平均</th><th class="is-num text-right">30日間平均</th></tr></thead>
+          <thead class="sticky"><tr><th class="text-left">銘柄</th><th class="text-left">取引所</th><th class="is-num text-right">買値</th><th class="is-num text-right">売値</th><th class="is-num text-right">現在のスプレッド</th><th class="is-num text-right">24時間平均</th><th class="is-num text-right">7日間平均</th><th class="is-num text-right">30日間平均</th></tr></thead>
           <tbody id="sales-spread-tbody"><tr><td colspan="8" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
         </table>
       </div>
@@ -302,36 +302,31 @@
           <span>取引の活発さ（出来高）を見る</span>
         </a>
         <a class="home-compare-link" href="/derivatives">
-          <strong>デリバティブ</strong>
-          <span>Crypto CFD・暗号資産FXの取引の活発さ（出来高）を見る</span>
+          <strong>レバレッジ・FX</strong>
+          <span>暗号資産FX・CFDの取引の活発さ（出来高）を見る</span>
         </a>
       </div>
     </section>
 
     <section class="panel panel--dense info-layer info-layer--bottom" data-info-layer="bottom">
-      <div class="panel-title-row mb-3"><div><h2 class="panel-title">データ鮮度・信頼度</h2><p id="spread-quality-meta" class="text-xs text-gray-500 mt-1">データ取得状況を確認中</p></div><span class="panel-kicker">信頼度</span></div>
-      <details class="ui-accordion mt-3">
-        <summary class="ui-accordion__summary">詳細な取得ログを見る</summary>
-        <div class="ui-accordion__body">
-          <div class="overflow-auto scrollbar-thin">
-            <table class="data-table data-table--cards text-xs">
-              <thead class="sticky"><tr><th class="text-left">販売所</th><th class="text-left">取得状況</th><th class="text-left">取得方法</th><th class="is-num text-right">件数</th><th class="text-left">データ</th><th class="text-right">最終取得</th></tr></thead>
-              <tbody id="spread-quality-tbody"><tr><td colspan="6" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
-            </table>
-          </div>
-        </div>
-      </details>
+      <div class="panel-title-row mb-3"><div><h2 class="panel-title">📡 システム稼働状況（データの正確性）</h2><p id="spread-quality-meta" class="text-xs text-gray-500 mt-1">公式の最新データを確認中です。</p></div><span class="panel-kicker">データ確認</span></div>
+      <div class="overflow-auto scrollbar-thin">
+        <table class="data-table data-table--cards text-xs">
+          <thead class="sticky"><tr><th class="text-left">取引所</th><th class="text-left">ステータス</th><th class="text-right">データ取得日時</th></tr></thead>
+          <tbody id="spread-quality-tbody"><tr><td colspan="3" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+        </table>
+      </div>
     </section>
   </main>
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 販売所価格はJPY建て、スプレッド率は仲値比です</footer>
 
-  <script src="/js/beginner-mode.js?v=7"></script>
+  <script src="/js/beginner-mode.js?v=8"></script>
   <script src="js/formatter.js?v=sales-spread-1"></script>
   <script src="js/app-utils.js?v=app-utils-1"></script>
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/sales-spread.js?v=sales-spread-21"></script>
+  <script src="js/sales-spread.js?v=sales-spread-22"></script>
 </body>
 </html>
