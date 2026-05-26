@@ -133,6 +133,10 @@
     return path || '/';
   }
 
+  function isBeginnerModeDisabled() {
+    return document.body && document.body.dataset.beginnerModeDisabled === 'true';
+  }
+
   function guideProfile() {
     const path = currentPath();
     if (path === '/simulator' || path === '/simulator.html') {
@@ -276,6 +280,7 @@
   }
 
   function renderBeginnerGuide() {
+    if (isBeginnerModeDisabled()) return;
     if (document.querySelector('[data-beginner-guide]')) return;
     const main = document.querySelector('main#main') || document.querySelector('main');
     if (!main) return;
@@ -333,6 +338,7 @@
   }
 
   function ensurePageToggle() {
+    if (isBeginnerModeDisabled()) return;
     if (document.querySelector('[data-beginner-toggle]')) return;
     const host = document.querySelector('.status-cluster') || document.querySelector('.nav-menu');
     if (!host) return;
@@ -349,6 +355,8 @@
     document.querySelectorAll('.beginner-auto-optional').forEach((node) => {
       node.classList.remove('beginner-auto-optional', 'beginner-optional');
     });
+
+    if (isBeginnerModeDisabled()) return;
 
     document.querySelectorAll('.data-table').forEach((table) => {
       const headerRow = table.tHead && table.tHead.rows && table.tHead.rows[table.tHead.rows.length - 1];
@@ -447,6 +455,7 @@
   }
 
   function syncToggleButtons() {
+    if (isBeginnerModeDisabled()) return;
     ensurePageToggle();
     document.querySelectorAll('[data-beginner-toggle]').forEach((button) => {
       const label = button.dataset.beginnerToggleLabel || '初心者モード';
@@ -460,6 +469,7 @@
   }
 
   function syncMode() {
+    if (isBeginnerModeDisabled()) beginnerMode = false;
     document.body.classList.toggle('beginner-mode', beginnerMode);
     document.querySelectorAll('[data-beginner-guide]').forEach((guide) => {
       guide.hidden = !beginnerMode;
@@ -550,7 +560,7 @@
   };
 
   document.addEventListener('DOMContentLoaded', () => {
-    beginnerMode = readMode();
+    beginnerMode = isBeginnerModeDisabled() ? false : readMode();
     ensurePageToggle();
     renderBeginnerGuide();
     observeTables();

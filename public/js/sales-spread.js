@@ -225,8 +225,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!summary) return '<span class="text-gray-600">-</span>';
     return `
       <div class="spread-cost-cell">
-        <div class="spread-cost-cell__rate">${fmtPct(summary.spreadPct)}</div>
-        <div class="spread-cost-cell__amount">(${fmtJpyPrice(summary.spread, precision)})</div>
+        <div class="spread-cost-cell__amount spread-cost-cell__amount--main">${fmtJpyPrice(summary.spread, precision)}</div>
+        <div class="spread-cost-cell__rate">（${fmtPct(summary.spreadPct)}）</div>
       </div>
     `;
   }
@@ -236,8 +236,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!latest) return '<span class="text-gray-600">-</span>';
     return `
       <div class="spread-cost-cell spread-cost-cell--current">
-        <div class="spread-cost-cell__rate">${fmtPct(latest.spreadPct)}</div>
-        <div class="spread-cost-cell__amount">(${fmtJpyPrice(latest.spread, latest.quotePrecision)})</div>
+        <div class="spread-cost-cell__amount spread-cost-cell__amount--main">${fmtJpyPrice(latest.spread, latest.quotePrecision)}</div>
+        <div class="spread-cost-cell__rate">（${fmtPct(latest.spreadPct)}）</div>
       </div>
     `;
   }
@@ -362,19 +362,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${value}販売所`;
   }
 
-  function formatApproxPct(value) {
+  function formatSignedPct(value) {
     const number = Number(value);
     if (!Number.isFinite(number)) return '-';
-    const abs = Math.abs(number);
-    const decimals = abs >= 10 ? 0 : (abs >= 1 ? 1 : 2);
-    return `約${abs.toFixed(decimals)}%`;
-  }
-
-  function formatCostChange(value, { direction = null } = {}) {
-    const number = Number(value);
-    if (!Number.isFinite(number)) return '-';
-    const isWorse = direction ? direction === 'worse' : number > 0;
-    return `${formatApproxPct(number)}${isWorse ? '悪化' : '改善'}`;
+    const sign = number > 0 ? '+' : '';
+    return `${sign}${number.toFixed(2)}%`;
   }
 
   function simulatorUrl(instrumentId) {
@@ -606,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!container) return;
 
     if (!items || items.length === 0) {
-      container.innerHTML = '<p class="spread-orderbook-empty">取引所（板取引）の比較に進める候補はまだありません。</p>';
+      container.innerHTML = '<p class="spread-orderbook-empty">取引所（ユーザー間取引）の比較に進める候補はまだありません。</p>';
       setText('spread-orderbook-meta', '現在値の比較データが揃うと、取引所（板取引）の価格も確認したい銘柄を表示します。');
       if (badge) {
         badge.className = 'decision-summary-badge decision-summary-badge--loading';
@@ -620,8 +612,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const widestPct = item.widestExchange ? fmtPct(item.widestExchange.spreadPct) : null;
       const widestExchangeLabel = item.widestExchange ? item.widestExchange.exchangeLabel : null;
       const description = widestPct
-        ? `販売所のスプレッドが非常に広いため（最大 ${widestPct}）、取引所（板取引）を使った場合の価格をシミュレーションしてみましょう。`
-        : `販売所平均は ${fmtPct(item.current.spreadPct)} です。取引所（板取引）を使った場合の価格をシミュレーションしてみましょう。`;
+        ? `販売所のスプレッドが非常に広いため（最大 ${widestPct}）、取引所（板取引）の価格と比べてみましょう。`
+        : `販売所平均は ${fmtPct(item.current.spreadPct)} です。取引所（板取引）の価格と比べてみましょう。`;
       const note = widestExchangeLabel
         ? `最も広い販売所: ${widestExchangeLabel} / 販売所平均 ${fmtPct(item.current.spreadPct)}`
         : `販売所平均 ${fmtPct(item.current.spreadPct)}`;
@@ -629,15 +621,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return [
         '<article class="market-context-card spread-orderbook-suggestion">',
         '  <span class="market-context-card__eyebrow">購入前チェック</span>',
-        `  <a class="market-context-card__title spread-orderbook-suggestion__title" href="${href}">${escapeHtml(item.instrumentLabel)} の実際のコストを計算する</a>`,
+        `  <a class="market-context-card__title spread-orderbook-suggestion__title" href="${href}">${escapeHtml(item.instrumentLabel)} の板取引価格と比較する</a>`,
         `  <p class="market-context-card__description">${escapeHtml(description)}</p>`,
         `  <span class="spread-orderbook-suggestion__note">${escapeHtml(note)}</span>`,
-        '  <span class="market-context-card__cta">シミュレーションへ</span>',
+        '  <span class="market-context-card__cta">板取引の価格と比較</span>',
         '</article>',
       ].join('\n');
     }).join('');
 
-    setText('spread-orderbook-meta', `スプレッドが広い銘柄は、ユーザー同士で売買する「取引所」を使うことでコストを大幅に抑えられる可能性があります。以下の${suggestions.length}銘柄の実際の購入コストをシミュレーションしてみましょう。`);
+    setText('spread-orderbook-meta', `スプレッドが広い銘柄は、ユーザー同士で売買する「取引所（板取引）」を使うことでコストを抑えられる可能性があります。以下の${suggestions.length}銘柄で価格差を確認できます。`);
     if (badge) {
       badge.className = 'decision-summary-badge decision-summary-badge--ready';
       badge.textContent = `${suggestions.length}銘柄`;
@@ -662,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `最狭 ${item.narrowestExchange.exchangeLabel} ${fmtPct(item.narrowestExchange.spreadPct)} / 最広 ${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
           : '現在値ベース',
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '板取引を見る',
+        actionLabel: '板取引の価格と比較',
       }));
 
     const wideSources = currentItems
@@ -680,7 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ? `最も広い販売所 ${item.widestExchange.exchangeLabel} ${fmtPct(item.widestExchange.spreadPct)}`
           : '現在値ベース',
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '板取引を見る',
+        actionLabel: '板取引の価格と比較',
       }));
 
     const widerThan7dSources = currentItems
@@ -696,12 +688,12 @@ document.addEventListener('DOMContentLoaded', () => {
         title: item.instrumentLabel,
         titleHref: marketPageUrl(item.instrumentId),
         subtitle: `${formatVenueCount(item.current.venueCount)}平均`,
-        value: formatCostChange(diff, { direction: 'worse' }),
+        value: formatSignedPct(diff),
         valueClass: 'spread-ranking-item__value--danger',
-        note: `現在 ${fmtPct(item.current.spreadPct)}`,
-        delta: `7日平均 ${fmtPct(item.averages['7d'].spreadPct)}`,
+        note: `現在 ${fmtPct(item.current.spreadPct)}（7日平均 ${fmtPct(item.averages['7d'].spreadPct)}）`,
+        delta: '7日平均より広がっています',
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '板取引を見る',
+        actionLabel: '板取引の価格と比較',
       }));
 
     const improvedFrom30dSources = currentItems
@@ -717,12 +709,12 @@ document.addEventListener('DOMContentLoaded', () => {
         title: item.instrumentLabel,
         titleHref: marketPageUrl(item.instrumentId),
         subtitle: `${formatVenueCount(item.current.venueCount)}平均`,
-        value: formatCostChange(diff, { direction: 'better' }),
+        value: formatSignedPct(item.current.spreadPct - item.averages['30d'].spreadPct),
         valueClass: 'spread-ranking-item__value--positive',
-        note: `現在 ${fmtPct(item.current.spreadPct)}`,
-        delta: `30日平均 ${fmtPct(item.averages['30d'].spreadPct)}`,
+        note: `現在 ${fmtPct(item.current.spreadPct)}（30日平均 ${fmtPct(item.averages['30d'].spreadPct)}）`,
+        delta: '30日平均より改善しています',
         actionHref: marketPageUrl(item.instrumentId),
-        actionLabel: '板取引を見る',
+        actionLabel: '板取引の価格と比較',
       }));
 
     return {
@@ -756,17 +748,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const exchangeSummaries = buildExchangeSummaries(rows);
     const instrumentItems = buildInstrumentRankingItems(instrumentSummaries);
     const exchangeItems = buildExchangeRankingItems(exchangeSummaries);
-    const scopeLabel = hasActiveFilters() ? 'フィルター反映' : '全体';
+    const scopeLabel = hasActiveFilters() ? 'フィルター内 ' : '国内';
 
     setText(
       'spread-ranking-summary',
-      `${scopeLabel} | 銘柄 ${instrumentItems.currentItemCount}件 | 取引所平均 ${exchangeItems.length}社`
+      `（対象: ${scopeLabel}${exchangeItems.length}取引所 / ${instrumentItems.currentItemCount}銘柄）`
     );
-    setText('spread-ranking-narrow-meta', `${instrumentItems.currentItemCount}銘柄から表示`);
-    setText('spread-ranking-wide-meta', `${instrumentItems.currentItemCount}銘柄から表示`);
-    setText('spread-ranking-wider7-meta', `上位${instrumentItems.widerThan7d.length}件を表示`);
-    setText('spread-ranking-improved30-meta', `上位${instrumentItems.improvedFrom30d.length}件を表示`);
-    setText('spread-ranking-exchange-meta', `${exchangeItems.length}販売所を表示`);
 
     renderRankingList('spread-ranking-narrow-list', instrumentItems.narrow, '現在値を比較できる銘柄がありません。');
     renderRankingList('spread-ranking-wide-list', instrumentItems.wide, '現在値を比較できる銘柄がありません。');
@@ -864,7 +851,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setText('spread-top-note', 'スプレッドデータを取得できた販売所から順に比較します。');
       if (cta) {
         cta.href = '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000';
-        cta.textContent = '購入コストをシミュレーション';
+        cta.textContent = 'BTC/JPYの板取引価格と比較';
       }
       return;
     }
@@ -885,20 +872,20 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     setText(
       'spread-top-caution-meta',
-      wideSummary ? `最大 ${fmtPct(wideSummary.spreadPct)} | 板取引も比較` : '表示価格は参考値です'
+      wideSummary ? `最大 ${fmtPct(wideSummary.spreadPct)} | 板取引の価格も比較` : '表示価格は参考値です'
     );
     setText(
       'spread-top-note',
       widest
-        ? `${widest.row.instrumentLabel} などのスプレッドが広い（コストが高い）銘柄は、販売所ではなく「取引所（板取引）」での購入も比較することをおすすめします。`
-        : 'スプレッドが広い場合は、同じ銘柄を「取引所（板取引）」でも比較してください。'
+        ? `${widest.row.instrumentLabel} などのコストが高い銘柄は、「取引所（ユーザー間取引）」も検討してみてください。`
+        : 'コストが高い銘柄は、「取引所（ユーザー間取引）」も検討してみてください。'
     );
 
     if (cta) {
       const instrumentId = narrowest && narrowest.row.instrumentId ? narrowest.row.instrumentId : 'BTC-JPY';
       const label = narrowest && narrowest.row.instrumentLabel ? narrowest.row.instrumentLabel : instrumentId.replace(/-/g, '/');
       cta.href = simulatorUrl(instrumentId);
-      cta.textContent = `${label}の購入コストをシミュレーション`;
+      cta.textContent = `${label}の板取引価格と比較`;
     }
   }
 
@@ -917,22 +904,20 @@ document.addEventListener('DOMContentLoaded', () => {
     setText('narrowest-spread', narrowest ? spreadHighlightLabel(narrowest.row) : '-');
     setText('widest-spread', widest ? spreadHighlightLabel(widest.row) : '-');
     renderTopDecision(narrowest, widest, rowsWithSpread.length);
-    setText('spread-status', status.running || allRows.length > 0 ? 'リアルタイム更新中' : 'データ取得中');
+    setText('spread-status', status.running || allRows.length > 0 ? 'リアルタイムデータ' : 'データ取得中');
     setText('spread-updated-at', fmtDateTime(latestMeta.latestCapturedAt || latestMeta.generatedAt));
   }
 
   function renderMeta() {
     const windows = latestMeta.windows || {};
     const window30d = windows['30d'] || {};
-    const rangeEnd = laterDate(window30d.latestSpreadDateJst, latestMeta.latestProvisionalSpreadDateJst);
-    const rangeLabel = dateRangeLabel(window30d.earliestSpreadDateJst, rangeEnd || window30d.latestSpreadDateJst);
-    const periodLabel = historyWindowDescription('30d', window30d);
+    const rangeLabel = dateRangeLabel(window30d.earliestSpreadDateJst, window30d.latestSpreadDateJst);
 
     setText(
       'spread-meta',
       rangeLabel
-        ? `集計期間: ${periodLabel}（${rangeLabel}）の最新データ`
-        : '集計期間: 最新データを確認中'
+        ? `📊 集計対象期間：過去30日間（${rangeLabel}）`
+        : '📊 集計対象期間：過去30日間を確認中'
     );
   }
 
