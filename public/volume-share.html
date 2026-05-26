@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-20">
+  <link rel="stylesheet" href="/css/style.css?v=ui-21">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -54,13 +54,21 @@
       <div class="volume-summary-copy">
         <p id="volume-summary-lead" class="decision-summary-card__lead">出来高データを読み込み中です。</p>
         <p id="volume-summary-body" class="decision-summary-card__body">集計が完了すると、流動性の偏りと見方を自然文で要約します。</p>
-        <p id="volume-summary-note" class="decision-summary-card__body">大きめの注文では、出来高だけでなく板の厚みも合わせて確認するのが安全です。</p>
+        <p id="volume-summary-note" class="decision-summary-card__body">大きめの注文では、出来高だけでなく板シミュレーターで実質コストも確認するのが安全です。</p>
       </div>
       <div id="volume-summary-chips" class="decision-summary-card__chips">
         <span class="decision-summary-chip">期間を計算中</span>
       </div>
       <div class="decision-summary-card__actions">
-        <a id="volume-summary-link" class="btn btn-secondary" href="/simulator">取引コスト計算で確認</a>
+        <a id="volume-summary-link" class="btn btn-secondary" href="/simulator">実質コスト（板情報）を計算する</a>
+      </div>
+    </section>
+
+    <section class="volume-summary-caution info-layer info-layer--top" data-info-layer="top" aria-label="出来高を見る際の注意点">
+      <div class="callout callout--warn">
+        <span class="callout-icon" aria-hidden="true">!</span>
+        <div class="callout-title">出来高を見る際の注意点</div>
+        <div class="callout-body">出来高が大きい取引所＝必ずしも最安で買えるとは限りません。実際のコストは板シミュレーターでご確認ください。</div>
       </div>
     </section>
 
@@ -195,18 +203,6 @@
           <p class="window-guide-card__body">普段の流動性を見る</p>
         </button>
       </div>
-      <div class="volume-caution-stack mt-4">
-        <div class="callout callout--warn">
-          <span class="callout-icon" aria-hidden="true">!</span>
-          <div class="callout-title">出来高だけでは約定コストは決まりません</div>
-          <div class="callout-body">出来高が大きい取引所は流動性の参考になりますが、必ずしも最も安く約定できるとは限りません。</div>
-        </div>
-        <div class="callout">
-          <span class="callout-icon" aria-hidden="true">i</span>
-          <div class="callout-title">実効コストの確認ポイント</div>
-          <div class="callout-body">実際のコストは、板の厚み・スプレッド・手数料・注文サイズによって変わります。</div>
-        </div>
-      </div>
     </section>
 
     <section class="decision-summary-card volume-share-intro-card info-layer info-layer--bottom" data-info-layer="bottom">
@@ -267,12 +263,12 @@
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 出来高はJPY換算です</footer>
 
-  <script src="/js/beginner-mode.js?v=5"></script>
+  <script src="/js/beginner-mode.js?v=6"></script>
   <script src="js/formatter.js?v=volume-share-1"></script>
   <script src="js/app-utils.js?v=app-utils-1"></script>
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/volume-share.js?v=volume-share-18"></script>
+  <script src="js/volume-share.js?v=volume-share-19"></script>
 </body>
 </html>

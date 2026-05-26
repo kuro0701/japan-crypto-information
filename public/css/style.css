@@ -964,9 +964,23 @@ body.terminal-body {
   margin-top: var(--sp-4);
 }
 
+.volume-summary-caution {
+  margin-top: calc(-1 * var(--sp-2));
+}
+
+.volume-summary-caution .callout {
+  border-color: rgba(244, 201, 93, 0.24);
+  background: rgba(20, 18, 10, 0.58);
+}
+
 .volume-summary-copy {
   display: grid;
   gap: 6px;
+}
+
+.volume-no-trade {
+  color: var(--text-4);
+  font-weight: 700;
 }
 
 .volume-insights-list {

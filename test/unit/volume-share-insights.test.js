@@ -139,6 +139,33 @@ test('zscore outlier and streak insights are generated with enough history', () 
 
   assert.equal(types.has('zscore_outlier'), true);
   assert.equal(types.has('increase_streak') || types.has('decrease_streak'), true);
+  const zscoreInsight = result.insights.find(insight => insight.type === 'zscore_outlier');
+  assert.match(zscoreInsight.messageJa, /出来高シェアが急(上昇|低下)中/);
+  assert.doesNotMatch(zscoreInsight.messageJa, /σ/);
+});
+
+test('market concentration insight uses natural wording', () => {
+  const result = generateVolumeShareInsights([
+    row('2026-04-01', 'a', 400),
+    row('2026-04-01', 'b', 300),
+    row('2026-04-01', 'c', 200),
+    row('2026-04-01', 'd', 100),
+    row('2026-04-02', 'a', 300),
+    row('2026-04-02', 'b', 250),
+    row('2026-04-02', 'c', 250),
+    row('2026-04-02', 'd', 200),
+  ], {
+    config: {
+      window: 2,
+      maxInsights: 12,
+      concentrationChangeThreshold: 0.01,
+    },
+  });
+
+  const concentrationInsight = result.insights.find(insight => insight.type === 'market_concentration');
+  assert.ok(concentrationInsight);
+  assert.match(concentrationInsight.messageJa, /上位3社への集中度/);
+  assert.match(concentrationInsight.messageJa, /分散する傾向が見られます/);
 });
 
 test('renderVolumeShareInsightsJa returns non-empty report', () => {

@@ -455,7 +455,8 @@ def _zscore_insights(
     for _, row in rows.sort_values("abs_zscore", ascending=False).head(2).iterrows():
         zscore = float(row["zscore"])
         direction = "up" if zscore > 0 else "down"
-        direction_ja = "上振れ" if direction == "up" else "下振れ"
+        movement_ja = "急上昇中" if direction == "up" else "急低下中"
+        comparison_ja = "大きく上回る" if direction == "up" else "大きく下回る"
         insights.append(
             Insight(
                 type="zscore_outlier",
@@ -466,8 +467,9 @@ def _zscore_insights(
                 direction=direction,
                 priority=54 + min(int(abs(zscore)), 6),
                 message_ja=(
-                    f"{row['exchange']} は過去{cfg.window}{terms['streak_unit']}平均対比で "
-                    f"{_fmt_sigma(zscore)} の{direction_ja}です。"
+                    f"{row['exchange']} の出来高シェアが{movement_ja}（"
+                    f"過去{cfg.window}{terms['streak_unit']}間の平均を"
+                    f"{comparison_ja}急激な動きです）。"
                 ),
                 metadata={"dedupe_key": f"zscore:{row['exchange']}"},
             )
@@ -492,7 +494,7 @@ def _market_structure_insights(
     latest = latest_rows.iloc[0]
     candidates: list[Insight] = []
 
-    for metric, label in [("top3_share", "Top3集中度"), ("top5_share", "Top5集中度")]:
+    for metric, label in [("top3_share", "上位3社への集中度"), ("top5_share", "上位5社への集中度")]:
         change_col = f"{metric}_change"
         if change_col not in latest or not _is_number(latest[change_col]):
             continue
@@ -502,7 +504,11 @@ def _market_structure_insights(
             continue
 
         direction = "concentrating" if change > 0 else "dispersing"
-        direction_ja = "集中方向" if direction == "concentrating" else "分散方向"
+        direction_ja = (
+            "取引が上位の取引所に集まる傾向が見られます"
+            if direction == "concentrating"
+            else "取引がさらに他の取引所へ分散する傾向が見られます"
+        )
         candidates.append(
             Insight(
                 type="market_concentration",
@@ -512,8 +518,8 @@ def _market_structure_insights(
                 direction=direction,
                 priority=46 + min(int(abs(change) * 1000), 5),
                 message_ja=(
-                    f"{label}は{terms['comparison_label']} {_fmt_pt(change)} で、"
-                    f"市場はやや{direction_ja}です。"
+                    f"{label}が{terms['comparison_label']} {_fmt_pt(change)} となり、"
+                    f"{direction_ja}。"
                 ),
                 metadata={"dedupe_key": "market_structure"},
             )
@@ -523,7 +529,11 @@ def _market_structure_insights(
         change = float(latest["hhi_change"])
         if abs(change) >= cfg.hhi_change_threshold:
             direction = "concentrating" if change > 0 else "dispersing"
-            direction_ja = "集中方向" if direction == "concentrating" else "分散方向"
+            direction_ja = (
+                "取引が一部の取引所に集まる傾向が見られます"
+                if direction == "concentrating"
+                else "取引がさらに他の取引所へ分散する傾向が見られます"
+            )
             candidates.append(
                 Insight(
                     type="hhi_change",
@@ -534,7 +544,7 @@ def _market_structure_insights(
                     priority=44 + min(int(abs(change) * 10000), 5),
                     message_ja=(
                         f"HHIは{terms['comparison_label']} {_fmt_decimal(change)} となり、"
-                        f"市場構造はやや{direction_ja}に動いています。"
+                        f"{direction_ja}。"
                     ),
                     metadata={"dedupe_key": "market_structure"},
                 )

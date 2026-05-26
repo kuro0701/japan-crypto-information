@@ -162,9 +162,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const latestDate = meta[latestKey];
     const count = Number(meta[countKey]) || 0;
     if (!latestDate) return '';
+    const targetLabel = latestDate === todayJstDateString() ? '本日分' : `${latestDate}分`;
     return count > 1
-      ? `暫定 ${latestDate} を含む ${count}件あり`
-      : `暫定 ${latestDate} あり`;
+      ? `（${targetLabel}を含む${count}件は集計中の暫定値）`
+      : `（${targetLabel}は集計中の暫定値）`;
   }
 
   function partialSnapshotNote(meta, latestKey, countKey) {
@@ -359,7 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.innerHTML = exchanges.map((exchange, index) => `
       <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
         <td class="font-bold text-gray-200" data-label="取引所">${escapeHtml(exchange.exchangeLabel)}</td>
-        <td class="is-num text-right font-mono text-gray-300" data-label="出来高">${fmtJpy(exchange.quoteVolume)}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="出来高">${volumeDisplay(exchange.quoteVolume)}</td>
         <td class="is-num text-right font-mono text-yellow-300" data-label="シェア">
           ${fmtPct(exchange.sharePct)}
           ${shareBar(exchange.sharePct)}
@@ -384,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
         <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="出来高">
-          ${fmtJpy(row.quoteVolume)}
+          ${volumeDisplay(row.quoteVolume)}
         </td>
         <td class="is-num text-right font-mono text-green-300" data-label="銘柄内シェア">
           ${fmtPct(row.instrumentSharePct)}
@@ -472,6 +473,25 @@ document.addEventListener('DOMContentLoaded', () => {
     return absLabel;
   }
 
+  function todayJstDateString() {
+    const parts = new Intl.DateTimeFormat('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const byType = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${byType.year}-${byType.month}-${byType.day}`;
+  }
+
+  function volumeDisplay(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num <= 0) {
+      return '<span class="volume-no-trade">取引なし</span>';
+    }
+    return fmtJpy(num);
+  }
+
   function dominantVolumeRow(rows) {
     return (rows || []).reduce((best, row) => {
       if (!best) return row;
@@ -516,23 +536,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (sharePct >= 55) {
       return {
-        label: 'やや分散',
-        detail: '複数社に流動性が分かれています',
+        label: '主要数社に分散傾向',
+        detail: '特定の取引所への偏りは少なめです',
         tone: 'is-positive',
       };
     }
     return {
-      label: '分散',
-      detail: '複数社に流動性が広く分散しています',
+      label: '取引所ごとに分散',
+      detail: '特定の取引所への偏りは少なめです',
       tone: 'is-positive',
     };
   }
 
   function concentrationSentence(label) {
-    if (!label) return '判断待ちです。';
-    if (label === '分散' || label === 'やや分散') return `${label}しています。`;
-    if (label === '比較的集中' || label === 'かなり集中') return `${label}しています。`;
-    return `${label}です。`;
+    if (label === '主要数社に分散傾向' || label === '取引所ごとに分散') {
+      return '特定の1社に極端に偏ることなく流動性が分散しています。';
+    }
+    if (label === '比較的集中') return '上位3社の影響が大きい状態です。';
+    if (label === 'かなり集中') return '上位数社への偏りが強い状態です。';
+    if (label === '単独表示') return '1社のみを表示しています。';
+    return '判断待ちです。';
   }
 
   function shareTone(sharePct) {
@@ -591,15 +614,16 @@ document.addEventListener('DOMContentLoaded', () => {
       tone = 'is-caution';
     }
 
-    const detailParts = [
-      `成功 ${successCount}/${rows.length}社`,
-      `実測 ${observedCount > 0 ? Math.round(measuredRatio * 100) : 0}%`,
-    ];
-    if (failedCount > 0) detailParts.push(`失敗 ${failedCount}`);
+    const measuredPct = observedCount > 0 ? Math.round(measuredRatio * 100) : 0;
+    const issueCount = failedCount + partialCount;
+    const scopeLabel = rows.length === 1 ? '対象1社' : `全${rows.length}社`;
+    const detail = issueCount > 0
+      ? `${scopeLabel}中${successCount}社のデータを取得中（実測値${measuredPct}%、要確認${issueCount}社）`
+      : `${scopeLabel}のデータを正常に取得中（実測値${measuredPct}%）`;
 
     return {
       label,
-      detail: detailParts.join(' | '),
+      detail,
       tone,
     };
   }
@@ -774,12 +798,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       setText('volume-summary-lead', '表示中の条件では、出来高データをまだ集計できていません。');
       setText('volume-summary-body', 'フィルター条件を変えるか、次回更新後にもう一度確認してください。');
-      setText('volume-summary-note', '大きめの注文を出す前には、取引コスト計算で実効コストも確認してください。');
+      setText('volume-summary-note', '大きめの注文を出す前には、板シミュレーターで実質コストも確認してください。');
       setHtml('volume-summary-chips', '<span class="decision-summary-chip">集計待ち</span>');
       const link = $('volume-summary-link');
       if (link) {
         link.href = simulatorUrlForSummary(null, null);
-        link.textContent = '取引コスト計算を開く';
+        link.textContent = '実質コスト（板情報）を計算する';
       }
       return;
     }
@@ -800,17 +824,17 @@ document.addEventListener('DOMContentLoaded', () => {
         body = `${exchangeLabel} に絞り込んでいるため、取引所集中度は参考値です。銘柄の偏りと、取引所横断の比較は別々に確認すると判断しやすくなります。`;
       }
     } else if (selectedInstrument !== ALL_VALUE) {
-      lead = `${label}では、${instrumentLabel} の出来高は ${topExchange.exchangeLabel} が首位です。`;
-      body = `上位3取引所で全体の約${fmtPctCompact(summaryParts.top3, 1)}を占めており、流動性は${concentrationSentence(summaryParts.concentration.label)}`;
+      lead = `${label}（${instrumentLabel}）の出来高トップは ${topExchange.exchangeLabel} です。`;
+      body = `上位3社で市場全体の約${fmtPctCompact(summaryParts.top3, 1)}を占めており、${concentrationSentence(summaryParts.concentration.label)}`;
     } else {
-      lead = `${label}では、表示中の全銘柄合計で ${topExchange.exchangeLabel} が首位です。`;
-      body = `上位3取引所で全体の約${fmtPctCompact(summaryParts.top3, 1)}を占めており、流動性は${concentrationSentence(summaryParts.concentration.label)}`;
+      lead = `${label}（全銘柄合計）の出来高トップは ${topExchange.exchangeLabel} です。`;
+      body = `上位3社で市場全体の約${fmtPctCompact(summaryParts.top3, 1)}を占めており、${concentrationSentence(summaryParts.concentration.label)}`;
     }
 
     const dailyChangeText = summaryParts.dailyChange.value !== '-'
       ? `${summaryParts.dailyChange.label} は ${summaryParts.dailyChange.value} です。`
       : `${summaryParts.dailyChange.label} はまだ計算できません。`;
-    const note = `${dailyChangeText} 大きめの注文を出す場合は、取引コスト計算で実効コストも確認してください。`;
+    const note = `${dailyChangeText} 大きめの注文を出す場合は、板シミュレーターで実質コストも確認してください。`;
 
     setText('volume-summary-lead', lead);
     setText('volume-summary-body', body);
@@ -834,8 +858,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (link) {
       link.href = simulatorUrlForSummary(primaryRow, topExchange);
       link.textContent = primaryRow && primaryRow.instrumentLabel
-        ? `${primaryRow.instrumentLabel} を取引コスト計算で確認`
-        : '取引コスト計算で確認';
+        ? `${primaryRow.instrumentLabel} の実質コスト（板情報）を計算する`
+        : '実質コスト（板情報）を計算する';
     }
   }
 
