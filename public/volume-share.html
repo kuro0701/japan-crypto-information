@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-21">
+  <link rel="stylesheet" href="/css/style.css?v=ui-22">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -39,7 +39,7 @@
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
       <a class="nav-link" href="/campaigns">キャンペーン</a>
     </nav>
-    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true"><span class="sr-only">接続状態: ライブデータ取得中</span><span class="badge badge--live">LIVE</span><span id="share-status" class="status-text">読み込み中</span><span class="text-xs text-gray-600 ml-2">更新: <span id="share-updated-at" class="text-gray-400">-</span></span><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
+    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true"><span class="sr-only">接続状態: ライブデータ取得中</span><span class="badge badge--live">LIVE</span><span id="share-status" class="status-text">読み込み中</span><span class="status-updated">最終更新: <span id="share-updated-at" class="text-gray-400">-</span></span><button class="beginner-toggle" type="button" data-beginner-toggle data-beginner-toggle-on-text="表示モード: 標準" data-beginner-toggle-off-text="表示モード: 詳細" data-beginner-toggle-on-title="用語説明と要点を見やすくしています" data-beginner-toggle-off-title="高度な指標まで表示中です。クリックで標準表示に切り替えます" aria-pressed="false">表示モード: 詳細</button></div>
   </header>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
@@ -127,6 +127,7 @@
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">履歴グラフ</h2>
+          <p id="volume-history-guide" class="text-xs text-gray-400 mt-1">過去30日間の出来高シェアの推移です。特定の取引所がシェアを伸ばしているか、市場全体のトレンドを確認できます。</p>
           <p id="volume-history-meta" class="text-xs text-gray-500 mt-1">日次スナップショットを読み込み中</p>
         </div>
         <span class="panel-kicker">History</span>
@@ -263,12 +264,12 @@
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 出来高はJPY換算です</footer>
 
-  <script src="/js/beginner-mode.js?v=6"></script>
+  <script src="/js/beginner-mode.js?v=7"></script>
   <script src="js/formatter.js?v=volume-share-1"></script>
   <script src="js/app-utils.js?v=app-utils-1"></script>
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/volume-share.js?v=volume-share-19"></script>
+  <script src="js/volume-share.js?v=volume-share-20"></script>
 </body>
 </html>

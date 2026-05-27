@@ -5169,6 +5169,21 @@ a.market-feature-related__pill:focus-visible {
   white-space: nowrap;
 }
 
+.quality-kind {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border-bottom: 1px dotted rgba(205, 222, 190, 0.36);
+  color: var(--text-2);
+  cursor: help;
+  font-weight: 700;
+}
+
+.quality-kind:focus-visible {
+  outline: 2px solid rgba(53, 200, 210, 0.45);
+  outline-offset: 3px;
+}
+
 @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.6;} }
 @keyframes flash-up { 0%{background: rgba(53,224,165,0.26);} 100%{background: transparent;} }
 @keyframes flash-down { 0%{background: rgba(255,107,112,0.22);} 100%{background: transparent;} }

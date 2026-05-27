@@ -50,12 +50,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const marketPageUrl = AppUtil.marketPageUrl;
   const cssVar = AppUtil.cssVar;
   const parseNumber = AppUtil.parseNumber;
+  const JPY_INTEGER_FORMATTER = new Intl.NumberFormat('ja-JP', {
+    maximumFractionDigits: 0,
+  });
+  const JPY_UNIT_FORMATTER = new Intl.NumberFormat('ja-JP', {
+    maximumFractionDigits: 1,
+  });
   const setHtml = (id, html) => {
     const el = $(id);
     if (el) el.innerHTML = html;
     return el;
   };
-  const fmtJpy = (value) => Fmt.jpyLarge(value);
+  const fmtJpy = formatJpyAmount;
   const fmtPct = AppFmt.pct;
   const fmtPctCompact = (value, digits = 1) => AppFmt.pct(value, digits);
   const fmtDateTime = AppFmt.dateTime;
@@ -191,6 +197,11 @@ document.addEventListener('DOMContentLoaded', () => {
     mixed: '推定含む',
     unknown: '-',
   };
+  const DATA_KIND_DESCRIPTIONS = {
+    measured: '実測: 取引所APIから直接取得した出来高またはJPY換算値です。',
+    estimated: '推定: 取引所APIの仕様に基づき、数量や価格からJPY換算して算出した参考値です。',
+    mixed: '実測値と推定値が混在しています。推定値は取引所APIの仕様に基づいて算出した参考値です。',
+  };
 
   const TRANSPORT_LABELS = {
     websocket: 'WebSocket',
@@ -210,6 +221,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const label = API_STATUS_LABELS[status] || status;
     const note = row.message ? `<div class="quality-note" title="${escapeHtml(row.message)}">${escapeHtml(row.message)}</div>` : '';
     return `<span class="quality-badge quality-badge--${escapeHtml(status)}">${escapeHtml(label)}</span>${note}`;
+  }
+
+  function dataKindCell(dataKind) {
+    const key = dataKind || 'unknown';
+    const label = DATA_KIND_LABELS[key] || key || '-';
+    const description = DATA_KIND_DESCRIPTIONS[key];
+    if (!description) return escapeHtml(label);
+    return `<span class="quality-kind" title="${escapeHtml(description)}" aria-label="${escapeHtml(description)}" tabindex="0">${escapeHtml(label)}</span>`;
   }
 
   function historySourceLabel(meta) {
@@ -378,22 +397,26 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    tbody.innerHTML = rows.map((row, index) => `
-      <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
-        <td class="font-bold text-gray-200" data-label="銘柄">
-          <a class="market-link" href="${marketPageUrl(row.instrumentId)}">${escapeHtml(row.instrumentLabel)}</a>
-        </td>
-        <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
-        <td class="is-num text-right font-mono text-gray-300" data-label="出来高">
-          ${volumeDisplay(row.quoteVolume)}
-        </td>
-        <td class="is-num text-right font-mono text-green-300" data-label="銘柄内シェア">
-          ${fmtPct(row.instrumentSharePct)}
-          ${shareBar(row.instrumentSharePct)}
-        </td>
-        <td class="is-num text-right font-mono text-yellow-300" data-label="全体シェア">${fmtPct(row.totalSharePct)}</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = rows.map((row, index) => {
+      const instrumentLabel = row.instrumentLabel || row.instrumentId || '銘柄';
+      const linkTitle = `${instrumentLabel}の取引所間コストを比較`;
+      return `
+        <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
+          <td class="font-bold text-gray-200" data-label="銘柄">
+            <a class="market-link" href="${marketPageUrl(row.instrumentId)}" title="${escapeHtml(linkTitle)}" aria-label="${escapeHtml(linkTitle)}">${escapeHtml(instrumentLabel)}</a>
+          </td>
+          <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
+          <td class="is-num text-right font-mono text-gray-300" data-label="出来高">
+            ${volumeDisplay(row.quoteVolume)}
+          </td>
+          <td class="is-num text-right font-mono text-green-300" data-label="銘柄内シェア">
+            ${fmtPct(row.instrumentSharePct)}
+            ${shareBar(row.instrumentSharePct)}
+          </td>
+          <td class="is-num text-right font-mono text-yellow-300" data-label="全体シェア">${fmtPct(row.totalSharePct)}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
   function renderQualityRows(qualityRows) {
@@ -424,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td class="text-gray-300" data-label="API">${qualityStatusCell(row)}</td>
         <td class="text-gray-300" data-label="経路">${escapeHtml(transportLabel(row.transportSources))}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="サンプル">${Number(row.sampleCount) || 0}</td>
-        <td class="text-gray-300" data-label="種別">${escapeHtml(DATA_KIND_LABELS[row.dataKind] || row.dataKind || '-')}</td>
+        <td class="text-gray-300" data-label="種別">${dataKindCell(row.dataKind)}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="最終取得">
           ${escapeHtml(fmtDateTime(row.lastFetchedAt))}
           <div class="text-[10px] text-gray-500">元データ ${escapeHtml(fmtDateTime(row.lastSourceAt))}</div>
@@ -473,6 +496,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return absLabel;
   }
 
+  function formatJpyAmount(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '-';
+    const sign = num < 0 ? '-' : '';
+    const abs = Math.abs(num);
+    if (abs >= 1e8) return `${sign}${JPY_UNIT_FORMATTER.format(abs / 1e8)}億円`;
+    if (abs >= 1e4) return `${sign}${JPY_UNIT_FORMATTER.format(abs / 1e4)}万円`;
+    return `${sign}${JPY_INTEGER_FORMATTER.format(Math.round(abs))}円`;
+  }
+
   function todayJstDateString() {
     const parts = new Intl.DateTimeFormat('ja-JP', {
       timeZone: 'Asia/Tokyo',
@@ -482,6 +515,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }).formatToParts(new Date());
     const byType = Object.fromEntries(parts.map(part => [part.type, part.value]));
     return `${byType.year}-${byType.month}-${byType.day}`;
+  }
+
+  function dateToJstDateString(date) {
+    const parts = new Intl.DateTimeFormat('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(date);
+    const byType = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${byType.year}-${byType.month}-${byType.day}`;
+  }
+
+  function relativeTimeLabel(date) {
+    const elapsedMs = Math.max(0, Date.now() - date.getTime());
+    const elapsedMinutes = Math.floor(elapsedMs / 60000);
+    if (elapsedMinutes < 1) return 'たった今';
+    if (elapsedMinutes < 60) return `${elapsedMinutes}分前`;
+    const elapsedHours = Math.floor(elapsedMinutes / 60);
+    if (elapsedHours < 24) return `${elapsedHours}時間前`;
+    return `${Math.floor(elapsedHours / 24)}日前`;
+  }
+
+  function updatedAtDisplay(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    const timestamp = dateToJstDateString(date) === todayJstDateString()
+      ? AppFmt.time(date, { includeSeconds: false })
+      : fmtDateTime(date);
+    return `${timestamp}（${relativeTimeLabel(date)}）`;
   }
 
   function volumeDisplay(value) {
@@ -925,7 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const emptyMessage = hasActiveFilters() ? EMPTY_FILTER_MESSAGE : WAITING_DATA_MESSAGE;
 
     setText('share-status', status.running ? '更新中' : (allRowCount > 0 ? '集計済み' : '取得中'));
-    setText('share-updated-at', fmtDateTime(meta.latestCapturedAt || meta.generatedAt));
+    setText('share-updated-at', updatedAtDisplay(meta.latestCapturedAt || meta.generatedAt));
 
     const dateRange = meta.earliestVolumeDateJst && meta.latestVolumeDateJst
       ? `${meta.earliestVolumeDateJst} - ${meta.latestVolumeDateJst}`
@@ -1103,6 +1167,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderVolumeHistory() {
+    setText(
+      'volume-history-guide',
+      `過去${selectedHistoryWindow === '7d' ? '7' : '30'}日間の出来高シェアの推移です。特定の取引所がシェアを伸ばしているか、市場全体のトレンドを確認できます。`
+    );
     if (!volumeShareHistoryChart) return;
 
     const { dates, series } = buildVolumeHistorySeries();

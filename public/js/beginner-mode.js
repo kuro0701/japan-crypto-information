@@ -459,12 +459,16 @@
     ensurePageToggle();
     document.querySelectorAll('[data-beginner-toggle]').forEach((button) => {
       const label = button.dataset.beginnerToggleLabel || '初心者モード';
+      const onText = button.dataset.beginnerToggleOnText;
+      const offText = button.dataset.beginnerToggleOffText;
+      const onTitle = button.dataset.beginnerToggleOnTitle || '用語説明を表示しやすくしています';
+      const offTitle = button.dataset.beginnerToggleOffTitle || '用語説明を見やすくする初心者モードを有効化';
       button.classList.toggle('is-active', beginnerMode);
       button.setAttribute('aria-pressed', beginnerMode ? 'true' : 'false');
-      button.textContent = `${label}: ${beginnerMode ? 'ON' : 'OFF'}`;
-      button.title = beginnerMode
-        ? '用語説明を表示しやすくしています'
-        : '用語説明を見やすくする初心者モードを有効化';
+      button.textContent = beginnerMode
+        ? (onText || `${label}: ON`)
+        : (offText || `${label}: OFF`);
+      button.title = beginnerMode ? onTitle : offTitle;
     });
   }
 
