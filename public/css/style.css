@@ -1409,6 +1409,18 @@ input.field[inputmode="decimal"] {
   font-size: var(--fs-sm);
 }
 
+.filter-control--search {
+  min-width: 0;
+}
+
+.filter-help {
+  margin-top: calc(-1 * var(--sp-2));
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
 .field-help {
   color: var(--text-4);
   font-size: var(--fs-xs);

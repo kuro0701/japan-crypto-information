@@ -28,12 +28,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const INSIGHTS_FETCH_WINDOW = '90d';
   const pageRoot = document.querySelector('[data-volume-page]') || document.body;
   const API_BASE = (String(pageRoot.getAttribute('data-volume-api-base') || '/api/volume-share').replace(/\/+$/, '') || '/api/volume-share');
+  const IS_DERIVATIVES_PAGE = API_BASE.includes('/derivatives/');
   const DEFAULT_SIMULATOR_MARKET = String(pageRoot.getAttribute('data-volume-default-market') || 'BTC-JPY').trim().toUpperCase();
   const DEFAULT_SIMULATOR_EXCHANGE = String(pageRoot.getAttribute('data-volume-default-exchange') || '').trim().toLowerCase();
   let selectedWindow = '1d';
   let selectedInstrument = ALL_VALUE;
   let selectedExchange = ALL_VALUE;
   let selectedHistoryWindow = '30d';
+  let instrumentSearchTerm = '';
   let latestData = null;
   let volumeHistoryRows = [];
   let volumeHistoryMeta = {};
@@ -113,6 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return normalized || ALL_VALUE;
   }
 
+  function normalizeSearchTerm(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
   function readInitialState() {
     const params = new URLSearchParams(window.location.search);
     return {
@@ -120,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
       instrumentId: normalizeInstrumentId(params.get('instrumentId') || params.get('instrument') || params.get('market')),
       exchangeId: normalizeExchangeId(params.get('exchange') || params.get('exchangeId')),
       historyWindow: normalizeHistoryWindow(params.get('historyWindow'), '30d'),
+      instrumentSearchTerm: normalizeSearchTerm(params.get('q') || params.get('search')),
     };
   }
 
@@ -129,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedInstrument !== ALL_VALUE) params.set('instrumentId', selectedInstrument);
     if (selectedExchange !== ALL_VALUE) params.set('exchange', selectedExchange);
     if (selectedHistoryWindow !== '30d') params.set('historyWindow', selectedHistoryWindow);
+    if (instrumentSearchTerm) params.set('q', instrumentSearchTerm);
     const nextUrl = params.toString()
       ? `${window.location.pathname}?${params.toString()}`
       : window.location.pathname;
@@ -155,6 +163,10 @@ document.addEventListener('DOMContentLoaded', () => {
   selectedInstrument = initialState.instrumentId;
   selectedExchange = initialState.exchangeId;
   selectedHistoryWindow = initialState.historyWindow;
+  instrumentSearchTerm = initialState.instrumentSearchTerm;
+  if (instrumentSearchTerm && selectedInstrument !== ALL_VALUE) {
+    selectedInstrument = ALL_VALUE;
+  }
 
   function shareBar(sharePct) {
     const width = Math.max(0, Math.min(100, sharePct || 0));
@@ -220,8 +232,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const DATA_KIND_DESCRIPTIONS = {
     measured: '実測: 取引所APIから直接取得した出来高またはJPY換算値です。',
-    estimated: '各取引所の公開データ仕様に基づき算出しています。',
-    mixed: '実測値と推計値が混在しています。推計値は各取引所の公開データ仕様に基づき算出しています。',
+    estimated: '各取引所の公開仕様に基づいて算出。取引コストに影響する主要データは、取得できた範囲で正確に反映しています。',
+    mixed: '実測値と推計値が混在しています。推計値は各取引所の公開仕様に基づいて算出。取引コストに影響する主要データは、取得できた範囲で正確に反映しています。',
   };
 
   const TRANSPORT_LABELS = {
@@ -308,13 +320,31 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   }
 
+  function compactSearchText(value) {
+    return normalizeSearchTerm(value).replace(/[\s/_-]+/g, '');
+  }
+
+  function instrumentMatchesSearch(row) {
+    if (!instrumentSearchTerm) return true;
+    const haystack = [
+      row.instrumentId,
+      row.instrumentLabel,
+    ].filter(Boolean).join(' ');
+    const normalizedHaystack = normalizeSearchTerm(haystack);
+    const compactNeedle = compactSearchText(instrumentSearchTerm);
+    const compactHaystack = compactSearchText(haystack);
+    return normalizedHaystack.includes(instrumentSearchTerm)
+      || (compactNeedle && compactHaystack.includes(compactNeedle));
+  }
+
   function hasActiveFilters() {
-    return selectedInstrument !== ALL_VALUE || selectedExchange !== ALL_VALUE;
+    return selectedInstrument !== ALL_VALUE || selectedExchange !== ALL_VALUE || Boolean(instrumentSearchTerm);
   }
 
   function rowMatchesFilters(row) {
     return (selectedInstrument === ALL_VALUE || row.instrumentId === selectedInstrument)
-      && (selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange);
+      && (selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange)
+      && instrumentMatchesSearch(row);
   }
 
   function buildFilteredShare(data) {
@@ -462,9 +492,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const issueCount = rows.filter(row => row.apiStatus === 'partial' || row.apiStatus === 'failed').length;
     const measuredCount = rows.reduce((sum, row) => sum + (Number(row.measuredCount) || 0), 0);
     const estimatedCount = rows.reduce((sum, row) => sum + (Number(row.estimatedCount) || 0), 0);
+    const dataBasisLabel = estimatedCount > 0
+      ? '公開仕様ベースの推計含む'
+      : (measuredCount > 0 ? '実測データ中心' : 'データ種別を確認中');
     setText(
       'volume-quality-meta',
-      `${rows.length}取引所 | 成功 ${successCount} | 要確認 ${issueCount} | 実測 ${measuredCount} / 推計 ${estimatedCount}${issueCount > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`
+      `${rows.length}取引所 | 成功 ${successCount} | 要確認 ${issueCount} | ${dataBasisLabel}${issueCount > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`
     );
 
     tbody.innerHTML = rows.map(row => `
@@ -691,10 +724,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const successCount = rows.filter(row => row.apiStatus === 'success').length;
     const partialCount = rows.filter(row => row.apiStatus === 'partial').length;
     const failedCount = rows.filter(row => row.apiStatus === 'failed').length;
-    const measuredCount = rows.reduce((sum, row) => sum + (Number(row.measuredCount) || 0), 0);
-    const estimatedCount = rows.reduce((sum, row) => sum + (Number(row.estimatedCount) || 0), 0);
-    const observedCount = measuredCount + estimatedCount;
-    const measuredRatio = observedCount > 0 ? measuredCount / observedCount : 0;
 
     const referenceMs = Date.parse(referenceTime || '');
     const freshCount = Number.isFinite(referenceMs)
@@ -705,7 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : 0;
     const successRatio = successCount / rows.length;
     const freshnessRatio = rows.length > 0 ? freshCount / rows.length : 0;
-    const score = successRatio * 0.65 + measuredRatio * 0.25 + freshnessRatio * 0.10;
+    const score = successRatio * 0.75 + freshnessRatio * 0.25;
 
     let label = '高';
     let tone = 'is-positive';
@@ -717,17 +746,18 @@ document.addEventListener('DOMContentLoaded', () => {
       tone = 'is-caution';
     }
 
-    const measuredPct = observedCount > 0 ? Math.round(measuredRatio * 100) : 0;
     const issueCount = failedCount + partialCount;
     const scopeLabel = rows.length === 1 ? '対象1社' : `全${rows.length}社`;
+    const normalStatusLabel = rows.length === 1 ? '対象社正常稼働中' : '全社正常稼働中';
     const detail = issueCount > 0
-      ? `${scopeLabel}中${successCount}社のデータを取得中（実測値${measuredPct}%、要確認${issueCount}社）`
-      : `${scopeLabel}のデータを正常に取得中（実測値${measuredPct}%）`;
+      ? `${scopeLabel}中${successCount}社のデータを取得中（要確認${issueCount}社）`
+      : `${normalStatusLabel} | 主要データ反映済み`;
 
     return {
       label,
       detail,
       tone,
+      statusLabel: issueCount > 0 ? `要確認${issueCount}社` : normalStatusLabel,
     };
   }
 
@@ -834,7 +864,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (instrumentId) params.set('market', instrumentId);
     if (exchangeId) params.set('exchange', exchangeId);
+    params.set('side', 'buy');
+    params.set('amountType', 'jpy');
+    params.set('amount', '100000');
     return params.toString() ? `/simulator?${params.toString()}` : '/simulator';
+  }
+
+  function displayMarketLabel(value) {
+    return String(value || DEFAULT_SIMULATOR_MARKET).replace(/-/g, '/');
+  }
+
+  function summaryCtaLabel(instrumentLabel) {
+    if (IS_DERIVATIVES_PAGE) {
+      return instrumentLabel ? `${instrumentLabel}の取引コストを確認する` : '取引コスト計算で確認';
+    }
+    const label = instrumentLabel || displayMarketLabel(DEFAULT_SIMULATOR_MARKET);
+    return `${label} の取引コストを最安にする（板シミュレーター）`;
   }
 
   function renderKpis(filtered, meta, qualityRows) {
@@ -845,7 +890,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const concentration = concentrationMeta(top3, filtered.exchanges.length);
     const reliability = reliabilityMeta(qualityRows, filtered, meta.latestCapturedAt || meta.generatedAt);
     const dailyChange = comparisonMetaForWindow(meta.windowKey || selectedWindow, filtered.totalQuoteVolume);
-    const instrumentLabel = selectedOptionLabel('volume-instrument-filter', '全銘柄');
+    const instrumentLabel = activeInstrumentLabel('全銘柄');
     const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '全取引所');
 
     setKpiValue('total-volume', fmtJpy(filtered.totalQuoteVolume));
@@ -861,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setText('top3-share-meta', concentration.detail);
 
     setKpiValue('exchange-count', formatCount(filtered.exchanges.length, '社'));
-    setText('exchange-count-meta', selectedInstrument !== ALL_VALUE ? `${instrumentLabel} の取引所数` : 'フィルター後の取引所数');
+    setText('exchange-count-meta', (selectedInstrument !== ALL_VALUE || instrumentSearchTerm) ? `${instrumentLabel} の取引所数` : 'フィルター後の取引所数');
 
     setKpiValue('instrument-count', formatCount(filtered.instruments.length, '銘柄'));
     setText('instrument-count-meta', selectedExchange !== ALL_VALUE ? `${exchangeLabel} の取扱銘柄数` : 'フィルター後の銘柄数');
@@ -870,7 +915,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setKpiValue('daily-change', dailyChange.value, dailyChange.tone);
     setText('daily-change-meta', dailyChange.detail);
 
-    setKpiValue('data-reliability', reliability.label, reliability.tone);
+    const reliabilityValue = reliability.statusLabel && reliability.label === '高'
+      ? `${reliability.label}（${reliability.statusLabel}）`
+      : reliability.label;
+    setKpiValue('data-reliability', reliabilityValue, reliability.tone);
     setText('data-reliability-meta', reliability.detail);
 
     return {
@@ -887,7 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const topExchange = summaryParts.topExchange;
     const primaryRow = dominantVolumeRow(filtered.rows);
     const label = WINDOW_LABELS[meta.windowKey] || WINDOW_LABELS[selectedWindow];
-    const instrumentLabel = selectedOptionLabel('volume-instrument-filter', '全銘柄');
+    const instrumentLabel = activeInstrumentLabel('全銘柄');
     const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '全取引所');
 
     if (badge) {
@@ -906,7 +954,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const link = $('volume-summary-link');
       if (link) {
         link.href = simulatorUrlForSummary(null, null);
-        link.textContent = '実質コスト（板情報）を計算する';
+        link.textContent = summaryCtaLabel();
       }
       return;
     }
@@ -948,7 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
       [
         `<span class="decision-summary-chip">${escapeHtml(label)}</span>`,
         `<span class="decision-summary-chip">${escapeHtml(WINDOW_GUIDES[selectedWindow] || '')}</span>`,
-        `<span class="decision-summary-chip">信頼度 ${escapeHtml(summaryParts.reliability.label)}</span>`,
+        `<span class="decision-summary-chip">精度 ${escapeHtml(summaryParts.reliability.label)}</span>`,
         `<span class="decision-summary-chip">${escapeHtml(
           selectedInstrument !== ALL_VALUE
             ? instrumentLabel
@@ -960,9 +1008,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const link = $('volume-summary-link');
     if (link) {
       link.href = simulatorUrlForSummary(primaryRow, topExchange);
-      link.textContent = primaryRow && primaryRow.instrumentLabel
-        ? `${primaryRow.instrumentLabel} の実質コスト（板情報）を計算する`
-        : '実質コスト（板情報）を計算する';
+      link.textContent = summaryCtaLabel(primaryRow && primaryRow.instrumentLabel);
     }
   }
 
@@ -996,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const insights = Array.isArray(data && data.insights) ? data.insights : [];
     const period = meta.period || {};
     const filterParts = [];
-    const instrumentLabel = selectedOptionLabel('volume-instrument-filter', '全銘柄');
+    const instrumentLabel = activeInstrumentLabel('全銘柄');
     const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '全取引所');
     if (selectedInstrument !== ALL_VALUE) filterParts.push(instrumentLabel);
     if (selectedExchange !== ALL_VALUE) filterParts.push(exchangeLabel);
@@ -1135,7 +1181,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function historyInstrumentMatches(row) {
-    return selectedInstrument === ALL_VALUE || row.instrumentId === selectedInstrument;
+    return (selectedInstrument === ALL_VALUE || row.instrumentId === selectedInstrument)
+      && instrumentMatchesSearch(row);
   }
 
   function latestMapValue(dates, byDate, missingValue = null) {
@@ -1151,6 +1198,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!select || select.value === ALL_VALUE) return allLabel;
     const option = select.selectedOptions && select.selectedOptions[0];
     return option ? option.textContent : select.value;
+  }
+
+  function activeInstrumentLabel(allLabel = '全銘柄') {
+    if (selectedInstrument !== ALL_VALUE) return selectedOptionLabel('volume-instrument-filter', allLabel);
+    return instrumentSearchTerm ? `検索: ${instrumentSearchTerm.toUpperCase()}` : allLabel;
   }
 
   function buildVolumeHistorySeries() {
@@ -1251,7 +1303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const range = dates.length > 0
       ? `${dates[0]} - ${dates[dates.length - 1]}`
       : '履歴データ待ち';
-    const instrumentLabel = selectedOptionLabel('volume-instrument-filter', '全銘柄');
+    const instrumentLabel = activeInstrumentLabel('全銘柄');
     const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '全取引所');
     const seriesLabel = series.length > 0 ? `${series.length}系列` : '該当なし';
     const provisionalNote = provisionalSnapshotNote(volumeHistoryMeta, 'latestProvisionalVolumeDateJst', 'provisionalDailySnapshotCount');
@@ -1380,10 +1432,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  const instrumentSearch = $('volume-instrument-search');
+  if (instrumentSearch) {
+    instrumentSearch.value = instrumentSearchTerm;
+    instrumentSearch.addEventListener('input', () => {
+      instrumentSearchTerm = normalizeSearchTerm(instrumentSearch.value);
+      if (instrumentSearchTerm && selectedInstrument !== ALL_VALUE) {
+        selectedInstrument = ALL_VALUE;
+        const select = $('volume-instrument-filter');
+        if (select) select.value = ALL_VALUE;
+      }
+      renderFilteredShare();
+    });
+  }
+
   const instrumentFilter = $('volume-instrument-filter');
   if (instrumentFilter) {
     instrumentFilter.addEventListener('change', () => {
       selectedInstrument = instrumentFilter.value || ALL_VALUE;
+      if (selectedInstrument !== ALL_VALUE && instrumentSearchTerm) {
+        instrumentSearchTerm = '';
+        const search = $('volume-instrument-search');
+        if (search) search.value = '';
+      }
       renderFilteredShare();
       loadInsights();
     });

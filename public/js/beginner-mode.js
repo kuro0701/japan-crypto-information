@@ -173,12 +173,12 @@
       return {
         eyebrow: '🔰 初心者モード',
         title: '出来高は流動性の入口として見ます',
-        summary: '出来高シェアは、どの取引所に売買が集まりやすいかを見る指標です。最初は「首位取引所」「上位3社集中度」「データ信頼度」を確認してください。',
-        metrics: ['首位取引所', '上位3社集中度', 'データ信頼度'],
+        summary: '出来高シェアは、どの取引所に売買が集まりやすいかを見る指標です。最初は「首位取引所」「上位3社集中度」「データ精度」を確認してください。',
+        metrics: ['首位取引所', '上位3社集中度', 'データ精度'],
         terms: ['volume-share', 'liquidity', 'orderbook', 'effective-cost'],
         warning: '出来高が多くても、その瞬間の板が薄い場合は実質コストが悪化します。大きめの注文は板シミュレーターで確認してください。',
         links: [
-          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '実質コスト（板情報）を計算' },
+          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: 'BTC/JPY の取引コストを最安にする' },
           { href: '/sales-spread?instrumentId=BTC-JPY', label: '販売所スプレッドを見る' },
           { href: '/markets/BTC-JPY', label: '銘柄ページへ' },
         ],
