@@ -978,6 +978,26 @@ body.terminal-body {
   gap: 6px;
 }
 
+.volume-table-hint {
+  margin-top: calc(-1 * var(--sp-1));
+  padding: 8px 12px;
+  border: 1px solid rgba(53, 200, 210, 0.2);
+  border-radius: var(--r-sm);
+  background: rgba(53, 200, 210, 0.08);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+}
+
+.table-heading-sub {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-4);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .volume-no-trade {
   color: var(--text-4);
   font-weight: 700;
@@ -5172,11 +5192,25 @@ a.market-feature-related__pill:focus-visible {
 .quality-kind {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 22px;
   border-bottom: 1px dotted rgba(205, 222, 190, 0.36);
   color: var(--text-2);
   cursor: help;
   font-weight: 700;
+}
+
+.quality-kind__help {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(205, 222, 190, 0.24);
+  border-radius: 50%;
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .quality-kind:focus-visible {

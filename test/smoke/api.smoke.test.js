@@ -632,7 +632,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
   assert.equal(volumeSharePage.status, 200);
   assert.ok(volumeSharePage.body.includes('流動性サマリー'));
-  assert.ok(volumeSharePage.body.includes('自動インサイト'));
+  assert.ok(volumeSharePage.body.includes('市場のトレンド速報'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="top"'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="middle"'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="bottom"'));

@@ -18,6 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
     '7d': '前7日比',
     '30d': '前30日比',
   };
+  const VOLUME_COLUMN_LABELS = {
+    '1d': '出来高（24時間累計）',
+    '7d': '出来高（7日間累計）',
+    '30d': '出来高（30日間累計）',
+  };
   const ALL_VALUE = '__all__';
   const HISTORY_FETCH_WINDOW = '90d';
   const INSIGHTS_FETCH_WINDOW = '90d';
@@ -70,22 +75,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const HISTORY_WINDOW_VALUES = new Set(['7d', '30d']);
   const KPI_TONE_CLASSES = ['is-positive', 'is-caution', 'is-danger'];
   const INSIGHT_TYPE_LABELS = {
-    top_gainer: '増加',
-    top_loser: '低下',
-    share_up: 'シェア増加',
-    share_down: 'シェア低下',
+    top_gainer: 'シェア急拡大',
+    top_loser: 'シェア変動',
+    share_up: '取引が活発化',
+    share_down: 'シェア変動',
     leader_change: '首位交代',
     leader_gap_change: '首位',
     leader_hold: '首位',
     rank_up: '順位上昇',
-    rank_down: '順位低下',
+    rank_down: '順位変動',
     leader_gap_narrow: '差縮小',
     leader_gap_widen: '差拡大',
     above_gap_narrow: '直上差',
     above_gap_widen: '直上差',
     increase_streak: '連続上昇',
-    decrease_streak: '連続低下',
-    zscore_outlier: '異常値',
+    decrease_streak: 'シェア変動',
+    zscore_outlier: '注目の動き',
     market_concentration: '市場構造',
     hhi_change: '市場構造',
   };
@@ -163,6 +168,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return '最新24h収集値';
   }
 
+  function volumeColumnLabel(windowKey = selectedWindow) {
+    return VOLUME_COLUMN_LABELS[windowKey] || VOLUME_COLUMN_LABELS['1d'];
+  }
+
+  function renderVolumeColumnHeading(windowKey = selectedWindow) {
+    const label = volumeColumnLabel(windowKey);
+    return label.replace(/^出来高/, '出来高<span class="table-heading-sub">') + '</span>';
+  }
+
+  function updateVolumeColumnLabels(windowKey = selectedWindow) {
+    ['exchange-volume-heading', 'instrument-volume-heading'].forEach((id) => {
+      const el = $(id);
+      if (el) el.innerHTML = renderVolumeColumnHeading(windowKey);
+    });
+  }
+
   function provisionalSnapshotNote(meta, latestKey, countKey) {
     if (!meta) return '';
     const latestDate = meta[latestKey];
@@ -193,14 +214,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const DATA_KIND_LABELS = {
     measured: '実測',
-    estimated: '推定',
-    mixed: '推定含む',
+    estimated: '推計',
+    mixed: '推計含む',
     unknown: '-',
   };
   const DATA_KIND_DESCRIPTIONS = {
     measured: '実測: 取引所APIから直接取得した出来高またはJPY換算値です。',
-    estimated: '推定: 取引所APIの仕様に基づき、数量や価格からJPY換算して算出した参考値です。',
-    mixed: '実測値と推定値が混在しています。推定値は取引所APIの仕様に基づいて算出した参考値です。',
+    estimated: '各取引所の公開データ仕様に基づき算出しています。',
+    mixed: '実測値と推計値が混在しています。推計値は各取引所の公開データ仕様に基づき算出しています。',
   };
 
   const TRANSPORT_LABELS = {
@@ -228,7 +249,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const label = DATA_KIND_LABELS[key] || key || '-';
     const description = DATA_KIND_DESCRIPTIONS[key];
     if (!description) return escapeHtml(label);
-    return `<span class="quality-kind" title="${escapeHtml(description)}" aria-label="${escapeHtml(description)}" tabindex="0">${escapeHtml(label)}</span>`;
+    const helpIcon = key === 'estimated' || key === 'mixed'
+      ? '<span class="quality-kind__help" aria-hidden="true">?</span>'
+      : '';
+    return `<span class="quality-kind" title="${escapeHtml(description)}" aria-label="${escapeHtml(description)}" tabindex="0"><span>${escapeHtml(label)}</span>${helpIcon}</span>`;
   }
 
   function historySourceLabel(meta) {
@@ -370,6 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderExchangeRows(exchanges, emptyMessage = WAITING_DATA_MESSAGE) {
     const tbody = $('exchange-share-tbody');
     if (!tbody) return;
+    const volumeLabel = volumeColumnLabel();
 
     if (!exchanges || exchanges.length === 0) {
       tbody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500 py-4">${escapeHtml(emptyMessage)}</td></tr>`;
@@ -379,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.innerHTML = exchanges.map((exchange, index) => `
       <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
         <td class="font-bold text-gray-200" data-label="取引所">${escapeHtml(exchange.exchangeLabel)}</td>
-        <td class="is-num text-right font-mono text-gray-300" data-label="出来高">${volumeDisplay(exchange.quoteVolume)}</td>
+        <td class="is-num text-right font-mono text-gray-300" data-label="${escapeHtml(volumeLabel)}">${volumeDisplay(exchange.quoteVolume)}</td>
         <td class="is-num text-right font-mono text-yellow-300" data-label="シェア">
           ${fmtPct(exchange.sharePct)}
           ${shareBar(exchange.sharePct)}
@@ -391,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderInstrumentRows(rows, emptyMessage = WAITING_DATA_MESSAGE) {
     const tbody = $('instrument-share-tbody');
     if (!tbody) return;
+    const volumeLabel = volumeColumnLabel();
 
     if (!rows || rows.length === 0) {
       tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500 py-4">${escapeHtml(emptyMessage)}</td></tr>`;
@@ -406,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <a class="market-link" href="${marketPageUrl(row.instrumentId)}" title="${escapeHtml(linkTitle)}" aria-label="${escapeHtml(linkTitle)}">${escapeHtml(instrumentLabel)}</a>
           </td>
           <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
-          <td class="is-num text-right font-mono text-gray-300" data-label="出来高">
+          <td class="is-num text-right font-mono text-gray-300" data-label="${escapeHtml(volumeLabel)}">
             ${volumeDisplay(row.quoteVolume)}
           </td>
           <td class="is-num text-right font-mono text-green-300" data-label="銘柄内シェア">
@@ -438,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const estimatedCount = rows.reduce((sum, row) => sum + (Number(row.estimatedCount) || 0), 0);
     setText(
       'volume-quality-meta',
-      `${rows.length}取引所 | 成功 ${successCount} | 要確認 ${issueCount} | 実測 ${measuredCount} / 推定 ${estimatedCount}${issueCount > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`
+      `${rows.length}取引所 | 成功 ${successCount} | 要確認 ${issueCount} | 実測 ${measuredCount} / 推計 ${estimatedCount}${issueCount > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`
     );
 
     tbody.innerHTML = rows.map(row => `
@@ -447,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td class="text-gray-300" data-label="API">${qualityStatusCell(row)}</td>
         <td class="text-gray-300" data-label="経路">${escapeHtml(transportLabel(row.transportSources))}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="サンプル">${Number(row.sampleCount) || 0}</td>
-        <td class="text-gray-300" data-label="種別">${dataKindCell(row.dataKind)}</td>
+        <td class="text-gray-300" data-label="データ取得種別（実測/推計）">${dataKindCell(row.dataKind)}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="最終取得">
           ${escapeHtml(fmtDateTime(row.lastFetchedAt))}
           <div class="text-[10px] text-gray-500">元データ ${escapeHtml(fmtDateTime(row.lastSourceAt))}</div>
@@ -620,6 +646,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (label === 'かなり集中') return '上位数社への偏りが強い状態です。';
     if (label === '単独表示') return '1社のみを表示しています。';
     return '判断待ちです。';
+  }
+
+  function concentrationUserImplication(label) {
+    if (label === '主要数社に分散傾向' || label === '取引所ごとに分散') {
+      return '※特定の取引所への極端な集中は見られず、複数の選択肢から比較検討しやすい状態です。';
+    }
+    if (label === '比較的集中' || label === 'かなり集中') {
+      return '※上位取引所の影響が大きいため、まず首位候補を確認し、板の厚みと実質コストで比べるのがおすすめです。';
+    }
+    if (label === '単独表示') {
+      return '※フィルターを解除すると、ほかの取引所との比較もしやすくなります。';
+    }
+    return '※データがそろい次第、比較しやすい取引所候補を確認できます。';
   }
 
   function shareTone(sharePct) {
@@ -889,10 +928,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else if (selectedInstrument !== ALL_VALUE) {
       lead = `${label}（${instrumentLabel}）の出来高トップは ${topExchange.exchangeLabel} です。`;
-      body = `上位3社で市場全体の約${fmtPctCompact(summaryParts.top3, 1)}を占めており、${concentrationSentence(summaryParts.concentration.label)}`;
+      body = `上位3社で市場全体の約${fmtPctCompact(summaryParts.top3, 1)}を占めており、${concentrationSentence(summaryParts.concentration.label)} ${concentrationUserImplication(summaryParts.concentration.label)}`;
     } else {
       lead = `${label}（全銘柄合計）の出来高トップは ${topExchange.exchangeLabel} です。`;
-      body = `上位3社で市場全体の約${fmtPctCompact(summaryParts.top3, 1)}を占めており、${concentrationSentence(summaryParts.concentration.label)}`;
+      body = `上位3社で市場全体の約${fmtPctCompact(summaryParts.top3, 1)}を占めており、${concentrationSentence(summaryParts.concentration.label)} ${concentrationUserImplication(summaryParts.concentration.label)}`;
     }
 
     const dailyChangeText = summaryParts.dailyChange.value !== '-'
@@ -930,9 +969,23 @@ document.addEventListener('DOMContentLoaded', () => {
   function insightTone(insight) {
     const direction = insight && insight.direction;
     if (direction === 'up' || direction === 'concentrating') return 'is-positive';
-    if (direction === 'down') return 'is-danger';
+    if (direction === 'down') return 'is-caution';
     if (direction === 'narrow' || direction === 'dispersing') return 'is-caution';
     return '';
+  }
+
+  function friendlyInsightMessage(insight) {
+    let message = insight.messageJa || insight.message_ja || '';
+    message = message
+      .replace(/最大シェア低下/g, '最大シェア変動')
+      .replace(/シェア低下/g, 'シェア変動')
+      .replace(/順位低下/g, '順位変動')
+      .replace(/連続低下/g, '連続変動')
+      .replace(/急低下中/g, '大きく変動中')
+      .replace(/低下しています/g, '変動しています')
+      .replace(/低下しました/g, '変動しました')
+      .replace(/異常値/g, '注目の動き');
+    return message;
   }
 
   function renderInsights(data) {
@@ -965,7 +1018,7 @@ document.addEventListener('DOMContentLoaded', () => {
     list.innerHTML = insights.map((insight) => {
       const label = INSIGHT_TYPE_LABELS[insight.type] || 'Insight';
       const tone = insightTone(insight);
-      const message = insight.messageJa || insight.message_ja || '';
+      const message = friendlyInsightMessage(insight);
       return `
         <li class="volume-insight-item ${tone ? `volume-insight-item--${tone}` : ''}">
           <span class="volume-insight-item__label">${escapeHtml(label)}</span>
@@ -1000,6 +1053,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'share-meta',
       [label, sourceLabel(meta), dateRange, visibleCountLabel, provisionalNote, partialNote].filter(Boolean).join(' | ')
     );
+    updateVolumeColumnLabels(meta.windowKey || selectedWindow);
 
     const summaryParts = renderKpis(filtered, meta, latestData.quality || []);
     renderLiquiditySummary(filtered, meta, summaryParts);
