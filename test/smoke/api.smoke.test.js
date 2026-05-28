@@ -235,7 +235,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
     '板取引の仕組みとやり方',
     '失敗しない！10万円分の買い方',
     'なぜ販売所は損しやすいのか？',
-    '取引所選びのチェックリスト',
+    '失敗しない取引所の選び方と口座開設ガイド',
     'PR・広告表記について',
     '免責事項・利用規約',
     '開催中のキャンペーン総合',
@@ -623,7 +623,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const exchangeChecklistGuide = await fetchText(baseUrl, '/learn/exchange-checklist');
   assert.equal(exchangeChecklistGuide.status, 200);
-  assert.ok(exchangeChecklistGuide.body.includes('取引所選びのチェックリスト'));
+  assert.ok(exchangeChecklistGuide.body.includes('失敗しない取引所の選び方と口座開設ガイド'));
   assert.ok(exchangeChecklistGuide.body.includes('/markets'));
   assert.ok(exchangeChecklistGuide.body.includes('/learn/crypto-fees'));
   assert.ok(exchangeChecklistGuide.body.includes('/learn/crypto-withdrawal-fees'));
@@ -632,7 +632,11 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
   assert.equal(volumeSharePage.status, 200);
   assert.ok(volumeSharePage.body.includes('流動性サマリー'));
+  assert.ok(volumeSharePage.body.includes('目的別取引所マップ'));
+  assert.ok(volumeSharePage.body.includes('取引所（口座開設）'));
   assert.ok(volumeSharePage.body.includes('市場のトレンド速報'));
+  assert.ok(volumeSharePage.body.includes('https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0'));
+  assert.ok(volumeSharePage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl\\u0026lang=ja-JP'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="top"'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="middle"'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="bottom"'));
@@ -671,6 +675,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(campaignsPage.body.includes('PR / アフィリエイト表記'));
   assert.ok(campaignsPage.body.includes('/campaigns/gmo-coin'));
   assert.ok(campaignsPage.body.includes('/campaigns/referrals'));
+  assert.ok(campaignsPage.body.includes('https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0'));
+  assert.ok(campaignsPage.body.includes('https://h.accesstrade.net/sp/rr?rk=0100mtgp00osx0'));
   assert.ok(campaignsPage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
   assert.ok(campaignsPage.body.includes('招待コード: ml1wjtkl'));
   assertCommonDisclosure(campaignsPage.body);

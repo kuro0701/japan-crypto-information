@@ -5,6 +5,8 @@ const { getCampaign } = require('../../lib/campaigns');
 const { getExchangePageContent } = require('../../lib/exchange-page-content');
 
 const BITFLYER_REFERRAL_URL = 'https://bitflyer.com/invitation?id=ml1wjtkl&lang=ja-JP';
+const GMO_COIN_AFFILIATE_URL = 'https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0';
+const GMO_COIN_TRACKING_PIXEL_URL = 'https://h.accesstrade.net/sp/rr?rk=0100mtgp00osx0';
 
 function withEnvValue(key, value, fn) {
   const previous = process.env[key];
@@ -42,5 +44,17 @@ test('bitFlyer referral link can still be overridden through env', () => {
   withEnvValue('BITFLYER_REFERRAL_URL', overrideUrl, () => {
     assert.equal(getCampaign('bitflyer').affiliateUrl, overrideUrl);
     assert.equal(getExchangePageContent('bitflyer').referralUrl, overrideUrl);
+  });
+});
+
+test('GMO Coin affiliate link is populated by default', () => {
+  withEnvValue('GMO_COIN_REFERRAL_URL', undefined, () => {
+    const campaign = getCampaign('gmo-coin');
+    assert.equal(campaign.affiliateUrl, GMO_COIN_AFFILIATE_URL);
+    assert.equal(campaign.trackingPixelUrl, GMO_COIN_TRACKING_PIXEL_URL);
+    assert.equal(campaign.affiliateRel, 'nofollow');
+    assert.equal(campaign.affiliateReferrerPolicy, 'no-referrer-when-downgrade');
+    assert.equal(campaign.affiliateTarget, null);
+    assert.equal(getExchangePageContent('gmo').referralUrl, GMO_COIN_AFFILIATE_URL);
   });
 });

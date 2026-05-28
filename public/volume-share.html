@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-23">
+  <link rel="stylesheet" href="/css/style.css?v=ui-24">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -69,6 +69,36 @@
         <span class="callout-icon" aria-hidden="true">!</span>
         <div class="callout-title">出来高を見る際の注意点</div>
         <div class="callout-body">出来高が大きい取引所＝必ずしも最安で買えるとは限りません。実際のコストは板シミュレーターでご確認ください。</div>
+      </div>
+    </section>
+
+    <section class="panel panel--dense volume-purpose-map info-layer info-layer--top beginner-focus" data-info-layer="top" data-beginner-focus="true" aria-labelledby="volume-purpose-map-title">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 id="volume-purpose-map-title" class="panel-title">目的別取引所マップ</h2>
+          <p class="text-xs text-gray-500 mt-1">出来高だけで迷う前に、買い方の目的から候補を絞り込みます。最終判断は各取引所の公式条件と板の厚みを確認してください。</p>
+        </div>
+        <span class="panel-kicker">Start Map</span>
+      </div>
+      <div class="volume-purpose-map__grid">
+        <article class="volume-purpose-card">
+          <span class="volume-purpose-card__eyebrow">BTCを安定して取引したいなら</span>
+          <h3>Binance Japan / bitFlyer</h3>
+          <p>BTC/JPYの出来高と板をまず確認したい人向け。取引を始める前に、10万円買いの実質コストも合わせて見ます。</p>
+          <div class="volume-purpose-card__exchanges" aria-label="候補取引所">
+            <a class="volume-purpose-chip" href="/exchanges/binance-japan">Binance Japan</a>
+            <a class="volume-purpose-chip" href="/campaigns/bitflyer" data-volume-account-link="bitflyer">bitFlyer 口座開設へ</a>
+          </div>
+        </article>
+        <article class="volume-purpose-card">
+          <span class="volume-purpose-card__eyebrow">アルトコインを低コストで探したいなら</span>
+          <h3>bitbank / GMOコイン</h3>
+          <p>取扱銘柄、取引手数料、販売所スプレッドを分けて確認したい人向け。キャンペーン条件は申込直前に公式情報で確認します。</p>
+          <div class="volume-purpose-card__exchanges" aria-label="候補取引所">
+            <a class="volume-purpose-chip" href="/exchanges/bitbank">bitbank</a>
+            <a class="volume-purpose-chip" href="/campaigns/gmo-coin" data-volume-account-link="gmo">GMOコイン 口座開設へ</a>
+          </div>
+        </article>
       </div>
     </section>
 
@@ -164,13 +194,13 @@
 
     <div class="volume-table-hint info-layer info-layer--middle" data-info-layer="middle" role="note">💡 銘柄や取引所を絞り込むと、より正確なコスト比較が可能です</div>
 
-    <div class="dashboard-grid dashboard-grid--left info-layer info-layer--middle" data-info-layer="middle">
+    <div class="dashboard-grid dashboard-grid--left volume-share-grid info-layer info-layer--middle" data-info-layer="middle">
       <section class="panel panel--dense">
         <div class="panel-title-row mb-3"><h2 class="panel-title">取引所別シェア</h2><span class="panel-kicker">Exchange</span></div>
         <div class="overflow-auto scrollbar-thin">
           <table class="data-table data-table--cards text-xs">
-            <thead class="sticky"><tr><th class="text-left">取引所</th><th id="exchange-volume-heading" class="is-num text-right">出来高<span class="table-heading-sub">（24時間累計）</span></th><th class="is-num text-right">シェア</th></tr></thead>
-            <tbody id="exchange-share-tbody"><tr><td colspan="3" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+            <thead class="sticky"><tr><th class="text-left">取引所（口座開設）</th><th id="exchange-volume-heading" class="is-num text-right">出来高<span class="table-heading-sub">（24時間累計）</span></th><th class="is-num text-right">シェア</th><th class="text-left">現在のキャンペーン</th></tr></thead>
+            <tbody id="exchange-share-tbody"><tr><td colspan="4" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -230,14 +260,14 @@
     <section class="panel panel--dense compare-tool-section info-layer info-layer--bottom" data-info-layer="bottom" aria-labelledby="volume-share-compare-tools-title">
       <div class="panel-title-row mb-4">
         <div>
-          <h2 id="volume-share-compare-tools-title" class="panel-title">比較する</h2>
-          <p class="text-xs text-gray-500 mt-1">注文する前に、実際の取引価格（板情報）・販売所の手数料相当額（スプレッド）・取引の活発さ（出来高）を銘柄ごとに比較・確認できます。</p>
+          <h2 id="volume-share-compare-tools-title" class="panel-title">あなたに最適な取引所を見つける（コスト計算）</h2>
+          <p class="text-xs text-gray-500 mt-1">口座開設前に、実際の取引価格（板情報）・販売所の手数料相当額（スプレッド）・取引の活発さ（出来高）を銘柄ごとに確認できます。</p>
         </div>
         <span class="panel-kicker">📊 比較ツール</span>
       </div>
       <div class="home-compare-link-grid">
         <a class="home-compare-link" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
-          <strong>最安で買える取引所を計算する</strong>
+          <strong>あなたに最適な取引所を見つける（コスト計算）</strong>
           <span>実際の取引価格（板情報）から、成行注文時の想定コストを計算</span>
         </a>
         <a class="home-compare-link" href="/sales-spread?instrumentId=BTC-JPY">
@@ -269,11 +299,12 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 出来高はJPY換算です</footer>
 
   <script src="/js/beginner-mode.js?v=8"></script>
+  <!-- VOLUME_SHARE_CAMPAIGN_DATA -->
   <script src="js/formatter.js?v=volume-share-1"></script>
   <script src="js/app-utils.js?v=app-utils-1"></script>
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/volume-share.js?v=volume-share-22"></script>
+  <script src="js/volume-share.js?v=volume-share-23"></script>
 </body>
 </html>

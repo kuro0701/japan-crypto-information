@@ -50,10 +50,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const EMPTY_FILTER_MESSAGE = '条件に合う出来高データがありません。フィルターを変更してください。';
   const WAITING_DATA_MESSAGE = '出来高データを取得中です。集計に数秒かかる場合があります。';
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
+  const SHOW_ACCOUNT_OPENING_CTA = !IS_DERIVATIVES_PAGE;
+  const EXCHANGE_SHARE_COLSPAN = SHOW_ACCOUNT_OPENING_CTA ? 4 : 3;
+  const CAMPAIGN_DATA = window.VolumeShareCampaigns && window.VolumeShareCampaigns.exchanges
+    ? window.VolumeShareCampaigns.exchanges
+    : {};
+  const EXCHANGE_REASON_LINES = {
+    'binance-japan': 'グローバル大手ブランドの国内向け板',
+    bitflyer: '主要銘柄とLightningの実績を確認しやすい',
+    coincheck: 'アプリ利用者が多く初心者導線を確認しやすい',
+    bitbank: 'アルトコインの板取扱を比較しやすい',
+    gmo: '手数料と入出金条件を比較しやすい',
+    okj: '板データと取扱銘柄をまとめて確認',
+    bittrade: '幅広い銘柄の出来高を横断確認',
+  };
 
   const $ = AppUtil.byId;
   const setText = AppUtil.setText;
   const escapeHtml = AppUtil.escapeHtml;
+  const exchangePageUrl = AppUtil.exchangePageUrl;
   const marketPageUrl = AppUtil.marketPageUrl;
   const cssVar = AppUtil.cssVar;
   const parseNumber = AppUtil.parseNumber;
@@ -171,6 +186,121 @@ document.addEventListener('DOMContentLoaded', () => {
   function shareBar(sharePct) {
     const width = Math.max(0, Math.min(100, sharePct || 0));
     return `<div class="share-bar mt-1"><span style="width: ${width}%"></span></div>`;
+  }
+
+  function campaignForExchange(exchangeId) {
+    const key = String(exchangeId || '').trim().toLowerCase();
+    return key ? CAMPAIGN_DATA[key] || null : null;
+  }
+
+  function safeHref(value, fallback = '#') {
+    const href = String(value || '').trim();
+    if (!href) return fallback;
+    if (/^(https?:)?\/\//i.test(href) || href.startsWith('/')) return href;
+    return fallback;
+  }
+
+  function exchangeReason(exchangeId) {
+    return EXCHANGE_REASON_LINES[String(exchangeId || '').trim().toLowerCase()] || '出来高と板の厚みを確認';
+  }
+
+  function trackingPixelHtml(campaign) {
+    if (!campaign || !campaign.trackingPixelUrl) return '';
+    return `<img src="${escapeHtml(safeHref(campaign.trackingPixelUrl, ''))}" width="1" height="1" border="0" alt="">`;
+  }
+
+  function affiliateAttrs(campaign) {
+    if (!campaign || !campaign.affiliateUrl) return '';
+    const attrs = [
+      campaign.target ? `target="${escapeHtml(campaign.target)}"` : '',
+      campaign.rel ? `rel="${escapeHtml(campaign.rel)}"` : 'rel="sponsored noopener"',
+      campaign.referrerPolicy ? `referrerpolicy="${escapeHtml(campaign.referrerPolicy)}"` : '',
+    ];
+    return attrs.filter(Boolean).join(' ');
+  }
+
+  function campaignDetailHref(campaign, exchangeId) {
+    if (campaign && campaign.path) return safeHref(campaign.path, exchangePageUrl(exchangeId));
+    return exchangePageUrl(exchangeId);
+  }
+
+  function renderAccountCta(exchangeId, exchangeLabel) {
+    const campaign = campaignForExchange(exchangeId);
+    const hasAffiliate = Boolean(campaign && campaign.affiliateUrl);
+    const href = hasAffiliate
+      ? safeHref(campaign.affiliateUrl, campaignDetailHref(campaign, exchangeId))
+      : campaignDetailHref(campaign, exchangeId);
+    const attrs = hasAffiliate ? affiliateAttrs(campaign) : '';
+    const label = hasAffiliate ? '口座開設へ' : '詳細を見る';
+    const className = hasAffiliate
+      ? 'volume-account-cta'
+      : 'volume-account-cta volume-account-cta--secondary';
+    const ariaLabel = hasAffiliate
+      ? `${exchangeLabel || exchangeId}の口座開設ページを開く`
+      : `${exchangeLabel || exchangeId}の詳細を見る`;
+    return `<a class="${className}" href="${escapeHtml(href)}"${attrs ? ` ${attrs}` : ''} aria-label="${escapeHtml(ariaLabel)}">${escapeHtml(label)}${hasAffiliate ? trackingPixelHtml(campaign) : ''}</a>`;
+  }
+
+  function renderExchangeNameCell(exchange) {
+    const exchangeId = exchange.exchangeId || exchange.id || '';
+    const exchangeLabel = exchange.exchangeLabel || exchange.label || exchangeId;
+    if (!SHOW_ACCOUNT_OPENING_CTA) return escapeHtml(exchangeLabel);
+    return `
+      <div class="volume-exchange-entry">
+        <div class="volume-exchange-entry__copy">
+          <span class="volume-exchange-entry__name">${escapeHtml(exchangeLabel)}</span>
+          <span class="volume-exchange-entry__reason">${escapeHtml(exchangeReason(exchangeId))}</span>
+        </div>
+        ${renderAccountCta(exchangeId, exchangeLabel)}
+      </div>
+    `;
+  }
+
+  function renderCampaignCell(exchangeId) {
+    const campaign = campaignForExchange(exchangeId);
+    if (!campaign) {
+      return '<span class="volume-campaign-tag volume-campaign-tag--muted">後ほど追加</span>';
+    }
+
+    const href = campaignDetailHref(campaign, exchangeId);
+    const details = [
+      campaign.referralCode ? `コード ${campaign.referralCode}` : '',
+      campaign.lastChecked || '',
+    ].filter(Boolean).join(' / ');
+    return `
+      <div class="volume-campaign-cell">
+        <a class="volume-campaign-tag" href="${escapeHtml(href)}">${escapeHtml(campaign.tag || '公式キャンペーン確認')}</a>
+        <span class="volume-campaign-cell__note">${escapeHtml(details || '条件は公式で確認')}</span>
+      </div>
+    `;
+  }
+
+  function hydratePurposeAccountLinks() {
+    if (!SHOW_ACCOUNT_OPENING_CTA) return;
+    document.querySelectorAll('[data-volume-account-link]').forEach((link) => {
+      const exchangeId = String(link.getAttribute('data-volume-account-link') || '').trim().toLowerCase();
+      const campaign = campaignForExchange(exchangeId);
+      if (!campaign || !campaign.affiliateUrl) return;
+      link.setAttribute('href', safeHref(campaign.affiliateUrl, link.getAttribute('href') || '#'));
+      const attrs = affiliateAttrs(campaign).match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+      attrs.forEach((attr) => {
+        const eqIndex = attr.indexOf('=');
+        if (eqIndex <= 0) return;
+        const name = attr.slice(0, eqIndex);
+        const value = attr.slice(eqIndex + 1).replace(/^"|"$/g, '');
+        link.setAttribute(name, value);
+      });
+      if (campaign.trackingPixelUrl && !link.querySelector('img[data-volume-tracking-pixel]')) {
+        const img = document.createElement('img');
+        img.src = safeHref(campaign.trackingPixelUrl, '');
+        img.width = 1;
+        img.height = 1;
+        img.border = '0';
+        img.alt = '';
+        img.setAttribute('data-volume-tracking-pixel', 'true');
+        link.appendChild(img);
+      }
+    });
   }
 
   function sourceLabel(meta) {
@@ -427,18 +557,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeLabel = volumeColumnLabel();
 
     if (!exchanges || exchanges.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-500 py-4">${escapeHtml(emptyMessage)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${EXCHANGE_SHARE_COLSPAN}" class="text-center text-gray-500 py-4">${escapeHtml(emptyMessage)}</td></tr>`;
       return;
     }
 
     tbody.innerHTML = exchanges.map((exchange, index) => `
       <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
-        <td class="font-bold text-gray-200" data-label="取引所">${escapeHtml(exchange.exchangeLabel)}</td>
+        <td class="font-bold text-gray-200" data-label="${SHOW_ACCOUNT_OPENING_CTA ? '取引所（口座開設）' : '取引所'}">${renderExchangeNameCell(exchange)}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="${escapeHtml(volumeLabel)}">${volumeDisplay(exchange.quoteVolume)}</td>
         <td class="is-num text-right font-mono text-yellow-300" data-label="シェア">
           ${fmtPct(exchange.sharePct)}
           ${shareBar(exchange.sharePct)}
         </td>
+        ${SHOW_ACCOUNT_OPENING_CTA ? `<td class="text-gray-300" data-label="現在のキャンペーン">${renderCampaignCell(exchange.exchangeId)}</td>` : ''}
       </tr>
     `).join('');
   }
@@ -1480,6 +1611,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   syncTabButtons('[data-window]', 'window', selectedWindow);
   syncTabButtons('[data-volume-history-window]', 'volumeHistoryWindow', selectedHistoryWindow);
+  hydratePurposeAccountLinks();
   updateWindowGuide();
   writeUrlState();
   initVolumeHistoryCharts();
