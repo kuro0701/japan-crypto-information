@@ -63,8 +63,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'binance-japan': 'グローバル大手ブランドの国内向け板',
     bitflyer: '主要銘柄とLightningの実績を確認しやすい',
     coincheck: 'アプリ利用者が多く初心者導線を確認しやすい',
-    bitbank: 'アルトコインの板取扱を比較しやすい',
-    gmo: '手数料と入出金条件を比較しやすい',
+    bitbank: 'アルトコインの板取引（取引所）のラインナップが豊富',
+    gmo: '即時入金や暗号資産の送金手数料が無料',
     okj: '板データと取扱銘柄をまとめて確認',
     bittrade: '幅広い銘柄の出来高を横断確認',
   };
@@ -391,8 +391,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const DATA_KIND_DESCRIPTIONS = {
     measured: '実測: 取引所APIから直接取得した出来高またはJPY換算値です。',
-    estimated: '各取引所の公開仕様に基づいて算出。取引コストに影響する主要データは、取得できた範囲で正確に反映しています。',
-    mixed: '実測値と推計値が混在しています。推計値は各取引所の公開仕様に基づいて算出。取引コストに影響する主要データは、取得できた範囲で正確に反映しています。',
+    estimated: '推計: 各社が公式に公開しているパブリックAPIから、システムが自動でJPY換算・算出したデータです（信頼度高）。取引コストに影響する主要データは、取得できた範囲で正確に反映しています。',
+    mixed: '推計含む: 実測値と推計値が混在しています。推計値は各社が公式に公開しているパブリックAPIから、システムが自動でJPY換算・算出したデータです（信頼度高）。',
   };
 
   const TRANSPORT_LABELS = {
@@ -554,8 +554,12 @@ document.addEventListener('DOMContentLoaded', () => {
         totalSharePct: totalQuoteVolume > 0 ? (row.quoteVolume / totalQuoteVolume) * 100 : 0,
       };
     }).sort((a, b) => {
+      const instrumentVolumeDiff = (Number(b.instrumentTotalQuoteVolume) || 0) - (Number(a.instrumentTotalQuoteVolume) || 0);
+      if (instrumentVolumeDiff !== 0) return instrumentVolumeDiff;
       if (a.instrumentId !== b.instrumentId) return a.instrumentId.localeCompare(b.instrumentId);
-      return b.quoteVolume - a.quoteVolume;
+      const rowVolumeDiff = (Number(b.quoteVolume) || 0) - (Number(a.quoteVolume) || 0);
+      if (rowVolumeDiff !== 0) return rowVolumeDiff;
+      return String(a.exchangeLabel || a.exchangeId || '').localeCompare(String(b.exchangeLabel || b.exchangeId || ''), 'ja');
     });
 
     const exchanges = Array.from(byExchange.values())
@@ -718,13 +722,19 @@ document.addEventListener('DOMContentLoaded', () => {
     return Number.isFinite(Number(count)) ? `${Number(count)}${suffix}` : '-';
   }
 
-  function formatSignedPercent(value, digits = 1) {
+  function formatSignedPercent(value, digits = 2) {
     const num = Number(value);
     if (!Number.isFinite(num)) return '-';
     const abs = Math.abs(num).toFixed(digits);
     if (num > 0) return `+${abs}%`;
     if (num < 0) return `-${abs}%`;
     return `0.${'0'.repeat(digits)}%`;
+  }
+
+  function nearFlatTrendNote(percentChange) {
+    const num = Number(percentChange);
+    if (!Number.isFinite(num)) return '';
+    return Math.abs(num) < 0.1 ? 'ほぼ横ばい' : '';
   }
 
   function formatSignedJpy(value) {
@@ -980,10 +990,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const diff = Number(filteredTotalQuoteVolume || 0) - previous.totalQuoteVolume;
+      const percentChange = (diff / previous.totalQuoteVolume) * 100;
+      const trendNote = nearFlatTrendNote(percentChange);
       return {
         label: comparisonLabel,
-        value: formatSignedPercent((diff / previous.totalQuoteVolume) * 100),
-        detail: `${formatSignedJpy(diff)} | 前日 ${shortDate(previous.date)} 比`,
+        value: formatSignedPercent(percentChange),
+        detail: [`${formatSignedJpy(diff)} | 前日 ${shortDate(previous.date)} 比`, trendNote].filter(Boolean).join(' | '),
         tone: diff > 0 ? 'is-positive' : diff < 0 ? 'is-danger' : '',
       };
     }
@@ -1019,10 +1031,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const diff = currentTotal - previousTotal;
+    const percentChange = (diff / previousTotal) * 100;
+    const trendNote = nearFlatTrendNote(percentChange);
     return {
       label: comparisonLabel,
-      value: formatSignedPercent((diff / previousTotal) * 100),
-      detail: `${formatSignedJpy(diff)} | ${shortDate(currentPeriod[0].date)} - ${shortDate(currentPeriod[currentPeriod.length - 1].date)} vs ${shortDate(previousPeriod[0].date)} - ${shortDate(previousPeriod[previousPeriod.length - 1].date)}`,
+      value: formatSignedPercent(percentChange),
+      detail: [`${formatSignedJpy(diff)} | ${shortDate(currentPeriod[0].date)} - ${shortDate(currentPeriod[currentPeriod.length - 1].date)} vs ${shortDate(previousPeriod[0].date)} - ${shortDate(previousPeriod[previousPeriod.length - 1].date)}`, trendNote].filter(Boolean).join(' | '),
       tone: diff > 0 ? 'is-positive' : diff < 0 ? 'is-danger' : '',
     };
   }
