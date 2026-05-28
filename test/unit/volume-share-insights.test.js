@@ -66,6 +66,8 @@ test('generateVolumeShareInsights emits top gainer and loser', () => {
   assert.equal(types.has('top_loser'), true);
   assert.match(result.insights.find(insight => insight.type === 'top_gainer').messageJa, /% から .*% に拡大/);
   assert.match(result.insights.find(insight => insight.type === 'top_loser').messageJa, /% から .*% に縮小/);
+  assert.match(result.insights.find(insight => insight.type === 'top_gainer').messageJa, /しています。$/);
+  assert.match(result.insights.find(insight => insight.type === 'top_loser').messageJa, /しています。$/);
 });
 
 test('generateVolumeShareInsights defaults to share changes instead of rank comparisons', () => {

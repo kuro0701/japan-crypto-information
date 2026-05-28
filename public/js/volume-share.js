@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
   const TABLE_DEFAULT_HINT = '銘柄や取引所を絞り込むと、より正確なコスト比較が可能です';
   const SUMMARY_COST_REMINDER = '大きめの注文を出す場合は、手数料や板の厚みによる影響を考慮し、板シミュレーターで実質コストも合わせてご確認ください。';
+  const MIN_VISIBLE_VOLUME_JPY = 10000;
   const SHOW_ACCOUNT_OPENING_CTA = !IS_DERIVATIVES_PAGE;
   const EXCHANGE_SHARE_COLSPAN = SHOW_ACCOUNT_OPENING_CTA ? 4 : 3;
   const CAMPAIGN_DATA = window.VolumeShareCampaigns && window.VolumeShareCampaigns.exchanges
@@ -385,14 +386,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const DATA_KIND_LABELS = {
     measured: '実測',
-    estimated: '推計',
-    mixed: '推計含む',
+    estimated: 'JPY換算値',
+    mixed: '実測+JPY換算',
     unknown: '-',
   };
   const DATA_KIND_DESCRIPTIONS = {
-    measured: '実測: 取引所APIから直接取得した出来高またはJPY換算値です。',
-    estimated: '推計: 各社が公式に公開しているパブリックAPIから、システムが自動でJPY換算・算出したデータです（信頼度高）。取引コストに影響する主要データは、取得できた範囲で正確に反映しています。',
-    mixed: '推計含む: 実測値と推計値が混在しています。推計値は各社が公式に公開しているパブリックAPIから、システムが自動でJPY換算・算出したデータです（信頼度高）。',
+    measured: '実測: 取引所APIから直接取得した出来高またはJPY換算済みの値です。',
+    estimated: 'JPY換算値: 各社が公式に公開しているパブリックAPIの出来高をもとに、システムが自動で日本円へ換算したデータです。',
+    mixed: '実測+JPY換算: 実測値とJPY換算値が混在しています。JPY換算値は各社の公式公開APIをもとに、システムが自動で日本円へ換算したデータです。',
   };
 
   const TRANSPORT_LABELS = {
@@ -641,11 +642,30 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.innerHTML = rows.map((row, index) => {
       const instrumentLabel = row.instrumentLabel || row.instrumentId || '銘柄';
       const linkTitle = `${instrumentLabel}の取引所間コストを比較`;
-      return `
-        <tr class="border-b border-gray-800/60 ${index === 0 ? 'data-table__row--rank-1' : ''}">
-          <td class="font-bold text-gray-200" data-label="銘柄">
+      const previousRow = rows[index - 1];
+      const isGroupStart = !previousRow || previousRow.instrumentId !== row.instrumentId;
+      const rowClasses = [
+        'border-b',
+        'border-gray-800/60',
+        'volume-instrument-row',
+        isGroupStart ? 'volume-instrument-row--group-start' : 'volume-instrument-row--group-follow',
+        index === 0 ? 'data-table__row--rank-1' : '',
+      ].filter(Boolean).join(' ');
+      const instrumentCell = isGroupStart
+        ? `
+          <td class="font-bold text-gray-200 volume-instrument-cell volume-instrument-cell--leader" data-label="銘柄">
             <a class="market-link" href="${marketPageUrl(row.instrumentId)}" title="${escapeHtml(linkTitle)}" aria-label="${escapeHtml(linkTitle)}">${escapeHtml(instrumentLabel)}</a>
           </td>
+        `
+        : `
+          <td class="volume-instrument-cell volume-instrument-cell--repeat" data-label="銘柄">
+            <span class="sr-only">${escapeHtml(instrumentLabel)}</span>
+            <span class="volume-instrument-repeat" data-repeat-label="${escapeHtml(instrumentLabel)}（続き）" aria-hidden="true"></span>
+          </td>
+        `;
+      return `
+        <tr class="${rowClasses}">
+          ${instrumentCell}
           <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
           <td class="is-num text-right font-mono text-gray-300" data-label="${escapeHtml(volumeLabel)}">
             ${volumeDisplay(row.quoteVolume)}
@@ -678,7 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const measuredCount = rows.reduce((sum, row) => sum + (Number(row.measuredCount) || 0), 0);
     const estimatedCount = rows.reduce((sum, row) => sum + (Number(row.estimatedCount) || 0), 0);
     const dataBasisLabel = estimatedCount > 0
-      ? '公開仕様ベースの推計含む'
+      ? '公開APIベースのJPY換算値含む'
       : (measuredCount > 0 ? '実測データ中心' : 'データ種別を確認中');
     setText(
       'volume-quality-meta',
@@ -691,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td class="text-gray-300" data-label="API">${qualityStatusCell(row)}</td>
         <td class="text-gray-300" data-label="経路">${escapeHtml(transportLabel(row.transportSources))}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="サンプル">${Number(row.sampleCount) || 0}</td>
-        <td class="text-gray-300" data-label="データ取得種別（実測/推計）">${dataKindCell(row.dataKind)}</td>
+        <td class="text-gray-300" data-label="データ取得種別（実測/JPY換算値）">${dataKindCell(row.dataKind)}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="最終取得">
           ${escapeHtml(fmtDateTime(row.lastFetchedAt))}
           <div class="text-[10px] text-gray-500">元データ ${escapeHtml(fmtDateTime(row.lastSourceAt))}</div>
@@ -756,6 +776,13 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${sign}${JPY_INTEGER_FORMATTER.format(Math.round(abs))}円`;
   }
 
+  function formatJpyExactYen(value) {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '-';
+    const sign = num < 0 ? '-' : '';
+    return `${sign}${JPY_INTEGER_FORMATTER.format(Math.round(Math.abs(num)))}円`;
+  }
+
   function todayJstDateString() {
     const parts = new Intl.DateTimeFormat('ja-JP', {
       timeZone: 'Asia/Tokyo',
@@ -802,6 +829,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const num = Number(value);
     if (!Number.isFinite(num) || num <= 0) {
       return '<span class="volume-no-trade">取引なし</span>';
+    }
+    if (num < MIN_VISIBLE_VOLUME_JPY) {
+      const exactLabel = formatJpyExactYen(num);
+      return `<span class="volume-small" title="${escapeHtml(exactLabel)}" aria-label="${escapeHtml(`${exactLabel}、表示は1万円未満に丸めています`)}">1万円未満</span>`;
     }
     return fmtJpy(num);
   }
@@ -1213,6 +1244,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function friendlyInsightMessage(insight) {
     let message = insight.messageJa || insight.message_ja || '';
     message = message
+      .replace(/^.+?の最大シェア(?:増加|低下)は\s*([^（]+)（([^、）]+)、([^）]*(?:拡大|縮小)[^）]*)）です。$/g, '$1 のシェアは$2（$3）しています。')
+      .replace(/（([^）]*(?:拡大|縮小)[^）]*)）です。$/g, '（$1）しています。')
       .replace(/最大シェア低下/g, '最大シェア変動')
       .replace(/シェア低下/g, 'シェア変動')
       .replace(/順位低下/g, '順位変動')

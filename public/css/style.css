@@ -1160,6 +1160,39 @@ body.terminal-body {
   line-height: 1.2;
 }
 
+.volume-instrument-row--group-start:not(:first-child) > td {
+  border-top: 2px solid rgba(53, 200, 210, 0.34);
+}
+
+.volume-instrument-row--group-start:not(:first-child) > td:first-child {
+  box-shadow: inset 3px 0 0 rgba(53, 200, 210, 0.68);
+}
+
+.volume-instrument-row--group-follow {
+  background: rgba(13, 18, 20, 0.2);
+}
+
+.volume-instrument-cell {
+  min-width: 92px;
+}
+
+.volume-instrument-cell--repeat {
+  color: var(--text-4);
+}
+
+.volume-instrument-repeat {
+  display: block;
+  width: 32px;
+  height: 1px;
+  margin-left: 2px;
+  border-top: 1px solid rgba(143, 154, 140, 0.38);
+}
+
+.volume-small {
+  color: var(--text-4);
+  font-weight: 700;
+}
+
 .volume-no-trade {
   color: var(--text-4);
   font-weight: 700;
@@ -8183,6 +8216,35 @@ a.market-feature-related__pill:focus-visible {
     border-left: 0;
     box-shadow: inset 3px 0 0 var(--accent);
     padding-left: var(--sp-3);
+  }
+
+  .volume-instrument-row--group-start:not(:first-child) {
+    border-top: 2px solid rgba(53, 200, 210, 0.42);
+  }
+
+  .volume-instrument-row--group-start:not(:first-child) > td {
+    border-top: 0;
+  }
+
+  .volume-instrument-row--group-follow {
+    background: rgba(13, 18, 20, 0.58);
+  }
+
+  .volume-instrument-cell--repeat {
+    color: var(--text-3);
+  }
+
+  .volume-instrument-repeat {
+    width: auto;
+    height: auto;
+    margin-left: 0;
+    border-top: 0;
+  }
+
+  .volume-instrument-repeat::after {
+    content: attr(data-repeat-label);
+    color: var(--text-4);
+    font-weight: 700;
   }
 
   .panel-header-tools {
