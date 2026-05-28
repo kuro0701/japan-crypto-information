@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const pageRoot = document.querySelector('[data-volume-page]') || document.body;
   const API_BASE = (String(pageRoot.getAttribute('data-volume-api-base') || '/api/volume-share').replace(/\/+$/, '') || '/api/volume-share');
   const IS_DERIVATIVES_PAGE = API_BASE.includes('/derivatives/');
+  const DEFAULT_SHOW_ZERO_VOLUME_ROWS = IS_DERIVATIVES_PAGE;
   const DEFAULT_SIMULATOR_MARKET = String(pageRoot.getAttribute('data-volume-default-market') || 'BTC-JPY').trim().toUpperCase();
   const DEFAULT_SIMULATOR_EXCHANGE = String(pageRoot.getAttribute('data-volume-default-exchange') || '').trim().toLowerCase();
   let selectedWindow = '1d';
@@ -36,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let selectedExchange = ALL_VALUE;
   let selectedHistoryWindow = '30d';
   let instrumentSearchTerm = '';
+  let showZeroVolumeRows = DEFAULT_SHOW_ZERO_VOLUME_ROWS;
   let latestData = null;
   let volumeHistoryRows = [];
   let volumeHistoryMeta = {};
@@ -50,6 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const EMPTY_FILTER_MESSAGE = '条件に合う出来高データがありません。フィルターを変更してください。';
   const WAITING_DATA_MESSAGE = '出来高データを取得中です。集計に数秒かかる場合があります。';
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
+  const TABLE_DEFAULT_HINT = '銘柄や取引所を絞り込むと、より正確なコスト比較が可能です';
+  const SUMMARY_COST_REMINDER = '大きめの注文を出す場合は、手数料や板の厚みによる影響を考慮し、板シミュレーターで実質コストも合わせてご確認ください。';
   const SHOW_ACCOUNT_OPENING_CTA = !IS_DERIVATIVES_PAGE;
   const EXCHANGE_SHARE_COLSPAN = SHOW_ACCOUNT_OPENING_CTA ? 4 : 3;
   const CAMPAIGN_DATA = window.VolumeShareCampaigns && window.VolumeShareCampaigns.exchanges
@@ -134,6 +138,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(value || '').trim().toLowerCase();
   }
 
+  function readBooleanParam(params, name, fallback) {
+    const value = params.get(name);
+    if (value == null) return fallback;
+    const normalized = String(value).trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+    if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+    return fallback;
+  }
+
   function readInitialState() {
     const params = new URLSearchParams(window.location.search);
     return {
@@ -142,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
       exchangeId: normalizeExchangeId(params.get('exchange') || params.get('exchangeId')),
       historyWindow: normalizeHistoryWindow(params.get('historyWindow'), '30d'),
       instrumentSearchTerm: normalizeSearchTerm(params.get('q') || params.get('search')),
+      showZeroVolumeRows: readBooleanParam(params, 'showNoTrade', DEFAULT_SHOW_ZERO_VOLUME_ROWS),
     };
   }
 
@@ -152,6 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedExchange !== ALL_VALUE) params.set('exchange', selectedExchange);
     if (selectedHistoryWindow !== '30d') params.set('historyWindow', selectedHistoryWindow);
     if (instrumentSearchTerm) params.set('q', instrumentSearchTerm);
+    if (showZeroVolumeRows !== DEFAULT_SHOW_ZERO_VOLUME_ROWS) {
+      params.set('showNoTrade', showZeroVolumeRows ? '1' : '0');
+    }
     const nextUrl = params.toString()
       ? `${window.location.pathname}?${params.toString()}`
       : window.location.pathname;
@@ -179,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
   selectedExchange = initialState.exchangeId;
   selectedHistoryWindow = initialState.historyWindow;
   instrumentSearchTerm = initialState.instrumentSearchTerm;
+  showZeroVolumeRows = initialState.showZeroVolumeRows;
   if (instrumentSearchTerm && selectedInstrument !== ALL_VALUE) {
     selectedInstrument = ALL_VALUE;
   }
@@ -224,6 +242,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return exchangePageUrl(exchangeId);
   }
 
+  function campaignLastCheckedDisplay(value) {
+    const label = String(value || '').trim();
+    if (!label || label === '公式確認待ち' || label === '後ほど追加') return '';
+    return label;
+  }
+
   function renderAccountCta(exchangeId, exchangeLabel) {
     const campaign = campaignForExchange(exchangeId);
     const hasAffiliate = Boolean(campaign && campaign.affiliateUrl);
@@ -259,18 +283,23 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderCampaignCell(exchangeId) {
     const campaign = campaignForExchange(exchangeId);
     if (!campaign) {
-      return '<span class="volume-campaign-tag volume-campaign-tag--muted">後ほど追加</span>';
+      return `
+        <div class="volume-campaign-cell">
+          <a class="volume-campaign-tag volume-campaign-tag--muted" href="${escapeHtml(exchangePageUrl(exchangeId))}">詳細を確認</a>
+          <span class="volume-campaign-cell__note">キャンペーン情報は随時更新中</span>
+        </div>
+      `;
     }
 
     const href = campaignDetailHref(campaign, exchangeId);
     const details = [
       campaign.referralCode ? `コード ${campaign.referralCode}` : '',
-      campaign.lastChecked || '',
+      campaignLastCheckedDisplay(campaign.lastChecked),
     ].filter(Boolean).join(' / ');
     return `
       <div class="volume-campaign-cell">
         <a class="volume-campaign-tag" href="${escapeHtml(href)}">${escapeHtml(campaign.tag || '公式キャンペーン確認')}</a>
-        <span class="volume-campaign-cell__note">${escapeHtml(details || '条件は公式で確認')}</span>
+        <span class="volume-campaign-cell__note">${escapeHtml(details || '最新条件は公式で確認')}</span>
       </div>
     `;
   }
@@ -551,6 +580,23 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  function hasPositiveQuoteVolume(row) {
+    return Number(row && row.quoteVolume) > 0;
+  }
+
+  function visibleInstrumentRows(rows) {
+    if (showZeroVolumeRows) return rows || [];
+    return (rows || []).filter(hasPositiveQuoteVolume);
+  }
+
+  function updateInstrumentTableHint(hiddenZeroRows) {
+    if (hiddenZeroRows > 0 && !showZeroVolumeRows) {
+      setText('volume-table-hint', `${hiddenZeroRows}件の取引なし銘柄を非表示にしています。必要な場合は「取引なしの銘柄も表示する」をオンにしてください。`);
+      return;
+    }
+    setText('volume-table-hint', TABLE_DEFAULT_HINT);
+  }
+
   function renderExchangeRows(exchanges, emptyMessage = WAITING_DATA_MESSAGE) {
     const tbody = $('exchange-share-tbody');
     if (!tbody) return;
@@ -574,13 +620,17 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
-  function renderInstrumentRows(rows, emptyMessage = WAITING_DATA_MESSAGE) {
+  function renderInstrumentRows(rows, emptyMessage = WAITING_DATA_MESSAGE, options = {}) {
     const tbody = $('instrument-share-tbody');
     if (!tbody) return;
     const volumeLabel = volumeColumnLabel();
+    const hiddenZeroRows = Number(options.hiddenZeroRows) || 0;
 
     if (!rows || rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500 py-4">${escapeHtml(emptyMessage)}</td></tr>`;
+      const message = hiddenZeroRows > 0 && !showZeroVolumeRows
+        ? '出来高がある銘柄はありません。「取引なしの銘柄も表示する」をオンにすると確認できます。'
+        : emptyMessage;
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-500 py-4">${escapeHtml(message)}</td></tr>`;
       return;
     }
 
@@ -747,10 +797,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function dominantVolumeRow(rows) {
-    return (rows || []).reduce((best, row) => {
-      if (!best) return row;
-      return Number(row.quoteVolume || 0) > Number(best.quoteVolume || 0) ? row : best;
+    const best = (rows || []).reduce((currentBest, row) => {
+      if (!currentBest) return row;
+      return Number(row.quoteVolume || 0) > Number(currentBest.quoteVolume || 0) ? row : currentBest;
     }, null);
+    return Number(best && best.quoteVolume) > 0 ? best : null;
   }
 
   function topThreeShare(exchanges) {
@@ -802,27 +853,21 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  function concentrationSentence(label) {
+  function concentrationSummaryBody(label, top3SharePct) {
+    const top3Text = fmtPctCompact(top3SharePct, 1);
     if (label === '主要数社に分散傾向' || label === '取引所ごとに分散') {
-      return '特定の1社に極端に偏ることなく流動性が分散しています。';
+      return `上位3社で市場全体の約${top3Text}を占めていますが、特定の1社への極端な集中はなく、流動性が適度に分散しています。そのため、複数の選択肢から比較検討しやすい状態です。`;
     }
-    if (label === '比較的集中') return '上位3社の影響が大きい状態です。';
-    if (label === 'かなり集中') return '上位数社への偏りが強い状態です。';
-    if (label === '単独表示') return '1社のみを表示しています。';
-    return '判断待ちです。';
-  }
-
-  function concentrationUserImplication(label) {
-    if (label === '主要数社に分散傾向' || label === '取引所ごとに分散') {
-      return '※特定の取引所への極端な集中は見られず、複数の選択肢から比較検討しやすい状態です。';
+    if (label === '比較的集中') {
+      return `上位3社で市場全体の約${top3Text}を占めており、上位取引所の影響が大きい状態です。まず首位候補を確認し、板の厚みと実質コストで比べるのがおすすめです。`;
     }
-    if (label === '比較的集中' || label === 'かなり集中') {
-      return '※上位取引所の影響が大きいため、まず首位候補を確認し、板の厚みと実質コストで比べるのがおすすめです。';
+    if (label === 'かなり集中') {
+      return `上位3社で市場全体の約${top3Text}を占めており、上位数社への偏りが強い状態です。まず首位候補を確認し、板の厚みと実質コストで比べるのがおすすめです。`;
     }
     if (label === '単独表示') {
-      return '※フィルターを解除すると、ほかの取引所との比較もしやすくなります。';
+      return '表示中の条件では1社のみを表示しています。フィルターを解除すると、ほかの取引所との比較もしやすくなります。';
     }
-    return '※データがそろい次第、比較しやすい取引所候補を確認できます。';
+    return 'データがそろい次第、比較しやすい取引所候補を確認できます。';
   }
 
   function shareTone(sharePct) {
@@ -1080,7 +1125,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       setText('volume-summary-lead', '表示中の条件では、出来高データをまだ集計できていません。');
       setText('volume-summary-body', 'フィルター条件を変えるか、次回更新後にもう一度確認してください。');
-      setText('volume-summary-note', '大きめの注文を出す前には、板シミュレーターで実質コストも確認してください。');
+      setText('volume-summary-note', '大きめの注文を出す前には、手数料や板の厚みによる影響も含めて、板シミュレーターで実質コストを確認してください。');
       setHtml('volume-summary-chips', '<span class="decision-summary-chip">集計待ち</span>');
       const link = $('volume-summary-link');
       if (link) {
@@ -1107,16 +1152,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else if (selectedInstrument !== ALL_VALUE) {
       lead = `${label}（${instrumentLabel}）の出来高トップは ${topExchange.exchangeLabel} です。`;
-      body = `上位3社で市場全体の約${fmtPctCompact(summaryParts.top3, 1)}を占めており、${concentrationSentence(summaryParts.concentration.label)} ${concentrationUserImplication(summaryParts.concentration.label)}`;
+      body = concentrationSummaryBody(summaryParts.concentration.label, summaryParts.top3);
     } else {
       lead = `${label}（全銘柄合計）の出来高トップは ${topExchange.exchangeLabel} です。`;
-      body = `上位3社で市場全体の約${fmtPctCompact(summaryParts.top3, 1)}を占めており、${concentrationSentence(summaryParts.concentration.label)} ${concentrationUserImplication(summaryParts.concentration.label)}`;
+      body = concentrationSummaryBody(summaryParts.concentration.label, summaryParts.top3);
     }
 
     const dailyChangeText = summaryParts.dailyChange.value !== '-'
-      ? `${summaryParts.dailyChange.label} は ${summaryParts.dailyChange.value} です。`
-      : `${summaryParts.dailyChange.label} はまだ計算できません。`;
-    const note = `${dailyChangeText} 大きめの注文を出す場合は、板シミュレーターで実質コストも確認してください。`;
+      ? `${summaryParts.dailyChange.label}は ${summaryParts.dailyChange.value} です。`
+      : `${summaryParts.dailyChange.label}はまだ計算できません。`;
+    const note = `${dailyChangeText} ${SUMMARY_COST_REMINDER}`;
 
     setText('volume-summary-lead', lead);
     setText('volume-summary-body', body);
@@ -1233,10 +1278,13 @@ document.addEventListener('DOMContentLoaded', () => {
     updateVolumeColumnLabels(meta.windowKey || selectedWindow);
 
     const summaryParts = renderKpis(filtered, meta, latestData.quality || []);
+    const instrumentRows = visibleInstrumentRows(filtered.rows);
+    const hiddenZeroRows = filtered.rows.length - instrumentRows.length;
     renderLiquiditySummary(filtered, meta, summaryParts);
     renderExchangeRows(filtered.exchanges, emptyMessage);
-    renderInstrumentRows(filtered.rows, emptyMessage);
+    renderInstrumentRows(instrumentRows, emptyMessage, { hiddenZeroRows });
     renderQualityRows(latestData.quality || []);
+    updateInstrumentTableHint(hiddenZeroRows);
     updateWindowGuide();
     renderVolumeHistory();
     writeUrlState();
@@ -1597,6 +1645,15 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedExchange = exchangeFilter.value || ALL_VALUE;
       renderFilteredShare();
       loadInsights();
+    });
+  }
+
+  const showNoTradeToggle = $('volume-show-no-trade');
+  if (showNoTradeToggle) {
+    showNoTradeToggle.checked = showZeroVolumeRows;
+    showNoTradeToggle.addEventListener('change', () => {
+      showZeroVolumeRows = showNoTradeToggle.checked;
+      renderFilteredShare();
     });
   }
 

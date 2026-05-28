@@ -1575,6 +1575,28 @@ input.field[inputmode="decimal"] {
   min-width: 0;
 }
 
+.filter-control--checkbox {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.filter-control--checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.filter-control--checkbox span {
+  line-height: 1.45;
+}
+
 .filter-help {
   margin-top: calc(-1 * var(--sp-2));
   color: var(--text-3);
