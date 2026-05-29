@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
   const TABLE_DEFAULT_HINT = '銘柄や取引所を絞り込むと、より正確なコスト比較が可能です';
   const INSTRUMENT_PREVIEW_LIMIT = 20;
-  const ESTIMATED_DATA_NOTE = '※APIの仕様上、一部出来高を公開データから算出しています。推計値も公式公開データをもとにした参考値です。';
+  const ESTIMATED_DATA_NOTE = '※取引所APIの仕様上、24時間累計値が直接配信されていない場合は、直近のローソク足データ等から算出しています。公式公開データに基づいた参考値です。';
   const SUMMARY_COST_REMINDER = '大きめの注文を出す場合は、手数料や板の厚みによる影響を考慮し、板シミュレーターで実質コストも合わせてご確認ください。';
   const MIN_VISIBLE_VOLUME_JPY = 10000;
   const SHOW_ACCOUNT_OPENING_CTA = !IS_DERIVATIVES_PAGE;
@@ -63,6 +63,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const CAMPAIGN_DATA = window.VolumeShareCampaigns && window.VolumeShareCampaigns.exchanges
     ? window.VolumeShareCampaigns.exchanges
     : {};
+  const EXCHANGE_META = window.VolumeShareExchangeMeta && window.VolumeShareExchangeMeta.exchanges
+    ? window.VolumeShareExchangeMeta.exchanges
+    : {};
+  const INSTRUMENT_QUICK_JUMP_IDS = ['BTC-JPY', 'ETH-JPY', 'XRP-JPY', 'SOL-JPY'];
   const EXCHANGE_REASON_LINES = {
     'binance-japan': 'グローバル大手ブランドの国内向け板',
     bitflyer: '主要銘柄とLightningの実績を確認しやすい',
@@ -101,9 +105,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const KPI_TONE_CLASSES = ['is-positive', 'is-caution', 'is-danger'];
   const INSIGHT_TYPE_LABELS = {
     top_gainer: 'シェア急拡大',
-    top_loser: 'シェア変動',
-    share_up: '取引が活発化',
-    share_down: 'シェア変動',
+    top_loser: 'シェア縮小',
+    share_up: '取引活発化',
+    share_down: 'シェア低下',
     leader_change: '首位交代',
     leader_gap_change: '首位',
     leader_hold: '首位',
@@ -252,6 +256,67 @@ document.addEventListener('DOMContentLoaded', () => {
     return label;
   }
 
+  function exchangeMetaFor(exchangeId) {
+    const key = String(exchangeId || '').trim().toLowerCase();
+    return key ? EXCHANGE_META[key] || null : null;
+  }
+
+  function marketFeeMetaFor(exchangeId, instrumentId) {
+    const exchange = exchangeMetaFor(exchangeId);
+    if (!exchange || !instrumentId || !exchange.markets) return null;
+    const key = String(instrumentId || '').trim().toUpperCase();
+    return exchange.markets[key] || null;
+  }
+
+  function formatFeeRate(rate) {
+    const numericRate = Number(rate);
+    if (!Number.isFinite(numericRate)) return '';
+    const pct = numericRate * 100;
+    const digits = Math.abs(pct) < 0.1 ? 3 : 2;
+    return `${Number(pct.toFixed(digits))}%`;
+  }
+
+  function exchangeFeeMeta(exchangeId) {
+    const exchange = exchangeMetaFor(exchangeId) || {};
+    const market = selectedInstrument !== ALL_VALUE
+      ? marketFeeMetaFor(exchangeId, selectedInstrument)
+      : null;
+    const rate = market && market.takerFeeRate != null
+      ? market.takerFeeRate
+      : exchange.takerFeeRate;
+    const note = (market && market.takerFeeNote) || exchange.takerFeeNote || '';
+    const scope = market && market.label
+      ? `${market.label} の設定`
+      : '取引所の既定値';
+    return {
+      rate: Number.isFinite(Number(rate)) ? Number(rate) : null,
+      note,
+      scope,
+    };
+  }
+
+  function renderExchangeFeeCell(exchangeId) {
+    const fee = exchangeFeeMeta(exchangeId);
+    const href = `${exchangePageUrl(exchangeId)}#exchange-fees`;
+    if (fee.rate == null) {
+      return `
+        <div class="volume-fee-cell">
+          <a class="volume-fee-cell__rate volume-fee-cell__rate--muted" href="${escapeHtml(href)}">公式手数料表を確認</a>
+          <span class="volume-fee-cell__note">Maker / taker・銘柄別条件は公式確認</span>
+        </div>
+      `;
+    }
+
+    const note = [fee.scope, fee.note].filter(Boolean).join(' / ');
+    return `
+      <div class="volume-fee-cell">
+        <span class="volume-fee-cell__rate">Taker ${escapeHtml(formatFeeRate(fee.rate))}</span>
+        <span class="volume-fee-cell__note">${escapeHtml(note || '条件により変動')}</span>
+        <a class="volume-fee-cell__link" href="${escapeHtml(href)}">Maker・条件別</a>
+      </div>
+    `;
+  }
+
   function renderAccountCta(exchangeId, exchangeLabel) {
     const campaign = campaignForExchange(exchangeId);
     const hasAffiliate = Boolean(campaign && campaign.affiliateUrl);
@@ -395,8 +460,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const DATA_KIND_DESCRIPTIONS = {
     measured: '実測: 取引所APIから直接取得した出来高またはJPY換算済みの値です。',
-    estimated: '推計: APIの仕様上、一部出来高を公開データから日本円へ換算して算出しています。',
-    mixed: '実測+推計: 実測値と推計値が混在しています。推計値は各社の公式公開APIをもとに日本円へ換算したデータです。',
+    estimated: '推計: 取引所APIの仕様上、24時間累計値が直接配信されていないため、直近のローソク足データ等から算出しています。公式公開データに基づいた参考値です。',
+    mixed: '実測+推計: 実測値と推計値が混在しています。推計値は取引所APIの仕様上、24時間累計値が直接配信されていない場合に、直近のローソク足データ等から算出した参考値です。',
   };
 
   const TRANSPORT_LABELS = {
@@ -658,6 +723,52 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
+  function instrumentAnchorId(instrumentId) {
+    const key = String(instrumentId || '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return key ? `volume-instrument-${key}` : '';
+  }
+
+  function renderInstrumentQuickJumps(rows) {
+    const container = $('instrument-quick-jumps');
+    if (!container) return;
+
+    const byInstrument = new Map();
+    for (const row of rows || []) {
+      const instrumentId = row.instrumentId || '';
+      if (!instrumentId || byInstrument.has(instrumentId)) continue;
+      byInstrument.set(instrumentId, row.instrumentLabel || instrumentId);
+    }
+
+    const ids = INSTRUMENT_QUICK_JUMP_IDS.filter(instrumentId => byInstrument.has(instrumentId));
+    if (selectedInstrument !== ALL_VALUE && byInstrument.has(selectedInstrument) && !ids.includes(selectedInstrument)) {
+      ids.unshift(selectedInstrument);
+    }
+
+    if (ids.length === 0) {
+      container.hidden = true;
+      container.innerHTML = '';
+      return;
+    }
+
+    container.hidden = false;
+    container.innerHTML = [
+      '<span class="volume-quick-jumps__label">主要銘柄</span>',
+      ...ids.map((instrumentId) => {
+        const label = String(byInstrument.get(instrumentId) || instrumentId).split('/')[0];
+        return `<a class="volume-quick-jump" href="#${escapeHtml(instrumentAnchorId(instrumentId))}" data-volume-jump-instrument="${escapeHtml(instrumentId)}">${escapeHtml(label)}</a>`;
+      }),
+    ].join('');
+  }
+
+  function scrollToInstrument(instrumentId) {
+    const targetId = instrumentAnchorId(instrumentId);
+    if (!targetId) return false;
+    const target = $(targetId);
+    if (!target) return false;
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return true;
+  }
+
   function updateInstrumentTableHint(hiddenZeroRows, previewInfo) {
     const messages = [];
     if (previewInfo && previewInfo.hiddenInstrumentCount > 0) {
@@ -695,7 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ${fmtPct(exchange.sharePct)}
           ${shareBar(exchange.sharePct)}
         </td>
-        ${SHOW_ACCOUNT_OPENING_CTA ? `<td class="text-gray-300" data-label="現在のキャンペーン">${renderCampaignCell(exchange.exchangeId)}</td>` : ''}
+        ${SHOW_ACCOUNT_OPENING_CTA ? `<td class="text-gray-300" data-label="取引手数料（板・既定taker）">${renderExchangeFeeCell(exchange.exchangeId)}</td>` : ''}
       </tr>
     `).join('');
   }
@@ -738,8 +849,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="volume-instrument-repeat" data-repeat-label="${escapeHtml(instrumentLabel)}（続き）" aria-hidden="true"></span>
           </td>
         `;
+      const rowId = isGroupStart ? instrumentAnchorId(row.instrumentId) : '';
+      const rowIdAttr = rowId ? ` id="${escapeHtml(rowId)}"` : '';
       return `
-        <tr class="${rowClasses}">
+        <tr${rowIdAttr} class="${rowClasses}">
           ${instrumentCell}
           <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
           <td class="is-num text-right font-mono text-gray-300" data-label="${escapeHtml(volumeLabel)}">
@@ -976,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function concentrationSummaryBody(label, top3SharePct) {
     const top3Text = fmtPctCompact(top3SharePct, 1);
     if (label === '主要数社への分散傾向' || label === '取引所ごとに分散') {
-      return `上位3社で市場全体の約${top3Text}を占めていますが、特定の1社への極端な集中は見られず、流動性は適度に分散しています。ユーザーが用途に合わせて比較検討しやすい環境です。`;
+      return `上位3社で市場全体の約${top3Text}を占めていますが、特定の1社への極端な集中はなく、流動性は適度に分散されています。そのため、ユーザーは各社の強み（銘柄数や手数料）に合わせて取引所を使い分けやすい環境と言えます。`;
     }
     if (label === '比較的集中') {
       return `上位3社で市場全体の約${top3Text}を占めており、上位取引所の影響が大きい状態です。まず首位候補を確認し、板の厚みと実質コストで比べるのがおすすめです。`;
@@ -1342,6 +1455,39 @@ document.addEventListener('DOMContentLoaded', () => {
     return message;
   }
 
+  function formatInsightShare(value) {
+    const share = Number(value);
+    if (!Number.isFinite(share)) return '-';
+    return fmtPctCompact(share * 100, 1);
+  }
+
+  function formatInsightPointChange(value) {
+    const points = Number(value) * 100;
+    if (!Number.isFinite(points)) return '-';
+    const abs = Math.abs(points).toFixed(1);
+    if (points > 0) return `+${abs}pt`;
+    if (points < 0) return `-${abs}pt`;
+    return '0.0pt';
+  }
+
+  function dashboardInsightMessageHtml(insight, fallbackMessage) {
+    const metadata = insight && insight.metadata ? insight.metadata : {};
+    const hasShareMovement = insight
+      && insight.exchange
+      && Number.isFinite(Number(metadata.previousShare))
+      && Number.isFinite(Number(metadata.latestShare))
+      && Number.isFinite(Number(insight.value));
+    if (!hasShareMovement) return escapeHtml(fallbackMessage);
+
+    return [
+      `<span class="volume-insight-item__exchange">${escapeHtml(insight.exchange)}</span>: `,
+      `${escapeHtml(formatInsightShare(metadata.previousShare))} `,
+      '<span class="volume-insight-item__arrow" aria-hidden="true">→</span> ',
+      `<strong>${escapeHtml(formatInsightShare(metadata.latestShare))}</strong> `,
+      `<span class="volume-insight-item__delta">（${escapeHtml(metadata.comparisonLabel || '前回比')} ${escapeHtml(formatInsightPointChange(insight.value))}）</span>`,
+    ].join('');
+  }
+
   function renderInsights(data) {
     const list = $('volume-insights-list');
     if (!list) return;
@@ -1373,10 +1519,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const label = INSIGHT_TYPE_LABELS[insight.type] || 'Insight';
       const tone = insightTone(insight);
       const message = friendlyInsightMessage(insight);
+      const messageHtml = dashboardInsightMessageHtml(insight, message);
       return `
         <li class="volume-insight-item ${tone ? `volume-insight-item--${tone}` : ''}">
           <span class="volume-insight-item__label">${escapeHtml(label)}</span>
-          <p class="volume-insight-item__message">${escapeHtml(message)}</p>
+          <p class="volume-insight-item__message">${messageHtml}</p>
         </li>
       `;
     }).join('');
@@ -1415,6 +1562,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const instrumentPreview = instrumentRowsForDisplay(instrumentRows);
     renderLiquiditySummary(filtered, meta, summaryParts);
     renderExchangeRows(filtered.exchanges, emptyMessage);
+    renderInstrumentQuickJumps(instrumentRows);
     renderInstrumentRows(instrumentPreview.rows, emptyMessage, { hiddenZeroRows });
     renderInstrumentMoreControl(instrumentPreview);
     renderQualityRows(latestData.quality || []);
@@ -1805,6 +1953,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!button) return;
       showAllInstrumentRows = true;
       renderFilteredShare();
+    });
+  }
+
+  const instrumentQuickJumps = $('instrument-quick-jumps');
+  if (instrumentQuickJumps) {
+    instrumentQuickJumps.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element)) return;
+      const link = event.target.closest('[data-volume-jump-instrument]');
+      if (!link) return;
+      event.preventDefault();
+      const instrumentId = link.getAttribute('data-volume-jump-instrument') || '';
+      if (scrollToInstrument(instrumentId)) return;
+      showAllInstrumentRows = true;
+      renderFilteredShare();
+      window.requestAnimationFrame(() => scrollToInstrument(instrumentId));
     });
   }
 

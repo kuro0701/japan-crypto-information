@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-26">
+  <link rel="stylesheet" href="/css/style.css?v=ui-27">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -82,18 +82,18 @@
       </div>
       <div class="volume-purpose-map__grid">
         <article class="volume-purpose-card">
-          <span class="volume-purpose-card__eyebrow">BTCを安定して取引したいなら</span>
+          <span class="volume-purpose-card__eyebrow">BTCの取引量・板の厚みを重視するなら</span>
           <h3>Binance Japan / bitFlyer</h3>
-          <p>BTC/JPYの出来高と板をまず確認したい人向け。取引を始める前に、10万円分購入した際の実質コストも合わせて確認するのがおすすめです。</p>
+          <p>BTC/JPYの出来高と板をまず確認したい人向け。取引を始める前に、10万円分購入した際の実質コストを<a class="table-link" href="/simulator?market=BTC-JPY&exchange=binance-japan&side=buy&amountType=jpy&amount=100000">BTC/JPY 板シミュレーター</a>で確認することをおすすめします。</p>
           <div class="volume-purpose-card__exchanges" aria-label="候補取引所">
             <a class="volume-purpose-chip" href="/exchanges/binance-japan">Binance Japan</a>
             <a class="volume-purpose-chip" href="/campaigns/bitflyer" data-volume-account-link="bitflyer">bitFlyer 口座開設へ</a>
           </div>
         </article>
         <article class="volume-purpose-card">
-          <span class="volume-purpose-card__eyebrow">アルトコインを低コストで探したいなら</span>
+          <span class="volume-purpose-card__eyebrow">豊富なアルトコインを板取引したいなら</span>
           <h3>bitbank / GMOコイン</h3>
-          <p>取扱銘柄、取引手数料、販売所スプレッドを分けて確認したい人向け。お得なキャンペーンの最新条件は、お申し込み直前に公式サイトでご確認ください。</p>
+          <p>取扱銘柄、取引手数料、販売所スプレッドを分けて確認したい人向け。注文前には対象銘柄の出来高と、10万円分購入した際の実質コストを合わせて確認してください。</p>
           <div class="volume-purpose-card__exchanges" aria-label="候補取引所">
             <a class="volume-purpose-chip" href="/exchanges/bitbank">bitbank</a>
             <a class="volume-purpose-chip" href="/campaigns/gmo-coin" data-volume-account-link="gmo">GMOコイン 口座開設へ</a>
@@ -200,7 +200,7 @@
         <div class="panel-title-row mb-3"><h2 class="panel-title">取引所別シェア</h2><span class="panel-kicker">Exchange</span></div>
         <div class="overflow-auto scrollbar-thin">
           <table class="data-table data-table--cards text-xs">
-            <thead class="sticky"><tr><th class="text-left">取引所（口座開設）</th><th id="exchange-volume-heading" class="is-num text-right">出来高<span class="table-heading-sub">（24時間累計）</span></th><th class="is-num text-right">シェア</th><th class="text-left">現在のキャンペーン</th></tr></thead>
+            <thead class="sticky"><tr><th class="text-left">取引所（口座開設）</th><th id="exchange-volume-heading" class="is-num text-right">出来高<span class="table-heading-sub">（24時間累計）</span></th><th class="is-num text-right">シェア</th><th class="text-left">取引手数料<span class="table-heading-sub">（板・既定taker）</span></th></tr></thead>
             <tbody id="exchange-share-tbody"><tr><td colspan="4" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
           </table>
         </div>
@@ -208,6 +208,7 @@
 
       <section class="panel panel--dense">
         <div class="panel-title-row mb-3"><h2 class="panel-title">銘柄別シェア</h2><span class="panel-kicker">Markets</span></div>
+        <nav id="instrument-quick-jumps" class="volume-quick-jumps" aria-label="主要銘柄へのクイックジャンプ"></nav>
         <div class="overflow-auto scrollbar-thin max-h-[680px]">
           <table class="data-table data-table--cards text-xs">
             <thead class="sticky"><tr><th class="text-left">銘柄</th><th class="text-left">取引所</th><th id="instrument-volume-heading" class="is-num text-right">出来高<span class="table-heading-sub">（24時間累計）</span></th><th class="is-num text-right">銘柄内シェア</th><th class="is-num text-right">全体シェア</th></tr></thead>
@@ -288,7 +289,7 @@
     </section>
 
     <section class="panel panel--dense info-layer info-layer--bottom" data-info-layer="bottom">
-      <div class="panel-title-row mb-3"><div><h2 class="panel-title">データ鮮度・精度</h2><p id="volume-quality-meta" class="text-xs text-gray-500 mt-1">取引所ごとの取得状況を確認中</p><p id="volume-quality-note" class="volume-quality-note">※APIの仕様上、一部出来高を公開データから算出しています。</p></div><span class="panel-kicker">Data Quality</span></div>
+      <div class="panel-title-row mb-3"><div><h2 class="panel-title">データ鮮度・精度</h2><p id="volume-quality-meta" class="text-xs text-gray-500 mt-1">取引所ごとの取得状況を確認中</p><p id="volume-quality-note" class="volume-quality-note">※取引所APIの仕様上、24時間累計値が直接配信されていない場合は、直近のローソク足データ等から算出しています。</p></div><span class="panel-kicker">Data Quality</span></div>
       <div class="overflow-auto scrollbar-thin">
         <table class="data-table data-table--cards text-xs">
           <thead class="sticky"><tr><th class="text-left">取引所</th><th class="text-left">API</th><th class="text-left">経路</th><th class="is-num text-right">サンプル</th><th class="text-left">データ取得種別（実測/推計）</th><th class="text-right">最終取得</th></tr></thead>
@@ -307,6 +308,6 @@
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/volume-share.js?v=volume-share-27"></script>
+  <script src="js/volume-share.js?v=volume-share-28"></script>
 </body>
 </html>
