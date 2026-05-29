@@ -1151,6 +1151,29 @@ body.terminal-body {
   font-weight: 800;
 }
 
+.volume-instrument-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+}
+
+.volume-instrument-more[hidden] {
+  display: none;
+}
+
+.volume-instrument-more__status {
+  color: var(--text-4);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+}
+
+.volume-instrument-more__button {
+  min-height: 34px;
+}
+
 .table-heading-sub {
   display: block;
   margin-top: 2px;
@@ -5416,6 +5439,14 @@ a.market-feature-related__pill:focus-visible {
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.volume-quality-note {
+  margin: 6px 0 0;
+  color: var(--text-4);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .quality-kind {

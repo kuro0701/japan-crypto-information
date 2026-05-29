@@ -78,7 +78,7 @@
           <h2 id="volume-purpose-map-title" class="panel-title">目的別取引所マップ</h2>
           <p class="text-xs text-gray-500 mt-1">出来高だけで迷う前に、買い方の目的から候補を絞り込みます。最終判断は各取引所の公式条件と板の厚みを確認してください。</p>
         </div>
-        <span class="panel-kicker">Start Map</span>
+        <span class="panel-kicker">目的別ナビ</span>
       </div>
       <div class="volume-purpose-map__grid">
         <article class="volume-purpose-card">
@@ -134,12 +134,12 @@
           <p id="top3-share-meta" class="volume-kpi-card__meta">取引所の偏りを確認</p>
         </article>
         <article class="volume-kpi-card">
-          <span class="volume-kpi-card__label">対応取引所数</span>
+          <span class="volume-kpi-card__label">対象取引所数</span>
           <strong id="exchange-count" class="volume-kpi-card__value">-</strong>
           <p id="exchange-count-meta" class="volume-kpi-card__meta">フィルター後の件数</p>
         </article>
         <article class="volume-kpi-card">
-          <span class="volume-kpi-card__label">対応銘柄数</span>
+          <span class="volume-kpi-card__label">対象銘柄数</span>
           <strong id="instrument-count" class="volume-kpi-card__value">-</strong>
           <p id="instrument-count-meta" class="volume-kpi-card__meta">フィルター後の件数</p>
         </article>
@@ -214,6 +214,7 @@
             <tbody id="instrument-share-tbody"><tr><td colspan="5" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
           </table>
         </div>
+        <div id="instrument-share-more" class="volume-instrument-more" hidden></div>
       </section>
     </div>
 
@@ -287,10 +288,10 @@
     </section>
 
     <section class="panel panel--dense info-layer info-layer--bottom" data-info-layer="bottom">
-      <div class="panel-title-row mb-3"><div><h2 class="panel-title">データ鮮度・精度</h2><p id="volume-quality-meta" class="text-xs text-gray-500 mt-1">取引所ごとの取得状況を確認中</p></div><span class="panel-kicker">Data Quality</span></div>
+      <div class="panel-title-row mb-3"><div><h2 class="panel-title">データ鮮度・精度</h2><p id="volume-quality-meta" class="text-xs text-gray-500 mt-1">取引所ごとの取得状況を確認中</p><p id="volume-quality-note" class="volume-quality-note">※APIの仕様上、一部出来高を公開データから算出しています。</p></div><span class="panel-kicker">Data Quality</span></div>
       <div class="overflow-auto scrollbar-thin">
         <table class="data-table data-table--cards text-xs">
-          <thead class="sticky"><tr><th class="text-left">取引所</th><th class="text-left">API</th><th class="text-left">経路</th><th class="is-num text-right">サンプル</th><th class="text-left">データ取得種別（実測/JPY換算値）</th><th class="text-right">最終取得</th></tr></thead>
+          <thead class="sticky"><tr><th class="text-left">取引所</th><th class="text-left">API</th><th class="text-left">経路</th><th class="is-num text-right">サンプル</th><th class="text-left">データ取得種別（実測/推計）</th><th class="text-right">最終取得</th></tr></thead>
           <tbody id="volume-quality-tbody"><tr><td colspan="6" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
         </table>
       </div>
@@ -306,6 +307,6 @@
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/volume-share.js?v=volume-share-26"></script>
+  <script src="js/volume-share.js?v=volume-share-27"></script>
 </body>
 </html>
