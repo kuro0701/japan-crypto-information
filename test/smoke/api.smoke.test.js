@@ -493,6 +493,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 	  assert.ok(exchangeHtml.body.includes('申込前に確認'));
 	  assert.ok(exchangeHtml.body.includes('/simulator?exchange=okj&amp;market=BTC-JPY'));
 	  assert.ok(exchangeHtml.body.includes('キャンペーン条件'));
+  assert.ok(exchangeHtml.body.includes('https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0'));
+  assert.ok(exchangeHtml.body.includes('招待コード: C250678'));
 	  assertCommonDisclosure(exchangeHtml.body);
 
   const bitflyerHtml = await fetchText(baseUrl, '/exchanges/bitflyer');
@@ -531,6 +533,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(binanceHtml.body.includes('https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf'));
   assert.ok(binanceHtml.body.includes('https://about.paypay.ne.jp/pr/20251009/01/'));
   assert.ok(binanceHtml.body.includes('https://public.bnbstatic.com/static/terms_doc/Announcement_Capital_Reduction_Nov_14_ja.pdf'));
+  assert.ok(binanceHtml.body.includes('https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH'));
+  assert.ok(binanceHtml.body.includes('招待コード: GRO_55250_0VBAH'));
 
   const gmoLegacy = await fetch(new URL('/exchanges/gmo', baseUrl), { redirect: 'manual' });
   assert.equal(gmoLegacy.status, 301);
@@ -567,6 +571,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bittradeHtml.body.includes('https://static.bittrade.co.jp/pdf/2024%E5%B9%B4%E5%BA%A6%E6%B1%BA%E7%AE%97%E5%85%AC%E5%91%8A%28%E7%AC%AC9%E6%9C%9F%29_01.pdf'));
   assert.ok(bittradeHtml.body.includes('https://static.bittrade.co.jp/pdf/20241231Capital-Adequacy-Ratio.pdf'));
   assert.ok(bittradeHtml.body.includes('https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf'));
+  assert.ok(bittradeHtml.body.includes('https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p'));
+  assert.ok(bittradeHtml.body.includes('招待コード: tHc3p'));
 
   const aboutHtml = await fetchText(baseUrl, '/about');
   assert.equal(aboutHtml.status, 200);
@@ -636,7 +642,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(volumeSharePage.body.includes('取引所（口座開設）'));
   assert.ok(volumeSharePage.body.includes('市場のトレンド速報'));
   assert.ok(volumeSharePage.body.includes('https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0'));
+  assert.ok(volumeSharePage.body.includes('https://www.okcoin.jp/account/join?invitation=C250678\\u0026type=0'));
   assert.ok(volumeSharePage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl\\u0026lang=ja-JP'));
+  assert.ok(volumeSharePage.body.includes('https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH'));
+  assert.ok(volumeSharePage.body.includes('https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="top"'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="middle"'));
   assert.ok(volumeSharePage.body.includes('data-info-layer="bottom"'));
@@ -677,8 +686,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(campaignsPage.body.includes('/campaigns/referrals'));
   assert.ok(campaignsPage.body.includes('https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0'));
   assert.ok(campaignsPage.body.includes('https://h.accesstrade.net/sp/rr?rk=0100mtgp00osx0'));
+  assert.ok(campaignsPage.body.includes('https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0'));
   assert.ok(campaignsPage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
+  assert.ok(campaignsPage.body.includes('https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH'));
+  assert.ok(campaignsPage.body.includes('https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p'));
+  assert.ok(campaignsPage.body.includes('招待コード: C250678'));
   assert.ok(campaignsPage.body.includes('招待コード: ml1wjtkl'));
+  assert.ok(campaignsPage.body.includes('招待コード: GRO_55250_0VBAH'));
+  assert.ok(campaignsPage.body.includes('招待コード: tHc3p'));
   assertCommonDisclosure(campaignsPage.body);
 
   const referralBenefitsPage = await fetchText(baseUrl, '/campaigns/referrals');
@@ -686,7 +701,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(referralBenefitsPage.body.includes('紹介特典比較'));
   assert.ok(referralBenefitsPage.body.includes('招待した方と、招待された方に 1,500 円分のビットコインをプレゼント！'));
   assert.ok(referralBenefitsPage.body.includes('1,500円分のビットコイン'));
+  assert.ok(referralBenefitsPage.body.includes('https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0'));
   assert.ok(referralBenefitsPage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
+  assert.ok(referralBenefitsPage.body.includes('https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH'));
+  assert.ok(referralBenefitsPage.body.includes('https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p'));
   assert.ok(referralBenefitsPage.body.includes('https://bitflyer.com/ja-jp/faq/referral'));
   assert.ok(referralBenefitsPage.body.includes('Coincheck'));
   assert.ok(referralBenefitsPage.body.includes('招待された方'));
@@ -711,6 +729,24 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bitflyerCampaignPage.body.includes('招待コード: ml1wjtkl'));
   assert.ok(bitflyerCampaignPage.body.includes('紹介リンクを開く'));
   assertCommonDisclosure(bitflyerCampaignPage.body);
+
+  const okjCampaignPage = await fetchText(baseUrl, '/campaigns/okj');
+  assert.equal(okjCampaignPage.status, 200);
+  assert.ok(okjCampaignPage.body.includes('https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0'));
+  assert.ok(okjCampaignPage.body.includes('招待コード: C250678'));
+  assertCommonDisclosure(okjCampaignPage.body);
+
+  const binanceCampaignPage = await fetchText(baseUrl, '/campaigns/binance-japan');
+  assert.equal(binanceCampaignPage.status, 200);
+  assert.ok(binanceCampaignPage.body.includes('https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH'));
+  assert.ok(binanceCampaignPage.body.includes('招待コード: GRO_55250_0VBAH'));
+  assertCommonDisclosure(binanceCampaignPage.body);
+
+  const bittradeCampaignPage = await fetchText(baseUrl, '/campaigns/bittrade');
+  assert.equal(bittradeCampaignPage.status, 200);
+  assert.ok(bittradeCampaignPage.body.includes('https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p'));
+  assert.ok(bittradeCampaignPage.body.includes('招待コード: tHc3p'));
+  assertCommonDisclosure(bittradeCampaignPage.body);
 
   const adminAnalyticsPage = await fetchText(baseUrl, '/admin-analytics.html');
   assert.equal(adminAnalyticsPage.status, 200);

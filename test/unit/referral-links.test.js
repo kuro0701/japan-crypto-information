@@ -5,6 +5,9 @@ const { getCampaign } = require('../../lib/campaigns');
 const { getExchangePageContent } = require('../../lib/exchange-page-content');
 
 const BITFLYER_REFERRAL_URL = 'https://bitflyer.com/invitation?id=ml1wjtkl&lang=ja-JP';
+const OKJ_REFERRAL_URL = 'https://www.okcoin.jp/account/join?invitation=C250678&type=0';
+const BINANCE_JAPAN_REFERRAL_URL = 'https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH';
+const BITTRADE_REFERRAL_URL = 'https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p';
 const GMO_COIN_AFFILIATE_URL = 'https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0';
 const GMO_COIN_TRACKING_PIXEL_URL = 'https://h.accesstrade.net/sp/rr?rk=0100mtgp00osx0';
 
@@ -26,6 +29,39 @@ function withEnvValue(key, value, fn) {
     }
   }
 }
+
+test('provided referral links are populated by default', () => {
+  [
+    {
+      envKey: 'OKJ_REFERRAL_URL',
+      campaignSlug: 'okj',
+      exchangeId: 'okj',
+      url: OKJ_REFERRAL_URL,
+      code: 'C250678',
+    },
+    {
+      envKey: 'BINANCE_JAPAN_REFERRAL_URL',
+      campaignSlug: 'binance-japan',
+      exchangeId: 'binance-japan',
+      url: BINANCE_JAPAN_REFERRAL_URL,
+      code: 'GRO_55250_0VBAH',
+    },
+    {
+      envKey: 'BITTRADE_REFERRAL_URL',
+      campaignSlug: 'bittrade',
+      exchangeId: 'bittrade',
+      url: BITTRADE_REFERRAL_URL,
+      code: 'tHc3p',
+    },
+  ].forEach(({ envKey, campaignSlug, exchangeId, url, code }) => {
+    withEnvValue(envKey, undefined, () => {
+      assert.equal(getCampaign(campaignSlug).affiliateUrl, url);
+      assert.equal(getCampaign(campaignSlug).referralCode, code);
+      assert.equal(getExchangePageContent(exchangeId).referralUrl, url);
+      assert.equal(getExchangePageContent(exchangeId).referralCode, code);
+    });
+  });
+});
 
 test('bitFlyer referral link is populated by default', () => {
   withEnvValue('BITFLYER_REFERRAL_URL', undefined, () => {
