@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const TABLE_DEFAULT_HINT = '銘柄や取引所を絞り込むと、より正確なコスト比較が可能です';
   const INSTRUMENT_PREVIEW_LIMIT = 20;
   const ESTIMATED_DATA_NOTE = '※取引所APIの仕様上、24時間累計値が直接配信されていない場合は、直近のローソク足データ等から算出しています。公式公開データに基づいた参考値です。';
-  const SUMMARY_COST_REMINDER = '大きめの注文を出す場合は、手数料や板の厚みによる影響を考慮し、板シミュレーターで実質コストも合わせてご確認ください。';
+  const SUMMARY_COST_REMINDER = 'なお、大口の注文を出す場合は、手数料や板の厚み（流動性）による影響を受けやすいため、事前に「板シミュレーター」で実質コストを確認することをおすすめします。';
   const MIN_VISIBLE_VOLUME_JPY = 10000;
   const SHOW_ACCOUNT_OPENING_CTA = !IS_DERIVATIVES_PAGE;
   const EXCHANGE_SHARE_COLSPAN = SHOW_ACCOUNT_OPENING_CTA ? 4 : 3;
@@ -75,6 +75,12 @@ document.addEventListener('DOMContentLoaded', () => {
     gmo: '即時入金や暗号資産の送金手数料が無料',
     okj: '板データと取扱銘柄をまとめて確認',
     bittrade: '幅広い銘柄の出来高を横断確認',
+  };
+  const EXCHANGE_DISPLAY_LABELS_BY_ID = {
+    gmo: 'GMOコイン',
+  };
+  const EXCHANGE_DISPLAY_LABELS_BY_NAME = {
+    'GMO Coin': 'GMOコイン',
   };
 
   const $ = AppUtil.byId;
@@ -104,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const HISTORY_WINDOW_VALUES = new Set(['7d', '30d']);
   const KPI_TONE_CLASSES = ['is-positive', 'is-caution', 'is-danger'];
   const INSIGHT_TYPE_LABELS = {
-    top_gainer: 'シェア急拡大',
+    top_gainer: 'シェア拡大',
     top_loser: 'シェア縮小',
     share_up: '取引活発化',
     share_down: 'シェア低下',
@@ -112,17 +118,28 @@ document.addEventListener('DOMContentLoaded', () => {
     leader_gap_change: '首位',
     leader_hold: '首位',
     rank_up: '順位上昇',
-    rank_down: '順位変動',
+    rank_down: '順位低下',
     leader_gap_narrow: '差縮小',
     leader_gap_widen: '差拡大',
     above_gap_narrow: '直上差',
     above_gap_widen: '直上差',
     increase_streak: '連続上昇',
-    decrease_streak: 'シェア変動',
+    decrease_streak: 'シェア低下',
     zscore_outlier: '注目の動き',
     market_concentration: '市場構造',
     hhi_change: '市場構造',
   };
+
+  function displayExchangeLabel(exchangeId, label) {
+    const id = String(exchangeId || '').trim().toLowerCase();
+    if (EXCHANGE_DISPLAY_LABELS_BY_ID[id]) return EXCHANGE_DISPLAY_LABELS_BY_ID[id];
+    const text = String(label || exchangeId || '').trim();
+    return EXCHANGE_DISPLAY_LABELS_BY_NAME[text] || text;
+  }
+
+  function displayExchangeText(value) {
+    return String(value || '').replace(/GMO Coin/g, 'GMOコイン');
+  }
 
   function normalizeWindow(value, fallback) {
     return WINDOW_VALUES.has(value) ? value : fallback;
@@ -336,7 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderExchangeNameCell(exchange) {
     const exchangeId = exchange.exchangeId || exchange.id || '';
-    const exchangeLabel = exchange.exchangeLabel || exchange.label || exchangeId;
+    const exchangeLabel = displayExchangeLabel(exchangeId, exchange.exchangeLabel || exchange.label || exchangeId);
     if (!SHOW_ACCOUNT_OPENING_CTA) return escapeHtml(exchangeLabel);
     return `
       <div class="volume-exchange-entry">
@@ -513,7 +530,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!value || byValue.has(value)) continue;
       byValue.set(value, {
         value,
-        label: row[labelKey] || value,
+        label: labelKey === 'exchangeLabel'
+          ? displayExchangeLabel(value, row[labelKey])
+          : (row[labelKey] || value),
       });
     }
     return Array.from(byValue.values())
@@ -588,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const normalizedRow = {
         ...row,
+        exchangeLabel: displayExchangeLabel(row.exchangeId, row.exchangeLabel),
         quoteVolume,
       };
       rows.push(normalizedRow);
@@ -596,7 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!byExchange.has(row.exchangeId)) {
         byExchange.set(row.exchangeId, {
           exchangeId: row.exchangeId,
-          exchangeLabel: row.exchangeLabel,
+          exchangeLabel: displayExchangeLabel(row.exchangeId, row.exchangeLabel),
           quoteVolume: 0,
         });
       }
@@ -854,7 +874,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <tr${rowIdAttr} class="${rowClasses}">
           ${instrumentCell}
-          <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
+          <td class="text-gray-300" data-label="取引所">${escapeHtml(displayExchangeLabel(row.exchangeId, row.exchangeLabel))}</td>
           <td class="is-num text-right font-mono text-gray-300" data-label="${escapeHtml(volumeLabel)}">
             ${volumeDisplay(row.quoteVolume)}
           </td>
@@ -899,7 +919,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = rows.map(row => `
       <tr class="border-b border-gray-800/60">
-        <td class="font-bold text-gray-200" data-label="取引所">${escapeHtml(row.exchangeLabel || row.exchangeId)}</td>
+        <td class="font-bold text-gray-200" data-label="取引所">${escapeHtml(displayExchangeLabel(row.exchangeId, row.exchangeLabel || row.exchangeId))}</td>
         <td class="text-gray-300" data-label="API">${qualityStatusCell(row)}</td>
         <td class="text-gray-300" data-label="経路">${escapeHtml(transportLabel(row.transportSources))}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="サンプル">${Number(row.sampleCount) || 0}</td>
@@ -1264,6 +1284,30 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  function dailyChangeSummarySentence(dailyChange) {
+    const scope = hasActiveFilters() ? '表示中条件の出来高' : '市場全体の出来高';
+    if (!dailyChange || dailyChange.value === '-') {
+      const label = dailyChange && dailyChange.label ? dailyChange.label : '前日比';
+      return `${label}はまだ計算できません。`;
+    }
+
+    if (dailyChange.label === '前日比') {
+      const percentChange = Number.parseFloat(String(dailyChange.value).replace('%', ''));
+      const movement = Number.isFinite(percentChange)
+        ? (Math.abs(percentChange) < 1
+          ? 'おおむね横ばいで推移しています'
+          : (percentChange >= 5
+            ? '活発に推移しています'
+            : (percentChange > 0 ? '増加しています' : (percentChange <= -5 ? '前日より落ち着いています' : 'やや落ち着いています'))))
+        : (dailyChange.tone === 'is-positive'
+          ? '活発に推移しています'
+          : (dailyChange.tone === 'is-danger' ? '前日より落ち着いています' : '横ばいで推移しています'));
+      return `${scope}は前日比 ${dailyChange.value} と${movement}。`;
+    }
+
+    return `${scope}は${dailyChange.label} ${dailyChange.value} です。`;
+  }
+
   function simulatorUrlForSummary(primaryRow, topExchange) {
     const params = new URLSearchParams();
     const instrumentId = selectedInstrument !== ALL_VALUE
@@ -1362,7 +1406,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       setText('volume-summary-lead', '表示中の条件では、出来高データをまだ集計できていません。');
       setText('volume-summary-body', 'フィルター条件を変えるか、次回更新後にもう一度確認してください。');
-      setText('volume-summary-note', '大きめの注文を出す前には、手数料や板の厚みによる影響も含めて、板シミュレーターで実質コストを確認してください。');
+      setText('volume-summary-note', '大口の注文を出す前には、手数料や板の厚み（流動性）による影響も含めて、板シミュレーターで実質コストを確認してください。');
       setHtml('volume-summary-chips', '<span class="decision-summary-chip">集計待ち</span>');
       const link = $('volume-summary-link');
       if (link) {
@@ -1395,10 +1439,7 @@ document.addEventListener('DOMContentLoaded', () => {
       body = concentrationSummaryBody(summaryParts.concentration.label, summaryParts.top3);
     }
 
-    const dailyChangeText = summaryParts.dailyChange.value !== '-'
-      ? `${summaryParts.dailyChange.label}は ${summaryParts.dailyChange.value} です。`
-      : `${summaryParts.dailyChange.label}はまだ計算できません。`;
-    const note = `${dailyChangeText} ${SUMMARY_COST_REMINDER}`;
+    const note = `${dailyChangeSummarySentence(summaryParts.dailyChange)}${SUMMARY_COST_REMINDER}`;
 
     setText('volume-summary-lead', lead);
     setText('volume-summary-body', body);
@@ -1435,7 +1476,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function friendlyInsightMessage(insight) {
     let message = insight.messageJa || insight.message_ja || '';
-    message = message
+    message = displayExchangeText(message)
       .replace(/^.+?の最大シェア(?:増加|低下)は\s*([^（]+)（([^、）]+)、([^）]*(?:拡大|縮小)[^）]*)）です。$/g, '$1 のシェアは$2（$3）しています。')
       .replace(/^(.+? のシェア)は([^（]*\+\d+(?:\.\d+)?pt)（([^）]+?) に拡大）しています。$/g, '$1が$2（$3 へ拡大）。')
       .replace(/^(.+? のシェア)は([^（]*-\d+(?:\.\d+)?pt)（([^）]+?) に縮小）しています。$/g, '$1は$2（$3 へ低下）。')
@@ -1444,13 +1485,6 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/へ(拡大|縮小)しています。$/g, 'へ$1。')
       .replace(/連続で上昇しています。$/g, '連続で上昇。')
       .replace(/連続で低下しています。$/g, '連続で低下。')
-      .replace(/最大シェア低下/g, '最大シェア変動')
-      .replace(/シェア低下/g, 'シェア変動')
-      .replace(/順位低下/g, '順位変動')
-      .replace(/連続低下/g, '連続変動')
-      .replace(/急低下中/g, '大きく変動中')
-      .replace(/低下しています/g, '変動しています')
-      .replace(/低下しました/g, '変動しました')
       .replace(/異常値/g, '注目の動き');
     return message;
   }
@@ -1479,8 +1513,9 @@ document.addEventListener('DOMContentLoaded', () => {
       && Number.isFinite(Number(insight.value));
     if (!hasShareMovement) return escapeHtml(fallbackMessage);
 
+    const exchangeLabel = displayExchangeLabel(insight.exchangeId, insight.exchange);
     return [
-      `<span class="volume-insight-item__exchange">${escapeHtml(insight.exchange)}</span>: `,
+      `<span class="volume-insight-item__exchange">${escapeHtml(exchangeLabel)}</span>: `,
       `${escapeHtml(formatInsightShare(metadata.previousShare))} `,
       '<span class="volume-insight-item__arrow" aria-hidden="true">→</span> ',
       `<strong>${escapeHtml(formatInsightShare(metadata.latestShare))}</strong> `,
@@ -1501,10 +1536,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (selectedInstrument !== ALL_VALUE) filterParts.push(instrumentLabel);
     if (selectedExchange !== ALL_VALUE) filterParts.push(exchangeLabel);
     const range = meta.earliestDate && meta.latestDate ? `${meta.earliestDate} - ${meta.latestDate}` : '履歴データ待ち';
+    const trendScope = `${period.comparisonLabel || '前回比'}分析`;
     setText(
       'volume-insights-meta',
       [
-        period.comparisonLabel || '前回比',
+        `直近の動向（${trendScope}）`,
         range,
         filterParts.length > 0 ? filterParts.join(' / ') : '全体',
       ].filter(Boolean).join(' | ')
@@ -1686,7 +1722,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const day = daily.get(row.date);
       const existing = day.exchanges.get(row.exchangeId) || {
         exchangeId: row.exchangeId,
-        exchangeLabel: row.exchangeLabel || row.exchangeId,
+        exchangeLabel: displayExchangeLabel(row.exchangeId, row.exchangeLabel || row.exchangeId),
         quoteVolume: 0,
       };
       existing.quoteVolume += quoteVolume;
@@ -1706,7 +1742,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!seriesByExchange.has(exchange.exchangeId)) {
           seriesByExchange.set(exchange.exchangeId, {
             exchangeId: exchange.exchangeId,
-            label: exchange.exchangeLabel,
+            label: displayExchangeLabel(exchange.exchangeId, exchange.exchangeLabel),
             shareByDate: new Map(),
           });
         }
@@ -1844,6 +1880,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams({
         window: INSIGHTS_FETCH_WINDOW,
         periods: '1',
+        periodLabel: 'day',
         zscoreWindow: '8',
         maxInsights: '6',
       });

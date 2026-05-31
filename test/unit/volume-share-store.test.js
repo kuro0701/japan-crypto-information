@@ -134,6 +134,46 @@ test('VolumeShareStore can filter derivative records for dedicated share and ins
   assert.ok(Array.isArray(insights.insights));
 });
 
+test('VolumeShareStore normalizes GMO display labels in share, history, and insights', (t) => {
+  const tempDir = createTempDir('okj-volume-store-labels-');
+  t.after(() => removeTempDir(tempDir));
+
+  const store = new VolumeShareStore({
+    dataFilePath: path.join(tempDir, 'volume-share-history.json'),
+  });
+
+  store.captureDaily([
+    volumeRecord('gmo', 'BTC-JPY', 100, '2026-04-21T00:00:00.000Z', { exchangeLabel: 'GMO Coin' }),
+    volumeRecord('coincheck', 'BTC-JPY', 900, '2026-04-21T00:00:00.000Z', { exchangeLabel: 'Coincheck' }),
+  ], {
+    capturedAt: '2026-04-21T00:00:00.000Z',
+    volumeDateJst: '2026-04-21',
+    reason: 'test',
+  });
+  store.captureDaily([
+    volumeRecord('gmo', 'BTC-JPY', 500, '2026-04-22T00:00:00.000Z', { exchangeLabel: 'GMO Coin' }),
+    volumeRecord('coincheck', 'BTC-JPY', 500, '2026-04-22T00:00:00.000Z', { exchangeLabel: 'Coincheck' }),
+  ], {
+    capturedAt: '2026-04-22T00:00:00.000Z',
+    volumeDateJst: '2026-04-22',
+    reason: 'test',
+  });
+
+  const share = store.getShare('7d');
+  assert.equal(share.rows.find(row => row.exchangeId === 'gmo').exchangeLabel, 'GMOコイン');
+  assert.equal(share.exchanges.find(row => row.exchangeId === 'gmo').exchangeLabel, 'GMOコイン');
+  assert.equal(share.quality.find(row => row.exchangeId === 'gmo').exchangeLabel, 'GMOコイン');
+
+  const history = store.getHistory('30d');
+  assert.equal(history.rows.find(row => row.exchangeId === 'gmo').exchangeLabel, 'GMOコイン');
+
+  const insights = store.getInsights('90d', {
+    insightConfig: { periods: 1, maxInsights: 4, minShareChange: 0.001 },
+  });
+  assert.equal(JSON.stringify(insights).includes('GMO Coin'), false);
+  assert.equal(JSON.stringify(insights).includes('GMOコイン'), true);
+});
+
 test('VolumeShareStore falls back to latest records when no history snapshots exist', (t) => {
   const tempDir = createTempDir('okj-volume-store-fallback-');
   t.after(() => removeTempDir(tempDir));
