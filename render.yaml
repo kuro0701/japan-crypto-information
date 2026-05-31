@@ -13,5 +13,9 @@ services:
         value: production
       - key: NODE_VERSION
         value: 22.22.0
+      - key: SITE_ORIGIN
+        value: https://get-crypto.org
+      - key: LEGACY_HOSTS
+        value: japan-crypto-information.onrender.com
       - key: DATABASE_URL
         sync: false
