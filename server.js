@@ -50,6 +50,7 @@ const {
   setExchangeMarkets,
 } = require('./lib/exchanges');
 const { createAnalyticsAdminService } = require('./lib/server/analytics-admin-service');
+const { applyCloudflareOptimizations, setStaticAssetHeaders } = require('./lib/server/cloudflare-optimizations');
 const { createMarketDataService } = require('./lib/server/market-data-service');
 const { registerApiRoutes } = require('./lib/server/register-api-routes');
 const { registerPageRoutes } = require('./lib/server/register-page-routes');
@@ -57,6 +58,7 @@ const { createSiteContentService } = require('./lib/server/site-content-service'
 
 const app = express();
 app.set('trust proxy', 1);
+applyCloudflareOptimizations(app);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const CHART_JS_BROWSER_PATH = path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.min.js');
 const BUNDLED_DATA_DIR = path.join(__dirname, 'data');
@@ -341,9 +343,12 @@ registerApiRoutes(app, {
   volumeShareStore,
 });
 app.get('/vendor/chart.umd.min.js', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
   res.type('application/javascript').sendFile(CHART_JS_BROWSER_PATH);
 });
-app.use(express.static(PUBLIC_DIR));
+app.use(express.static(PUBLIC_DIR, {
+  setHeaders: setStaticAssetHeaders,
+}));
 
 function getFallbackInstrumentId(exchangeId) {
   return defaultInstrumentIds[exchangeId] || DEFAULT_OKJ_INSTRUMENT_ID;

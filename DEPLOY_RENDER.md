@@ -27,11 +27,24 @@
 - Node.js: `22.22.0`
 - Persistent Disk: 未使用 (JSON fallback やアクセス解析も永続化したい場合だけ追加)
 - `DATA_DIR`: 未設定 (Disk を使う場合は `/var/data` などのマウント先を設定)
+- `SITE_ORIGIN`: `https://get-crypto.org`
+- `LEGACY_HOSTS`: `japan-crypto-information.onrender.com`
 - `DATABASE_URL`: Neon の接続文字列 (出来高シェア / 販売所スプレッドの履歴を Neon に保存する場合)
 
 `render.yaml` では `DATABASE_URL` を `sync: false` の秘密値として宣言しています。初回 Blueprint 作成時は値の入力を促されます。既存サービスでは Render が `sync: false` の新規変数を自動追加しないため、Render Dashboard の Environment で実際の Neon 接続文字列を手動追加してください。
 
-公開URLは Render が `https://japan-crypto-information.onrender.com` のような `onrender.com` サブドメインを自動発行します。
+公開URLは Render が `https://japan-crypto-information.onrender.com` のような `onrender.com` サブドメインを自動発行します。このサブドメインは `SITE_ORIGIN` に設定した `https://get-crypto.org` へ 301 リダイレクトされます。
+
+## Cloudflare
+
+`get-crypto.org` は Cloudflare DNS で Render の Web Service に向けてください。Cloudflare Pages で `public/` だけを配信すると、`HEAD_META_INJECT`、`/api/*`、`/sitemap.xml`、WebSocket がサーバーを通らず正しく動きません。
+
+推奨設定は以下です。
+
+- DNS: `get-crypto.org` を Render のカスタムドメインターゲットへ CNAME/ALIAS で向け、Proxy status は Proxied にする。
+- SSL/TLS: Full または Full (strict)。
+- Cache Rules: `/api/*` と `/admin/*` は Bypass cache、HTML は origin の `s-maxage=300` を尊重、`/css/*` と `/js/*` は長期キャッシュ。
+- Render Environment: `SITE_ORIGIN=https://get-crypto.org`、`LEGACY_HOSTS=japan-crypto-information.onrender.com`。
 
 ## アクセス解析
 

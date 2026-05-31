@@ -1,4 +1,5 @@
 const path = require('path');
+const http = require('http');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
@@ -6,7 +7,7 @@ const OrderBook = require('../../lib/orderbook');
 const { createTempDir, removeTempDir } = require('../helpers/temp-dir');
 
 const SERVER_PATH = path.resolve(__dirname, '../../server.js');
-const TEST_ENV_KEYS = ['ANALYTICS_ADMIN_TOKEN', 'ANALYTICS_ADMIN_TOKEN_HASH', 'DATA_DIR', 'DATABASE_URL', 'NODE_ENV'];
+const TEST_ENV_KEYS = ['ANALYTICS_ADMIN_TOKEN', 'ANALYTICS_ADMIN_TOKEN_HASH', 'DATA_DIR', 'DATABASE_URL', 'LEGACY_HOSTS', 'NODE_ENV', 'SITE_ORIGIN'];
 
 function volumeRecord(exchangeId, exchangeLabel, instrumentId, quoteVolume24h, capturedAt, overrides = {}) {
   return {
@@ -76,22 +77,47 @@ function restoreEnv(previousEnv) {
   }
 }
 
-async function fetchJson(baseUrl, route) {
-  const response = await fetch(new URL(route, baseUrl));
+async function fetchJson(baseUrl, route, init) {
+  const response = await fetch(new URL(route, baseUrl), init);
   const body = await response.json();
   return {
+    headers: response.headers,
     status: response.status,
     body,
   };
 }
 
-async function fetchText(baseUrl, route) {
-  const response = await fetch(new URL(route, baseUrl));
+async function fetchText(baseUrl, route, init) {
+  const response = await fetch(new URL(route, baseUrl), init);
   const body = await response.text();
   return {
+    headers: response.headers,
     status: response.status,
     body,
   };
+}
+
+function requestWithHost(baseUrl, route, host) {
+  const url = new URL(route, baseUrl);
+  return new Promise((resolve, reject) => {
+    const req = http.request({
+      hostname: url.hostname,
+      port: url.port,
+      path: `${url.pathname}${url.search}`,
+      method: 'GET',
+      headers: {
+        Host: host,
+      },
+    }, (res) => {
+      res.resume();
+      res.on('end', () => resolve({
+        headers: res.headers,
+        status: res.statusCode,
+      }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
 }
 
 function assertCommonDisclosure(body) {
@@ -127,7 +153,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   delete process.env.ANALYTICS_ADMIN_TOKEN_HASH;
   process.env.DATA_DIR = tempDir;
   delete process.env.DATABASE_URL;
+  delete process.env.LEGACY_HOSTS;
   process.env.NODE_ENV = 'test';
+  delete process.env.SITE_ORIGIN;
 
   delete require.cache[SERVER_PATH];
   const runtime = require(SERVER_PATH);
@@ -208,6 +236,26 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const health = await fetchJson(baseUrl, '/healthz');
   assert.equal(health.status, 200);
   assert.equal(health.body.status, 'ok');
+  assert.equal(health.headers.get('cache-control'), 'no-store');
+
+  const legacyRedirect = await requestWithHost(baseUrl, '/learn/spread?utm_source=old-host', 'japan-crypto-information.onrender.com');
+  assert.equal(legacyRedirect.status, 301);
+  assert.equal(legacyRedirect.headers.location, 'https://get-crypto.org/learn/spread?utm_source=old-host');
+  assert.equal(legacyRedirect.headers['cache-control'], 'public, max-age=3600');
+
+  const cloudflareHomePage = await fetchText(baseUrl, '/', {
+    headers: {
+      'x-forwarded-host': 'get-crypto.org',
+      'x-forwarded-proto': 'https',
+    },
+  });
+  assert.equal(cloudflareHomePage.status, 200);
+  assert.equal(cloudflareHomePage.headers.get('cache-control'), 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400');
+  assert.equal(cloudflareHomePage.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(cloudflareHomePage.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
+  assert.equal(cloudflareHomePage.headers.get('strict-transport-security'), 'max-age=15552000');
+  assert.equal(cloudflareHomePage.headers.get('x-powered-by'), null);
+  assert.ok(cloudflareHomePage.body.includes('<link rel="canonical" href="https://get-crypto.org/">'));
 
   const homePage = await fetchText(baseUrl, '/');
   assert.equal(homePage.status, 200);
@@ -608,10 +656,15 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const cryptoWithdrawalData = await fetchJson(baseUrl, '/data/crypto-withdrawal-fees.json');
   assert.equal(cryptoWithdrawalData.status, 200);
+  assert.equal(cryptoWithdrawalData.headers.get('cache-control'), 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
   assert.ok(cryptoWithdrawalData.body.assets.includes('BTC'));
   assert.ok(cryptoWithdrawalData.body.assets.includes('ETH'));
   assert.ok(cryptoWithdrawalData.body.rows.some(row => row.exchangeId === 'binance-japan' && row.asset === 'BTC'));
   assert.ok(cryptoWithdrawalData.body.rows.some(row => row.exchangeId === 'gmo' && row.fee === '無料'));
+
+  const chartAsset = await fetch(new URL('/vendor/chart.umd.min.js', baseUrl), { method: 'HEAD' });
+  assert.equal(chartAsset.status, 200);
+  assert.equal(chartAsset.headers.get('cache-control'), 'public, max-age=31536000, immutable');
 
   const buying100kGuide = await fetchText(baseUrl, '/learn/buying-100k-points');
   assert.equal(buying100kGuide.status, 200);
@@ -755,12 +808,21 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const sitemap = await fetchText(baseUrl, '/sitemap.xml');
   assert.equal(sitemap.status, 200);
+  assert.equal(sitemap.headers.get('cache-control'), 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
   assert.ok(sitemap.body.includes('/research'));
   assert.ok(sitemap.body.includes('/derivatives'));
   assert.ok(sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
   assert.ok(sitemap.body.includes('/learn/exchange-checklist'));
   assert.ok(sitemap.body.includes('/learn/crypto-withdrawal-fees'));
+
+  const cloudflareSitemap = await fetchText(baseUrl, '/sitemap.xml', {
+    headers: {
+      'x-forwarded-host': 'get-crypto.org',
+      'x-forwarded-proto': 'https',
+    },
+  });
+  assert.ok(cloudflareSitemap.body.includes('<loc>https://get-crypto.org/research</loc>'));
 
   const rss = await fetchText(baseUrl, '/rss.xml');
   assert.equal(rss.status, 200);
@@ -770,6 +832,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 
   const volumeShare = await fetchJson(baseUrl, '/api/volume-share?window=7d');
   assert.equal(volumeShare.status, 200);
+  assert.equal(volumeShare.headers.get('cache-control'), 'no-store');
   assert.equal(volumeShare.body.meta.source, 'daily-snapshots');
   assert.equal(volumeShare.body.rows.length, 2);
 
