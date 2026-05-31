@@ -12,7 +12,9 @@
     "build:crypto-withdrawal-fees": "node scripts/build-crypto-withdrawal-fees.js",
     "test": "npm run test:unit && npm run test:smoke",
     "test:unit": "node --test --test-concurrency=1 ./test/unit/*.test.js",
-    "test:smoke": "node --test --test-concurrency=1 ./test/smoke/*.test.js"
+    "test:smoke": "node --test --test-concurrency=1 ./test/smoke/*.test.js",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev"
   },
   "dependencies": {
     "chart.js": "^4.5.1",
@@ -20,5 +22,8 @@
     "marked": "^18.0.2",
     "pg": "^8.20.0",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.95.0"
   }
 }
