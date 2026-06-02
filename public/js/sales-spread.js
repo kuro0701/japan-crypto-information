@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let latestMeta = {};
   let selectedHistoryWindow = '30d';
   let selectedHistoryInstrument = 'BTC-JPY';
+  let selectedCategory = 'all';
   let spreadHistoryRows = [];
   let spreadHistoryMeta = {};
   let spreadHistoryChart = null;
@@ -17,12 +18,62 @@ document.addEventListener('DOMContentLoaded', () => {
   let spreadHistoryAbortController = null;
   let spreadInsightsAbortController = null;
   let selectedInsightPeriod = '24h';
+  let pinnedInstrumentIds = new Set();
+  let sortState = { key: 'currentSpreadPct', direction: 'asc' };
+  let previousValueSnapshot = new Map();
+  const flashCells = new Map();
   const CHART_COLORS = ['#35e0a5', '#ff6b70', '#35c8d2', '#f4c95d', '#dbe7df', '#ff9f7e', '#9ad46a'];
   const SPREAD_REFRESH_MS = 60000;
   const SPREAD_HISTORY_REFRESH_MS = 600000;
   const SPREAD_INSIGHTS_REFRESH_MS = 600000;
   const EMPTY_FILTER_MESSAGE = '条件に合う販売所スプレッドデータがありません。銘柄名や取引所フィルターを変更してください。';
   const WAITING_DATA_MESSAGE = '販売所価格を取得中です。取得できた販売所から順に比較します。';
+  const THEME_STORAGE_KEY = 'okj.theme.v1';
+  const PINNED_STORAGE_KEY = 'okj.salesSpread.pinnedInstruments.v1';
+  const FLASH_DURATION_MS = 1800;
+  const FLASH_EPSILON = 0.000001;
+  const MAIN_INSTRUMENT_IDS = ['BTC-JPY', 'ETH-JPY', 'XRP-JPY'];
+  const ALL_CATEGORY = 'all';
+  const QUICK_FILTERS = {
+    all: { label: 'すべて', currencies: null },
+    major: { label: '主要通貨', currencies: new Set(['BTC', 'ETH', 'XRP']) },
+    stable: { label: 'ステーブルコイン', currencies: new Set(['DAI', 'USDC', 'USDT', 'JPYC']) },
+    meme: { label: 'ミームコイン', currencies: new Set(['PEPE', 'SHIB', 'DOGE', 'MONA']) },
+  };
+  const SORT_ACCESSORS = {
+    instrument: {
+      type: 'text',
+      get: row => row.instrumentLabel || row.instrumentId || '',
+    },
+    exchange: {
+      type: 'text',
+      get: row => row.exchangeLabel || row.exchangeId || '',
+    },
+    buyPrice: {
+      type: 'number',
+      get: row => row.latest && row.latest.buyPrice,
+    },
+    sellPrice: {
+      type: 'number',
+      get: row => row.latest && row.latest.sellPrice,
+    },
+    currentSpreadPct: {
+      type: 'number',
+      get: row => (row.latest && row.latest.spreadPct) || (row.averages && row.averages['1d'] && row.averages['1d'].spreadPct),
+    },
+    avg1dSpreadPct: {
+      type: 'number',
+      get: row => row.averages && row.averages['1d'] && row.averages['1d'].spreadPct,
+    },
+    avg7dSpreadPct: {
+      type: 'number',
+      get: row => row.averages && row.averages['7d'] && row.averages['7d'].spreadPct,
+    },
+    avg30dSpreadPct: {
+      type: 'number',
+      get: row => row.averages && row.averages['30d'] && row.averages['30d'].spreadPct,
+    },
+  };
 
   const $ = AppUtil.byId;
   const setText = AppUtil.setText;
@@ -82,6 +133,98 @@ document.addEventListener('DOMContentLoaded', () => {
     return normalized || ALL_VALUE;
   }
 
+  function normalizeCategory(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(QUICK_FILTERS, normalized) ? normalized : ALL_CATEGORY;
+  }
+
+  function readStoredTheme() {
+    try {
+      return localStorage.getItem(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark';
+    } catch (_) {
+      return document.documentElement.classList.contains('theme-light') ? 'light' : 'dark';
+    }
+  }
+
+  function writeStoredTheme(theme) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch (_) {
+      // noop
+    }
+  }
+
+  function syncTheme(theme) {
+    const isLight = theme === 'light';
+    document.documentElement.classList.toggle('theme-light', isLight);
+    document.body.classList.toggle('theme-light', isLight);
+
+    document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+      const icon = button.querySelector('[data-theme-toggle-icon]');
+      const label = button.querySelector('[data-theme-toggle-label]');
+      button.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+      button.setAttribute('aria-label', isLight ? 'ダークモードに切り替え' : 'ライトモードに切り替え');
+      if (icon) icon.textContent = isLight ? '☾' : '☀';
+      if (label) label.textContent = isLight ? 'ダーク' : 'ライト';
+    });
+  }
+
+  function initThemeToggle() {
+    let currentTheme = readStoredTheme();
+    syncTheme(currentTheme);
+
+    document.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest ? event.target.closest('[data-theme-toggle]') : null;
+      if (!button) return;
+      event.preventDefault();
+      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      writeStoredTheme(currentTheme);
+      syncTheme(currentTheme);
+      if (spreadHistoryChart) {
+        initChartTheme();
+        spreadHistoryChart.update('none');
+      }
+    });
+  }
+
+  function readPinnedInstrumentIds() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(PINNED_STORAGE_KEY) || '[]');
+      return new Set(Array.isArray(parsed) ? parsed.map(normalizeInstrumentId).filter(Boolean) : []);
+    } catch (_) {
+      return new Set();
+    }
+  }
+
+  function writePinnedInstrumentIds() {
+    try {
+      localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(Array.from(pinnedInstrumentIds)));
+    } catch (_) {
+      // noop
+    }
+  }
+
+  function isPinnedInstrument(instrumentId) {
+    return pinnedInstrumentIds.has(normalizeInstrumentId(instrumentId));
+  }
+
+  function togglePinnedInstrument(instrumentId) {
+    const normalized = normalizeInstrumentId(instrumentId);
+    if (!normalized) return;
+    if (pinnedInstrumentIds.has(normalized)) pinnedInstrumentIds.delete(normalized);
+    else pinnedInstrumentIds.add(normalized);
+    writePinnedInstrumentIds();
+    renderView();
+  }
+
+  function syncStickyOffset() {
+    const topbar = document.querySelector('.topbar');
+    const topbarPosition = topbar ? window.getComputedStyle(topbar).position : '';
+    const topbarIsFixed = topbarPosition === 'sticky' || topbarPosition === 'fixed';
+    const topbarHeight = topbar && topbarIsFixed ? Math.ceil(topbar.getBoundingClientRect().height) : 0;
+    document.documentElement.style.setProperty('--sales-spread-sticky-offset', `${topbarHeight + 8}px`);
+  }
+
   function instrumentIdFromText(value) {
     return normalizeInstrumentId(String(value || '').replace(/\//g, '-'));
   }
@@ -95,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return {
       filterText: query || instrumentId,
       exchangeId: normalizeExchangeId(params.get('exchange') || params.get('exchangeId')),
+      category: normalizeCategory(params.get('category')),
       historyWindow: normalizeHistoryWindow(params.get('historyWindow')),
       insightPeriod: normalizeInsightPeriod(params.get('insightPeriod') || params.get('insightWindow')),
       historyInstrumentId: historyInstrumentId || instrumentId || 'BTC-JPY',
@@ -107,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filterInstrumentId) params.set('instrumentId', filterInstrumentId);
     else if (filterText) params.set('q', filterText);
     if (selectedExchange !== ALL_VALUE) params.set('exchange', selectedExchange);
+    if (selectedCategory !== ALL_CATEGORY) params.set('category', selectedCategory);
     if (selectedHistoryInstrument && selectedHistoryInstrument !== 'BTC-JPY') {
       params.set('historyInstrument', selectedHistoryInstrument);
     }
@@ -137,9 +282,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const initialState = readInitialState();
   filterText = initialState.filterText;
   selectedExchange = initialState.exchangeId;
+  selectedCategory = initialState.category;
   selectedHistoryWindow = initialState.historyWindow;
   selectedInsightPeriod = initialState.insightPeriod;
   selectedHistoryInstrument = initialState.historyInstrumentId;
+  pinnedInstrumentIds = readPinnedInstrumentIds();
 
   function formatDateForRange(value, { includeYear = false } = {}) {
     const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -188,12 +335,34 @@ document.addEventListener('DOMContentLoaded', () => {
     return CHART_COLORS[index % CHART_COLORS.length];
   }
 
+  function spreadTone(spreadPct) {
+    const value = Number(spreadPct);
+    if (!Number.isFinite(value)) return 'unknown';
+    if (value <= 1.5) return 'low';
+    if (value <= 3) return 'medium';
+    return 'high';
+  }
+
+  function spreadMeterWidth(spreadPct) {
+    const value = Number(spreadPct);
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(6, Math.min(100, (value / 12) * 100));
+  }
+
+  function spreadMeterHtml(spreadPct) {
+    const value = Number(spreadPct);
+    if (!Number.isFinite(value)) return '';
+    const width = spreadMeterWidth(value).toFixed(1);
+    const tone = spreadTone(value);
+    return `<span class="spread-meter spread-meter--${tone}" aria-hidden="true"><span class="spread-meter__bar" style="--spread-meter-width: ${width}%"></span></span>`;
+  }
+
   function spreadCell(summary, precision) {
     if (!summary) return '<span class="text-gray-600">-</span>';
     return `
       <div class="spread-cost-cell">
         <div class="spread-cost-cell__amount spread-cost-cell__amount--main">${fmtJpyPrice(summary.spread, precision)}</div>
-        <div class="spread-cost-cell__rate">（${fmtPct(summary.spreadPct)}）</div>
+        <div class="spread-cost-cell__rate"><span>（${fmtPct(summary.spreadPct)}）</span>${spreadMeterHtml(summary.spreadPct)}</div>
       </div>
     `;
   }
@@ -204,7 +373,92 @@ document.addEventListener('DOMContentLoaded', () => {
     return `
       <div class="spread-cost-cell spread-cost-cell--current">
         <div class="spread-cost-cell__amount spread-cost-cell__amount--main">${fmtJpyPrice(latest.spread, latest.quotePrecision)}</div>
-        <div class="spread-cost-cell__rate">（${fmtPct(latest.spreadPct)}）</div>
+        <div class="spread-cost-cell__rate"><span>（${fmtPct(latest.spreadPct)}）</span>${spreadMeterHtml(latest.spreadPct)}</div>
+      </div>
+    `;
+  }
+
+  function rowKey(row) {
+    return `${row.exchangeId || ''}|${row.instrumentId || ''}`;
+  }
+
+  function cellKey(row, field) {
+    return `${rowKey(row)}:${field}`;
+  }
+
+  function numberOrNull(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function collectRowValues(row) {
+    const latest = row.latest || {};
+    const averages = row.averages || {};
+    return {
+      buyPrice: { value: numberOrNull(latest.buyPrice), positiveWhen: 'up' },
+      sellPrice: { value: numberOrNull(latest.sellPrice), positiveWhen: 'up' },
+      currentSpreadPct: { value: numberOrNull(latest.spreadPct), positiveWhen: 'down' },
+      avg1dSpreadPct: { value: numberOrNull(averages['1d'] && averages['1d'].spreadPct), positiveWhen: 'down' },
+      avg7dSpreadPct: { value: numberOrNull(averages['7d'] && averages['7d'].spreadPct), positiveWhen: 'down' },
+      avg30dSpreadPct: { value: numberOrNull(averages['30d'] && averages['30d'].spreadPct), positiveWhen: 'down' },
+    };
+  }
+
+  function updateFlashState(rows) {
+    const nextSnapshot = new Map();
+    const firstRun = previousValueSnapshot.size === 0;
+    const now = Date.now();
+
+    for (const row of rows || []) {
+      const values = collectRowValues(row);
+      Object.entries(values).forEach(([field, config]) => {
+        const key = cellKey(row, field);
+        if (config.value == null) return;
+        nextSnapshot.set(key, config.value);
+        const previous = previousValueSnapshot.get(key);
+        if (firstRun || previous == null) return;
+        const diff = config.value - previous;
+        if (Math.abs(diff) <= FLASH_EPSILON) return;
+        const positive = config.positiveWhen === 'up' ? diff > 0 : diff < 0;
+        flashCells.set(key, {
+          className: positive ? 'sales-spread-cell--flash-positive' : 'sales-spread-cell--flash-negative',
+          expiresAt: now + FLASH_DURATION_MS,
+        });
+      });
+    }
+
+    previousValueSnapshot = nextSnapshot;
+  }
+
+  function cellFlashClass(row, field) {
+    const flash = flashCells.get(cellKey(row, field));
+    if (!flash) return '';
+    if (flash.expiresAt < Date.now()) {
+      flashCells.delete(cellKey(row, field));
+      return '';
+    }
+    return flash.className;
+  }
+
+  function pinButtonHtml(row) {
+    const instrumentId = normalizeInstrumentId(row.instrumentId);
+    const pinned = isPinnedInstrument(instrumentId);
+    const label = `${row.instrumentLabel || instrumentId}を${pinned ? 'ピン留め解除' : 'ピン留め'}`;
+    return `
+      <button class="sales-spread-pin ${pinned ? 'is-pinned' : ''}" type="button" data-spread-pin="${escapeHtml(instrumentId)}" aria-pressed="${pinned ? 'true' : 'false'}" aria-label="${escapeHtml(label)}">
+        <span aria-hidden="true">${pinned ? '★' : '☆'}</span>
+      </button>
+    `;
+  }
+
+  function instrumentCellHtml(row) {
+    return `
+      <div class="sales-spread-instrument-cell">
+        ${pinButtonHtml(row)}
+        <div class="sales-spread-instrument-cell__copy">
+          <a class="market-link" href="${marketPageUrl(row.instrumentId)}">${escapeHtml(row.instrumentLabel)}</a>
+          <div class="text-[10px] text-gray-500">${escapeHtml(row.currencyFullName || row.baseCurrency)}</div>
+        </div>
       </div>
     `;
   }
@@ -273,12 +527,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function hasActiveFilters() {
-    return Boolean(filterText) || selectedExchange !== ALL_VALUE;
+    return Boolean(filterText) || selectedExchange !== ALL_VALUE || selectedCategory !== ALL_CATEGORY;
+  }
+
+  function rowBaseCurrency(row) {
+    const baseCurrency = String(row.baseCurrency || '').trim().toUpperCase();
+    if (baseCurrency) return baseCurrency;
+    return String(row.instrumentId || '').split('-')[0].trim().toUpperCase();
+  }
+
+  function rowMatchesCategory(row) {
+    const category = QUICK_FILTERS[selectedCategory] || QUICK_FILTERS[ALL_CATEGORY];
+    if (!category.currencies) return true;
+    return category.currencies.has(rowBaseCurrency(row));
   }
 
   function rowMatchesFilter(row) {
     const matchesExchange = selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange;
     if (!matchesExchange) return false;
+    if (!rowMatchesCategory(row)) return false;
     if (!filterText) return true;
 
     const needle = filterText.toLowerCase();
@@ -292,9 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getFilteredRows() {
-    const rows = allRows.filter(rowMatchesFilter);
-    if (filterText || selectedExchange !== ALL_VALUE) rows.sort(sortNarrowestSpread);
-    return rows;
+    return sortRowsForView(allRows.filter(rowMatchesFilter));
   }
 
   function sortSpreadValue(row) {
@@ -308,6 +573,71 @@ document.addEventListener('DOMContentLoaded', () => {
     if (spreadDiff !== 0) return spreadDiff;
     if (a.instrumentId !== b.instrumentId) return a.instrumentId.localeCompare(b.instrumentId);
     return a.exchangeId.localeCompare(b.exchangeId);
+  }
+
+  function compareText(left, right) {
+    return String(left || '').localeCompare(String(right || ''), 'ja', { numeric: true, sensitivity: 'base' });
+  }
+
+  function numberForSort(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function compareByActiveSort(a, b) {
+    const accessor = SORT_ACCESSORS[sortState.key] || SORT_ACCESSORS.currentSpreadPct;
+    let result = 0;
+
+    if (accessor.type === 'number') {
+      const left = numberForSort(accessor.get(a));
+      const right = numberForSort(accessor.get(b));
+      if (left == null && right != null) result = 1;
+      else if (left != null && right == null) result = -1;
+      else if (left != null && right != null) result = left - right;
+    } else {
+      result = compareText(accessor.get(a), accessor.get(b));
+    }
+
+    if (result !== 0) return sortState.direction === 'desc' ? -result : result;
+    if (a.instrumentId !== b.instrumentId) return compareText(a.instrumentId, b.instrumentId);
+    return compareText(a.exchangeId, b.exchangeId);
+  }
+
+  function sortRowsForView(rows) {
+    return rows.slice().sort((a, b) => {
+      const aPinned = isPinnedInstrument(a.instrumentId);
+      const bPinned = isPinnedInstrument(b.instrumentId);
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      return compareByActiveSort(a, b);
+    });
+  }
+
+  function sortDirectionForNext(key) {
+    if (sortState.key !== key) return key === 'instrument' || key === 'exchange' ? 'asc' : 'asc';
+    return sortState.direction === 'asc' ? 'desc' : 'asc';
+  }
+
+  function syncSortHeaders() {
+    document.querySelectorAll('[data-sales-spread-sort]').forEach((button) => {
+      const key = button.dataset.salesSpreadSort;
+      const isActive = key === sortState.key;
+      const indicator = button.querySelector('.sales-spread-sort-indicator');
+      const th = button.closest('th');
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      if (indicator) indicator.textContent = isActive ? (sortState.direction === 'asc' ? '↑' : '↓') : '↕';
+      if (th) {
+        th.setAttribute('aria-sort', isActive ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none');
+      }
+    });
+  }
+
+  function syncQuickFilterButtons() {
+    document.querySelectorAll('[data-spread-category]').forEach((button) => {
+      const isActive = normalizeCategory(button.dataset.spreadCategory) === selectedCategory;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
   }
 
   function averageNumber(values) {
@@ -730,13 +1060,119 @@ document.addEventListener('DOMContentLoaded', () => {
     renderOrderbookSuggestions(instrumentItems.wideSources);
   }
 
-  function renderRows(rows) {
-    const tbody = $('sales-spread-tbody');
-    if (!tbody) return;
+  function renderMajorDashboard() {
+    const container = $('spread-major-cards');
+    if (!container) return;
+
+    const scopedRows = allRows.filter(row => selectedExchange === ALL_VALUE || row.exchangeId === selectedExchange);
+    const cards = MAIN_INSTRUMENT_IDS.map((instrumentId) => {
+      const rows = scopedRows
+        .filter(row => row.instrumentId === instrumentId)
+        .map(row => ({ row, summary: getSummarySpread(row) }))
+        .filter(item => item.summary)
+        .sort((a, b) => a.summary.spreadPct - b.summary.spreadPct);
+      const best = rows[0] || null;
+      const widest = rows[rows.length - 1] || null;
+      const label = best ? best.row.instrumentLabel : instrumentId.replace(/-/g, '/');
+      const average = averageNumber(rows.map(item => item.summary.spreadPct));
+      const href = simulatorUrl(instrumentId);
+
+      if (!best) {
+        return `
+          <article class="spread-major-card">
+            <div class="spread-major-card__head">
+              <span class="spread-major-card__symbol">${escapeHtml(label)}</span>
+              <span class="spread-major-card__badge">データ待ち</span>
+            </div>
+            <div class="spread-major-card__value">-</div>
+            <p class="spread-major-card__meta">販売所価格を確認中です。</p>
+            <a class="comparison-row-link" href="${href}">板取引の価格を見る</a>
+          </article>
+        `;
+      }
+
+      return `
+        <article class="spread-major-card spread-major-card--${spreadTone(best.summary.spreadPct)}">
+          <div class="spread-major-card__head">
+            <span class="spread-major-card__symbol">${escapeHtml(label)}</span>
+            <span class="spread-major-card__badge">最狭 ${escapeHtml(best.row.exchangeLabel)}</span>
+          </div>
+          <div class="spread-major-card__value">${fmtPct(best.summary.spreadPct)}</div>
+          <div class="spread-major-card__meter">${spreadMeterHtml(best.summary.spreadPct)}</div>
+          <p class="spread-major-card__meta">
+            平均 ${Number.isFinite(Number(average)) ? fmtPct(average) : '-'} / 最広 ${widest ? `${escapeHtml(widest.row.exchangeLabel)} ${fmtPct(widest.summary.spreadPct)}` : '-'}
+          </p>
+          <a class="comparison-row-link" href="${href}">板取引の価格を見る</a>
+        </article>
+      `;
+    });
+
+    container.innerHTML = cards.join('');
+    setText(
+      'spread-major-dashboard-badge',
+      selectedExchange === ALL_VALUE ? '主要3銘柄' : selectedOptionLabel('spread-exchange-filter', selectedExchange)
+    );
+  }
+
+  function renderMobileRows(rows) {
+    const container = $('sales-spread-mobile-list');
+    if (!container) return;
 
     if (rows.length === 0) {
       const message = hasActiveFilters() ? EMPTY_FILTER_MESSAGE : WAITING_DATA_MESSAGE;
-      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-gray-500 py-4">${message}</td></tr>`;
+      container.innerHTML = `<p class="spread-ranking-empty">${escapeHtml(message)}</p>`;
+      return;
+    }
+
+    container.innerHTML = rows.map((row) => {
+      const latest = row.latest || {};
+      const averages = row.averages || {};
+      const precision = latest.quotePrecision ?? null;
+      const currentPct = Number(latest.spreadPct);
+      const currentLabel = Number.isFinite(currentPct) ? fmtPct(currentPct) : '-';
+      const pinned = isPinnedInstrument(row.instrumentId);
+      return `
+        <details class="sales-spread-mobile-card ${pinned ? 'is-pinned' : ''}">
+          <summary class="sales-spread-mobile-card__summary">
+            <span class="sales-spread-mobile-card__asset">
+              ${pinButtonHtml(row)}
+              <span>
+                <span class="sales-spread-mobile-card__name">${escapeHtml(row.instrumentLabel)}</span>
+                <span class="sales-spread-mobile-card__currency">${escapeHtml(row.currencyFullName || row.baseCurrency || '')}</span>
+              </span>
+            </span>
+            <span class="sales-spread-mobile-card__exchange">${escapeHtml(row.exchangeLabel)}</span>
+            <span class="sales-spread-mobile-card__current ${cellFlashClass(row, 'currentSpreadPct')}">
+              <span>${currentLabel}</span>
+              ${spreadMeterHtml(latest.spreadPct)}
+            </span>
+          </summary>
+          <div class="sales-spread-mobile-card__detail">
+            <div class="sales-spread-mobile-card__metrics">
+              <div class="${cellFlashClass(row, 'buyPrice')}"><span>買値</span><strong>${fmtJpyPrice(latest.buyPrice, precision)}</strong></div>
+              <div class="${cellFlashClass(row, 'sellPrice')}"><span>売値</span><strong>${fmtJpyPrice(latest.sellPrice, precision)}</strong></div>
+              <div class="${cellFlashClass(row, 'avg1dSpreadPct')}"><span>24時間平均</span><div class="sales-spread-mobile-card__metric-value">${spreadCell(averages['1d'], precision)}</div></div>
+              <div class="${cellFlashClass(row, 'avg7dSpreadPct')}"><span>7日間平均</span><div class="sales-spread-mobile-card__metric-value">${spreadCell(averages['7d'], precision)}</div></div>
+              <div class="${cellFlashClass(row, 'avg30dSpreadPct')}"><span>30日間平均</span><div class="sales-spread-mobile-card__metric-value">${spreadCell(averages['30d'], precision)}</div></div>
+            </div>
+            <a class="btn btn-secondary sales-spread-mobile-card__action" href="${simulatorUrl(row.instrumentId)}">板取引の価格を見る</a>
+          </div>
+        </details>
+      `;
+    }).join('');
+  }
+
+  function renderRows(rows) {
+    const tbody = $('sales-spread-tbody');
+    if (!tbody) {
+      renderMobileRows(rows);
+      return;
+    }
+
+    if (rows.length === 0) {
+      const message = hasActiveFilters() ? EMPTY_FILTER_MESSAGE : WAITING_DATA_MESSAGE;
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-gray-500 py-4">${escapeHtml(message)}</td></tr>`;
+      renderMobileRows(rows);
       return;
     }
 
@@ -744,22 +1180,23 @@ document.addEventListener('DOMContentLoaded', () => {
       const latest = row.latest || {};
       const averages = row.averages || {};
       const precision = latest.quotePrecision ?? null;
+      const pinned = isPinnedInstrument(row.instrumentId);
       return `
-        <tr class="border-b border-gray-800/60">
+        <tr class="border-b border-gray-800/60 ${pinned ? 'sales-spread-row--pinned' : ''}">
           <td data-label="銘柄">
-            <a class="market-link" href="${marketPageUrl(row.instrumentId)}">${escapeHtml(row.instrumentLabel)}</a>
-            <div class="text-[10px] text-gray-500">${escapeHtml(row.currencyFullName || row.baseCurrency)}</div>
+            ${instrumentCellHtml(row)}
           </td>
           <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
-          <td class="is-num text-right font-mono text-red-300" data-label="買値">${fmtJpyPrice(latest.buyPrice, precision)}</td>
-          <td class="is-num text-right font-mono text-green-300" data-label="売値">${fmtJpyPrice(latest.sellPrice, precision)}</td>
-          <td class="is-num text-right" data-label="現在のスプレッド">${latestSpreadCell(row)}</td>
-          <td class="is-num text-right" data-label="24時間平均">${spreadCell(averages['1d'], precision)}</td>
-          <td class="is-num text-right" data-label="7日間平均">${spreadCell(averages['7d'], precision)}</td>
-          <td class="is-num text-right" data-label="30日間平均">${spreadCell(averages['30d'], precision)}</td>
+          <td class="is-num text-right font-mono text-red-300 ${cellFlashClass(row, 'buyPrice')}" data-label="買値">${fmtJpyPrice(latest.buyPrice, precision)}</td>
+          <td class="is-num text-right font-mono text-green-300 ${cellFlashClass(row, 'sellPrice')}" data-label="売値">${fmtJpyPrice(latest.sellPrice, precision)}</td>
+          <td class="is-num text-right ${cellFlashClass(row, 'currentSpreadPct')}" data-label="現在のスプレッド">${latestSpreadCell(row)}</td>
+          <td class="is-num text-right ${cellFlashClass(row, 'avg1dSpreadPct')}" data-label="24時間平均">${spreadCell(averages['1d'], precision)}</td>
+          <td class="is-num text-right ${cellFlashClass(row, 'avg7dSpreadPct')}" data-label="7日間平均">${spreadCell(averages['7d'], precision)}</td>
+          <td class="is-num text-right ${cellFlashClass(row, 'avg30dSpreadPct')}" data-label="30日間平均">${spreadCell(averages['30d'], precision)}</td>
         </tr>
       `;
     }).join('');
+    renderMobileRows(rows);
   }
 
   function renderQualityRows(qualityRows) {
@@ -891,17 +1328,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderView() {
     const rows = getFilteredRows();
+    renderMajorDashboard();
     renderSummary(rows);
     renderMeta();
     renderRankings(rows);
     renderRows(rows);
     renderQualityRows(latestMeta.quality || []);
+    syncSortHeaders();
+    syncQuickFilterButtons();
     writeUrlState();
   }
 
   function render(data) {
     latestMeta = data.meta || {};
     latestMeta.quality = data.quality || [];
+    updateFlashState(data.rows || []);
     allRows = data.rows || [];
     populateExchangeFilter();
     const historyInstrumentChanged = populateHistoryInstrumentFilter();
@@ -963,6 +1404,25 @@ document.addEventListener('DOMContentLoaded', () => {
         },
       },
     });
+  }
+
+  function initChartTheme() {
+    if (!spreadHistoryChart) return;
+    const options = spreadHistoryChart.options || {};
+    if (options.plugins && options.plugins.legend && options.plugins.legend.labels) {
+      options.plugins.legend.labels.color = cssVar('--text-2', '#c9d3cd');
+    }
+    if (options.plugins && options.plugins.tooltip) {
+      options.plugins.tooltip.titleColor = cssVar('--text-1', '#f2f7f4');
+      options.plugins.tooltip.bodyColor = cssVar('--text-2', '#c9d3cd');
+    }
+    if (options.scales && options.scales.x) {
+      options.scales.x.ticks.color = cssVar('--text-4', '#6f7b76');
+    }
+    if (options.scales && options.scales.y) {
+      options.scales.y.title.color = cssVar('--text-3', '#9aa6a1');
+      options.scales.y.ticks.color = cssVar('--text-4', '#6f7b76');
+    }
   }
 
   function latestSeriesValue(dates, byDate) {
@@ -1210,6 +1670,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  document.querySelectorAll('[data-spread-category]').forEach(button => {
+    button.addEventListener('click', () => {
+      selectedCategory = normalizeCategory(button.dataset.spreadCategory);
+      renderView();
+    });
+  });
+
+  document.querySelectorAll('[data-sales-spread-sort]').forEach(button => {
+    button.addEventListener('click', () => {
+      const key = button.dataset.salesSpreadSort;
+      if (!SORT_ACCESSORS[key]) return;
+      sortState = {
+        key,
+        direction: sortDirectionForNext(key),
+      };
+      renderView();
+    });
+  });
+
+  const handlePinClick = (event) => {
+    const button = event.target && event.target.closest ? event.target.closest('[data-spread-pin]') : null;
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    togglePinnedInstrument(button.dataset.spreadPin);
+  };
+
+  const tableBody = $('sales-spread-tbody');
+  if (tableBody) tableBody.addEventListener('click', handlePinClick);
+  const mobileList = $('sales-spread-mobile-list');
+  if (mobileList) mobileList.addEventListener('click', handlePinClick);
+
   document.querySelectorAll('[data-spread-history-window]').forEach(button => {
     button.addEventListener('click', () => {
       selectedHistoryWindow = normalizeHistoryWindow(button.dataset.spreadHistoryWindow);
@@ -1236,8 +1728,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  initThemeToggle();
+  syncStickyOffset();
+  window.addEventListener('resize', syncStickyOffset);
   syncHistoryWindowButtons();
   syncInsightPeriodButtons();
+  syncSortHeaders();
+  syncQuickFilterButtons();
   writeUrlState();
   initSpreadHistoryChart();
   loadSpread();
@@ -1251,5 +1748,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (spreadAbortController) spreadAbortController.abort();
     if (spreadHistoryAbortController) spreadHistoryAbortController.abort();
     if (spreadInsightsAbortController) spreadInsightsAbortController.abort();
+    window.removeEventListener('resize', syncStickyOffset);
   });
 });

@@ -18,7 +18,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-21">
+  <script>
+    (() => {
+      try {
+        if (localStorage.getItem('okj.theme.v1') === 'light') {
+          document.documentElement.classList.add('theme-light');
+        }
+      } catch (_) {
+        // noop
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/style.css?v=ui-26">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-beginner-mode-disabled="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -39,10 +50,31 @@
       <a class="nav-link is-active" href="/sales-spread" aria-current="page">販売所スプレッド</a>
       <a class="nav-link" href="/campaigns">キャンペーン</a>
     </nav>
-    <div class="status-cluster status-cluster--compact" role="status" aria-live="polite" aria-atomic="true"><span class="sr-only">販売所スプレッドの更新状態</span><span class="status-indicator" aria-hidden="true">🟢</span><span id="spread-status" class="status-text">リアルタイムデータ</span><span class="status-updated">（最終更新: <span id="spread-updated-at" class="text-gray-400">-</span>）</span></div>
+    <div class="status-cluster status-cluster--compact" aria-label="販売所スプレッドの更新状態と表示設定">
+      <span class="status-cluster__live" role="status" aria-live="polite" aria-atomic="true"><span class="sr-only">販売所スプレッドの更新状態</span><span class="status-indicator" aria-hidden="true">🟢</span><span id="spread-status" class="status-text">リアルタイムデータ</span><span class="status-updated">（最終更新: <span id="spread-updated-at" class="text-gray-400">-</span>）</span></span>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="ライトモードに切り替え">
+        <span data-theme-toggle-icon aria-hidden="true">☀</span>
+        <span data-theme-toggle-label>ライト</span>
+      </button>
+    </div>
   </header>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
+    <section class="panel panel--dense spread-major-dashboard info-layer info-layer--top" data-info-layer="top" aria-labelledby="spread-major-dashboard-title">
+      <div class="panel-title-row mb-3">
+        <div>
+          <h2 id="spread-major-dashboard-title" class="panel-title">主要銘柄スプレッド</h2>
+          <p class="text-xs text-gray-500 mt-1">BTC/JPY・ETH/JPY・XRP/JPY の現在値をコンパクトに確認できます。</p>
+        </div>
+        <span id="spread-major-dashboard-badge" class="panel-kicker">主要3銘柄</span>
+      </div>
+      <div id="spread-major-cards" class="spread-major-card-grid" aria-live="polite">
+        <article class="spread-major-card spread-major-card--loading">読み込み中</article>
+        <article class="spread-major-card spread-major-card--loading">読み込み中</article>
+        <article class="spread-major-card spread-major-card--loading">読み込み中</article>
+      </div>
+    </section>
+
     <section class="decision-summary-card spread-decision-card info-layer info-layer--top beginner-focus" data-info-layer="top" data-beginner-focus="true" aria-labelledby="spread-decision-title">
       <div class="decision-summary-card__header">
         <div>
@@ -74,7 +106,7 @@
       </div>
     </section>
 
-    <section class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
+    <section class="panel panel--dense spread-control-panel info-layer info-layer--middle" data-info-layer="middle">
       <div class="panel-title-row mb-4"><div><div class="panel-title-with-help"><h2 class="panel-title">販売所スプレッド</h2><button class="term-help" type="button" data-term-key="sales-spread" aria-label="販売所スプレッド の説明を開く"><span aria-hidden="true">?</span></button></div><p id="spread-meta" class="text-xs text-gray-500 mt-1">📊 集計対象期間：過去30日間を確認中</p></div><span class="panel-kicker">実質コスト</span></div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         <div class="metric-row metric-row--hero bid"><span class="metric-label">最小スプレッド</span><span id="narrowest-spread" class="metric-value metric-value--market text-green-300">-</span></div>
@@ -83,6 +115,12 @@
       <div class="filter-grid" aria-label="販売所スプレッドフィルター">
         <label class="filter-control" for="spread-filter"><span>銘柄検索</span><input id="spread-filter" class="field font-mono" type="search" placeholder="例: BTC, XRP, ソラナ"></label>
         <label class="filter-control" for="spread-exchange-filter"><span>取引所</span><select id="spread-exchange-filter" class="field" aria-label="取引所で絞り込み"><option value="__all__">すべて</option></select></label>
+      </div>
+      <div class="quick-filter-group" aria-label="カテゴリで絞り込み">
+        <button class="quick-filter-button is-active" type="button" data-spread-category="all">すべて</button>
+        <button class="quick-filter-button" type="button" data-spread-category="major">主要通貨</button>
+        <button class="quick-filter-button" type="button" data-spread-category="stable">ステーブルコイン</button>
+        <button class="quick-filter-button" type="button" data-spread-category="meme">ミームコイン</button>
       </div>
     </section>
 
@@ -217,11 +255,25 @@
 
     <section id="sales-spread-table-section" class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
       <div class="panel-title-row mb-3"><h2 class="panel-title">銘柄別スプレッド</h2><span class="panel-kicker">銘柄別</span></div>
-      <div class="overflow-auto scrollbar-thin max-h-[760px]">
+      <div class="sales-spread-table-shell overflow-auto scrollbar-thin max-h-[760px]">
         <table class="data-table data-table--cards sales-spread-table text-xs">
-          <thead class="sticky"><tr><th class="text-left">銘柄</th><th class="text-left">取引所</th><th class="is-num text-right">買値</th><th class="is-num text-right">売値</th><th class="is-num text-right">現在のスプレッド</th><th class="is-num text-right">24時間平均</th><th class="is-num text-right">7日間平均</th><th class="is-num text-right">30日間平均</th></tr></thead>
+          <thead class="sticky">
+            <tr>
+              <th class="text-left"><button class="sales-spread-sort-button" type="button" data-sales-spread-sort="instrument">銘柄<span class="sales-spread-sort-indicator" aria-hidden="true">↕</span></button></th>
+              <th class="text-left"><button class="sales-spread-sort-button" type="button" data-sales-spread-sort="exchange">取引所<span class="sales-spread-sort-indicator" aria-hidden="true">↕</span></button></th>
+              <th class="is-num text-right"><button class="sales-spread-sort-button" type="button" data-sales-spread-sort="buyPrice">買値<span class="sales-spread-sort-indicator" aria-hidden="true">↕</span></button></th>
+              <th class="is-num text-right"><button class="sales-spread-sort-button" type="button" data-sales-spread-sort="sellPrice">売値<span class="sales-spread-sort-indicator" aria-hidden="true">↕</span></button></th>
+              <th class="is-num text-right" aria-sort="ascending"><button class="sales-spread-sort-button is-active" type="button" data-sales-spread-sort="currentSpreadPct">現在のスプレッド<span class="sales-spread-sort-indicator" aria-hidden="true">↑</span></button></th>
+              <th class="is-num text-right"><button class="sales-spread-sort-button" type="button" data-sales-spread-sort="avg1dSpreadPct">24時間平均<span class="sales-spread-sort-indicator" aria-hidden="true">↕</span></button></th>
+              <th class="is-num text-right"><button class="sales-spread-sort-button" type="button" data-sales-spread-sort="avg7dSpreadPct">7日間平均<span class="sales-spread-sort-indicator" aria-hidden="true">↕</span></button></th>
+              <th class="is-num text-right"><button class="sales-spread-sort-button" type="button" data-sales-spread-sort="avg30dSpreadPct">30日間平均<span class="sales-spread-sort-indicator" aria-hidden="true">↕</span></button></th>
+            </tr>
+          </thead>
           <tbody id="sales-spread-tbody"><tr><td colspan="8" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
         </table>
+      </div>
+      <div id="sales-spread-mobile-list" class="sales-spread-mobile-list" aria-live="polite">
+        <p class="spread-ranking-empty">読み込み中</p>
       </div>
     </section>
 
@@ -327,6 +379,6 @@
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/sales-spread.js?v=sales-spread-22"></script>
+  <script src="js/sales-spread.js?v=sales-spread-24"></script>
 </body>
 </html>
