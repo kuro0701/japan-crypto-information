@@ -17,9 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastVenueComparisonData = null;
   let lastSalesReferenceData = null;
   const COMPARISON_REFRESH_MS = 10000;
+  const AUTO_SIMULATION_DEBOUNCE_MS = 450;
   const EMPTY_SIMULATION_MESSAGE = '数量または金額を入力して、シミュレーションを実行してください。';
   const ORDERBOOK_WAITING_MESSAGE = '取引所から板データを取得中です。接続に数秒かかる場合があります。';
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
+  const DETAIL_SUMMARY_EXPERT = 'VWAP、スリッページ、Impact、板深度、約定明細、手数料率、販売所参考コスト、CSV/画像保存';
+  const DETAIL_SUMMARY_BEGINNER = '平均約定価格、価格への影響度、板の厚み、約定の内訳を必要な時だけ確認できます';
   const defaultMarket = {
     instrumentId: 'BTC-JPY',
     label: 'BTC/JPY',
@@ -46,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const amountTypeSelect = document.getElementById('amount-type');
   const amountInput = document.getElementById('amount-input');
   const amountInputLabel = document.getElementById('amount-input-label');
+  const quickAmounts = document.getElementById('quick-amounts');
   const feeRateInput = document.getElementById('fee-rate');
   const feePresetHint = document.getElementById('fee-preset-hint');
   const simulateBtn = document.getElementById('simulate-btn');
@@ -75,6 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const alertTbody = document.getElementById('alert-tbody');
   const depthChartContainer = document.getElementById('depth-chart-container');
   const detailDisclosure = document.getElementById('simulator-detail-disclosure');
+  const detailSummaryCopy = document.getElementById('simulator-detail-summary-copy');
+  const resultJumpBtn = document.getElementById('result-jump-btn');
   const autoUpdateCheck = document.getElementById('auto-update');
   const amountUnit = document.getElementById('amount-unit');
   const SETTINGS_STORAGE_KEY = 'okj.simulatorSettings.v1';
@@ -88,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let pendingQuickPresetRun = false;
   let pendingQuickPresetId = null;
   let shareStatusTimer = null;
+  let autoSimulationTimer = null;
   let localAlerts = [];
   let alertRefreshRunning = false;
   let lastAlertRefreshAt = null;
@@ -259,6 +266,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${items.slice(0, -1).join('、')}と${items[items.length - 1]}`;
   }
 
+  function beginnerModeEnabled() {
+    return Boolean(document.body && document.body.classList.contains('beginner-mode'));
+  }
+
+  function impactTermLabel() {
+    return beginnerModeEnabled() ? '価格への影響度' : 'Impact';
+  }
+
+  function effectiveVwapTermLabel() {
+    return beginnerModeEnabled() ? '平均約定価格' : '実効VWAP';
+  }
+
   function renderDecisionSummaryCard({
     status = 'idle',
     badgeLabel = '未実行',
@@ -270,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
     note = '',
     meta = '',
     actionLabel = '詳しく見る',
+    gapTone = '',
   } = {}) {
     const panel = document.getElementById('simulation-decision-summary');
     if (!panel) return;
@@ -277,6 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const candidateText = candidate || lead || '比較前';
     const gapText = gap || '-';
     const noteText = note || body || '数量または金額を入力して「比較する」を押してください。';
+    const gapValueHtml = gapTone === 'positive'
+      ? `<span class="simulator-gap-positive">${escapeHtml(gapText)}</span>`
+      : null;
     const detailAction = {
       label: actionLabel,
       dataOpenDetail: true,
@@ -289,9 +312,11 @@ document.addEventListener('DOMContentLoaded', () => {
         status,
         badgeLabel,
         badgeTone,
-        candidate: candidateText,
-        gap: gapText,
-        note: noteText,
+        rows: [
+          { label: '最安候補', value: candidateText },
+          { label: '2位との差', value: gapText, valueHtml: gapValueHtml },
+          { label: '注意点', value: noteText },
+        ],
         meta,
         action: detailAction,
         fragment: true,
@@ -318,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
         <div>
           <dt>2位との差</dt>
-          <dd>${escapeHtml(gapText)}</dd>
+          <dd>${gapValueHtml || escapeHtml(gapText)}</dd>
         </div>
         <div>
           <dt>注意点</dt>
@@ -370,7 +395,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const num = Number(value);
     if (!Number.isFinite(num)) return '-';
     if (Math.abs(num) < 0.5) return 'ほぼ同じ';
-    return `+${Fmt.jpy(Math.abs(num))}${suffix}`;
+    return `${Fmt.jpy(Math.abs(num))}${suffix} おトク！`;
+  }
+
+  function isPositiveGapLabel(label) {
+    return typeof label === 'string' && label.includes('おトク');
   }
 
   function venueRowsForConclusion(data = lastVenueComparisonData) {
@@ -420,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (result && result.executionStatus && result.executionStatus !== 'executable') {
-      return '成行注文は条件に合わない可能性があります。詳しく見るでImpactと流動性を確認してください。';
+      return `成行注文は条件に合わない可能性があります。詳しく見るで${impactTermLabel()}と流動性を確認してください。`;
     }
 
     if (!meta || meta.side !== 'sell') {
@@ -431,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (risk && ['warning', 'danger', 'critical'].includes(risk.tone)) {
-      return 'Impactが大きめです。分割注文や指値注文も検討してください。';
+      return `${impactTermLabel()}が大きめです。分割注文や指値注文も検討してください。`;
     }
 
     return '販売所価格は参考値です。売却前に実際の提示価格と手数料条件を確認してください。';
@@ -555,7 +584,7 @@ document.addEventListener('DOMContentLoaded', () => {
         candidate: '比較中',
         gap: '計算中',
         note: '他取引所の板が揃い次第、最安候補と2位との差を表示します。',
-        meta: `${market.label || market.instrumentId || '-'} / ${meta.side === 'sell' ? '売る' : '買う'} / Impact ${Fmt.pct(lastSimulationResult.marketImpactPct)} (${risk.label})`,
+        meta: `${market.label || market.instrumentId || '-'} / ${meta.side === 'sell' ? '売る' : '買う'} / ${impactTermLabel()} ${Fmt.pct(lastSimulationResult.marketImpactPct)} (${risk.label})`,
       });
       return;
     }
@@ -563,15 +592,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const bestRow = conclusionRows[0] || null;
     const secondRow = conclusionRows[1] || null;
     const bestLabel = bestRow && (bestRow.exchangeLabel || bestRow.exchangeId);
+    const gapLabel = venueGapLabel(meta, bestRow, secondRow);
 
     renderDecisionSummaryCard({
       status: 'ready',
       badgeLabel: executableRows.length > 0 ? '比較済み' : '要注意',
       badgeTone: executableRows.length > 0 ? 'ready' : 'error',
       candidate: bestLabel || '比較不可',
-      gap: venueGapLabel(meta, bestRow, secondRow),
+      gap: gapLabel,
+      gapTone: isPositiveGapLabel(gapLabel) ? 'positive' : '',
       note: beginnerConclusionNote(meta, bestRow),
-      meta: `${market.label || market.instrumentId || '-'} / ${meta.side === 'sell' ? '売る' : '買う'} / ${comparisonAmountLabel(meta)} / Impact ${Fmt.pct(lastSimulationResult.marketImpactPct)} (${risk.label})`,
+      meta: `${market.label || market.instrumentId || '-'} / ${meta.side === 'sell' ? '売る' : '買う'} / ${comparisonAmountLabel(meta)} / ${impactTermLabel()} ${Fmt.pct(lastSimulationResult.marketImpactPct)} (${risk.label})`,
       actionLabel: '詳しく見る',
     });
   }
@@ -690,7 +721,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td headers="fill-col-subtotal" class="is-num text-right" data-label="小計">${skeletonCell(['54%'], 'right')}</td>
         <td headers="fill-col-cum-base" class="is-num text-right" data-label="累計数量">${skeletonCell(['52%'], 'right')}</td>
         <td headers="fill-col-cum-quote" class="is-num text-right" data-label="累計金額">${skeletonCell(['54%'], 'right')}</td>
-        <td headers="fill-col-impact" class="is-num text-right" data-label="累計Impact">${skeletonCell(['36%'], 'right')}</td>
+        <td headers="fill-col-impact" class="is-num text-right" data-label="${impactTermLabel()}">${skeletonCell(['36%'], 'right')}</td>
         <td headers="fill-col-orders" class="is-num text-right" data-label="注文数">${skeletonCell(['30%'], 'right')}</td>
       </tr>
     `).join('');
@@ -705,8 +736,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <td headers="venue-col-rank" class="is-num text-right" data-label="順位">${skeletonCell(['28%'], 'right')}</td>
         <td headers="venue-col-exchange" data-label="取引所">${skeletonCell(['52%', '36%'])}</td>
         <td headers="venue-col-effective" class="is-num text-right" data-label="実効コスト">${skeletonCell(['58%', '46%'], 'right')}</td>
-        <td headers="venue-col-vwap" class="is-num text-right" data-label="実効VWAP">${skeletonCell(['52%', '34%'], 'right')}</td>
-        <td headers="venue-col-impact" class="is-num text-right" data-label="Impact">${skeletonCell(['34%', '28%'], 'right')}</td>
+        <td headers="venue-col-vwap" class="is-num text-right" data-label="${effectiveVwapTermLabel()}">${skeletonCell(['52%', '34%'], 'right')}</td>
+        <td headers="venue-col-impact" class="is-num text-right" data-label="${impactTermLabel()}">${skeletonCell(['34%', '28%'], 'right')}</td>
         <td headers="venue-col-status" data-label="判定">${skeletonCell(['62%', '48%'])}</td>
         <td headers="venue-col-updated" class="text-right" data-label="更新">${skeletonCell(['42%', '30%'], 'right')}</td>
       </tr>
@@ -835,7 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const initialUrlState = readUrlState();
   const savedSettings = readSavedSettings();
-  const shouldRunInitialSimulation = initialUrlState.amount != null;
+  const shouldRunInitialSimulation = true;
 
   function setShareStatus(message) {
     if (!shareUrlStatus) return;
@@ -875,6 +906,98 @@ document.addEventListener('DOMContentLoaded', () => {
     }, duration);
   }
 
+  function amountInputIsRunnable() {
+    const amount = parseNumberInput(amountInput && amountInput.value);
+    return Number.isFinite(amount) && amount > 0;
+  }
+
+  function flashCompareButton() {
+    if (!simulateBtn) return;
+    simulateBtn.classList.remove('is-attention');
+    void simulateBtn.offsetWidth;
+    simulateBtn.classList.add('is-attention');
+    setTimeout(() => simulateBtn.classList.remove('is-attention'), 1200);
+  }
+
+  function clearAutoSimulationTimer() {
+    if (!autoSimulationTimer) return;
+    clearTimeout(autoSimulationTimer);
+    autoSimulationTimer = null;
+  }
+
+  function updateResultJumpVisibility() {
+    if (!resultJumpBtn) return;
+    resultJumpBtn.hidden = !amountInputIsRunnable();
+  }
+
+  function scrollToConclusion() {
+    const panel = document.getElementById('beginner-conclusion-panel');
+    if (!panel) return;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function scheduleAutoSimulation(options = {}) {
+    const { delay = AUTO_SIMULATION_DEBOUNCE_MS } = options;
+    updateResultJumpVisibility();
+    if (!autoUpdate || !amountInputIsRunnable()) return;
+    clearAutoSimulationTimer();
+    autoSimulationTimer = setTimeout(() => {
+      autoSimulationTimer = null;
+      if (!amountInputIsRunnable()) return;
+      runSimulation({ source: 'auto' });
+    }, delay);
+  }
+
+  function syncResultTabs() {
+    const active = detailDisclosure && detailDisclosure.open ? 'detail' : 'basic';
+    document.querySelectorAll('[data-result-tab]').forEach((button) => {
+      const isActive = button.dataset.resultTab === active;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+  }
+
+  function syncQuickAmountButtons() {
+    const isJpy = amountTypeSelect && amountTypeSelect.value === 'jpy';
+    if (quickAmounts) quickAmounts.hidden = !isJpy;
+    const currentAmount = parseNumberInput(amountInput && amountInput.value);
+    document.querySelectorAll('[data-quick-amount]').forEach((button) => {
+      const presetAmount = Number(button.dataset.quickAmount);
+      button.classList.toggle('is-active', isJpy && Number.isFinite(currentAmount) && currentAmount === presetAmount);
+    });
+  }
+
+  function normalizeAmountForTypeSwitch() {
+    if (!amountTypeSelect || !amountInput) return;
+    const amount = parseNumberInput(amountInput.value);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    if (amountTypeSelect.value === 'base' && amount > 1000) {
+      amountInput.value = '0.01';
+      return;
+    }
+    if (amountTypeSelect.value === 'jpy' && amount > 0 && amount < 1) {
+      amountInput.value = '100000';
+    }
+  }
+
+  function syncBeginnerModeEnhancements(enabled = Boolean(window.BeginnerMode && window.BeginnerMode.isEnabled())) {
+    if (detailSummaryCopy) {
+      detailSummaryCopy.textContent = enabled ? DETAIL_SUMMARY_BEGINNER : DETAIL_SUMMARY_EXPERT;
+    }
+    if (enabled && detailDisclosure) {
+      detailDisclosure.open = false;
+    }
+    document.querySelectorAll('[data-beginner-collapse]').forEach((node) => {
+      if (enabled) {
+        node.open = false;
+      }
+    });
+    if (lastSimulationResult) {
+      UI.updateSimulationResults(lastSimulationResult);
+    }
+    syncResultTabs();
+  }
+
   function resizeDepthChartSoon() {
     if (!depthChart) return;
     requestAnimationFrame(() => {
@@ -887,6 +1010,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const { scroll = true } = options;
     if (!detailDisclosure) return;
     detailDisclosure.open = true;
+    syncResultTabs();
     resizeDepthChartSoon();
     if (scroll) {
       requestAnimationFrame(() => {
@@ -1799,7 +1923,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const base = market.baseCurrency || 'BTC';
     const isBaseAmount = amountTypeSelect.value === 'base';
     const side = normalizeSide(sideSelect && sideSelect.value) || 'buy';
-    amountUnit.textContent = isBaseAmount ? base : 'JPY';
+    if (amountUnit) amountUnit.textContent = isBaseAmount ? base : 'JPY';
     amountInput.placeholder = isBaseAmount ? '0.01' : '100000';
     if (amountInputLabel) {
       if (isBaseAmount) {
@@ -1814,6 +1938,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (baseOption) {
       baseOption.textContent = `数量 (${base})`;
     }
+    syncQuickAmountButtons();
+    updateResultJumpVisibility();
   }
 
   function setMarketDisplay(exchange, market = getSelectedMarket(exchange)) {
@@ -1863,8 +1989,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function maybeRunInitialSimulation() {
     if (!shouldRunInitialSimulation || initialSimulationRun || !exchangeListLoaded) return;
     if (!ws.ws || ws.ws.readyState !== WebSocket.OPEN) return;
+    if (!amountInputIsRunnable()) return;
     initialSimulationRun = true;
-    runSimulation();
+    runSimulation({ source: 'initial' });
   }
 
   function clearMarketState() {
@@ -1892,7 +2019,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function setVenueComparisonEmpty(message) {
     const tbody = document.getElementById('venue-comparison-tbody');
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-gray-500 py-4">${escapeHtml(message)}</td></tr>`;
+      tbody.innerHTML = message === EMPTY_SIMULATION_MESSAGE && UI.emptyTablePreview
+        ? UI.emptyTablePreview(7, 'ここに取引所ごとの比較が表示されます')
+        : `<tr><td colspan="7" class="text-center text-gray-500 py-4">${escapeHtml(message)}</td></tr>`;
     }
   }
 
@@ -2001,7 +2130,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const result = row.result || null;
       const status = liveMarketDataStatus(row);
       const ready = status === 'fresh' && result && !result.error;
-      const rankLabel = ready && row.rank ? `#${row.rank}` : '-';
+      const rankLabel = ready && row.rank === 1
+        ? '<span class="winner-rank-badge" aria-label="最安 1位">1位</span>'
+        : (ready && row.rank ? `#${row.rank}` : '-');
       const rowClass = [
         row.rank === 1 && ready ? 'data-table__row--rank-1' : '',
         status === 'stale' ? 'data-table__row--stale' : '',
@@ -2059,11 +2190,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div>${effectiveValue}</div>
             <div class="text-[10px] text-gray-500">${effectiveSub}</div>
           </td>
-          <td headers="venue-col-vwap" class="is-num text-right font-mono text-gray-300" data-label="実効VWAP">
+          <td headers="venue-col-vwap" class="is-num text-right font-mono text-gray-300" data-label="${effectiveVwapTermLabel()}">
             <div>${vwapValue}</div>
             <div class="text-[10px] text-gray-500">Spread ${spreadLabel}</div>
           </td>
-          <td headers="venue-col-impact" class="is-num text-right font-mono text-gray-300" data-label="Impact">
+          <td headers="venue-col-impact" class="is-num text-right font-mono text-gray-300" data-label="${impactTermLabel()}">
             <div>${impactValue}</div>
             <div class="text-[10px] text-gray-500">${impactSub}</div>
           </td>
@@ -2130,7 +2261,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function setSalesReferenceEmpty(message) {
     const tbody = document.getElementById('sales-reference-tbody');
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-gray-500 py-4">${escapeHtml(message)}</td></tr>`;
+      tbody.innerHTML = message === EMPTY_SIMULATION_MESSAGE && UI.emptyTablePreview
+        ? UI.emptyTablePreview(7, 'ここに販売所参考コストが表示されます')
+        : `<tr><td colspan="7" class="text-center text-gray-500 py-4">${escapeHtml(message)}</td></tr>`;
     }
   }
 
@@ -2258,7 +2391,9 @@ document.addEventListener('DOMContentLoaded', () => {
     tbody.innerHTML = rows.map(row => {
       const result = row.result || null;
       const ready = row.status === 'ready' && result;
-      const rankLabel = row.rank ? `#${row.rank}` : '-';
+      const rankLabel = row.rank === 1 && ready
+        ? '<span class="winner-rank-badge" aria-label="最安 1位">1位</span>'
+        : (row.rank ? `#${row.rank}` : '-');
       const rowClass = row.rank === 1 && ready ? 'data-table__row--rank-1' : '';
       const price = ready ? formatReferencePrice(result.price, row.quotePrecision) : '-';
       const spread = row.spreadPct == null ? '-' : Fmt.pct(row.spreadPct);
@@ -2418,9 +2553,12 @@ document.addEventListener('DOMContentLoaded', () => {
   amountTypeSelect.addEventListener('change', () => {
     pendingQuickPresetRun = false;
     pendingQuickPresetId = null;
+    normalizeAmountForTypeSwitch();
     updateAmountUnit();
     updateShareUrl();
     saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
+    flashCompareButton();
+    scheduleAutoSimulation();
   });
 
   // Side button toggle
@@ -2431,11 +2569,15 @@ document.addEventListener('DOMContentLoaded', () => {
       setSide(btn.dataset.side);
       updateShareUrl();
       saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
+      flashCompareButton();
+      scheduleAutoSimulation();
     });
   });
 
   // Simulate
-  function runSimulation() {
+  function runSimulation(options = {}) {
+    const { scrollToResults = false } = options;
+    clearAutoSimulationTimer();
     const side = sideSelect.value;
     const amountType = amountTypeSelect.value;
     const amount = parseNumberInput(amountInput.value);
@@ -2448,6 +2590,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('simulation-results').innerHTML =
         '<div class="text-yellow-400 text-center py-4">数量または金額に正の数値を入力してください。</div>';
       updateDecisionSummary();
+      updateResultJumpVisibility();
       return;
     }
 
@@ -2460,6 +2603,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('simulation-results').innerHTML =
         '<div class="text-yellow-400 text-center py-4">手数料率は0%以上100%以下で入力してください</div>';
       updateDecisionSummary();
+      updateResultJumpVisibility();
       return;
     }
 
@@ -2471,6 +2615,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('simulation-results').innerHTML =
         `<div class="text-yellow-400 text-center py-4">${ORDERBOOK_WAITING_MESSAGE}</div>`;
       updateDecisionSummary();
+      updateResultJumpVisibility();
       return;
     }
 
@@ -2483,6 +2628,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setSimulationLoading();
     setDecisionSummaryLoading();
     setFillLoading();
+    updateResultJumpVisibility();
+    if (scrollToResults) {
+      requestAnimationFrame(scrollToConclusion);
+    }
     ws.simulate(side, amount, amountType, feeRatePct == null ? null : feeRatePct / 100, autoUpdate);
     const exchange = getSelectedExchange();
     const market = getSelectedMarket(exchange);
@@ -2501,12 +2650,48 @@ document.addEventListener('DOMContentLoaded', () => {
     scheduleComparisonRefresh();
   }
 
-  simulateBtn.addEventListener('click', runSimulation);
+  simulateBtn.addEventListener('click', () => runSimulation({ source: 'manual', scrollToResults: true }));
 
   document.querySelectorAll('[data-quick-preset]').forEach((button) => {
     button.addEventListener('click', () => {
       applyQuickPreset(button.dataset.quickPreset);
     });
+  });
+
+  document.querySelectorAll('[data-quick-amount]').forEach((button) => {
+    button.addEventListener('click', () => {
+      pendingQuickPresetRun = false;
+      pendingQuickPresetId = null;
+      if (amountTypeSelect) amountTypeSelect.value = 'jpy';
+      if (amountInput) amountInput.value = button.dataset.quickAmount || '';
+      updateAmountUnit();
+      updateShareUrl();
+      saveCurrentSettings();
+      flashCompareButton();
+      scheduleAutoSimulation({ delay: 160 });
+    });
+  });
+
+  document.querySelectorAll('[data-result-tab]').forEach((button) => {
+    button.addEventListener('click', () => {
+      if (button.dataset.resultTab === 'detail') {
+        openDetailDisclosure({ scroll: true });
+        return;
+      }
+      if (detailDisclosure) {
+        detailDisclosure.open = false;
+      }
+      syncResultTabs();
+      scrollToConclusion();
+    });
+  });
+
+  if (resultJumpBtn) {
+    resultJumpBtn.addEventListener('click', scrollToConclusion);
+  }
+
+  window.addEventListener('okj:beginner-mode-change', (event) => {
+    syncBeginnerModeEnhancements(Boolean(event.detail && event.detail.enabled));
   });
 
   document.addEventListener('click', (event) => {
@@ -2518,6 +2703,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (detailDisclosure) {
     detailDisclosure.addEventListener('toggle', () => {
       if (detailDisclosure.open) resizeDepthChartSoon();
+      syncResultTabs();
     });
   }
 
@@ -2597,7 +2783,10 @@ document.addEventListener('DOMContentLoaded', () => {
   amountInput.addEventListener('input', () => {
     pendingQuickPresetRun = false;
     pendingQuickPresetId = null;
+    syncQuickAmountButtons();
     updateShareUrl();
+    flashCompareButton();
+    scheduleAutoSimulation();
   });
   feeRateInput.addEventListener('input', () => {
     pendingQuickPresetRun = false;
@@ -2605,15 +2794,18 @@ document.addEventListener('DOMContentLoaded', () => {
     updateFeePresetHint();
     updateShareUrl();
     saveCurrentSettings();
+    flashCompareButton();
+    scheduleAutoSimulation();
   });
 
   amountInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') runSimulation();
+    if (e.key === 'Enter') runSimulation({ source: 'manual', scrollToResults: true });
   });
 
   clearBtn.addEventListener('click', () => {
     pendingQuickPresetRun = false;
     pendingQuickPresetId = null;
+    clearAutoSimulationTimer();
     ws.clearSimulation();
     lastSimulationResult = null;
     lastSimulationError = null;
@@ -2623,6 +2815,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setBusy('fill-tbody', false);
     resetDecisionSummary();
     clearVenueComparison();
+    updateResultJumpVisibility();
     if (depthChart) {
       depthChart.data.datasets[2].data = [];
       depthChart.update('none');
@@ -2657,6 +2850,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateShareUrl();
       saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
       renderFavoriteMarkets();
+      scheduleAutoSimulation({ delay: 700 });
     });
   }
 
@@ -2672,6 +2866,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateShareUrl();
       saveCurrentSettings({ statusMessage: '初期設定に保存しました' });
       renderFavoriteMarkets();
+      scheduleAutoSimulation({ delay: 700 });
     });
   }
 
@@ -2775,9 +2970,16 @@ document.addEventListener('DOMContentLoaded', () => {
   alertRefreshTask.start({ immediate: false });
   freshnessTask.start({ immediate: false });
   resetDecisionSummary();
+  UI.clearSimulationView();
+  setVenueComparisonEmpty(EMPTY_SIMULATION_MESSAGE);
+  setSalesReferenceEmpty(EMPTY_SIMULATION_MESSAGE);
   setOverviewLoadingState();
   setThresholdLoading();
   setChartLoading(true);
+  syncQuickAmountButtons();
+  syncBeginnerModeEnhancements();
+  syncResultTabs();
+  updateResultJumpVisibility();
   initDepthChart();
   ws.connect();
   loadExchangesFromApi();
@@ -2788,5 +2990,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (salesReferenceAbortController) salesReferenceAbortController.abort();
     if (shareStatusTimer) clearTimeout(shareStatusTimer);
     if (settingsStatusTimer) clearTimeout(settingsStatusTimer);
+    clearAutoSimulationTimer();
   });
 });

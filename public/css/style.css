@@ -1622,6 +1622,7 @@ input.field[inputmode="decimal"] {
 }
 
 .simulator-simple-field > span,
+.simulator-simple-field > label,
 .simulator-side-field > span {
   color: var(--text-3);
   font-size: var(--fs-sm);
@@ -1640,17 +1641,51 @@ input.field[inputmode="decimal"] {
 
 .simulator-amount-control {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(116px, 144px);
   align-items: center;
   gap: var(--sp-2);
 }
 
-.simulator-amount-unit {
-  min-width: 44px;
+.simulator-amount-type-select {
+  min-height: 52px;
+  text-align: center;
+}
+
+.simulator-quick-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 30px;
+}
+
+.simulator-quick-amount {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(53, 224, 165, 0.24);
+  border-radius: var(--r-sm);
+  background: rgba(53, 224, 165, 0.08);
   color: var(--text-2);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   font-weight: 800;
-  text-align: right;
+  line-height: 1;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.simulator-quick-amount:hover,
+.simulator-quick-amount:focus-visible {
+  border-color: rgba(53, 224, 165, 0.58);
+  background: rgba(53, 224, 165, 0.16);
+  color: var(--text-1);
+}
+
+.simulator-quick-amount:active {
+  transform: translateY(1px);
+}
+
+.simulator-quick-amount.is-active {
+  border-color: rgba(244, 201, 93, 0.7);
+  background: rgba(244, 201, 93, 0.16);
+  color: var(--warn);
 }
 
 .simulator-side-toggle {
@@ -1664,9 +1699,13 @@ input.field[inputmode="decimal"] {
   min-height: 52px;
 }
 
+.simulator-compare-button.is-attention {
+  animation: simulator-button-pulse 1.1s ease-out;
+}
+
 .simulator-input-secondary {
   display: grid;
-  grid-template-columns: repeat(2, minmax(160px, 220px)) repeat(3, max-content) minmax(120px, 1fr);
+  grid-template-columns: minmax(160px, 220px) repeat(3, max-content) minmax(120px, 1fr);
   gap: var(--sp-2);
   align-items: end;
   padding-top: var(--sp-3);
@@ -1748,6 +1787,74 @@ input.field[inputmode="decimal"] {
   line-height: var(--lh-normal);
 }
 
+.simulator-gap-positive {
+  color: var(--bid);
+  font-weight: 950;
+}
+
+.simulator-empty-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(160px, 1fr);
+  align-items: center;
+  gap: var(--sp-4);
+  min-height: 132px;
+  padding: var(--sp-4);
+  border: 1px dashed rgba(143, 154, 140, 0.28);
+  border-radius: var(--r);
+  background: rgba(12, 17, 18, 0.58);
+}
+
+.simulator-empty-preview__title {
+  color: var(--text-1);
+  font-size: var(--fs-md);
+  font-weight: 900;
+}
+
+.simulator-empty-preview__body {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+}
+
+.simulator-empty-preview__mock,
+.simulator-empty-table-preview {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.simulator-empty-table-preview span:first-child {
+  color: var(--text-3);
+}
+
+.simulator-result-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(120px, auto));
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line-weak);
+  border-radius: var(--r);
+  background: rgba(8, 12, 14, 0.72);
+}
+
+.simulator-result-tab {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.simulator-result-tab.is-active {
+  border-color: rgba(53, 224, 165, 0.34);
+  background: rgba(53, 224, 165, 0.12);
+  color: var(--text-1);
+}
+
 .simulator-detail-disclosure {
   display: block;
 }
@@ -1815,6 +1922,95 @@ input.field[inputmode="decimal"] {
 .simulator-settings-grid {
   display: grid;
   gap: var(--sp-3);
+}
+
+.simulator-advanced-disclosure {
+  display: block;
+}
+
+.simulator-advanced-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  min-height: 36px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.simulator-advanced-summary::-webkit-details-marker {
+  display: none;
+}
+
+.simulator-advanced-summary::after {
+  content: "-";
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.simulator-advanced-disclosure:not([open]) .simulator-advanced-summary::after {
+  content: "+";
+}
+
+.term-copy--beginner {
+  display: none;
+}
+
+.beginner-mode .term-copy--expert {
+  display: none;
+}
+
+.beginner-mode .term-copy--beginner {
+  display: inline;
+}
+
+.table-scroll-hint {
+  position: relative;
+}
+
+.table-scroll-hint::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 32px;
+  background: linear-gradient(90deg, rgba(8, 12, 14, 0), rgba(8, 12, 14, 0.92));
+  pointer-events: none;
+}
+
+.result-jump-button {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 60;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(53, 224, 165, 0.45);
+  border-radius: var(--r);
+  background: rgba(13, 18, 20, 0.94);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 950;
+  box-shadow: var(--shadow-md);
+}
+
+.result-jump-button:hover,
+.result-jump-button:focus-visible {
+  background: rgba(53, 224, 165, 0.16);
+}
+
+@media (min-width: 768px) {
+  .result-jump-button {
+    display: none !important;
+  }
 }
 
 .filter-grid {
@@ -5698,6 +5894,11 @@ a.market-feature-related__pill:focus-visible {
 @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.6;} }
 @keyframes flash-up { 0%{background: rgba(53,224,165,0.26);} 100%{background: transparent;} }
 @keyframes flash-down { 0%{background: rgba(255,107,112,0.22);} 100%{background: transparent;} }
+@keyframes simulator-button-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(53, 224, 165, 0.46); transform: translateY(0); }
+  42% { box-shadow: 0 0 0 9px rgba(53, 224, 165, 0); transform: translateY(-1px); }
+  100% { box-shadow: 0 0 0 0 rgba(53, 224, 165, 0); transform: translateY(0); }
+}
 @keyframes skeleton-shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
 .flash-up { animation: flash-up 0.6s ease-out; }
 .flash-down { animation: flash-down 0.6s ease-out; }
@@ -5723,8 +5924,26 @@ a.market-feature-related__pill:focus-visible {
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent), var(--bid));
 }
+.data-table__row--rank-1 > * {
+  background: linear-gradient(90deg, rgba(244, 201, 93, 0.13), rgba(53, 224, 165, 0.08));
+}
+
 .data-table__row--rank-1 > :first-child {
-  border-left: 3px solid var(--accent);
+  border-left: 3px solid var(--warn);
+}
+
+.winner-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(244, 201, 93, 0.54);
+  border-radius: 999px;
+  background: rgba(244, 201, 93, 0.14);
+  color: var(--warn);
+  font-weight: 950;
 }
 
 .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -8260,6 +8479,7 @@ html.theme-light .home-field select option {
 
 @media (max-width: 1023px) {
   .topbar {
+    position: static;
     grid-template-columns: 1fr;
     grid-template-areas:
       "brand"
@@ -8340,6 +8560,11 @@ html.theme-light .home-field select option {
 
   .simulator-input-secondary {
     align-items: stretch;
+  }
+
+  .simulator-result-tabs {
+    display: grid;
+    width: 100%;
   }
 
   .market-context-grid,
@@ -8730,6 +8955,23 @@ html.theme-light .home-field select option {
     grid-template-columns: 1fr;
   }
 
+  .simulator-amount-control {
+    grid-template-columns: minmax(0, 1fr) minmax(108px, 128px);
+  }
+
+  .simulator-quick-amounts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .simulator-quick-amount {
+    padding: 0 6px;
+  }
+
+  .simulator-empty-preview {
+    grid-template-columns: 1fr;
+  }
+
   .beginner-conclusion-list {
     grid-template-columns: 1fr;
   }
@@ -8881,7 +9123,7 @@ html.theme-light .home-field select option {
 
   .data-table__row--rank-1 > :first-child {
     border-left: 0;
-    box-shadow: inset 3px 0 0 var(--accent);
+    box-shadow: inset 3px 0 0 var(--warn);
     padding-left: var(--sp-3);
   }
 

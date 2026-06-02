@@ -95,10 +95,18 @@ const UI = {
   },
 
   termLabel(label, key) {
+    const readableLabels = {
+      impact: '価格への影響度',
+      slippage: '価格ずれ',
+      vwap: String(label || '').includes('実効') ? '手数料込み平均約定価格' : '平均約定価格',
+    };
+    const displayLabel = document.body && document.body.classList.contains('beginner-mode') && readableLabels[key]
+      ? readableLabels[key]
+      : label;
     if (window.TermHelp && typeof window.TermHelp.inlineLabel === 'function') {
-      return window.TermHelp.inlineLabel(label, key);
+      return window.TermHelp.inlineLabel(displayLabel, key);
     }
-    return label;
+    return displayLabel;
   },
 
   updateTicker(ticker) {
@@ -197,15 +205,44 @@ const UI = {
     this.updateThresholdTable(null);
   },
 
+  emptyPreviewHtml(message = this.emptySimulationMessage) {
+    return `
+      <div class="simulator-empty-preview">
+        <div>
+          <div class="simulator-empty-preview__title">ここに比較結果が表示されます</div>
+          <div class="simulator-empty-preview__body">${message}</div>
+        </div>
+        <div class="simulator-empty-preview__mock" aria-hidden="true">
+          <span class="skeleton-line" style="width:42%"></span>
+          <span class="skeleton-line skeleton-line--sm" style="width:78%"></span>
+          <span class="skeleton-line skeleton-line--sm" style="width:62%"></span>
+        </div>
+      </div>
+    `;
+  },
+
+  emptyTablePreview(colspan, message = this.emptySimulationMessage) {
+    return `
+      <tr class="table-skeleton-row simulator-empty-table-row">
+        <td colspan="${colspan}" class="text-center text-gray-500 py-4">
+          <div class="simulator-empty-table-preview">
+            <span>${message}</span>
+            <span class="skeleton-line skeleton-line--sm" style="width:min(280px, 72%)"></span>
+          </div>
+        </td>
+      </tr>
+    `;
+  },
+
   clearSimulationView() {
     const panel = document.getElementById('simulation-results');
     if (panel) {
-      panel.innerHTML = `<div class="text-gray-500 text-center py-8">${this.emptySimulationMessage}</div>`;
+      panel.innerHTML = this.emptyPreviewHtml();
     }
 
     const tbody = document.getElementById('fill-tbody');
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="9" headers="fill-col-side fill-col-idx fill-col-price fill-quantity-header fill-col-subtotal fill-col-cum-base fill-col-cum-quote fill-col-impact fill-col-orders" class="text-center text-gray-500 py-4">${this.emptySimulationMessage}</td></tr>`;
+      tbody.innerHTML = this.emptyTablePreview(9);
     }
   },
 

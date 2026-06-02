@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-20">
+  <link rel="stylesheet" href="/css/style.css?v=ui-23">
   <script>
     tailwind.config = {
       theme: {
@@ -84,13 +84,23 @@
           </select>
         </label>
 
-        <label class="simulator-simple-field" for="amount-input">
-          <span id="amount-input-label">購入金額</span>
+        <div class="simulator-simple-field simulator-amount-field">
+          <label id="amount-input-label" for="amount-input">購入金額</label>
           <div class="simulator-amount-control">
-            <input id="amount-input" type="text" inputmode="decimal" value="100000" placeholder="100000" class="field amount-field rounded px-3 py-2 text-lg">
-            <span id="amount-unit" class="simulator-amount-unit">JPY</span>
+            <input id="amount-input" type="text" inputmode="decimal" value="100000" placeholder="100000" class="field amount-field rounded px-3 py-2 text-lg" aria-describedby="quick-amounts">
+            <select id="amount-type" class="field simulator-amount-type-select" aria-label="入力タイプ">
+              <option id="amount-type-base-option" value="base">数量 (BTC)</option>
+              <option value="jpy" selected>金額 (JPY)</option>
+            </select>
+            <span id="amount-unit" class="sr-only">JPY</span>
           </div>
-        </label>
+          <div id="quick-amounts" class="simulator-quick-amounts" aria-label="購入金額のクイック入力">
+            <button class="simulator-quick-amount" type="button" data-quick-amount="10000">1万円</button>
+            <button class="simulator-quick-amount" type="button" data-quick-amount="50000">5万円</button>
+            <button class="simulator-quick-amount" type="button" data-quick-amount="100000">10万円</button>
+            <button class="simulator-quick-amount" type="button" data-quick-amount="500000">50万円</button>
+          </div>
+        </div>
 
         <div class="simulator-simple-field simulator-side-field">
           <span>注文方法</span>
@@ -136,6 +146,10 @@
         </dl>
         <button id="show-detail-btn" class="btn btn-secondary px-4 py-2.5 rounded-lg text-sm" type="button" data-open-detail onclick="document.getElementById('simulator-detail-disclosure').open = true; document.getElementById('simulator-detail-disclosure').scrollIntoView({ behavior: 'smooth', block: 'start' });">詳しく見る</button>
       </div>
+      <div class="simulator-result-tabs mt-3" role="tablist" aria-label="結果表示">
+        <button id="result-tab-basic" class="simulator-result-tab is-active" type="button" role="tab" aria-selected="true" data-result-tab="basic">基本結果</button>
+        <button id="result-tab-detail" class="simulator-result-tab" type="button" role="tab" aria-selected="false" aria-controls="simulator-detail-disclosure" data-result-tab="detail">詳細分析・板深度</button>
+      </div>
     </section>
 
     <section class="panel panel--dense simulator-next-section info-layer info-layer--top" data-info-layer="top" aria-labelledby="simulator-next-title">
@@ -171,7 +185,7 @@
     <details id="simulator-detail-disclosure" class="simulator-detail-disclosure info-layer info-layer--middle" data-info-layer="middle">
       <summary class="simulator-detail-summary">
         <span>詳しく見る</span>
-        <span>VWAP、スリッページ、Impact、板深度、約定明細、手数料率、販売所参考コスト、CSV/画像保存</span>
+        <span id="simulator-detail-summary-copy">VWAP、スリッページ、Impact、板深度、約定明細、手数料率、販売所参考コスト、CSV/画像保存</span>
       </summary>
 
       <div class="simulator-detail-grid mt-4">
@@ -205,15 +219,15 @@
             <span class="panel-kicker">最安候補</span>
           </div>
         </div>
-        <div class="overflow-auto scrollbar-thin mt-3">
+        <div class="overflow-auto scrollbar-thin table-scroll-hint mt-3">
           <table class="data-table data-table--cards text-xs">
             <thead class="sticky top-0 bg-gray-900">
               <tr>
                 <th id="venue-col-rank" class="is-num text-right w-12">順位</th>
                 <th id="venue-col-exchange" class="text-left">取引所</th>
                 <th id="venue-col-effective" class="is-num text-right">実効コスト</th>
-                <th id="venue-col-vwap" class="is-num text-right"><span class="term-label">実効VWAP<button class="term-help" type="button" data-term-key="vwap" aria-label="VWAP の説明を開く"><span aria-hidden="true">?</span></button></span></th>
-                <th id="venue-col-impact" class="is-num text-right"><span class="term-label">Impact<button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button></span></th>
+                <th id="venue-col-vwap" class="is-num text-right"><span class="term-label"><span class="term-copy term-copy--expert">実効VWAP</span><span class="term-copy term-copy--beginner">平均約定価格</span><button class="term-help" type="button" data-term-key="vwap" aria-label="VWAP の説明を開く"><span aria-hidden="true">?</span></button></span></th>
+                <th id="venue-col-impact" class="is-num text-right"><span class="term-label"><span class="term-copy term-copy--expert">Impact</span><span class="term-copy term-copy--beginner">価格への影響度</span><button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button></span></th>
                 <th id="venue-col-status" class="text-left">判定</th>
                 <th id="venue-col-updated" class="text-right">更新</th>
               </tr>
@@ -254,7 +268,7 @@
             </p>
           </div>
         </details>
-        <div class="overflow-auto scrollbar-thin mt-3">
+        <div class="overflow-auto scrollbar-thin table-scroll-hint mt-3">
           <table class="data-table data-table--cards text-xs">
             <thead class="sticky top-0 bg-gray-900">
               <tr>
@@ -319,16 +333,16 @@
         </div>
       </section>
 
-      <section class="panel panel--dense">
-        <div class="panel-title-row">
+      <details class="panel panel--dense simulator-advanced-disclosure" data-beginner-collapse open>
+        <summary class="simulator-advanced-summary">
           <div class="panel-title-with-help">
-            <h2 class="panel-title">インパクト別 必要注文</h2>
+            <h2 class="panel-title"><span class="term-copy term-copy--expert">インパクト別 必要注文</span><span class="term-copy term-copy--beginner">価格への影響別 必要注文</span></h2>
             <button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button>
           </div>
           <span class="panel-kicker">Capacity</span>
-        </div>
+        </summary>
         <p class="text-xs text-gray-600 mb-3 mt-1">表示板でその変動率以内に収まる最大成行サイズ</p>
-        <div class="overflow-auto scrollbar-thin">
+        <div class="overflow-auto scrollbar-thin table-scroll-hint">
           <table class="data-table data-table--cards text-xs">
             <thead class="sticky top-0">
               <tr>
@@ -342,14 +356,14 @@
             </tbody>
           </table>
         </div>
-      </section>
+      </details>
 
-      <section class="panel panel--dense">
-        <div class="panel-title-row">
+      <details class="panel panel--dense simulator-advanced-disclosure" data-beginner-collapse open>
+        <summary class="simulator-advanced-summary">
           <h2 class="panel-title">約定明細</h2>
           <span class="panel-kicker">Fills</span>
-        </div>
-        <div class="overflow-auto max-h-[400px] scrollbar-thin mt-3">
+        </summary>
+        <div class="overflow-auto max-h-[400px] scrollbar-thin table-scroll-hint mt-3">
           <table class="data-table data-table--cards text-xs">
             <thead class="sticky top-0 bg-gray-900">
               <tr>
@@ -360,7 +374,7 @@
                 <th id="fill-col-subtotal" class="is-num text-right">小計 (JPY)</th>
                 <th id="fill-col-cum-base" class="is-num text-right">累計数量</th>
                 <th id="fill-col-cum-quote" class="is-num text-right">累計金額</th>
-                <th id="fill-col-impact" class="is-num text-right">累計Impact</th>
+                <th id="fill-col-impact" class="is-num text-right"><span class="term-copy term-copy--expert">累計Impact</span><span class="term-copy term-copy--beginner">累計影響度</span></th>
                 <th id="fill-col-orders" class="is-num text-right">注文数</th>
               </tr>
             </thead>
@@ -369,7 +383,7 @@
             </tbody>
           </table>
         </div>
-      </section>
+      </details>
 
       <section class="panel control-panel panel--dense">
         <div class="panel-title-row">
@@ -379,7 +393,6 @@
         <div class="simulator-settings-grid mt-3">
           <div class="simulator-input-secondary" aria-label="補助設定">
             <label class="filter-control" for="exchange-select"><span>表示基準</span><select id="exchange-select" class="field exchange-select" aria-label="表示基準取引所"><option value="okj" selected>OKJ</option></select></label>
-            <label class="filter-control" for="amount-type"><span>入力タイプ</span><select id="amount-type" class="field"><option id="amount-type-base-option" value="base">数量 (BTC)</option><option value="jpy" selected>金額 (JPY)</option></select></label>
             <button id="copy-share-url-btn" class="btn btn-secondary px-3 py-2.5 rounded-lg text-sm" type="button">URLコピー</button>
             <button id="clear-btn" class="btn btn-ghost px-3 py-2.5 rounded-lg text-sm" type="button">クリア</button>
             <a id="market-page-nav-link" class="btn btn-ghost px-3 py-2.5 rounded-lg text-sm" href="/markets/BTC-JPY">選択中の銘柄ページ</a>
@@ -461,6 +474,8 @@
     </details>
   </main>
 
+  <button id="result-jump-btn" class="result-jump-button" type="button" hidden>結果へ</button>
+
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">
     取引コスト計算（板シミュレーター） | 取引所: <span id="footer-exchange-label">OKJ</span> | 銘柄: <span id="footer-instrument-label">BTC/JPY</span> | データソース: <span id="footer-source-label">OKCoin Japan WebSocket + REST fallback</span>
   </footer>
@@ -474,8 +489,8 @@
   <script src="js/market-data-utils.js?v=market-data-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
   <script src="js/ws-client.js?v=volume-1"></script>
-  <script src="js/ui.js?v=volume-4"></script>
+  <script src="js/ui.js?v=volume-5"></script>
   <script src="js/chart.js?v=volume-1"></script>
-  <script src="js/app.js?v=volume-16"></script>
+  <script src="js/app.js?v=volume-18"></script>
 </body>
 </html>
