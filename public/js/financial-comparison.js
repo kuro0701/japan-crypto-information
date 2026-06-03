@@ -16,10 +16,13 @@
   const metrics = model.metrics;
   const cryptoAssetBalances = model.cryptoAssetBalances || { entries: [], assetPriority: [], unit: '百万円' };
   const metricMap = new Map(metrics.map(metric => [metric.key, metric]));
+  const THEME_STORAGE_KEY = 'okj.theme.v1';
   const DEFAULT_VISIBLE_COMPANY_LIMIT = 8;
   const CHART_SERIES_LIMIT = 10;
   const selectedIds = new Set(initialSelectedCompanyIds());
   let activeMetric = 'revenue';
+  let activeMetricGroup = 'pl';
+  let activeShapeMode = 'bs';
   let activeAssetSymbol = defaultAssetSymbol();
   let focusId = Array.from(selectedIds)[0] || (companies[0] && companies[0].exchangeId);
   let barChart = null;
@@ -29,9 +32,34 @@
   let heatmapSort = { kind: '', key: '', direction: 'desc' };
   let companyFilterExpanded = false;
   let companyFilterQuery = '';
+  let assetFilterExpanded = !(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
   let activeTooltipAnchor = null;
   let tooltipNode = null;
   const BENCHMARK_ID = '__financial_benchmark__';
+  const metricGroups = [
+    { key: 'pl', label: 'PL', metricKeys: ['revenue', 'operatingProfit', 'netIncome'] },
+    { key: 'bs', label: 'BS', metricKeys: ['netAssets', 'totalAssets', 'equityRatio'] },
+    { key: 'ratio', label: '利益率', metricKeys: ['operatingMargin'] },
+    { key: 'growth', label: '成長率', metricKeys: ['revenueYoY'] },
+  ];
+  const financialGroupKeywords = [
+    'SBI',
+    'GMO',
+    '楽天',
+    'マネックス',
+    '野村',
+    '東海東京',
+    'フィナンシャル',
+    '金融',
+    '証券',
+    'PayPay',
+    'bitFlyer Holdings',
+    'Digital Garage',
+    '東京短資',
+    '三井物産',
+    '日本取引所グループ',
+  ];
+  const independentPresetIds = new Set(['bitbank', 'gaia-btm']);
 
   const palette = [
     [53, 200, 210],
@@ -57,6 +85,55 @@
     }[char]));
   }
 
+  function readStoredTheme() {
+    try {
+      return localStorage.getItem(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark';
+    } catch (_err) {
+      return document.documentElement.classList.contains('theme-light') ? 'light' : 'dark';
+    }
+  }
+
+  function writeStoredTheme(theme) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch (_err) {
+      // noop
+    }
+  }
+
+  function syncTheme(theme) {
+    const isLight = theme === 'light';
+    document.documentElement.classList.toggle('theme-light', isLight);
+    document.body.classList.toggle('theme-light', isLight);
+    document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+      const icon = button.querySelector('[data-theme-toggle-icon]');
+      const label = button.querySelector('[data-theme-toggle-label]');
+      button.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+      button.setAttribute('aria-label', isLight ? 'ダークモードに切り替え' : 'ライトモードに切り替え');
+      if (icon) icon.textContent = isLight ? '☾' : '☀';
+      if (label) label.textContent = isLight ? 'ダーク' : 'ライト';
+    });
+    syncChartTheme();
+  }
+
+  function initThemeToggle() {
+    let currentTheme = readStoredTheme();
+    syncTheme(currentTheme);
+    document.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest ? event.target.closest('[data-theme-toggle]') : null;
+      if (!button) return;
+      event.preventDefault();
+      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      writeStoredTheme(currentTheme);
+      syncTheme(currentTheme);
+    });
+  }
+
+  function cssVar(name, fallback) {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  }
+
   function numberOrNull(value) {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : null;
@@ -64,6 +141,14 @@
 
   function metricConfig(metricKey) {
     return metricMap.get(metricKey) || metrics[0];
+  }
+
+  function metricGroupFor(metricKey) {
+    return metricGroups.find(group => group.metricKeys.includes(metricKey)) || metricGroups[0];
+  }
+
+  function activeMetricGroupConfig() {
+    return metricGroups.find(group => group.key === activeMetricGroup) || metricGroups[0];
   }
 
   function metricHelpText(metricKey) {
@@ -84,6 +169,52 @@
       company.fullName,
       company.exchangeId,
     ].filter(Boolean).join(' ').toLowerCase();
+  }
+
+  function companyDescriptor(company) {
+    return [
+      company.label,
+      company.serviceName,
+      company.companyName,
+      company.parentCompany,
+      company.sourceSummary,
+      ...(company.tags || []),
+    ].filter(Boolean).join(' ');
+  }
+
+  function isFinancialGroupCompany(company) {
+    const descriptor = companyDescriptor(company);
+    return financialGroupKeywords.some(keyword => descriptor.includes(keyword));
+  }
+
+  function presetCompanyIds(action) {
+    if (action === 'all') return companies.map(company => company.exchangeId);
+    if (action === 'clear') return [];
+    if (action === 'finance') return companies.filter(isFinancialGroupCompany).map(company => company.exchangeId);
+    if (action === 'independent') return companies.filter(company => independentPresetIds.has(company.exchangeId)).map(company => company.exchangeId);
+    return initialSelectedCompanyIds();
+  }
+
+  function fiscalCautionText(company) {
+    if (!company) return '';
+    const label = String(company.fiscalYearLabel || '');
+    const period = String(company.latest && company.latest.fiscalPeriod || '');
+    const monthMatch = period.match(/\/(\d{1,2})$/);
+    const month = monthMatch ? Number(monthMatch[1]) : null;
+    const durationMatch = label.match(/（([^）]*(?:か月|ヶ月)[^）]*)）/);
+    if (durationMatch) {
+      return `${label}は${durationMatch[1]}の変則決算です。12か月決算の会社と単純比較しすぎないよう注意します。`;
+    }
+    if (month && month !== 3) {
+      return `${label}です。3月決算の会社とは対象期間がずれるため、直近期比較では期末月の違いも確認します。`;
+    }
+    return '';
+  }
+
+  function renderFiscalCautionBadge(company) {
+    const text = fiscalCautionText(company);
+    if (!text) return '';
+    return `<span class="financial-fiscal-badge financial-tooltip-trigger" data-tooltip="${escapeHtml(text)}" tabindex="0">決算期注意</span>`;
   }
 
   function latestValue(company, metricKey) {
@@ -425,11 +556,27 @@
     if (!target) return;
     const symbols = ['__total__'].concat(sortedCryptoAssetSymbols());
     if (!symbols.includes(activeAssetSymbol)) activeAssetSymbol = symbols[0] || '__total__';
-    target.innerHTML = symbols.map((symbol) => [
-      `<button type="button" class="financial-asset-chip${symbol === activeAssetSymbol ? ' is-active' : ''}" data-financial-asset="${escapeHtml(symbol)}" aria-pressed="${symbol === activeAssetSymbol ? 'true' : 'false'}">`,
-      `  <span>${escapeHtml(symbol === '__total__' ? '総額' : symbol)}</span>`,
-      '</button>',
-    ].join('')).join('');
+    target.innerHTML = [
+      `<details class="financial-asset-filter-panel"${assetFilterExpanded ? ' open' : ''}>`,
+      '  <summary>',
+      '    <span>暗号資産を選ぶ</span>',
+      `    <small>${escapeHtml(assetLabel(activeAssetSymbol))}</small>`,
+      '  </summary>',
+      '  <div class="financial-asset-filter__chips">',
+      symbols.map((symbol) => [
+        `<button type="button" class="financial-asset-chip${symbol === activeAssetSymbol ? ' is-active' : ''}" data-financial-asset="${escapeHtml(symbol)}" aria-pressed="${symbol === activeAssetSymbol ? 'true' : 'false'}">`,
+        `  <span>${escapeHtml(symbol === '__total__' ? '総額' : symbol)}</span>`,
+        '</button>',
+      ].join('')).join(''),
+      '  </div>',
+      '</details>',
+    ].join('\n');
+    const details = target.querySelector('.financial-asset-filter-panel');
+    if (details) {
+      details.addEventListener('toggle', () => {
+        assetFilterExpanded = details.open;
+      });
+    }
     target.querySelectorAll('[data-financial-asset]').forEach((button) => {
       button.addEventListener('click', () => {
         const symbol = button.getAttribute('data-financial-asset');
@@ -527,7 +674,9 @@
     companyIds.forEach((companyId) => {
       if (findCompanyById(companyId)) selectedIds.add(companyId);
     });
-    if (!selectedIds.has(focusId)) {
+    if (selectedIds.size === 0) {
+      focusId = null;
+    } else if (!selectedIds.has(focusId)) {
       focusId = Array.from(selectedIds)[0] || (companies[0] && companies[0].exchangeId);
     }
     refresh();
@@ -593,18 +742,62 @@
 
   function heatColor(value, metricKey) {
     const numeric = numberOrNull(value);
-    const score = normalizedScore(numeric, metricKey) || 0;
-    const intensity = 0.08 + (score / 100) * 0.32;
-    if (numeric != null && numeric < 0) return `rgba(255, 107, 112, ${Math.max(0.16, 0.42 - intensity)})`;
-    return `rgba(53, 224, 165, ${intensity})`;
+    if (numeric == null) return 'rgba(154, 166, 161, 0.06)';
+    const values = metricValues(metricKey, companies);
+    if (numeric < 0) {
+      const maxNegative = Math.max(...values.filter(item => item < 0).map(item => Math.abs(item)), Math.abs(numeric), 1);
+      const intensity = 0.2 + (Math.abs(numeric) / maxNegative) * 0.5;
+      return `linear-gradient(135deg, rgba(255, 107, 112, ${intensity}), rgba(255, 107, 112, ${Math.max(0.1, intensity * 0.42)}))`;
+    }
+    const score = normalizedScore(numeric, metricKey, companies) || 0;
+    const intensity = 0.14 + (score / 100) * 0.52;
+    const metric = metricConfig(metricKey);
+    const toneColor = metric.tone === 'scale' || metric.key === 'totalAssets'
+      ? '53, 200, 210'
+      : '53, 224, 165';
+    return `linear-gradient(135deg, rgba(${toneColor}, ${intensity}), rgba(${toneColor}, ${Math.max(0.08, intensity * 0.38)}))`;
   }
 
   function chartTextColor() {
-    return '#c9d3cd';
+    return cssVar('--text-2', '#c9d3cd');
+  }
+
+  function chartMutedColor() {
+    return cssVar('--text-3', '#9aa6a1');
   }
 
   function chartGridColor() {
-    return 'rgba(200, 220, 210, 0.09)';
+    return document.documentElement.classList.contains('theme-light')
+      ? 'rgba(16, 46, 38, 0.12)'
+      : 'rgba(200, 220, 210, 0.09)';
+  }
+
+  function syncChartTheme() {
+    if (typeof Chart === 'undefined') return;
+    Chart.defaults.color = chartTextColor();
+    const textColor = chartTextColor();
+    const mutedColor = chartMutedColor();
+    const gridColor = chartGridColor();
+
+    if (barChart) {
+      barChart.options.scales.x.ticks.color = mutedColor;
+      barChart.options.scales.y.ticks.color = textColor;
+      barChart.options.scales.x.grid.color = gridColor;
+      barChart.update('none');
+    }
+    if (trendChart) {
+      trendChart.options.scales.x.ticks.color = mutedColor;
+      trendChart.options.scales.y.ticks.color = mutedColor;
+      trendChart.options.scales.x.grid.color = gridColor;
+      trendChart.options.scales.y.grid.color = gridColor;
+      trendChart.update('none');
+    }
+    if (radarChart) {
+      radarChart.options.scales.r.pointLabels.color = textColor;
+      radarChart.options.scales.r.grid.color = gridColor;
+      radarChart.options.scales.r.angleLines.color = gridColor;
+      radarChart.update('none');
+    }
   }
 
   function baseChartOptions() {
@@ -652,7 +845,7 @@
         scales: {
           x: {
             ticks: {
-              color: '#9aa6a1',
+              color: chartMutedColor(),
               autoSkip: true,
               maxRotation: 0,
               minRotation: 0,
@@ -687,12 +880,12 @@
         elements: { point: { radius: 3, hoverRadius: 5 } },
         scales: {
           x: {
-            ticks: { color: '#9aa6a1', maxTicksLimit: 6 },
+            ticks: { color: chartMutedColor(), maxTicksLimit: 6 },
             grid: { color: chartGridColor() },
           },
           y: {
             ticks: {
-              color: '#9aa6a1',
+              color: chartMutedColor(),
               autoSkip: true,
               maxRotation: 0,
               minRotation: 0,
@@ -857,15 +1050,140 @@
     radarChart.update();
   }
 
+  function shapeCompanies() {
+    const source = visibleCompanies();
+    const metricKey = activeShapeMode === 'bs' ? 'totalAssets' : 'revenue';
+    const sortable = sortedByMetric(metricKey, source);
+    const fallback = source.filter(company => !sortable.some(item => item.exchangeId === company.exchangeId));
+    return sortable.concat(fallback).slice(0, 8);
+  }
+
+  function percentValue(value, total) {
+    const numeric = numberOrNull(value);
+    const base = numberOrNull(total);
+    if (numeric == null || base == null || base <= 0) return 0;
+    return Math.max(0, Math.min(100, (numeric / base) * 100));
+  }
+
+  function renderBalanceShapeCard(company, maxTotalAssets) {
+    const totalAssets = latestValue(company, 'totalAssets');
+    const netAssets = latestValue(company, 'netAssets');
+    const liabilities = totalAssets != null && netAssets != null ? Math.max(0, totalAssets - netAssets) : null;
+    const shapeScale = totalAssets != null && maxTotalAssets > 0 ? Math.max(0.34, totalAssets / maxTotalAssets) : 0.34;
+    const equityPct = percentValue(netAssets, totalAssets);
+    const liabilityPct = liabilities != null ? Math.max(0, 100 - equityPct) : 0;
+    return [
+      '<article class="financial-shape-card">',
+      '  <div class="financial-shape-card__head">',
+      `    <strong>${escapeHtml(company.label || company.serviceName)}</strong>`,
+      `    ${renderFiscalCautionBadge(company)}`,
+      '  </div>',
+      `  <div class="financial-shape-box financial-shape-box--bs" style="--shape-scale:${shapeScale.toFixed(3)}; --liability-pct:${liabilityPct.toFixed(2)}%; --equity-pct:${equityPct.toFixed(2)}%">`,
+      totalAssets == null ? '    <span class="financial-shape-box__empty">総資産未開示</span>' : [
+        '    <span class="financial-shape-segment financial-shape-segment--liability">',
+        '      <b>負債</b>',
+        `      <small>${escapeHtml(formatMetricValue(liabilities, 'totalAssets'))}</small>`,
+        '    </span>',
+        '    <span class="financial-shape-segment financial-shape-segment--equity">',
+        '      <b>純資産</b>',
+        `      <small>${escapeHtml(formatMetricValue(netAssets, 'netAssets'))}</small>`,
+        '    </span>',
+      ].join('\n'),
+      '  </div>',
+      '  <dl class="financial-shape-card__facts">',
+      `    <div><dt>総資産</dt><dd>${escapeHtml(formatMetricValue(totalAssets, 'totalAssets'))}</dd></div>`,
+      `    <div><dt>自己資本比率</dt><dd>${escapeHtml(formatMetricValue(latestValue(company, 'equityRatio'), 'equityRatio'))}</dd></div>`,
+      '  </dl>',
+      '</article>',
+    ].join('\n');
+  }
+
+  function renderProfitShapeCard(company, maxRevenue) {
+    const revenue = latestValue(company, 'revenue');
+    const operatingProfit = latestValue(company, 'operatingProfit');
+    const positiveProfit = operatingProfit != null ? Math.max(0, operatingProfit) : null;
+    const operatingCost = revenue != null && operatingProfit != null ? Math.max(0, revenue - operatingProfit) : null;
+    const loss = operatingProfit != null ? Math.max(0, Math.abs(Math.min(0, operatingProfit))) : null;
+    const shapeScale = revenue != null && maxRevenue > 0 ? Math.max(0.34, revenue / maxRevenue) : 0.34;
+    const profitPct = percentValue(positiveProfit, revenue);
+    const costPct = operatingCost != null ? Math.max(0, 100 - profitPct) : 0;
+    const lossPct = revenue != null && revenue > 0 && loss != null ? Math.min(42, Math.max(10, (loss / revenue) * 100)) : 0;
+    return [
+      '<article class="financial-shape-card">',
+      '  <div class="financial-shape-card__head">',
+      `    <strong>${escapeHtml(company.label || company.serviceName)}</strong>`,
+      `    ${renderFiscalCautionBadge(company)}`,
+      '  </div>',
+      `  <div class="financial-shape-box financial-shape-box--pl${operatingProfit != null && operatingProfit < 0 ? ' is-loss' : ''}" style="--shape-scale:${shapeScale.toFixed(3)}; --cost-pct:${costPct.toFixed(2)}%; --profit-pct:${profitPct.toFixed(2)}%; --loss-pct:${lossPct.toFixed(2)}%">`,
+      revenue == null ? '    <span class="financial-shape-box__empty">売上未開示</span>' : [
+        '    <span class="financial-shape-segment financial-shape-segment--cost">',
+        '      <b>費用</b>',
+        `      <small>${escapeHtml(operatingCost == null ? '-' : formatMetricValue(operatingCost, 'revenue'))}</small>`,
+        '    </span>',
+        operatingProfit != null && operatingProfit >= 0 ? [
+          '    <span class="financial-shape-segment financial-shape-segment--profit">',
+          '      <b>営業益</b>',
+          `      <small>${escapeHtml(formatMetricValue(operatingProfit, 'operatingProfit'))}</small>`,
+          '    </span>',
+        ].join('\n') : [
+          '    <span class="financial-shape-segment financial-shape-segment--loss">',
+          '      <b>営業損失</b>',
+          `      <small>${escapeHtml(formatMetricValue(operatingProfit, 'operatingProfit'))}</small>`,
+          '    </span>',
+        ].join('\n'),
+      ].join('\n'),
+      '  </div>',
+      '  <dl class="financial-shape-card__facts">',
+      `    <div><dt>営業収益</dt><dd>${escapeHtml(formatMetricValue(revenue, 'revenue'))}</dd></div>`,
+      `    <div><dt>営業利益率</dt><dd>${escapeHtml(formatMetricValue(latestValue(company, 'operatingMargin'), 'operatingMargin'))}</dd></div>`,
+      '  </dl>',
+      '</article>',
+    ].join('\n');
+  }
+
+  function renderShapeComparison() {
+    const target = $('financial-shape-comparison');
+    if (!target) return;
+    const rows = shapeCompanies();
+    const modeLabel = activeShapeMode === 'bs' ? 'B/Sボックス' : 'P/Lボックス';
+    if (rows.length === 0) {
+      target.innerHTML = '<p class="financial-shape-empty">会社を選択すると、財務諸表を面積と比率で比較できます。</p>';
+    } else if (activeShapeMode === 'bs') {
+      const maxTotalAssets = Math.max(...rows.map(company => latestValue(company, 'totalAssets') || 0), 1);
+      target.innerHTML = rows.map(company => renderBalanceShapeCard(company, maxTotalAssets)).join('\n');
+    } else {
+      const maxRevenue = Math.max(...rows.map(company => latestValue(company, 'revenue') || 0), 1);
+      target.innerHTML = rows.map(company => renderProfitShapeCard(company, maxRevenue)).join('\n');
+    }
+    const note = $('financial-shape-note');
+    if (note) {
+      const limitText = visibleCompanies().length > rows.length ? `表示中${visibleCompanies().length}社のうち最大${rows.length}社を表示しています。` : '';
+      note.textContent = `${modeLabel}で、会社ごとの規模差と内訳比率を同時に見ます。${limitText}`;
+    }
+    document.querySelectorAll('[data-financial-shape-mode]').forEach((button) => {
+      const active = button.getAttribute('data-financial-shape-mode') === activeShapeMode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
   function renderCompanyFilter() {
     const target = $('financial-company-filter');
     if (!target) return;
     const featuredLabel = companies.length > DEFAULT_VISIBLE_COMPANY_LIMIT
       ? `主要${DEFAULT_VISIBLE_COMPANY_LIMIT}社`
       : '全社';
+    const financePresetIds = presetCompanyIds('finance');
+    const independentIds = presetCompanyIds('independent');
+    const isPresetSelection = presetIds => presetIds.length > 0
+      && selectedIds.size === presetIds.length
+      && presetIds.every(companyId => selectedIds.has(companyId));
     const actionButtons = [
       `<button type="button" class="financial-company-chip financial-company-chip--action${isFeaturedSelection() ? ' is-active' : ''}" data-company-action="featured" aria-pressed="${isFeaturedSelection() ? 'true' : 'false'}">${escapeHtml(featuredLabel)}</button>`,
       `<button type="button" class="financial-company-chip financial-company-chip--action${selectedIds.size === companies.length ? ' is-active' : ''}" data-company-action="all" aria-pressed="${selectedIds.size === companies.length ? 'true' : 'false'}">全社</button>`,
+      `<button type="button" class="financial-company-chip financial-company-chip--action${isPresetSelection(financePresetIds) ? ' is-active' : ''}" data-company-action="finance" aria-pressed="${isPresetSelection(financePresetIds) ? 'true' : 'false'}">金融グループ</button>`,
+      `<button type="button" class="financial-company-chip financial-company-chip--action${isPresetSelection(independentIds) ? ' is-active' : ''}" data-company-action="independent" aria-pressed="${isPresetSelection(independentIds) ? 'true' : 'false'}">独立系</button>`,
+      `<button type="button" class="financial-company-chip financial-company-chip--action${selectedIds.size === 0 ? ' is-active' : ''}" data-company-action="clear" aria-pressed="${selectedIds.size === 0 ? 'true' : 'false'}">解除</button>`,
       `<span class="financial-company-filter__count" aria-live="polite">${escapeHtml(String(selectedIds.size))}/${escapeHtml(String(companies.length))}</span>`,
     ];
     const companyButtons = companies.map((company) => {
@@ -923,11 +1241,7 @@
     target.querySelectorAll('[data-company-action]').forEach((button) => {
       button.addEventListener('click', () => {
         const action = button.getAttribute('data-company-action');
-        if (action === 'all') {
-          setSelectedCompanies(companies.map(company => company.exchangeId));
-        } else {
-          setSelectedCompanies(initialSelectedCompanyIds());
-        }
+        setSelectedCompanies(presetCompanyIds(action));
       });
     });
 
@@ -958,53 +1272,58 @@
   function renderHeatmap() {
     const target = $('financial-heatmap');
     if (!target) return;
-    const rows = sortedHeatmapMetrics(metrics.filter(metric => metric.key !== 'totalAssets' || visibleCompanies().some(company => latestValue(company, metric.key) != null)));
-    const headers = sortedHeatmapCompanies();
+    const rows = sortedHeatmapCompanies();
+    const headers = sortedHeatmapMetrics(metrics.filter(metric => metric.key !== 'totalAssets' || visibleCompanies().some(company => latestValue(company, metric.key) != null)));
     target.innerHTML = [
       '<table class="financial-heatmap-table">',
       '  <thead>',
       '    <tr>',
-      '      <th>指標</th>',
-      headers.map((company) => {
-        const active = heatmapSort.kind === 'company' && heatmapSort.key === company.exchangeId;
-        const arrow = heatmapSortArrow('company', company.exchangeId);
+      '      <th>取引所</th>',
+      headers.map((metric) => {
+        const active = heatmapSort.kind === 'metric' && heatmapSort.key === metric.key;
+        const arrow = heatmapSortArrow('metric', metric.key);
         return [
           '<th>',
-          `  <button type="button" class="financial-heatmap-company-sort${active ? ' is-active' : ''}" data-heatmap-company-sort="${escapeHtml(company.exchangeId)}" aria-label="${escapeHtml(company.label || company.serviceName)}の強い指標順に並び替え">`,
-          `    <span>${escapeHtml(company.label || company.serviceName)}</span>`,
+          `  <button type="button" class="financial-heatmap-sort${active ? ' is-active' : ''}" data-heatmap-metric-sort="${escapeHtml(metric.key)}" aria-label="${escapeHtml(metric.label)}で取引所を並び替え">`,
+          `    <span>${escapeHtml(metric.shortLabel || metric.label)}</span>`,
           `    <span class="financial-heatmap-sort__arrow" aria-hidden="true">${escapeHtml(arrow)}</span>`,
           '  </button>',
+          `  <small>${escapeHtml(metric.description || '')}</small>`,
           '</th>',
         ].join('');
       }).join(''),
-      '<th class="financial-heatmap-benchmark-head">掲載社平均</th>',
       '    </tr>',
       '  </thead>',
       '  <tbody>',
-      rows.map((metric) => [
+      rows.map((company) => [
         '    <tr>',
         '      <th scope="row">',
         '        <span class="financial-heatmap-metric-line">',
-        `          <button type="button" class="financial-heatmap-sort${heatmapSort.kind === 'metric' && heatmapSort.key === metric.key ? ' is-active' : ''}" data-heatmap-metric-sort="${escapeHtml(metric.key)}" aria-label="${escapeHtml(metric.label)}で取引所を並び替え">`,
-        `            <span>${escapeHtml(metric.label)}</span>`,
-        `            <span class="financial-heatmap-sort__arrow" aria-hidden="true">${escapeHtml(heatmapSortArrow('metric', metric.key))}</span>`,
+        `          <button type="button" class="financial-heatmap-company-sort${heatmapSort.kind === 'company' && heatmapSort.key === company.exchangeId ? ' is-active' : ''}" data-heatmap-company-sort="${escapeHtml(company.exchangeId)}" aria-label="${escapeHtml(company.label || company.serviceName)}の強い指標順に並び替え">`,
+        `            <span>${escapeHtml(company.label || company.serviceName)}</span>`,
+        `            <span class="financial-heatmap-sort__arrow" aria-hidden="true">${escapeHtml(heatmapSortArrow('company', company.exchangeId))}</span>`,
         '          </button>',
-        `          ${renderMetricHelp(metric)}`,
+        `          ${renderFiscalCautionBadge(company)}`,
         '        </span>',
-        `        <small>${escapeHtml(metric.description || '')}</small>`,
+        `        <small>${escapeHtml(company.fiscalYearLabel || '')}</small>`,
         '      </th>',
-        headers.map((company) => {
+        headers.map((metric) => {
           const value = latestValue(company, metric.key);
           const negativeClass = value != null && value < 0 ? ' is-negative' : '';
-          return `<td class="financial-heatmap-cell${negativeClass}" data-company="${escapeHtml(company.label || company.serviceName)}" style="background:${heatColor(value, metric.key)}"><strong>${escapeHtml(formatMetricValue(value, metric.key))}</strong><span>${escapeHtml(company.fiscalYearLabel || '')}</span></td>`;
+          return `<td class="financial-heatmap-cell${negativeClass}" data-label="${escapeHtml(metric.label)}" style="background:${heatColor(value, metric.key)}"><strong>${escapeHtml(formatMetricValue(value, metric.key))}</strong><span>${escapeHtml(metric.description || '')}</span></td>`;
         }).join(''),
-        (() => {
-          const value = averageValue(metric.key, companies);
-          const negativeClass = value != null && value < 0 ? ' is-negative' : '';
-          return `<td class="financial-heatmap-cell financial-heatmap-cell--benchmark${negativeClass}" data-company="掲載社平均" style="background:${heatColor(value, metric.key)}"><strong>${escapeHtml(formatMetricValue(value, metric.key))}</strong><span>${escapeHtml(companies.length)}社平均</span></td>`;
-        })(),
         '    </tr>',
       ].join('\n')).join('\n'),
+      headers.length > 0 ? [
+        '    <tr class="financial-heatmap-benchmark-row">',
+        '      <th scope="row"><span class="financial-heatmap-metric-line"><span class="financial-heatmap-benchmark-label">掲載社平均</span></span><small>全掲載社ベンチマーク</small></th>',
+        headers.map((metric) => {
+          const value = averageValue(metric.key, companies);
+          const negativeClass = value != null && value < 0 ? ' is-negative' : '';
+          return `<td class="financial-heatmap-cell financial-heatmap-cell--benchmark${negativeClass}" data-label="${escapeHtml(metric.label)}" style="background:${heatColor(value, metric.key)}"><strong>${escapeHtml(formatMetricValue(value, metric.key))}</strong><span>${escapeHtml(companies.length)}社平均</span></td>`;
+        }).join(''),
+        '    </tr>',
+      ].join('\n') : '',
       '  </tbody>',
       '</table>',
     ].join('\n');
@@ -1047,8 +1366,18 @@
 
   function renderSpotlight() {
     const target = $('financial-spotlight');
-    const company = companyById(focusId);
-    if (!target || !company) return;
+    const company = findCompanyById(focusId);
+    if (!target) return;
+    if (!company || !selectedIds.has(company.exchangeId)) {
+      target.innerHTML = [
+        '<div class="financial-spotlight__empty">',
+        '  <p class="market-insight-card__eyebrow">Focus</p>',
+        '  <h3>会社を選択してください</h3>',
+        '  <p>会社フィルターで1社以上を選ぶと、ここに財務サマリーと注意点を表示します。</p>',
+        '</div>',
+      ].join('\n');
+      return;
+    }
     const facts = [
       ['営業収益 / 売上高', formatMetricValue(latestValue(company, 'revenue'), 'revenue')],
       ['営業利益', formatMetricValue(latestValue(company, 'operatingProfit'), 'operatingProfit')],
@@ -1061,7 +1390,7 @@
       '<div class="financial-spotlight__header">',
       '  <div>',
       '    <p class="market-insight-card__eyebrow">Focus</p>',
-      `    <h3>${escapeHtml(company.label || company.serviceName)}</h3>`,
+      `    <h3>${escapeHtml(company.label || company.serviceName)}${renderFiscalCautionBadge(company)}</h3>`,
       `    <p>${escapeHtml(company.companyName || '')}</p>`,
       '  </div>',
       `  <a class="btn btn-secondary financial-spotlight__link" href="${escapeHtml(company.path)}">詳細</a>`,
@@ -1132,42 +1461,43 @@
   }
 
   function initFinancialTooltips() {
+    const tooltipSelector = '.financial-help, .financial-tooltip-trigger';
     document.addEventListener('pointerover', (event) => {
-      const anchor = event.target.closest && event.target.closest('.financial-help');
+      const anchor = event.target.closest && event.target.closest(tooltipSelector);
       if (!anchor || (event.relatedTarget && anchor.contains(event.relatedTarget))) return;
       showTooltip(anchor);
     });
 
     document.addEventListener('pointerout', (event) => {
-      const anchor = event.target.closest && event.target.closest('.financial-help');
+      const anchor = event.target.closest && event.target.closest(tooltipSelector);
       if (!anchor || (event.relatedTarget && anchor.contains(event.relatedTarget))) return;
       hideTooltip(anchor);
     });
 
     document.addEventListener('mouseover', (event) => {
-      const anchor = event.target.closest && event.target.closest('.financial-help');
+      const anchor = event.target.closest && event.target.closest(tooltipSelector);
       if (!anchor || (event.relatedTarget && anchor.contains(event.relatedTarget))) return;
       showTooltip(anchor);
     });
 
     document.addEventListener('mouseout', (event) => {
-      const anchor = event.target.closest && event.target.closest('.financial-help');
+      const anchor = event.target.closest && event.target.closest(tooltipSelector);
       if (!anchor || (event.relatedTarget && anchor.contains(event.relatedTarget))) return;
       hideTooltip(anchor);
     });
 
     document.addEventListener('focusin', (event) => {
-      const anchor = event.target.closest && event.target.closest('.financial-help');
+      const anchor = event.target.closest && event.target.closest(tooltipSelector);
       if (anchor) showTooltip(anchor);
     });
 
     document.addEventListener('focusout', (event) => {
-      const anchor = event.target.closest && event.target.closest('.financial-help');
+      const anchor = event.target.closest && event.target.closest(tooltipSelector);
       if (anchor) hideTooltip(anchor);
     });
 
     document.addEventListener('click', (event) => {
-      const anchor = event.target.closest && event.target.closest('.financial-help');
+      const anchor = event.target.closest && event.target.closest(tooltipSelector);
       if (!anchor) {
         hideTooltip();
         return;
@@ -1187,8 +1517,20 @@
   }
 
   function updateMetricControls() {
+    const activeGroup = activeMetricGroupConfig();
+    if (!activeGroup.metricKeys.includes(activeMetric)) {
+      activeMetric = activeGroup.metricKeys.find(metricKey => metricMap.has(metricKey)) || activeMetric;
+    }
+    document.querySelectorAll('[data-financial-metric-group]').forEach((button) => {
+      const active = button.getAttribute('data-financial-metric-group') === activeMetricGroup;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
     document.querySelectorAll('[data-financial-metric]').forEach((button) => {
-      const active = button.getAttribute('data-financial-metric') === activeMetric;
+      const metricKey = button.getAttribute('data-financial-metric');
+      const visible = activeGroup.metricKeys.includes(metricKey);
+      const active = metricKey === activeMetric;
+      button.hidden = !visible;
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
@@ -1209,7 +1551,24 @@
   function setMetric(metricKey) {
     if (!metricMap.has(metricKey)) return;
     activeMetric = metricKey;
+    activeMetricGroup = metricGroupFor(metricKey).key;
     refresh();
+  }
+
+  function setMetricGroup(groupKey) {
+    const group = metricGroups.find(item => item.key === groupKey);
+    if (!group) return;
+    activeMetricGroup = group.key;
+    if (!group.metricKeys.includes(activeMetric)) {
+      activeMetric = group.metricKeys.find(metricKey => metricMap.has(metricKey)) || activeMetric;
+    }
+    refresh();
+  }
+
+  function setShapeMode(mode) {
+    if (mode !== 'bs' && mode !== 'pl') return;
+    activeShapeMode = mode;
+    renderShapeComparison();
   }
 
   function setFocus(companyId) {
@@ -1220,16 +1579,27 @@
   }
 
   function refresh() {
-    if (!selectedIds.has(focusId)) focusId = Array.from(selectedIds)[0] || (companies[0] && companies[0].exchangeId);
+    if (selectedIds.size === 0) {
+      focusId = null;
+    } else if (!selectedIds.has(focusId)) {
+      focusId = Array.from(selectedIds)[0] || (companies[0] && companies[0].exchangeId);
+    }
     renderCompanyFilter();
     updateMetricControls();
     updateBarChart();
     updateTrendChart();
     updateRadarChart();
+    renderShapeComparison();
     renderHeatmap();
     renderRanking();
     renderSpotlight();
     renderAssetBalances();
+  }
+
+  function initMetricGroups() {
+    document.querySelectorAll('[data-financial-metric-group]').forEach((button) => {
+      button.addEventListener('click', () => setMetricGroup(button.getAttribute('data-financial-metric-group')));
+    });
   }
 
   function initMetricTabs() {
@@ -1238,12 +1608,21 @@
     });
   }
 
+  function initShapeModeControls() {
+    document.querySelectorAll('[data-financial-shape-mode]').forEach((button) => {
+      button.addEventListener('click', () => setShapeMode(button.getAttribute('data-financial-shape-mode')));
+    });
+  }
+
   if (typeof Chart !== 'undefined') {
     Chart.defaults.font.family = '"Inter", "Noto Sans JP", system-ui, sans-serif';
     Chart.defaults.color = chartTextColor();
   }
 
+  initThemeToggle();
+  initMetricGroups();
   initMetricTabs();
+  initShapeModeControls();
   initFinancialTooltips();
   buildBarChart();
   buildTrendChart();
