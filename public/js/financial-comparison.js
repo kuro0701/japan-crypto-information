@@ -466,6 +466,113 @@
     return (entry.assets || []).find(asset => asset.symbol === symbol) || null;
   }
 
+  function assetDisplayName(row, symbol = activeAssetSymbol) {
+    if (row && row.symbol === '__total__') return '総額';
+    if (row && row.symbol) return `${row.symbol}${row.name ? ` / ${row.name}` : ''}`;
+    return assetLabel(symbol);
+  }
+
+  function assetValueFor(row, kind) {
+    if (!row) return null;
+    return numberOrNull(row[`${kind}ValueMJPY`]);
+  }
+
+  function assetCombinedValue(row) {
+    if (!row) return null;
+    const combined = numberOrNull(row.combinedValueMJPY);
+    if (combined != null) return combined;
+    const customer = assetValueFor(row, 'customer');
+    const company = assetValueFor(row, 'company');
+    if (customer != null && company != null) return customer + company;
+    return null;
+  }
+
+  function isFullAssetDisclosureRow(row) {
+    if (!row) return false;
+    return assetValueFor(row, 'customer') != null && assetValueFor(row, 'company') != null;
+  }
+
+  function assetButterflyRows() {
+    return visibleCryptoAssetEntries()
+      .map((entry) => {
+        const row = assetRowForEntry(entry, activeAssetSymbol);
+        const customerValue = assetValueFor(row, 'customer');
+        const companyValue = assetValueFor(row, 'company');
+        const company = findCryptoAssetCompany(entry);
+        const companyLabel = company ? company.label : entry.exchangeId;
+        return {
+          entry,
+          row,
+          company,
+          companyLabel,
+          customerValue,
+          companyValue,
+          combinedValue: assetCombinedValue(row),
+          source: firstSourceLink(entry),
+        };
+      })
+      .filter(item => isFullAssetDisclosureRow(item.row))
+      .sort((a, b) => {
+        const aTotal = (a.customerValue || 0) + (a.companyValue || 0);
+        const bTotal = (b.customerValue || 0) + (b.companyValue || 0);
+        if (aTotal !== bTotal) return bTotal - aTotal;
+        return String(a.companyLabel).localeCompare(String(b.companyLabel));
+      });
+  }
+
+  function hiddenAssetDisclosureRows() {
+    const primaryIds = new Set(assetButterflyRows().map(item => item.entry.exchangeId));
+    return visibleCryptoAssetEntries()
+      .filter(entry => !primaryIds.has(entry.exchangeId))
+      .map((entry) => {
+        const row = assetRowForEntry(entry, activeAssetSymbol);
+        const company = findCryptoAssetCompany(entry);
+        const companyLabel = company ? company.label : entry.exchangeId;
+        const customerValue = assetValueFor(row, 'customer');
+        const companyValue = assetValueFor(row, 'company');
+        const combinedValue = assetCombinedValue(row);
+        let status = '銘柄別未開示';
+        let value = null;
+        if (row && row.isTotal) {
+          status = '区分別合計';
+          value = combinedValue;
+        } else if (row && row.combinedValueMJPY != null) {
+          status = '銘柄合計のみ';
+          value = combinedValue;
+        } else if (row && companyValue != null) {
+          status = '自己のみ銘柄別';
+          value = companyValue;
+        } else if (row && customerValue != null) {
+          status = '顧客のみ銘柄別';
+          value = customerValue;
+        } else if (entry.totals && (entry.totals.combinedValueMJPY != null || entry.totals.customerValueMJPY != null || entry.totals.companyValueMJPY != null)) {
+          value = numberOrNull(entry.totals.combinedValueMJPY)
+            || [entry.totals.customerValueMJPY, entry.totals.companyValueMJPY].map(numberOrNull).filter(item => item != null).reduce((sum, item) => sum + item, 0);
+        }
+        return {
+          entry,
+          row,
+          company,
+          companyLabel,
+          status,
+          value,
+          source: firstSourceLink(entry),
+        };
+      })
+      .sort((a, b) => {
+        const aValue = numberOrNull(a.value) || 0;
+        const bValue = numberOrNull(b.value) || 0;
+        if (aValue !== bValue) return bValue - aValue;
+        return String(a.companyLabel).localeCompare(String(b.companyLabel));
+      });
+  }
+
+  function assetDisclosureCounts() {
+    const primaryCount = assetButterflyRows().length;
+    const hiddenCount = hiddenAssetDisclosureRows().length;
+    return { primaryCount, hiddenCount };
+  }
+
   function ratioText(companyValue, customerValue) {
     const companyNumber = numberOrNull(companyValue);
     const customerNumber = numberOrNull(customerValue);
@@ -526,21 +633,20 @@
       target.innerHTML = '<p class="financial-asset-empty">暗号資産の預かり・自己保有データは準備中です。</p>';
       return;
     }
-    const customerLeader = entries
+    const rows = assetButterflyRows();
+    const hiddenRows = hiddenAssetDisclosureRows();
+    const customerLeader = rows
       .slice()
-      .filter(entry => numberOrNull(entry.totals && entry.totals.customerValueMJPY) != null)
-      .sort((a, b) => Number(b.totals.customerValueMJPY) - Number(a.totals.customerValueMJPY))[0];
-    const companyLeader = entries
+      .sort((a, b) => (b.customerValue || 0) - (a.customerValue || 0))[0];
+    const ratioLeader = rows
       .slice()
-      .filter(entry => numberOrNull(entry.totals && entry.totals.companyValueMJPY) != null)
-      .sort((a, b) => Number(b.totals.companyValueMJPY) - Number(a.totals.companyValueMJPY))[0];
-    const byAssetCount = entries.filter(entry => (entry.assets || []).length > 0).length;
-    const combinedByAssetCount = entries.filter(entry => entry.coverage && entry.coverage.combinedByAsset).length;
+      .filter(item => item.customerValue > 0 && item.companyValue != null)
+      .sort((a, b) => (b.companyValue / b.customerValue) - (a.companyValue / a.customerValue))[0];
     const summaryCards = [
-      ['掲載社', `${entries.length}社`, `${byAssetCount}社で銘柄別表あり`],
-      ['顧客預かり最大', customerLeader ? (findCryptoAssetCompany(customerLeader) || customerLeader).label || customerLeader.exchangeId : '-', customerLeader ? formatAssetValue(customerLeader.totals.customerValueMJPY) : '-'],
-      ['自己保有最大', companyLeader ? (findCryptoAssetCompany(companyLeader) || companyLeader).label || companyLeader.exchangeId : '-', companyLeader ? formatAssetValue(companyLeader.totals.companyValueMJPY) : '-'],
-      ['開示粒度', `${combinedByAssetCount}社`, '合計銘柄別まで確認'],
+      ['ミラー表示', `${rows.length}社`, `${assetLabel(activeAssetSymbol)}を顧客/自己で銘柄別開示`],
+      ['顧客預かり最大', customerLeader ? customerLeader.companyLabel : '-', customerLeader ? formatAssetValue(customerLeader.customerValue) : '-'],
+      ['自己/顧客比率', ratioLeader ? ratioLeader.companyLabel : '-', ratioLeader ? ratioText(ratioLeader.companyValue, ratioLeader.customerValue) : '-'],
+      ['退避した開示', `${hiddenRows.length}社`, '未開示・片側開示・合計のみ'],
     ];
     target.innerHTML = summaryCards.map(([label, value, meta]) => [
       '<article class="financial-asset-summary-card">',
@@ -651,6 +757,102 @@
     ].join('\n');
   }
 
+  function barWidthPercent(value, maxValue) {
+    const numeric = numberOrNull(value);
+    if (numeric == null || numeric <= 0 || !maxValue) return 0;
+    return Math.max(2.5, Math.min(100, (numeric / maxValue) * 100));
+  }
+
+  function renderAssetDisclosureDrawer(rows) {
+    if (!rows.length) {
+      return '<p class="financial-asset-empty">この銘柄は、表示中の掲載社すべてで顧客/自己の銘柄別内訳を確認できます。</p>';
+    }
+    const label = assetLabel(activeAssetSymbol);
+    return [
+      '<details class="financial-asset-disclosure-drawer">',
+      '  <summary>',
+      `    <span>${escapeHtml(label)}の銘柄別内訳が揃っていない取引所</span>`,
+      `    <strong>${escapeHtml(String(rows.length))}社</strong>`,
+      '  </summary>',
+      '  <div class="financial-asset-disclosure-list">',
+      rows.map(({ entry, row, companyLabel, status, value, source }) => [
+        '<article class="financial-asset-disclosure-row">',
+        '  <div>',
+        `    <strong>${escapeHtml(companyLabel)}</strong>`,
+        `    <span>${escapeHtml(entry.reportingDate || entry.fiscalYearLabel || '')}</span>`,
+        '  </div>',
+        `  <span class="financial-asset-disclosure">${escapeHtml(status)}</span>`,
+        `  <span class="financial-asset-disclosure-row__value">${escapeHtml(value == null ? (row ? '-' : '総額のみ') : formatAssetValue(value))}</span>`,
+        source ? `  <a class="table-link" href="${escapeHtml(source.href)}" target="_blank" rel="noopener">${escapeHtml(source.title)}</a>` : '  <span class="financial-asset-disclosure-row__source">-</span>',
+        '</article>',
+      ].join('\n')).join('\n'),
+      '  </div>',
+      '</details>',
+    ].join('\n');
+  }
+
+  function renderAssetButterflyChart() {
+    const target = $('financial-asset-balance-table');
+    if (!target) return;
+    const rows = assetButterflyRows();
+    const hiddenRows = hiddenAssetDisclosureRows();
+    if (rows.length === 0) {
+      target.innerHTML = [
+        '<div class="financial-asset-butterfly financial-asset-butterfly--empty">',
+        `  <p class="financial-asset-empty">${escapeHtml(assetLabel(activeAssetSymbol))}は、顧客預かりと自己保有の銘柄別内訳を両方確認できる掲載社がありません。</p>`,
+        '</div>',
+        renderAssetDisclosureDrawer(hiddenRows),
+      ].join('\n');
+      return;
+    }
+    const maxSideValue = Math.max(...rows.flatMap(item => [item.customerValue || 0, item.companyValue || 0]), 1);
+    const leader = rows[0];
+    target.innerHTML = [
+      '<div class="financial-asset-butterfly" role="group" aria-label="顧客預かり暗号資産と自己保有暗号資産の左右対比グラフ">',
+      '  <div class="financial-asset-butterfly__head">',
+      '    <span>顧客預かり</span>',
+      `    <strong>${escapeHtml(assetLabel(activeAssetSymbol))}</strong>`,
+      '    <span>自己保有</span>',
+      '  </div>',
+      '  <div class="financial-asset-butterfly__rows">',
+      rows.map(({ entry, row, companyLabel, customerValue, companyValue, source }) => {
+        const customerWidth = barWidthPercent(customerValue, maxSideValue);
+        const companyWidth = barWidthPercent(companyValue, maxSideValue);
+        return [
+          '<article class="financial-asset-butterfly-row">',
+          '  <div class="financial-asset-butterfly-row__company">',
+          `    <strong>${escapeHtml(companyLabel)}</strong>`,
+          `    <span>${escapeHtml(entry.reportingDate || entry.fiscalYearLabel || '')}</span>`,
+          '  </div>',
+          '  <div class="financial-asset-butterfly-side financial-asset-butterfly-side--customer">',
+          `    <span class="financial-asset-butterfly-bar financial-asset-butterfly-bar--customer" style="--asset-bar-width:${customerWidth.toFixed(2)}%">`,
+          `      <b>${escapeHtml(formatAssetValue(customerValue))}</b>`,
+          '    </span>',
+          '  </div>',
+          '  <div class="financial-asset-butterfly-axis" aria-hidden="true"></div>',
+          '  <div class="financial-asset-butterfly-side financial-asset-butterfly-side--company">',
+          `    <span class="financial-asset-butterfly-bar financial-asset-butterfly-bar--company" style="--asset-bar-width:${companyWidth.toFixed(2)}%">`,
+          `      <b>${escapeHtml(formatAssetValue(companyValue))}</b>`,
+          '    </span>',
+          '  </div>',
+          '  <div class="financial-asset-butterfly-row__ratio">',
+          `    <strong>${escapeHtml(ratioText(companyValue, customerValue))}</strong>`,
+          '    <span>自己/顧客</span>',
+          '  </div>',
+          '  <div class="financial-asset-butterfly-row__meta">',
+          `    <span>${escapeHtml(assetDisplayName(row))}</span>`,
+          source ? `    <a class="table-link" href="${escapeHtml(source.href)}" target="_blank" rel="noopener">${escapeHtml(source.title)}</a>` : '',
+          '  </div>',
+          '</article>',
+        ].join('\n');
+      }).join('\n'),
+      '  </div>',
+      leader ? `  <p class="financial-asset-butterfly__caption">最大値は${escapeHtml(leader.companyLabel)}の顧客預かり ${escapeHtml(formatAssetValue(leader.customerValue))}。左右のバーは同じ金額スケールです。</p>` : '',
+      '</div>',
+      renderAssetDisclosureDrawer(hiddenRows),
+    ].join('\n');
+  }
+
   function renderAssetBalanceNote() {
     const target = $('financial-asset-balance-note');
     if (!target) return;
@@ -659,13 +861,14 @@
     entries.forEach((entry) => {
       (entry.notes || []).slice(0, 1).forEach(note => notes.add(note));
     });
-    target.textContent = `表示中: ${assetLabel(activeAssetSymbol)}。${Array.from(notes).slice(0, 3).join(' ')}`;
+    const counts = assetDisclosureCounts();
+    target.textContent = `表示中: ${assetLabel(activeAssetSymbol)}。ミラーチャートは顧客預かり・自己保有を同じ銘柄単位で確認できる${counts.primaryCount}社のみ。未開示・片側開示の${counts.hiddenCount}社は下部に格納しています。${Array.from(notes).slice(0, 2).join(' ')}`;
   }
 
   function renderAssetBalances() {
     renderAssetBalanceSummary();
     renderAssetBalanceControls();
-    renderAssetBalanceTable();
+    renderAssetButterflyChart();
     renderAssetBalanceNote();
   }
 
@@ -1051,11 +1254,11 @@
   }
 
   function shapeCompanies() {
-    const source = visibleCompanies();
+    const source = companies;
     const metricKey = activeShapeMode === 'bs' ? 'totalAssets' : 'revenue';
     const sortable = sortedByMetric(metricKey, source);
     const fallback = source.filter(company => !sortable.some(item => item.exchangeId === company.exchangeId));
-    return sortable.concat(fallback).slice(0, 8);
+    return sortable.concat(fallback);
   }
 
   function percentValue(value, total) {
@@ -1069,7 +1272,10 @@
     const totalAssets = latestValue(company, 'totalAssets');
     const netAssets = latestValue(company, 'netAssets');
     const liabilities = totalAssets != null && netAssets != null ? Math.max(0, totalAssets - netAssets) : null;
-    const shapeScale = totalAssets != null && maxTotalAssets > 0 ? Math.max(0.34, totalAssets / maxTotalAssets) : 0.34;
+    const shapeScale = totalAssets != null && maxTotalAssets > 0 ? Math.max(0, totalAssets / maxTotalAssets) : 0;
+    const sideScale = shapeScale > 0 ? Math.sqrt(shapeScale) : 0;
+    const widthPct = Math.max(3.5, sideScale * 100);
+    const heightPx = Math.max(18, sideScale * 246);
     const equityPct = percentValue(netAssets, totalAssets);
     const liabilityPct = liabilities != null ? Math.max(0, 100 - equityPct) : 0;
     return [
@@ -1078,8 +1284,12 @@
       `    <strong>${escapeHtml(company.label || company.serviceName)}</strong>`,
       `    ${renderFiscalCautionBadge(company)}`,
       '  </div>',
-      `  <div class="financial-shape-box financial-shape-box--bs" style="--shape-scale:${shapeScale.toFixed(3)}; --liability-pct:${liabilityPct.toFixed(2)}%; --equity-pct:${equityPct.toFixed(2)}%">`,
+      `  <div class="financial-shape-box financial-shape-box--bs" style="--shape-scale:${shapeScale.toFixed(5)}; --shape-width:${widthPct.toFixed(2)}%; --shape-height:${heightPx.toFixed(2)}px; --liability-pct:${liabilityPct.toFixed(2)}%; --equity-pct:${equityPct.toFixed(2)}%">`,
       totalAssets == null ? '    <span class="financial-shape-box__empty">総資産未開示</span>' : [
+        '    <span class="financial-shape-box__value">',
+        '      <b>総資産</b>',
+        `      <small>${escapeHtml(compactMetricValue(totalAssets, 'totalAssets'))}</small>`,
+        '    </span>',
         '    <span class="financial-shape-segment financial-shape-segment--liability">',
         '      <b>負債</b>',
         `      <small>${escapeHtml(formatMetricValue(liabilities, 'totalAssets'))}</small>`,
@@ -1104,18 +1314,28 @@
     const positiveProfit = operatingProfit != null ? Math.max(0, operatingProfit) : null;
     const operatingCost = revenue != null && operatingProfit != null ? Math.max(0, revenue - operatingProfit) : null;
     const loss = operatingProfit != null ? Math.max(0, Math.abs(Math.min(0, operatingProfit))) : null;
-    const shapeScale = revenue != null && maxRevenue > 0 ? Math.max(0.34, revenue / maxRevenue) : 0.34;
+    const revenueBase = revenue != null && revenue > 0 ? revenue : null;
+    const shapeScale = revenueBase != null && maxRevenue > 0 ? Math.max(0, revenueBase / maxRevenue) : 0;
+    const sideScale = shapeScale > 0 ? Math.sqrt(shapeScale) : 0;
+    const widthPct = Math.max(3.5, sideScale * 100);
+    const heightPx = Math.max(18, sideScale * 246);
     const profitPct = percentValue(positiveProfit, revenue);
-    const costPct = operatingCost != null ? Math.max(0, 100 - profitPct) : 0;
     const lossPct = revenue != null && revenue > 0 && loss != null ? Math.min(42, Math.max(10, (loss / revenue) * 100)) : 0;
+    const costPct = operatingCost != null
+      ? Math.max(0, 100 - (operatingProfit != null && operatingProfit < 0 ? lossPct : profitPct))
+      : 0;
     return [
       '<article class="financial-shape-card">',
       '  <div class="financial-shape-card__head">',
       `    <strong>${escapeHtml(company.label || company.serviceName)}</strong>`,
       `    ${renderFiscalCautionBadge(company)}`,
       '  </div>',
-      `  <div class="financial-shape-box financial-shape-box--pl${operatingProfit != null && operatingProfit < 0 ? ' is-loss' : ''}" style="--shape-scale:${shapeScale.toFixed(3)}; --cost-pct:${costPct.toFixed(2)}%; --profit-pct:${profitPct.toFixed(2)}%; --loss-pct:${lossPct.toFixed(2)}%">`,
-      revenue == null ? '    <span class="financial-shape-box__empty">売上未開示</span>' : [
+      `  <div class="financial-shape-box financial-shape-box--pl${operatingProfit != null && operatingProfit < 0 ? ' is-loss' : ''}" style="--shape-scale:${shapeScale.toFixed(5)}; --shape-width:${widthPct.toFixed(2)}%; --shape-height:${heightPx.toFixed(2)}px; --cost-pct:${costPct.toFixed(2)}%; --profit-pct:${profitPct.toFixed(2)}%; --loss-pct:${lossPct.toFixed(2)}%">`,
+      revenue == null || revenue <= 0 ? `    <span class="financial-shape-box__empty">${escapeHtml(revenue == null ? '売上未開示' : '営業収益がマイナス')}</span>` : [
+        '    <span class="financial-shape-box__value">',
+        '      <b>営業収益</b>',
+        `      <small>${escapeHtml(compactMetricValue(revenue, 'revenue'))}</small>`,
+        '    </span>',
         '    <span class="financial-shape-segment financial-shape-segment--cost">',
         '      <b>費用</b>',
         `      <small>${escapeHtml(operatingCost == null ? '-' : formatMetricValue(operatingCost, 'revenue'))}</small>`,
@@ -1144,21 +1364,47 @@
   function renderShapeComparison() {
     const target = $('financial-shape-comparison');
     if (!target) return;
+    target.classList.add('is-morphing');
     const rows = shapeCompanies();
     const modeLabel = activeShapeMode === 'bs' ? 'B/Sボックス' : 'P/Lボックス';
     if (rows.length === 0) {
       target.innerHTML = '<p class="financial-shape-empty">会社を選択すると、財務諸表を面積と比率で比較できます。</p>';
     } else if (activeShapeMode === 'bs') {
       const maxTotalAssets = Math.max(...rows.map(company => latestValue(company, 'totalAssets') || 0), 1);
-      target.innerHTML = rows.map(company => renderBalanceShapeCard(company, maxTotalAssets)).join('\n');
+      const leader = rows.find(company => (latestValue(company, 'totalAssets') || 0) === maxTotalAssets);
+      target.innerHTML = [
+        '<div class="financial-shape-scale-guide">',
+        '  <span><b>面積</b>総資産</span>',
+        '  <span><b>ゴールド</b>純資産</span>',
+        leader ? `  <span><b>最大</b>${escapeHtml(leader.label || leader.serviceName)} ${escapeHtml(compactMetricValue(maxTotalAssets, 'totalAssets'))}</span>` : '',
+        '</div>',
+        '<div class="financial-shape-board">',
+        rows.map(company => renderBalanceShapeCard(company, maxTotalAssets)).join('\n'),
+        '</div>',
+      ].join('\n');
     } else {
-      const maxRevenue = Math.max(...rows.map(company => latestValue(company, 'revenue') || 0), 1);
-      target.innerHTML = rows.map(company => renderProfitShapeCard(company, maxRevenue)).join('\n');
+      const maxRevenue = Math.max(...rows.map(company => Math.max(0, latestValue(company, 'revenue') || 0)), 1);
+      const leader = rows.find(company => Math.max(0, latestValue(company, 'revenue') || 0) === maxRevenue);
+      target.innerHTML = [
+        '<div class="financial-shape-scale-guide">',
+        '  <span><b>面積</b>営業収益</span>',
+        '  <span><b>ゴールド</b>営業利益</span>',
+        leader ? `  <span><b>最大</b>${escapeHtml(leader.label || leader.serviceName)} ${escapeHtml(compactMetricValue(maxRevenue, 'revenue'))}</span>` : '',
+        '</div>',
+        '<div class="financial-shape-board">',
+        rows.map(company => renderProfitShapeCard(company, maxRevenue)).join('\n'),
+        '</div>',
+      ].join('\n');
     }
+    window.requestAnimationFrame(() => {
+      target.classList.remove('is-morphing');
+    });
     const note = $('financial-shape-note');
     if (note) {
-      const limitText = visibleCompanies().length > rows.length ? `表示中${visibleCompanies().length}社のうち最大${rows.length}社を表示しています。` : '';
-      note.textContent = `${modeLabel}で、会社ごとの規模差と内訳比率を同時に見ます。${limitText}`;
+      const basisText = activeShapeMode === 'bs'
+        ? '総資産の面積と、純資産のゴールド厚みを同時に見ます。'
+        : '営業収益の面積と、営業利益のゴールド厚みを同時に見ます。';
+      note.textContent = `${modeLabel}で、掲載${companies.length}社全体の${basisText}面積は掲載社全体の最大値を100として相対表示しています。`;
     }
     document.querySelectorAll('[data-financial-shape-mode]').forEach((button) => {
       const active = button.getAttribute('data-financial-shape-mode') === activeShapeMode;
