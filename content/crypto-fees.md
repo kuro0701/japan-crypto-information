@@ -2,7 +2,7 @@
 title: 暗号資産の手数料の見方
 description: 暗号資産の取引手数料、販売所スプレッド、入出金手数料、maker・taker の違いを初心者向けに整理します。
 date: 2026-04-29
-updated: 2026-06-03
+updated: 2026-06-05
 author: 国内暗号資産取引所ナビ
 slug: crypto-fees
 path: /learn/crypto-fees
@@ -11,6 +11,27 @@ path: /learn/crypto-fees
 暗号資産取引所を比較するとき、手数料だけを見ても実質コストは分かりません。取引手数料、販売所<span class="article-term" data-term-key="sales-spread">スプレッド</span>、入出金手数料、送金手数料、キャンペーン条件を分けて見る必要があります。
 
 特に「取引手数料無料」という表示を見ると安く感じますが、販売所では [スプレッド](/learn/spread) が実質コストになることがあります。取引所では、手数料に加えて [スリッページ](/learn/slippage) も確認が必要です。
+
+<div class="quick-recommendation-grid" aria-label="目的別のクイックおすすめ">
+  <a class="quick-recommendation-card quick-recommendation-card--free" href="#jpy-withdrawal-fee-comparison">
+    <span class="quick-recommendation-card__icon" aria-hidden="true">🏆</span>
+    <span>とにかく手数料無料にこだわるなら</span>
+    <strong>GMOコイン</strong>
+    <small>通常の日本円出金は無料。<span class="article-term" data-term-key="large-withdrawal">大口出金</span>は条件を確認。</small>
+  </a>
+  <a class="quick-recommendation-card quick-recommendation-card--bank" href="#jpy-withdrawal-fee-comparison">
+    <span class="quick-recommendation-card__icon" aria-hidden="true">🏦</span>
+    <span>三井住友銀行ユーザーなら</span>
+    <strong>bitFlyer</strong>
+    <small>3万円未満なら 220円、3万円以上なら 440円。</small>
+  </a>
+  <a class="quick-recommendation-card quick-recommendation-card--pay" href="#jpy-withdrawal-fee-comparison">
+    <span class="quick-recommendation-card__icon" aria-hidden="true">📱</span>
+    <span>PayPay経済圏なら</span>
+    <strong>Binance Japan</strong>
+    <small>PayPayマネー連携の出金は 110円/回。</small>
+  </a>
+</div>
 
 <div class="fee-summary-strip" aria-label="暗号資産の実質コストを見る3つの入口">
   <div class="fee-summary-item">
@@ -105,6 +126,75 @@ path: /learn/crypto-fees
 暗号資産を買うコストだけでなく、日本円の入金、出金、暗号資産の送金にも手数料がかかる場合があります。頻繁に入出金する人や、外部ウォレットへ送金する人はここも大切です。
 
 比較するときは、1回の売買だけでなく、口座へ入金して、買って、必要なら送金または出金するまでの総コストで考えると現実に近くなります。
+
+<span id="jpy-withdrawal-fee-comparison"></span>
+
+## 日本円出金手数料のリアルタイム比較
+
+日本円を銀行口座やPayPayマネーへ戻す予定がある場合は、出金先銀行や出金額によって手数料が変わることがあります。下の比較は、主要取引所の公式公開ページで確認できる範囲をもとに、出金額と銀行条件に合わせて安い順に並び替えます。確認日は 2026年6月5日です。
+
+<section class="jpy-withdrawal-tool" data-jpy-withdrawal-tool aria-labelledby="jpy-withdrawal-tool-title">
+  <div class="jpy-withdrawal-tool__header">
+    <div>
+      <p class="fee-visual__eyebrow">JPY Withdrawal</p>
+      <h3 id="jpy-withdrawal-tool-title">出金額を入れると、手数料が安い順に並びます</h3>
+    </div>
+    <p data-jpy-withdrawal-updated>公式公開情報をもとにした参考比較。出金前は公式画面で最終確認してください。</p>
+  </div>
+
+  <div class="jpy-withdrawal-beginner beginner-only" aria-label="初心者向けの出金注意点">
+    <div class="jpy-withdrawal-beginner__item">
+      <span>1</span>
+      <strong>口座名義を合わせる</strong>
+      <small>取引所の登録名義と出金先口座の名義が違うと、出金できない場合があります。</small>
+    </div>
+    <div class="jpy-withdrawal-beginner__item">
+      <span>2</span>
+      <strong>手数料と最低金額を見る</strong>
+      <small>少額では固定手数料の影響が大きく、PayPay連携などは下限額もあります。</small>
+    </div>
+    <div class="jpy-withdrawal-beginner__item">
+      <span>3</span>
+      <strong>確定画面で確認する</strong>
+      <small>金融機関メンテナンス、残高不足、登録情報不備で条件が変わることがあります。</small>
+    </div>
+  </div>
+
+  <div class="jpy-withdrawal-controls">
+    <label class="jpy-withdrawal-field">
+      <span>出金したい金額</span>
+      <span class="jpy-withdrawal-field__control">
+        <span aria-hidden="true">¥</span>
+        <input data-jpy-withdrawal-amount type="text" inputmode="numeric" autocomplete="off" value="50,000" aria-describedby="jpy-withdrawal-help">
+      </span>
+    </label>
+    <div class="jpy-withdrawal-bank-filter" role="radiogroup" aria-label="出金先銀行">
+      <button type="button" data-jpy-withdrawal-bank="smbc" aria-pressed="true">三井住友銀行を使う</button>
+      <button type="button" data-jpy-withdrawal-bank="other" aria-pressed="false">それ以外の銀行を使う</button>
+    </div>
+  </div>
+  <p id="jpy-withdrawal-help" class="jpy-withdrawal-help">bitFlyer は出金先銀行で手数料が変わります。Binance Japan は PayPayマネー連携の条件を表示します。</p>
+
+  <output class="jpy-withdrawal-summary" data-jpy-withdrawal-summary aria-live="polite"></output>
+
+  <div class="jpy-withdrawal-table-shell">
+    <table class="jpy-withdrawal-table" data-jpy-withdrawal-table>
+      <thead>
+        <tr>
+          <th scope="col">順位</th>
+          <th scope="col">取引所</th>
+          <th scope="col">手数料</th>
+          <th scope="col">受取目安</th>
+          <th scope="col">条件</th>
+          <th scope="col">公式確認先</th>
+        </tr>
+      </thead>
+      <tbody data-jpy-withdrawal-body>
+        <tr><td colspan="6">手数料データを読み込み中です。</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 
 日本円を銀行口座などへ戻す予定がある場合は、出金先銀行や出金額によって手数料が変わることがあります。主要取引所ごとの条件は [日本円出金手数料の比較](/learn/jpy-withdrawal-fees) にまとめています。
 

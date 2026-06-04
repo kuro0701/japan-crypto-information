@@ -139,6 +139,78 @@
   background: rgba(244, 201, 93, 0.14);
 }
 
+.quick-recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin: var(--sp-5) 0;
+}
+
+.quick-recommendation-card {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  align-content: start;
+  min-height: 156px;
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  color: var(--text-2) !important;
+  text-decoration: none !important;
+  background:
+    linear-gradient(180deg, rgba(17, 22, 24, 0.94), rgba(8, 12, 14, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.quick-recommendation-card:hover,
+.quick-recommendation-card:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(53, 200, 210, 0.42);
+}
+
+.quick-recommendation-card--free {
+  border-color: rgba(53, 224, 165, 0.3);
+}
+
+.quick-recommendation-card--bank {
+  border-color: rgba(53, 200, 210, 0.28);
+}
+
+.quick-recommendation-card--pay {
+  border-color: rgba(244, 201, 93, 0.3);
+}
+
+.quick-recommendation-card__icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 17px;
+}
+
+.quick-recommendation-card span:not(.quick-recommendation-card__icon) {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.quick-recommendation-card strong {
+  color: var(--text-1);
+  font-size: var(--fs-xl);
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.quick-recommendation-card small {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.65;
+}
+
 .advanced-only {
   display: block;
 }
@@ -580,6 +652,338 @@
   text-decoration: none !important;
 }
 
+.jpy-withdrawal-tool {
+  display: grid;
+  gap: var(--sp-4);
+  margin: var(--sp-5) 0;
+  padding: var(--sp-4);
+  border: 1px solid rgba(53, 200, 210, 0.24);
+  border-radius: var(--r);
+  background:
+    linear-gradient(135deg, rgba(53, 200, 210, 0.08), rgba(53, 224, 165, 0.06)),
+    rgba(8, 12, 14, 0.9);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.jpy-withdrawal-tool__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.article-body .jpy-withdrawal-tool h3 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: var(--fs-lg);
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.jpy-withdrawal-tool__header p:last-child,
+.jpy-withdrawal-help {
+  max-width: 360px;
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.65;
+}
+
+.jpy-withdrawal-beginner {
+  gap: var(--sp-2);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: var(--sp-3);
+  border: 1px solid rgba(244, 201, 93, 0.24);
+  border-radius: var(--r);
+  background: rgba(244, 201, 93, 0.08);
+}
+
+.beginner-mode .jpy-withdrawal-beginner.beginner-only:not([hidden]) {
+  display: grid !important;
+}
+
+.jpy-withdrawal-beginner__item {
+  display: grid;
+  gap: 5px;
+  padding: var(--sp-2);
+}
+
+.jpy-withdrawal-beginner__item span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(244, 201, 93, 0.16);
+  color: var(--warn);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.jpy-withdrawal-beginner__item strong {
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 900;
+}
+
+.jpy-withdrawal-beginner__item small {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.65;
+}
+
+.jpy-withdrawal-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(280px, 1fr);
+  gap: var(--sp-3);
+  align-items: end;
+}
+
+.jpy-withdrawal-field {
+  display: grid;
+  gap: 6px;
+}
+
+.jpy-withdrawal-field > span:first-child {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 900;
+}
+
+.jpy-withdrawal-field__control {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(53, 200, 210, 0.28);
+  border-radius: var(--r);
+  background: rgba(4, 7, 10, 0.72);
+  color: var(--text-3);
+}
+
+.jpy-withdrawal-field__control input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  font-weight: 900;
+}
+
+.jpy-withdrawal-bank-filter {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: rgba(4, 7, 10, 0.46);
+}
+
+.jpy-withdrawal-bank-filter button {
+  min-height: 38px;
+  padding: 0 var(--sp-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 900;
+}
+
+.jpy-withdrawal-bank-filter button:hover,
+.jpy-withdrawal-bank-filter button:focus-visible,
+.jpy-withdrawal-bank-filter button.is-active {
+  border-color: rgba(53, 200, 210, 0.36);
+  background: rgba(53, 200, 210, 0.12);
+  color: var(--text-1);
+}
+
+.jpy-withdrawal-summary {
+  display: grid;
+  gap: 5px;
+  padding: var(--sp-3);
+  border: 1px solid rgba(53, 224, 165, 0.24);
+  border-radius: var(--r);
+  background: rgba(53, 224, 165, 0.08);
+}
+
+.jpy-withdrawal-summary span,
+.jpy-withdrawal-summary small {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.jpy-withdrawal-summary strong {
+  color: var(--text-1);
+  font-size: var(--fs-md);
+  font-weight: 900;
+}
+
+.jpy-withdrawal-table-shell {
+  max-height: min(68vh, 620px);
+  overflow: auto;
+  border: 1px solid var(--line-weak);
+  border-radius: var(--r);
+  background: rgba(3, 7, 5, 0.9);
+}
+
+.article-body .jpy-withdrawal-table {
+  display: table;
+  width: 100%;
+  min-width: 930px;
+  border: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+.article-body .jpy-withdrawal-table th,
+.article-body .jpy-withdrawal-table td {
+  min-width: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-right: 1px solid rgba(118, 140, 120, 0.18);
+  border-bottom: 1px solid rgba(118, 140, 120, 0.18);
+  vertical-align: middle;
+  background: rgba(5, 10, 6, 0.78);
+  white-space: normal;
+}
+
+.article-body .jpy-withdrawal-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  color: var(--text-1);
+  background: rgba(18, 33, 25, 0.98);
+  box-shadow: 0 1px 0 rgba(118, 140, 120, 0.22);
+  white-space: nowrap;
+}
+
+.article-body .jpy-withdrawal-table tr.is-best td {
+  background: rgba(21, 42, 31, 0.9);
+}
+
+.article-body .jpy-withdrawal-table tr.is-muted td {
+  color: var(--text-3);
+}
+
+.jpy-rank {
+  min-width: 34px;
+  min-height: 26px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.is-best .jpy-rank {
+  background: rgba(244, 201, 93, 0.18);
+  color: var(--warn);
+}
+
+.jpy-exchange {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.jpy-exchange-mark {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--exchange-color) 22%, rgba(4, 7, 10, 0.86));
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0 !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--exchange-color) 52%, transparent);
+}
+
+.jpy-exchange strong,
+.jpy-withdrawal-table td > strong {
+  display: block;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 900;
+}
+
+.jpy-exchange small,
+.jpy-table-note {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-3);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.jpy-fee-badge {
+  width: max-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(53, 200, 210, 0.12);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 900;
+}
+
+.jpy-fee-badge.is-free {
+  background: rgba(53, 224, 165, 0.18);
+  color: #d8ffd9;
+}
+
+.jpy-fee-badge.is-low {
+  background: rgba(53, 224, 165, 0.12);
+  color: var(--bid);
+}
+
+.jpy-fee-badge.is-unknown {
+  background: rgba(140, 150, 150, 0.14);
+  color: var(--text-3);
+}
+
+.jpy-source-button {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid rgba(53, 200, 210, 0.28);
+  border-radius: var(--r-sm);
+  background: rgba(53, 200, 210, 0.1);
+  color: var(--accent) !important;
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.jpy-source-button:hover,
+.jpy-source-button:focus-visible {
+  border-color: rgba(53, 200, 210, 0.48);
+  background: rgba(53, 200, 210, 0.16);
+  color: var(--text-1) !important;
+}
+
 .article-next-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -590,6 +994,21 @@
   padding: var(--sp-4);
   color: var(--text-2) !important;
   text-decoration: none;
+}
+
+.article-next-card__action {
+  width: max-content;
+  max-width: 100%;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid rgba(53, 200, 210, 0.26);
+  border-radius: var(--r-sm);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .article-next-card--primary {
@@ -648,16 +1067,37 @@ html.theme-light .fee-visual,
 html.theme-light .fee-cost-compare,
 html.theme-light .fee-step-list,
 html.theme-light .fee-mini-sim,
+html.theme-light .jpy-withdrawal-tool,
 html.theme-light .article-mode-note,
 html.theme-light .article-next-card,
-html.theme-light .fee-cost-card {
+html.theme-light .fee-cost-card,
+html.theme-light .quick-recommendation-card {
   background: rgba(255, 255, 255, 0.82);
 }
 
 html.theme-light .orderbook-visual__book,
 html.theme-light .fee-mini-sim__field input,
-html.theme-light .fee-mini-sim__result {
+html.theme-light .fee-mini-sim__result,
+html.theme-light .jpy-withdrawal-field__control,
+html.theme-light .jpy-withdrawal-table-shell {
   background: rgba(244, 248, 246, 0.82);
+}
+
+html.theme-light .article-body .jpy-withdrawal-table th,
+html.theme-light .article-body .jpy-withdrawal-table td {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+html.theme-light .article-body .jpy-withdrawal-table thead th {
+  background: rgba(232, 243, 238, 0.98);
+}
+
+html.theme-light .article-body .jpy-withdrawal-table tr.is-best td {
+  background: rgba(226, 246, 236, 0.96);
+}
+
+html.theme-light .jpy-fee-badge.is-free {
+  color: #106b3d;
 }
 
 html.theme-light .beginner-guide-panel {
@@ -706,12 +1146,25 @@ html.theme-light .beginner-guide-warning {
 }
 
 @media (max-width: 900px) {
+  .quick-recommendation-grid,
   .fee-summary-strip,
   .fee-visual,
   .fee-cost-grid,
   .fee-mini-sim__controls,
+  .jpy-withdrawal-tool__header,
+  .jpy-withdrawal-controls,
+  .jpy-withdrawal-beginner,
   .article-next-grid {
     grid-template-columns: 1fr;
+  }
+
+  .jpy-withdrawal-tool__header {
+    display: grid;
+  }
+
+  .jpy-withdrawal-tool__header p:last-child,
+  .jpy-withdrawal-help {
+    max-width: none;
   }
 
   .orderbook-visual {
@@ -738,14 +1191,12 @@ html.theme-light .beginner-guide-warning {
 
 @media (max-width: 1179px) {
   .article-mobile-toc:not([hidden]) {
-    position: sticky;
-    bottom: var(--sp-3);
-    z-index: 12;
+    position: static;
     display: block;
+    margin-bottom: var(--sp-4);
     border: 1px solid rgba(53, 200, 210, 0.3);
     border-radius: var(--r);
-    background: rgba(8, 12, 14, 0.96);
-    box-shadow: var(--shadow-lg);
+    background: rgba(8, 12, 14, 0.78);
   }
 }
 
@@ -753,6 +1204,7 @@ html.theme-light .beginner-guide-warning {
   .fee-visual,
   .fee-cost-compare,
   .fee-mini-sim,
+  .jpy-withdrawal-tool,
   .article-next-card {
     padding: var(--sp-3);
   }
@@ -760,12 +1212,88 @@ html.theme-light .beginner-guide-warning {
   .orderbook-visual__actions,
   .fee-cost-card dl div,
   .fee-step,
-  .fee-mini-sim__modes {
+  .fee-mini-sim__modes,
+  .jpy-withdrawal-bank-filter {
     grid-template-columns: 1fr;
   }
 
   .fee-step__number {
     width: 30px;
     height: 30px;
+  }
+
+  .quick-recommendation-card {
+    min-height: 0;
+  }
+
+  .jpy-withdrawal-table-shell {
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .article-body .jpy-withdrawal-table {
+    display: block;
+    min-width: 0;
+  }
+
+  .article-body .jpy-withdrawal-table thead {
+    display: none;
+  }
+
+  .article-body .jpy-withdrawal-table,
+  .article-body .jpy-withdrawal-table tbody,
+  .article-body .jpy-withdrawal-table tr,
+  .article-body .jpy-withdrawal-table td {
+    width: 100%;
+    display: block;
+  }
+
+  .article-body .jpy-withdrawal-table tbody {
+    display: grid;
+    gap: var(--sp-3);
+  }
+
+  .article-body .jpy-withdrawal-table tr {
+    padding: var(--sp-3);
+    border: 1px solid var(--line);
+    border-radius: var(--r);
+    background: rgba(13, 18, 20, 0.72);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .article-body .jpy-withdrawal-table th,
+  .article-body .jpy-withdrawal-table td,
+  html.theme-light .article-body .jpy-withdrawal-table th,
+  html.theme-light .article-body .jpy-withdrawal-table td,
+  .article-body .jpy-withdrawal-table tr.is-best td,
+  html.theme-light .article-body .jpy-withdrawal-table tr.is-best td {
+    padding: var(--sp-2) 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line-weak);
+    background: transparent;
+  }
+
+  .article-body .jpy-withdrawal-table td:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .article-body .jpy-withdrawal-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 3px;
+    color: var(--text-3);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .jpy-exchange {
+    align-items: flex-start;
+  }
+
+  .jpy-source-button {
+    width: 100%;
   }
 }

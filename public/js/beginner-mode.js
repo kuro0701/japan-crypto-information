@@ -75,6 +75,10 @@
       title: '実効コスト',
       description: '価格差、スリッページ、手数料を含めて、実際に近い支払額や受取額として見たコストです。',
     },
+    'large-withdrawal': {
+      title: '大口出金',
+      description: '通常より大きな金額を一度に出金する扱いです。最低金額、上限、手数料、反映時間が通常出金と違うことがあります。',
+    },
     liquidity: {
       title: '流動性',
       description: '売買したい数量を無理なく約定できる厚みです。流動性が低いと、少し大きな注文でも価格が動きやすくなります。',
@@ -492,7 +496,23 @@
   function canOpenTerm(button) {
     if (!button) return false;
     if (button.classList && button.classList.contains('article-term')) {
-      return beginnerMode;
+      return beginnerMode || Boolean(document.body && document.body.classList.contains('beginner-mode'));
+    }
+    return true;
+  }
+
+  function handleTermActivation(event, options = {}) {
+    const target = event.target && event.target.closest ? event.target : null;
+    if (!target || target.closest('[data-beginner-toggle]')) return false;
+    const button = target.closest('[data-term-key]');
+    if (!button || !canOpenTerm(button)) return false;
+
+    event.preventDefault();
+    if (options.stopPropagation && event.stopPropagation) event.stopPropagation();
+    if (activeButton === button && tooltip && !tooltip.hidden && tooltipPinned) {
+      hideTooltip();
+    } else {
+      showTooltip(button, { pinned: true });
     }
     return true;
   }
@@ -539,6 +559,11 @@
   }
 
   document.addEventListener('click', (event) => {
+    handleTermActivation(event, { stopPropagation: true });
+  }, true);
+
+  document.addEventListener('click', (event) => {
+    if (event.defaultPrevented) return;
     const target = event.target && event.target.closest ? event.target : null;
     if (!target) return;
 
@@ -546,17 +571,6 @@
     if (toggle) {
       event.preventDefault();
       toggleMode();
-      return;
-    }
-
-    const button = target.closest('[data-term-key]');
-    if (button && canOpenTerm(button)) {
-      event.preventDefault();
-      if (activeButton === button && tooltip && !tooltip.hidden && tooltipPinned) {
-        hideTooltip();
-      } else {
-        showTooltip(button, { pinned: true });
-      }
       return;
     }
 
