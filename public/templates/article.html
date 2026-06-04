@@ -18,7 +18,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-13">
+  <script>
+    (() => {
+      try {
+        if (localStorage.getItem('okj.theme.v1') === 'light') {
+          document.documentElement.classList.add('theme-light');
+        }
+      } catch (_) {
+        // noop
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/style.css?v=ui-23">
+  <link rel="stylesheet" href="/css/article.css?v=4">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -41,9 +53,17 @@
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
       <a class="nav-link" href="/campaigns">キャンペーン</a>
     </nav>
+    <div class="status-cluster status-cluster--compact" aria-label="記事の表示設定">
+      <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="ライトモードに切り替え">
+        <span data-theme-toggle-icon aria-hidden="true">☀</span>
+        <span data-theme-toggle-label>ライト</span>
+      </button>
+      <button class="beginner-toggle beginner-toggle--header" type="button" data-beginner-toggle data-beginner-toggle-label="初心者" data-beginner-toggle-on-text="初心者: ON" data-beginner-toggle-off-text="初心者: OFF" aria-pressed="false">初心者: OFF</button>
+    </div>
+    <div class="reading-progress" aria-hidden="true"><span data-reading-progress></span></div>
   </header>
 
-  <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[980px] mx-auto">
+  <main id="main" class="dashboard-shell article-page-shell flex flex-col gap-4 p-4 max-w-[1180px] mx-auto">
     <nav class="text-xs text-gray-500" aria-label="パンくず">
       <a class="text-green-300 hover:text-green-200" href="/">ホーム</a>
       <span aria-hidden="true"> / </span>
@@ -51,34 +71,57 @@
       <span>{{ARTICLE_TITLE}}</span>
     </nav>
 
-    <article class="panel panel--dense">
-      <div class="panel-title-row mb-4">
-        <div>
-          <p class="panel-kicker mb-2">Article</p>
-          <h1 class="text-3xl md:text-4xl font-bold text-gray-100">{{ARTICLE_TITLE}}</h1>
-          <p class="text-sm text-gray-400 mt-3 leading-7">{{ARTICLE_DESCRIPTION}}</p>
-        </div>
-      </div>
-      <div class="text-xs text-gray-500 flex flex-wrap gap-3 mb-6">
-        <span>公開日: <time datetime="{{ARTICLE_DATE_ISO}}">{{ARTICLE_DATE}}</time></span>
-        <span>更新日: <time datetime="{{ARTICLE_UPDATED_ISO}}">{{ARTICLE_UPDATED}}</time></span>
-      </div>
-      <div class="article-body">
-        {{ARTICLE_BODY}}
-      </div>
-    </article>
+    <div class="article-shell">
+      <aside class="article-toc" data-article-toc hidden aria-label="この記事の目次">
+        <p class="article-toc__eyebrow">Contents</p>
+        <nav data-article-toc-list></nav>
+      </aside>
 
-    <section class="panel panel--dense">
+      <article class="panel panel--dense article-main">
+        <div class="panel-title-row mb-4">
+          <div>
+            <p class="panel-kicker mb-2">Article</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-100">{{ARTICLE_TITLE}}</h1>
+            <p class="text-sm text-gray-400 mt-3 leading-7">{{ARTICLE_DESCRIPTION}}</p>
+          </div>
+        </div>
+        <div class="text-xs text-gray-500 flex flex-wrap gap-3 mb-6">
+          <span>公開日: <time datetime="{{ARTICLE_DATE_ISO}}">{{ARTICLE_DATE}}</time></span>
+          <span>更新日: <time datetime="{{ARTICLE_UPDATED_ISO}}">{{ARTICLE_UPDATED}}</time></span>
+        </div>
+        <div class="article-body">
+          {{ARTICLE_BODY}}
+        </div>
+      </article>
+    </div>
+
+    <details class="article-mobile-toc" data-article-mobile-toc hidden>
+      <summary>目次</summary>
+      <nav data-article-mobile-toc-list aria-label="この記事の目次"></nav>
+    </details>
+
+    <section class="panel panel--dense article-next-actions" aria-labelledby="article-next-actions-title">
       <div class="panel-title-row mb-3">
-        <h2 class="panel-title">成行注文のコストを確認</h2>
-        <span class="panel-kicker">Simulator</span>
+        <h2 id="article-next-actions-title" class="panel-title">次の一歩</h2>
+        <span class="panel-kicker">Next</span>
       </div>
-      <p class="text-sm text-gray-400 leading-7 mb-4">リアルタイム板情報を使って、BTC・ETHなどの成行注文で想定される執行価格、スリッページ、マーケットインパクトを確認できます。</p>
-      <a class="btn btn-primary inline-flex px-4 py-2.5 rounded-lg font-bold text-sm" href="/simulator">成行注文シミュレーターを開く</a>
+      <div class="article-next-grid">
+        <a class="article-next-card article-next-card--primary" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
+          <span class="article-next-card__kicker">Simulator</span>
+          <strong>コストを計算してみる</strong>
+          <small>10万円分の成行注文で、手数料・スリッページ込みの実質コストを確認します。</small>
+        </a>
+        <a class="article-next-card" href="/learn/exchange-checklist">
+          <span class="article-next-card__kicker">Guide</span>
+          <strong>自分に合う取引所を選ぶ</strong>
+          <small>手数料、スプレッド、入出金、キャンペーン条件を整理して比較します。</small>
+        </a>
+      </div>
     </section>
   </main>
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 記事</footer>
-  <script src="/js/beginner-mode.js?v=5"></script>
+  <script src="/js/beginner-mode.js?v=7"></script>
+  <script src="/js/article.js?v=2"></script>
 </body>
 </html>

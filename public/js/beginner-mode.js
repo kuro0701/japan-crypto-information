@@ -43,6 +43,14 @@
       title: 'スリッページ',
       description: '最良価格で約定できると思っていた値段と、実際の平均約定価格との差です。注文量が大きいほど広がりやすくなります。',
     },
+    maker: {
+      title: 'maker',
+      description: '板に新しい注文を置いて、他の人がその注文にぶつけるのを待つ側です。主に指値注文で使われる考え方です。',
+    },
+    taker: {
+      title: 'taker',
+      description: '板にすでに並んでいる注文を成行などで消費して、すぐ約定させる側です。成行注文は基本的にtakerとして扱われます。',
+    },
     'sales-spread': {
       title: '販売所スプレッド',
       description: '販売所の買値と売値の差です。広いほど、売買にかかる実質コストが高くなります。',
@@ -75,6 +83,10 @@
       title: 'taker 手数料',
       description: '板にすでに並んでいる注文を成行などで消費したときにかかる取引手数料です。',
     },
+    'maker-fee': {
+      title: 'maker 手数料',
+      description: '板に新しく注文を置き、その注文が約定したときにかかる取引手数料です。',
+    },
     'order-size': {
       title: '注文サイズ',
       description: '注文する数量や金額の大きさです。同じ銘柄でも、注文サイズが大きいほどImpactや実効コストが悪化しやすくなります。',
@@ -84,6 +96,7 @@
   let beginnerMode = false;
   let tooltip = null;
   let activeButton = null;
+  let tooltipPinned = false;
   let tableScanTimer = null;
   let tableObserver = null;
 
@@ -166,6 +179,26 @@
           { href: '/learn/spread', label: 'スプレッドとは？' },
           { href: '/learn/broker-loss-reasons', label: '販売所で損しやすい理由' },
           { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '10万円買いをシミュレーション' },
+        ],
+      };
+    }
+    if (path === '/learn/crypto-fees') {
+      return {
+        eyebrow: '🔰 初心者モード',
+        title: '無料表示より「実質コスト」を先に見ます',
+        summary: '暗号資産のコストは、取引手数料、販売所スプレッド、スリッページ、入出金・送金手数料を分けると読みやすくなります。',
+        metrics: ['taker 手数料', '販売所スプレッド', 'スリッページ', '入出金・送金'],
+        visuals: [
+          { mark: '1', title: '販売所', body: '買値と売値の差を確認します。' },
+          { mark: '2', title: '取引所', body: '手数料と板の厚みを分けて見ます。' },
+          { mark: '3', title: '総コスト', body: '入出金や送金まで足します。' },
+        ],
+        terms: ['maker', 'taker', 'sales-spread', 'slippage', 'effective-cost'],
+        warning: '販売所の「取引手数料無料」は、スプレッドまで無料という意味ではありません。購入前に表示価格差を確認してください。',
+        links: [
+          { href: '/sales-spread?instrumentId=BTC-JPY', label: '販売所スプレッドを見る' },
+          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '10万円買いを試算' },
+          { href: '/learn/exchange-checklist', label: '比較手順を整理する' },
         ],
       };
     }
@@ -432,10 +465,11 @@
   function hideTooltip() {
     if (activeButton) activeButton.classList.remove('is-open');
     activeButton = null;
+    tooltipPinned = false;
     if (tooltip) tooltip.hidden = true;
   }
 
-  function showTooltip(button) {
+  function showTooltip(button, options = {}) {
     const key = button && button.dataset ? button.dataset.termKey : '';
     const entry = entryFor(key);
     if (!button || !entry) return;
@@ -450,8 +484,17 @@
       activeButton.classList.remove('is-open');
     }
     activeButton = button;
+    tooltipPinned = Boolean(options.pinned);
     button.classList.add('is-open');
     positionTooltip(button);
+  }
+
+  function canOpenTerm(button) {
+    if (!button) return false;
+    if (button.classList && button.classList.contains('article-term')) {
+      return beginnerMode;
+    }
+    return true;
   }
 
   function syncToggleButtons() {
@@ -507,12 +550,12 @@
     }
 
     const button = target.closest('[data-term-key]');
-    if (button) {
+    if (button && canOpenTerm(button)) {
       event.preventDefault();
-      if (activeButton === button && tooltip && !tooltip.hidden) {
+      if (activeButton === button && tooltip && !tooltip.hidden && tooltipPinned) {
         hideTooltip();
       } else {
-        showTooltip(button);
+        showTooltip(button, { pinned: true });
       }
       return;
     }
@@ -525,7 +568,26 @@
   document.addEventListener('focusin', (event) => {
     const target = event.target && event.target.closest ? event.target : null;
     const button = target ? target.closest('[data-term-key]') : null;
-    if (button) showTooltip(button);
+    if (button && canOpenTerm(button)) showTooltip(button, { pinned: false });
+  });
+
+  document.addEventListener('mouseover', (event) => {
+    const target = event.target && event.target.closest ? event.target : null;
+    const button = target ? target.closest('[data-term-key]') : null;
+    if (button && canOpenTerm(button)) {
+      if (tooltipPinned && activeButton === button && tooltip && !tooltip.hidden) return;
+      showTooltip(button, { pinned: false });
+    }
+  });
+
+  document.addEventListener('mouseout', (event) => {
+    const target = event.target && event.target.closest ? event.target : null;
+    const button = target ? target.closest('[data-term-key]') : null;
+    if (!button || !canOpenTerm(button)) return;
+    if (tooltipPinned) return;
+    const related = event.relatedTarget;
+    if (related && (button.contains(related) || (tooltip && tooltip.contains(related)))) return;
+    if (activeButton === button) hideTooltip();
   });
 
   document.addEventListener('keydown', (event) => {

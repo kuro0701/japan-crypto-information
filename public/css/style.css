@@ -799,6 +799,23 @@ html.theme-light .beginner-toggle--feature {
   margin-top: var(--sp-3);
 }
 
+html.theme-light .beginner-guide-panel {
+  border-color: rgba(23, 125, 146, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(23, 125, 146, 0.1), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(241, 247, 244, 0.92));
+}
+
+html.theme-light .beginner-guide-visual,
+html.theme-light .beginner-guide-term,
+html.theme-light .beginner-guide-link {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+html.theme-light .beginner-guide-warning {
+  background: rgba(154, 106, 10, 0.08);
+}
+
 .beginner-mode .beginner-order-warning.beginner-only:not([hidden]) {
   display: grid !important;
 }
@@ -7524,10 +7541,10 @@ html.theme-light .home-field select option {
 }
 
 .common-disclosure {
-  border-color: rgba(244, 201, 93, 0.22);
+  border-color: rgba(244, 201, 93, 0.16);
   background:
-    linear-gradient(180deg, rgba(19, 23, 22, 0.96), rgba(9, 13, 14, 0.96)),
-    rgba(17, 22, 24, 0.92);
+    linear-gradient(180deg, rgba(17, 21, 20, 0.9), rgba(9, 13, 14, 0.92)),
+    rgba(17, 22, 24, 0.82);
 }
 
 .common-disclosure__details {
@@ -7549,9 +7566,18 @@ html.theme-light .home-field select option {
 
 .common-disclosure__summary::after {
   content: '+';
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(244, 201, 93, 0.22);
+  border-radius: 999px;
+  background: rgba(244, 201, 93, 0.08);
   flex: 0 0 auto;
   color: var(--warn);
   font-weight: 900;
+  line-height: 1;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
 }
 
 .common-disclosure__details[open] .common-disclosure__summary {
@@ -7560,7 +7586,10 @@ html.theme-light .home-field select option {
 }
 
 .common-disclosure__details[open] .common-disclosure__summary::after {
-  content: '-';
+  content: '+';
+  border-color: rgba(244, 201, 93, 0.36);
+  background: rgba(244, 201, 93, 0.14);
+  transform: rotate(45deg);
 }
 
 .common-disclosure__summary-copy {
