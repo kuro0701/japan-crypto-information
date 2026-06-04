@@ -2,7 +2,7 @@
 title: 日本円出金手数料の比較
 description: 国内暗号資産取引所の日本円出金手数料を、OKJ、Coincheck、bitFlyer、bitbank、GMOコイン、Binance Japan、BitTradeで比較します。
 date: 2026-05-07
-updated: 2026-05-07
+updated: 2026-06-05
 author: 国内暗号資産取引所ナビ
 slug: jpy-withdrawal-fees
 path: /learn/jpy-withdrawal-fees
@@ -10,19 +10,97 @@ path: /learn/jpy-withdrawal-fees
 
 暗号資産取引所を比較するときは、買うときの手数料や販売所スプレッドだけでなく、日本円を銀行口座などへ戻すときの出金手数料も見ておくと安心です。
 
-ここでは、このサイトで扱う国内主要取引所の日本円出金手数料を、各社の公式公開ページで確認できる範囲で整理します。確認日は 2026年5月7日です。手数料、最低出金額、反映時間、メンテナンス条件は変わるため、出金前には必ず公式手数料表と出金画面で最終確認してください。
+ここでは、このサイトで扱う国内主要取引所の日本円出金手数料を、各社の公式公開ページで確認できる範囲で整理します。確認日は 2026年6月5日です。手数料、最低出金額、反映時間、メンテナンス条件は変わるため、出金前には必ず公式手数料表と出金画面で最終確認してください。
 
-## 日本円出金手数料の比較表
+<div class="quick-recommendation-grid" aria-label="目的別のクイックおすすめ">
+  <a class="quick-recommendation-card quick-recommendation-card--free" href="#jpy-withdrawal-fee-comparison">
+    <span class="quick-recommendation-card__icon" aria-hidden="true">🏆</span>
+    <span>とにかく手数料無料にこだわるなら</span>
+    <strong>GMOコイン</strong>
+    <small>通常の日本円出金は無料。<span class="article-term" data-term-key="large-withdrawal">大口出金</span>は条件を確認。</small>
+  </a>
+  <a class="quick-recommendation-card quick-recommendation-card--bank" href="#jpy-withdrawal-fee-comparison">
+    <span class="quick-recommendation-card__icon" aria-hidden="true">🏦</span>
+    <span>三井住友銀行ユーザーなら</span>
+    <strong>bitFlyer</strong>
+    <small>3万円未満なら 220円、3万円以上なら 440円。</small>
+  </a>
+  <a class="quick-recommendation-card quick-recommendation-card--pay" href="#jpy-withdrawal-fee-comparison">
+    <span class="quick-recommendation-card__icon" aria-hidden="true">📱</span>
+    <span>PayPay経済圏なら</span>
+    <strong>Binance Japan</strong>
+    <small>PayPayマネー連携の出金は 110円/回。</small>
+  </a>
+</div>
 
-| 取引所 | 日本円出金手数料 | 条件の分かれ方 | 公式確認先 |
-| --- | --- | --- | --- |
-| OKJ | 100万円未満: 400円 / 100万円以上1,000万円未満: 770円 / 1,000万円以上: 1,320円 | 出金額 | [OKJ 手数料一覧](https://www.okcoin.jp/pages/products/fees.html) |
-| Coincheck | 407円 | 一律 | [Coincheck 手数料](https://coincheck.com/ja/info/fee) |
-| bitFlyer | 三井住友銀行宛: 3万円未満 220円、3万円以上 440円 / それ以外: 3万円未満 550円、3万円以上 770円 | 出金先銀行と出金額 | [bitFlyer 手数料一覧](https://bitflyer.com/ja-jp/s/commission) |
-| bitbank | 3万円未満: 550円 / 3万円以上: 770円 | 出金額 | [bitbank 日本円出金手数料](https://support.bitbank.cc/hc/ja/articles/900000034263-%E6%97%A5%E6%9C%AC%E5%86%86%E3%81%AE%E5%87%BA%E9%87%91%E6%89%8B%E6%95%B0%E6%96%99%E3%81%AF%E3%81%84%E3%81%8F%E3%82%89%E3%81%A7%E3%81%99%E3%81%8B) |
-| GMOコイン | 通常出金: 無料 / 大口出金: 400円 | 出金額。大口出金は 30,000,001円/回以上 | [GMOコイン 入出金](https://coin.z.com/jp/corp/guide/deposit-withdrawal/) |
-| Binance Japan | PayPayマネー連携の入出金: 110円/回。銀行口座などへの法定通貨出金は、ログイン後の公式手数料表または出金画面で確認 | 出金方法 | [Binance PayPay案内](https://www.binance.com/ja/academy/articles/what-is-paypay) / [Binance 法定通貨手数料](https://www.binance.com/ja/fee/fiatFee) |
-| BitTrade | 公式手数料表は日本円出金を「--」表示。出金日ページでは 1,000万円未満の手数料欄が「--」、1,000万円以上が無料 | 出金額と処理日 | [BitTrade 手数料](https://www.bittrade.co.jp/ja-jp/support/fee/) / [BitTrade 出金について](https://www.bittrade.co.jp/ja-jp/support/withdrawal/) |
+<span id="jpy-withdrawal-fee-comparison"></span>
+
+## 日本円出金手数料のリアルタイム比較
+
+出金したい金額を入力すると、各取引所の日本円出金手数料と受取目安を再計算し、比較可能な取引所を手数料が安い順に並び替えます。bitFlyer は出金先銀行によって手数料が変わるため、三井住友銀行を使うかどうかも切り替えて確認できます。
+
+<section class="jpy-withdrawal-tool" data-jpy-withdrawal-tool aria-labelledby="jpy-withdrawal-tool-title">
+  <div class="jpy-withdrawal-tool__header">
+    <div>
+      <p class="fee-visual__eyebrow">JPY Withdrawal</p>
+      <h3 id="jpy-withdrawal-tool-title">出金額を入れると、手数料が安い順に並びます</h3>
+    </div>
+    <p data-jpy-withdrawal-updated>公式公開情報をもとにした参考比較。出金前は公式画面で最終確認してください。</p>
+  </div>
+
+  <div class="jpy-withdrawal-beginner beginner-only" aria-label="初心者向けの出金注意点">
+    <div class="jpy-withdrawal-beginner__item">
+      <span>1</span>
+      <strong>口座名義を合わせる</strong>
+      <small>取引所の登録名義と出金先口座の名義が違うと、出金できない場合があります。</small>
+    </div>
+    <div class="jpy-withdrawal-beginner__item">
+      <span>2</span>
+      <strong>手数料と最低金額を見る</strong>
+      <small>少額では固定手数料の影響が大きく、PayPay連携などは下限額もあります。</small>
+    </div>
+    <div class="jpy-withdrawal-beginner__item">
+      <span>3</span>
+      <strong>確定画面で確認する</strong>
+      <small>金融機関メンテナンス、残高不足、登録情報不備で条件が変わることがあります。</small>
+    </div>
+  </div>
+
+  <div class="jpy-withdrawal-controls">
+    <label class="jpy-withdrawal-field">
+      <span>出金したい金額</span>
+      <span class="jpy-withdrawal-field__control">
+        <span aria-hidden="true">¥</span>
+        <input data-jpy-withdrawal-amount type="text" inputmode="numeric" autocomplete="off" value="50,000" aria-describedby="jpy-withdrawal-help">
+      </span>
+    </label>
+    <div class="jpy-withdrawal-bank-filter" role="radiogroup" aria-label="出金先銀行">
+      <button type="button" data-jpy-withdrawal-bank="smbc" aria-pressed="true">三井住友銀行を使う</button>
+      <button type="button" data-jpy-withdrawal-bank="other" aria-pressed="false">それ以外の銀行を使う</button>
+    </div>
+  </div>
+  <p id="jpy-withdrawal-help" class="jpy-withdrawal-help">Binance Japan は PayPayマネー連携の条件を表示します。BitTrade など公式表で金額が確定しないものは「公式確認」として扱います。</p>
+
+  <div class="jpy-withdrawal-summary" data-jpy-withdrawal-summary aria-live="polite"></div>
+
+  <div class="jpy-withdrawal-table-shell">
+    <table class="jpy-withdrawal-table" data-jpy-withdrawal-table>
+      <thead>
+        <tr>
+          <th scope="col">順位</th>
+          <th scope="col">取引所</th>
+          <th scope="col">手数料</th>
+          <th scope="col">受取目安</th>
+          <th scope="col">条件</th>
+          <th scope="col">公式確認先</th>
+        </tr>
+      </thead>
+      <tbody data-jpy-withdrawal-body>
+        <tr><td colspan="6">手数料データを読み込み中です。</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 
 ## 比較するときのポイント
 
