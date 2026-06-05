@@ -17,7 +17,7 @@ path: /learn/crypto-withdrawal-fees
 <div class="crypto-withdrawal-tool" data-crypto-withdrawal-tool>
   <div class="cw-empty-panel">比較データを読み込んでいます</div>
 </div>
-<script src="/js/crypto-withdrawal-fees.js?v=1"></script>
+<script src="/js/crypto-withdrawal-fees.js?v=4"></script>
 
 ## 見る順番
 
