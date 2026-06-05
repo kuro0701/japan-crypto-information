@@ -67,11 +67,39 @@
         <div class="metric-row metric-row--hero beginner-focus" data-beginner-focus="true"><span class="metric-label">掲載銘柄</span><span class="metric-value metric-value--hero">__MARKET_COUNT__</span></div>
         <div class="metric-row metric-row--hero bid beginner-focus" data-beginner-focus="true"><span class="metric-label">対応取引所</span><span class="metric-value metric-value--hero text-green-300">__EXCHANGE_COUNT__社</span></div>
       </div>
-      <div class="filter-grid" aria-label="銘柄ページフィルター">
-        <label class="filter-control" for="market-index-search"><span>銘柄検索</span><input id="market-index-search" class="field font-mono" type="search" placeholder="BTC / XRP / bitbank"></label>
-        <label class="filter-control" for="market-index-exchange"><span>取引所</span><select id="market-index-exchange" class="field" aria-label="取引所で絞り込み">__MARKET_INDEX_EXCHANGE_OPTIONS__</select></label>
+      <div class="market-toolbar" aria-label="銘柄ページフィルター">
+        <label class="filter-control market-search-control" for="market-index-search">
+          <span>銘柄検索</span>
+          <input id="market-index-search" class="field font-mono" type="search" placeholder="BTC / XRP / bitbank" autocomplete="off" aria-autocomplete="list" aria-controls="market-index-search-suggestions">
+          <div id="market-index-search-suggestions" class="market-search-suggestions" role="listbox" hidden></div>
+        </label>
+        <fieldset class="filter-control market-exchange-filter">
+          <legend>取引所</legend>
+          <div class="market-exchange-filter__tools">
+            <span id="market-index-exchange-state" class="market-exchange-filter__state">全社</span>
+            <span class="market-filter-mode" role="group" aria-label="複数取引所の判定方法">
+              <button class="market-filter-mode__button is-active" type="button" data-market-filter-mode="or" aria-pressed="true">OR</button>
+              <button class="market-filter-mode__button" type="button" data-market-filter-mode="and" aria-pressed="false">AND</button>
+            </span>
+          </div>
+          <div id="market-index-exchange-chips" class="market-exchange-chips">
+            __MARKET_INDEX_EXCHANGE_CHIPS__
+          </div>
+        </fieldset>
+        <div class="market-toolbar__actions">
+          <div class="market-view-switch" role="group" aria-label="表示形式">
+            <button class="market-view-switch__button is-active" type="button" data-market-view="grid" aria-pressed="true">グリッド</button>
+            <button class="market-view-switch__button" type="button" data-market-view="table" aria-pressed="false">リスト</button>
+          </div>
+          <button id="market-index-clear" class="market-filter-clear" type="button">条件をクリア</button>
+        </div>
       </div>
     </section>
+
+    <nav class="market-sticky-nav" aria-label="銘柄カテゴリ固定ナビ">
+      <!-- MARKET_CATEGORY_STICKY_NAV -->
+      <a class="market-sticky-nav__link" href="#market-index-directory">全銘柄</a>
+    </nav>
 
     <section class="panel panel--dense">
       <div class="panel-title-row mb-3">
@@ -86,7 +114,7 @@
       </div>
     </section>
 
-    <section class="panel panel--dense">
+    <section id="market-index-directory" class="panel panel--dense">
       <div class="panel-title-row mb-3">
         <div>
           <h2 class="panel-title">全銘柄</h2>
@@ -94,8 +122,26 @@
         </div>
         <span class="panel-kicker">Directory</span>
       </div>
+      <div id="market-index-watchlist" class="market-watchlist" hidden></div>
       <div id="market-index-grid" class="market-index-grid">
         <!-- MARKET_INDEX_LIST -->
+      </div>
+      <div id="market-index-table-wrap" class="market-index-table-wrap" hidden>
+        <table id="market-index-table" class="market-index-table data-table">
+          <thead>
+            <tr>
+              <th><button type="button" class="market-table-sort" data-market-sort="label">銘柄</button></th>
+              <th><button type="button" class="market-table-sort" data-market-sort="exchangeCount">対応数</button></th>
+              <th><button type="button" class="market-table-sort" data-market-sort="volume">出来高トップ</button></th>
+              <th><button type="button" class="market-table-sort" data-market-sort="spread">最小スプレッド</button></th>
+              <th><button type="button" class="market-table-sort" data-market-sort="change">24h変化</button></th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- MARKET_INDEX_TABLE_ROWS -->
+          </tbody>
+        </table>
       </div>
       <p id="market-index-empty" class="text-center text-gray-500 py-8 hidden">条件に合う銘柄がありません。検索語や取引所フィルターを変更してください。</p>
     </section>
@@ -117,7 +163,8 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 銘柄ページ</footer>
 
   <script>window.MARKETS_INDEX = __MARKETS_INDEX_JSON__;</script>
+  <script src="/js/page-poller.js?v=1"></script>
   <script src="/js/beginner-mode.js?v=5"></script>
-  <script src="/js/markets-index.js?v=markets-1"></script>
+  <script src="/js/markets-index.js?v=markets-2"></script>
 </body>
 </html>
