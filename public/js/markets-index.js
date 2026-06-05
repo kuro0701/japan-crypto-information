@@ -17,6 +17,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const table = document.getElementById('market-index-table');
   const tableBody = table ? table.querySelector('tbody') : null;
   const watchlist = document.getElementById('market-index-watchlist');
+  const minExchangeInput = document.getElementById('market-index-min-exchanges');
+  const minExchangeValue = document.getElementById('market-index-min-exchanges-value');
+  const maxSpreadInput = document.getElementById('market-index-max-spread');
+  const maxSpreadValue = document.getElementById('market-index-max-spread-value');
   const chips = Array.from(document.querySelectorAll('[data-market-exchange-chip]'));
   const modeButtons = Array.from(document.querySelectorAll('[data-market-filter-mode]'));
   const viewButtons = Array.from(document.querySelectorAll('[data-market-view]'));
@@ -45,14 +49,21 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   });
   const itemById = new Map(items.map(item => [item.market.instrumentId, item]));
+  const storedView = readStoredValue(storageKeys.view);
+  const prefersCompactTable = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+  const spreadValues = items.map(item => item.live.spread).filter(value => Number.isFinite(value));
+  const maxObservedSpread = spreadValues.length > 0 ? Math.max(...spreadValues) : 20;
+  const maxSpreadLimit = Math.max(20, Math.ceil(maxObservedSpread));
 
   const state = {
     selectedExchanges: new Set(),
     filterMode: 'or',
-    view: readStoredValue(storageKeys.view) === 'table' ? 'table' : 'grid',
+    view: storedView === 'table' || storedView === 'grid' ? storedView : (prefersCompactTable ? 'table' : 'grid'),
     favorites: readStoredSet(storageKeys.favorites),
     compare: new Set(),
     sort: { key: 'rank', direction: 'asc' },
+    minExchanges: 1,
+    maxSpread: maxSpreadLimit,
   };
 
   function readStoredValue(key) {
@@ -135,6 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return numeric > 0 ? 'up' : 'down';
   }
 
+  function trendArrow(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric === 0) return '→';
+    return numeric > 0 ? '▲' : '▼';
+  }
+
   function assetMark(market, className = '') {
     const base = String(market.baseCurrency || market.instrumentId || '?').split('-')[0].slice(0, 4).toUpperCase();
     const token = base.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'market';
@@ -166,6 +183,17 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(node && node.dataset ? node.dataset.marketSearch || '' : '').includes(query);
   }
 
+  function matchesRangeFilters(item) {
+    const exchangeCount = Number(item && item.market ? item.market.exchangeCount : 0);
+    if (Number.isFinite(exchangeCount) && exchangeCount < state.minExchanges) return false;
+    if (state.maxSpread < maxSpreadLimit) {
+      const spread = item ? item.live.spread : null;
+      if (!Number.isFinite(Number(spread))) return false;
+      if (Number(spread) > state.maxSpread) return false;
+    }
+    return true;
+  }
+
   function readInitialParams() {
     const params = new URLSearchParams(window.location.search);
     const query = params.get('q');
@@ -182,6 +210,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (params.get('view') === 'table' || params.get('view') === 'grid') {
       state.view = params.get('view');
     }
+    const minExchanges = Number(params.get('minExchanges'));
+    if (Number.isFinite(minExchanges)) {
+      state.minExchanges = Math.min(Math.max(1, Math.round(minExchanges)), allExchangeIds.size || 1);
+    }
+    const maxSpread = Number(params.get('maxSpread'));
+    if (Number.isFinite(maxSpread)) {
+      state.maxSpread = Math.min(Math.max(0, maxSpread), maxSpreadLimit);
+    }
   }
 
   function writeParams() {
@@ -192,6 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (exchanges.length > 0) params.set('exchanges', exchanges.join(','));
     if (exchanges.length > 1 && state.filterMode === 'and') params.set('mode', 'and');
     if (state.view === 'table') params.set('view', 'table');
+    if (state.minExchanges > 1) params.set('minExchanges', String(state.minExchanges));
+    if (state.maxSpread < maxSpreadLimit) params.set('maxSpread', String(state.maxSpread));
     const nextUrl = params.toString()
       ? `${window.location.pathname}?${params.toString()}`
       : window.location.pathname;
@@ -199,7 +237,34 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function hasActiveFilters() {
-    return Boolean(getQuery()) || state.selectedExchanges.size > 0 || state.filterMode !== 'or';
+    return Boolean(getQuery())
+      || state.selectedExchanges.size > 0
+      || state.filterMode !== 'or'
+      || state.minExchanges > 1
+      || state.maxSpread < maxSpreadLimit;
+  }
+
+  function syncRangeInput(input, value, max) {
+    if (!input) return;
+    input.max = String(max);
+    input.value = String(value);
+    const min = Number(input.min) || 0;
+    const range = Math.max(1, max - min);
+    input.style.setProperty('--range-pct', `${Math.max(0, Math.min(100, ((value - min) / range) * 100))}%`);
+  }
+
+  function syncRangeControls() {
+    const exchangeMax = allExchangeIds.size || Number(config.meta && config.meta.exchangeCount) || 1;
+    state.minExchanges = Math.min(Math.max(1, state.minExchanges), exchangeMax);
+    state.maxSpread = Math.min(Math.max(0, state.maxSpread), maxSpreadLimit);
+    syncRangeInput(minExchangeInput, state.minExchanges, exchangeMax);
+    syncRangeInput(maxSpreadInput, state.maxSpread, maxSpreadLimit);
+    if (minExchangeValue) minExchangeValue.textContent = `${state.minExchanges}社以上`;
+    if (maxSpreadValue) {
+      maxSpreadValue.textContent = state.maxSpread >= maxSpreadLimit
+        ? '上限なし'
+        : `${formatPct(state.maxSpread, state.maxSpread % 1 === 0 ? 0 : 1)}以下`;
+    }
   }
 
   function syncFilterControls() {
@@ -224,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
         exchangeState.textContent = `${state.selectedExchanges.size}社・${modeLabel}`;
       }
     }
+    syncRangeControls();
     if (clearButton) clearButton.disabled = !hasActiveFilters();
   }
 
@@ -233,7 +299,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     for (const item of items) {
       const referenceNode = item.card || item.row;
-      const visible = matchesQuery(referenceNode, query) && matchesExchangeFilter(referenceNode);
+      const visible = matchesQuery(referenceNode, query)
+        && matchesExchangeFilter(referenceNode)
+        && matchesRangeFilters(item);
       if (item.card) item.card.hidden = !visible;
       if (item.row) item.row.hidden = !visible;
       if (visible) count += 1;
@@ -248,8 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (empty) empty.classList.toggle('hidden', count > 0);
     syncFilterControls();
-    applyFavoriteOrdering();
-    applyTableSort();
+    applyOrdering();
     writeParams();
   }
 
@@ -270,15 +337,52 @@ document.addEventListener('DOMContentLoaded', () => {
     return state.favorites.has(id) ? 0 : 1;
   }
 
-  function applyFavoriteOrdering() {
+  function sortValue(node, key) {
+    if (key === 'label') return String(node.dataset.marketLabel || '').toLowerCase();
+    if (key === 'exchangeCount') return numberOrNull(node.dataset.exchangeCount);
+    if (key === 'volume') return numberOrNull(node.dataset.volume);
+    if (key === 'spread') return numberOrNull(node.dataset.spread);
+    if (key === 'change') return numberOrNull(node.dataset.change);
+    return numberOrNull(node.dataset.originalIndex) || 0;
+  }
+
+  function compareMarketNodes(a, b) {
+    const favoriteDiff = favoriteRank(a.dataset.marketId) - favoriteRank(b.dataset.marketId);
+    if (favoriteDiff !== 0) return favoriteDiff;
+
+    if (state.sort.key === 'rank') {
+      return Number(a.dataset.originalIndex || 0) - Number(b.dataset.originalIndex || 0);
+    }
+
+    const aValue = sortValue(a, state.sort.key);
+    const bValue = sortValue(b, state.sort.key);
+    const direction = state.sort.direction === 'desc' ? -1 : 1;
+    const aMissing = aValue == null || aValue === '';
+    const bMissing = bValue == null || bValue === '';
+    if (aMissing && bMissing) return Number(a.dataset.originalIndex || 0) - Number(b.dataset.originalIndex || 0);
+    if (aMissing) return 1;
+    if (bMissing) return -1;
+    if (typeof aValue === 'string' || typeof bValue === 'string') {
+      return String(aValue).localeCompare(String(bValue), 'ja') * direction;
+    }
+    if (aValue === bValue) return Number(a.dataset.originalIndex || 0) - Number(b.dataset.originalIndex || 0);
+    return aValue > bValue ? direction : -direction;
+  }
+
+  function applyOrdering() {
     if (grid) {
-      const ordered = [...cards].sort((a, b) => {
-        const favoriteDiff = favoriteRank(a.dataset.marketId) - favoriteRank(b.dataset.marketId);
-        if (favoriteDiff !== 0) return favoriteDiff;
-        return Number(a.dataset.originalIndex || 0) - Number(b.dataset.originalIndex || 0);
-      });
+      const ordered = [...cards].sort(compareMarketNodes);
       ordered.forEach(card => grid.appendChild(card));
     }
+    if (tableBody) {
+      rows.sort(compareMarketNodes).forEach(row => tableBody.appendChild(row));
+    }
+    sortButtons.forEach((button) => {
+      const active = button.dataset.marketSort === state.sort.key;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      button.dataset.sortDirection = active ? state.sort.direction : '';
+    });
   }
 
   function syncFavorites() {
@@ -330,48 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
       )).join(''),
       '</div>',
     ].join('');
-  }
-
-  function sortValue(row, key) {
-    if (key === 'label') return String(row.dataset.marketLabel || '').toLowerCase();
-    if (key === 'exchangeCount') return numberOrNull(row.dataset.exchangeCount);
-    if (key === 'volume') return numberOrNull(row.dataset.volume);
-    if (key === 'spread') return numberOrNull(row.dataset.spread);
-    if (key === 'change') return numberOrNull(row.dataset.change);
-    return numberOrNull(row.dataset.originalIndex) || 0;
-  }
-
-  function compareRows(a, b) {
-    if (state.sort.key === 'rank') {
-      const favoriteDiff = favoriteRank(a.dataset.marketId) - favoriteRank(b.dataset.marketId);
-      if (favoriteDiff !== 0) return favoriteDiff;
-      return Number(a.dataset.originalIndex || 0) - Number(b.dataset.originalIndex || 0);
-    }
-
-    const aValue = sortValue(a, state.sort.key);
-    const bValue = sortValue(b, state.sort.key);
-    const direction = state.sort.direction === 'desc' ? -1 : 1;
-    const aMissing = aValue == null || aValue === '';
-    const bMissing = bValue == null || bValue === '';
-    if (aMissing && bMissing) return 0;
-    if (aMissing) return 1;
-    if (bMissing) return -1;
-    if (typeof aValue === 'string' || typeof bValue === 'string') {
-      return String(aValue).localeCompare(String(bValue), 'ja') * direction;
-    }
-    if (aValue === bValue) return 0;
-    return aValue > bValue ? direction : -direction;
-  }
-
-  function applyTableSort() {
-    if (!tableBody) return;
-    rows.sort(compareRows).forEach(row => tableBody.appendChild(row));
-    sortButtons.forEach((button) => {
-      const active = button.dataset.marketSort === state.sort.key;
-      button.classList.toggle('is-active', active);
-      button.setAttribute('aria-pressed', active ? 'true' : 'false');
-      button.dataset.sortDirection = active ? state.sort.direction : '';
-    });
   }
 
   function showSuggestions() {
@@ -548,24 +610,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const spreadTone = prev.spread != null && updates.spread != null && updates.spread > prev.spread ? 'down' : 'up';
     const changeTone = prev.change != null && updates.change != null && updates.change < prev.change ? 'down' : 'up';
 
-    if (item.card) {
-      updateText(item.card.querySelector('[data-market-top-volume]'), market.topVolumeExchangeLabel ? `出来高トップ：${market.topVolumeExchangeLabel}` : '出来高データ待ち', volumeTone);
-      updateText(item.card.querySelector('[data-market-best-spread]'), metricText(item, 'spread').replace(/^/, 'スプレッド最小：'), spreadTone);
-      const changeNode = item.card.querySelector('[data-market-change-text]');
+    nodes.forEach((node) => {
+      updateText(node.querySelector('[data-market-top-volume]'), market.topVolumeExchangeLabel || 'データ待ち', volumeTone);
+      updateText(node.querySelector('[data-market-volume-value]'), item.live.volume ? formatJpyCompact(item.live.volume) : '集計中', volumeTone);
+      updateText(node.querySelector('[data-market-best-spread]'), item.live.spread != null ? formatPct(item.live.spread) : (market.marketType === 'derivative' ? '板で確認' : 'データ待ち'), spreadTone);
+      updateText(node.querySelector('[data-market-spread-exchange]'), market.bestSpreadExchangeLabel || (market.marketType === 'derivative' ? 'デリバティブ板' : '販売所なし'), spreadTone);
+      updateText(node.querySelector('[data-market-change-exchange]'), market.change24hExchangeLabel || '24h', changeTone);
+      updateText(node.querySelector('[data-market-change-arrow]'), trendArrow(item.live.change), changeTone);
+      const changeNode = node.querySelector('[data-market-change-text]');
       if (changeNode) {
-        changeNode.className = `market-index-card__trend-value market-trend market-trend--${trendTone(item.live.change)}`;
-        updateText(changeNode, `${metricText(item, 'change')}${market.change24hExchangeLabel ? ` / ${market.change24hExchangeLabel}` : ''}`, changeTone);
-      }
-    }
-    if (item.row) {
-      updateText(item.row.querySelector('[data-market-top-volume]'), market.topVolumeExchangeLabel || 'データ待ち', volumeTone);
-      updateText(item.row.querySelector('[data-market-best-spread]'), metricText(item, 'spread'), spreadTone);
-      const changeNode = item.row.querySelector('[data-market-change-text]');
-      if (changeNode) {
-        changeNode.className = `market-trend market-trend--${trendTone(item.live.change)}`;
+        const trendNode = changeNode.closest('.market-trend');
+        if (trendNode) {
+          trendNode.classList.remove('market-trend--up', 'market-trend--down', 'market-trend--flat');
+          trendNode.classList.add(`market-trend--${trendTone(item.live.change)}`);
+        }
         updateText(changeNode, metricText(item, 'change'), changeTone);
       }
-    }
+    });
   }
 
   function buildLiveUpdates(volumeShare, salesReport) {
@@ -606,23 +667,36 @@ document.addEventListener('DOMContentLoaded', () => {
     return updates;
   }
 
-  async function refreshLiveMetrics() {
-    const [volumeResponse, spreadResponse] = await Promise.all([
-      fetch('/api/volume-share?window=1d', { headers: { accept: 'application/json' } }),
-      fetch('/api/sales-spread', { headers: { accept: 'application/json' } }),
-    ]);
-    if (!volumeResponse.ok || !spreadResponse.ok) return;
-    const [volumeShare, salesReport] = await Promise.all([
-      volumeResponse.json(),
-      spreadResponse.json(),
-    ]);
-    const updates = buildLiveUpdates(volumeShare || {}, salesReport || {});
-    updates.forEach((update, instrumentId) => {
-      const item = itemById.get(instrumentId);
-      if (item) updateMarketNode(item, update);
+  function setLiveLoading(active) {
+    document.querySelectorAll('[data-market-live-cell]').forEach((node) => {
+      node.classList.toggle('is-loading', active);
     });
-    applyTableSort();
-    renderCompareTray();
+  }
+
+  async function refreshLiveMetrics() {
+    setLiveLoading(true);
+    try {
+      const [volumeResponse, spreadResponse] = await Promise.all([
+        fetch('/api/volume-share?window=1d', { headers: { accept: 'application/json' } }),
+        fetch('/api/sales-spread', { headers: { accept: 'application/json' } }),
+      ]);
+      if (!volumeResponse.ok || !spreadResponse.ok) return;
+      const [volumeShare, salesReport] = await Promise.all([
+        volumeResponse.json(),
+        spreadResponse.json(),
+      ]);
+      const updates = buildLiveUpdates(volumeShare || {}, salesReport || {});
+      updates.forEach((update, instrumentId) => {
+        const item = itemById.get(instrumentId);
+        if (item) updateMarketNode(item, update);
+      });
+      updateVisibility();
+      renderCompareTray();
+    } catch (_) {
+      // Keep the server-rendered data in place if live refresh is unavailable.
+    } finally {
+      setLiveLoading(false);
+    }
   }
 
   function startLiveRefresh() {
@@ -633,13 +707,15 @@ document.addEventListener('DOMContentLoaded', () => {
       callback: refreshLiveMetrics,
       visibleOnly: true,
     });
-    task.start({ immediate: false });
+    task.start({ immediate: true });
   }
 
   function clearFilters() {
     if (searchInput) searchInput.value = '';
     state.selectedExchanges.clear();
     state.filterMode = 'or';
+    state.minExchanges = 1;
+    state.maxSpread = maxSpreadLimit;
     hideSuggestions();
     updateVisibility();
   }
@@ -719,14 +795,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sortButton) {
       const key = sortButton.dataset.marketSort;
       if (state.sort.key === key) {
-        state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+        state.sort.direction = key === 'rank' ? 'asc' : (state.sort.direction === 'asc' ? 'desc' : 'asc');
       } else {
         state.sort = {
           key,
-          direction: key === 'spread' ? 'asc' : 'desc',
+          direction: key === 'rank' || key === 'spread' || key === 'label' ? 'asc' : 'desc',
         };
       }
-      applyTableSort();
+      applyOrdering();
       return;
     }
 
@@ -772,6 +848,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const compareInput = target ? target.closest('[data-market-compare]') : null;
     if (!compareInput) return;
     setCompare(compareInput.dataset.marketCompare, compareInput.checked);
+  });
+
+  [minExchangeInput, maxSpreadInput].filter(Boolean).forEach((input) => {
+    input.addEventListener('input', () => {
+      if (input === minExchangeInput) {
+        state.minExchanges = Math.max(1, Math.round(Number(input.value) || 1));
+      } else {
+        state.maxSpread = Number(input.value);
+      }
+      updateVisibility();
+    });
   });
 
   if (clearButton) clearButton.addEventListener('click', clearFilters);

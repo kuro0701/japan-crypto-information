@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-13">
+  <link rel="stylesheet" href="/css/style.css?v=ui-14">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -78,14 +78,24 @@
           <div class="market-exchange-filter__tools">
             <span id="market-index-exchange-state" class="market-exchange-filter__state">全社</span>
             <span class="market-filter-mode" role="group" aria-label="複数取引所の判定方法">
-              <button class="market-filter-mode__button is-active" type="button" data-market-filter-mode="or" aria-pressed="true">OR</button>
-              <button class="market-filter-mode__button" type="button" data-market-filter-mode="and" aria-pressed="false">AND</button>
+              <button class="market-filter-mode__button is-active" type="button" data-market-filter-mode="or" aria-pressed="true">いずれか含む</button>
+              <button class="market-filter-mode__button" type="button" data-market-filter-mode="and" aria-pressed="false">すべて対応</button>
             </span>
           </div>
           <div id="market-index-exchange-chips" class="market-exchange-chips">
             __MARKET_INDEX_EXCHANGE_CHIPS__
           </div>
         </fieldset>
+        <div class="market-range-filters" aria-label="数値で絞り込み">
+          <label class="market-range-filter" for="market-index-min-exchanges">
+            <span class="market-range-filter__head"><span>対応取引所数</span><strong id="market-index-min-exchanges-value">1社以上</strong></span>
+            <input id="market-index-min-exchanges" type="range" min="1" max="__EXCHANGE_COUNT__" step="1" value="1" data-market-range="minExchanges">
+          </label>
+          <label class="market-range-filter" for="market-index-max-spread">
+            <span class="market-range-filter__head"><span>スプレッド上限</span><strong id="market-index-max-spread-value">上限なし</strong></span>
+            <input id="market-index-max-spread" type="range" min="0" max="20" step="0.5" value="20" data-market-range="maxSpread">
+          </label>
+        </div>
         <div class="market-toolbar__actions">
           <div class="market-view-switch" role="group" aria-label="表示形式">
             <button class="market-view-switch__button is-active" type="button" data-market-view="grid" aria-pressed="true">グリッド</button>
@@ -121,6 +131,13 @@
           <p id="market-index-meta" class="text-xs text-gray-500 mt-1">国内取引所の対応銘柄を集計中</p>
         </div>
         <span class="panel-kicker">Directory</span>
+      </div>
+      <div class="market-directory-tools" aria-label="全銘柄の並び替え">
+        <span class="market-directory-tools__label">並び替え</span>
+        <button class="market-sort-button is-active" type="button" data-market-sort="rank" aria-pressed="true">おすすめ</button>
+        <button class="market-sort-button" type="button" data-market-sort="volume" aria-pressed="false">出来高順</button>
+        <button class="market-sort-button" type="button" data-market-sort="spread" aria-pressed="false">スプレッド狭い順</button>
+        <button class="market-sort-button" type="button" data-market-sort="change" aria-pressed="false">24h変動率順</button>
       </div>
       <div id="market-index-watchlist" class="market-watchlist" hidden></div>
       <div id="market-index-grid" class="market-index-grid">
@@ -165,6 +182,6 @@
   <script>window.MARKETS_INDEX = __MARKETS_INDEX_JSON__;</script>
   <script src="/js/page-poller.js?v=1"></script>
   <script src="/js/beginner-mode.js?v=5"></script>
-  <script src="/js/markets-index.js?v=markets-2"></script>
+  <script src="/js/markets-index.js?v=markets-3"></script>
 </body>
 </html>
