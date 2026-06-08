@@ -18,9 +18,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-20">
+  <link rel="stylesheet" href="/css/style.css?v=ui-25">
 </head>
-<body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
+<body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-market-page="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
   <header class="topbar px-6 py-3">
     <div class="brand-cluster">
@@ -99,7 +99,8 @@
           </div>
           <span class="panel-kicker">Domestic</span>
         </div>
-        <div class="overflow-auto scrollbar-thin">
+        <div id="market-exchange-preferences" class="market-exchange-preferences" hidden></div>
+        <div class="market-table-shell overflow-auto scrollbar-thin">
           <table class="data-table data-table--cards data-table--fixed data-table--market-domestic text-xs">
             <colgroup>
               <col style="width:17%">
@@ -177,8 +178,18 @@
         <label class="filter-control" for="market-amount"><span>数量 / 金額</span><input id="market-amount" class="field font-mono" inputmode="decimal" value="100000"></label>
         <label class="filter-control" for="market-fee-rate"><span>手数料率 (%)</span><input id="market-fee-rate" class="field font-mono" type="number" min="0" step="0.001" placeholder="各取引所の既定値"></label>
       </div>
+      <div class="market-quick-amounts mb-3" aria-label="クイック金額">
+        <span class="market-quick-amounts__label">クイック金額</span>
+        <div class="market-quick-amounts__buttons">
+          <button class="market-quick-amount" type="button" data-market-quick-amount="10000">1万円</button>
+          <button class="market-quick-amount" type="button" data-market-quick-amount="50000">5万円</button>
+          <button class="market-quick-amount" type="button" data-market-quick-amount="100000">10万円</button>
+          <button class="market-quick-amount" type="button" data-market-quick-amount="500000">50万円</button>
+          <button class="market-quick-amount" type="button" data-market-quick-amount="1000000">100万円</button>
+        </div>
+      </div>
       <p id="market-fee-preset-hint" class="field-help mb-3">未入力なら各取引所の既定 taker 手数料を使って比較します。</p>
-      <div class="overflow-auto scrollbar-thin">
+      <div class="market-table-shell overflow-auto scrollbar-thin">
         <table class="data-table data-table--cards data-table--fixed data-table--market-comparison text-xs">
           <colgroup>
             <col style="width:9%">
@@ -188,7 +199,7 @@
             <col style="width:12%">
             <col style="width:17%">
           </colgroup>
-          <thead class="sticky"><tr><th class="is-num text-right">順位</th><th class="text-left">取引所</th><th class="is-num text-right">結果</th><th class="is-num text-right"><span class="term-label">VWAP<button class="term-help" type="button" data-term-key="vwap" aria-label="VWAP の説明を開く"><span aria-hidden="true">?</span></button></span></th><th class="is-num text-right"><span class="term-label">Impact<button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button></span></th><th class="text-left">判定</th></tr></thead>
+          <thead class="sticky"><tr><th class="is-num text-right">順位</th><th class="text-left">取引所</th><th class="is-num text-right">結果</th><th class="is-num text-right"><span class="term-label"><span class="term-copy--expert">VWAP</span><span class="term-copy--beginner">平均購入価格</span><button class="term-help" type="button" data-term-key="vwap" aria-label="VWAP の説明を開く"><span aria-hidden="true">?</span></button></span></th><th class="is-num text-right"><span class="term-label"><span class="term-copy--expert">Impact</span><span class="term-copy--beginner">値幅への影響度</span><button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button></span></th><th class="text-left">判定</th></tr></thead>
           <tbody id="market-comparison-tbody"><tr><td colspan="6" class="text-center text-gray-500 py-4">比較を取得中</td></tr></tbody>
         </table>
       </div>
@@ -197,7 +208,7 @@
     <div class="dashboard-grid dashboard-grid--left info-layer info-layer--middle" data-info-layer="middle">
       <section class="panel panel--dense">
         <div class="panel-title-row mb-3"><div class="panel-title-with-help"><h2 class="panel-title">出来高シェア</h2><button class="term-help" type="button" data-term-key="volume-share" aria-label="出来高シェア の説明を開く"><span aria-hidden="true">?</span></button></div><span class="panel-kicker">Volume</span></div>
-        <div class="overflow-auto scrollbar-thin">
+        <div class="market-table-shell overflow-auto scrollbar-thin">
           <table class="data-table data-table--cards data-table--fixed data-table--market-volume text-xs">
             <colgroup>
               <col style="width:34%">
@@ -213,7 +224,7 @@
 
       <section class="panel panel--dense">
         <div class="panel-title-row mb-3"><div class="panel-title-with-help"><h2 class="panel-title">販売所スプレッド</h2><button class="term-help" type="button" data-term-key="sales-spread" aria-label="販売所スプレッド の説明を開く"><span aria-hidden="true">?</span></button></div><span class="panel-kicker">Sales Spread</span></div>
-        <div class="overflow-auto scrollbar-thin">
+        <div class="market-table-shell overflow-auto scrollbar-thin">
           <table class="data-table data-table--cards data-table--fixed data-table--market-sales text-xs">
             <colgroup>
               <col style="width:30%">
@@ -297,6 +308,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-11"></script>
+  <script src="/js/market-page.js?v=market-13"></script>
 </body>
 </html>
