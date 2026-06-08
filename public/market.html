@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-25">
+  <link rel="stylesheet" href="/css/style.css?v=ui-28">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-market-page="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -100,7 +100,7 @@
           <span class="panel-kicker">Domestic</span>
         </div>
         <div id="market-exchange-preferences" class="market-exchange-preferences" hidden></div>
-        <div class="market-table-shell overflow-auto scrollbar-thin">
+        <div class="market-table-shell market-table-shell--sticky overflow-auto scrollbar-thin">
           <table class="data-table data-table--cards data-table--fixed data-table--market-domestic text-xs">
             <colgroup>
               <col style="width:17%">
@@ -189,7 +189,7 @@
         </div>
       </div>
       <p id="market-fee-preset-hint" class="field-help mb-3">未入力なら各取引所の既定 taker 手数料を使って比較します。</p>
-      <div class="market-table-shell overflow-auto scrollbar-thin">
+      <div class="market-table-shell market-table-shell--sticky overflow-auto scrollbar-thin">
         <table class="data-table data-table--cards data-table--fixed data-table--market-comparison text-xs">
           <colgroup>
             <col style="width:9%">
