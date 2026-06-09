@@ -5,6 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const MarketData = window.MarketDataUtils;
   const config = window.MARKET_PAGE || {};
   const instrumentId = String(config.instrumentId || '').toUpperCase();
+  const THEME_STORAGE_KEY = 'okj.theme.v1';
+  const AMOUNT_RANGE_MIN = 10000;
+  const AMOUNT_RANGE_MAX = 1000000;
+  const AMOUNT_RANGE_STEP = 10000;
   const ws = new WSClient();
   const pagePoller = window.PagePoller.create();
   let summary = null;
@@ -13,6 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let summaryAbortController = null;
   let comparisonAbortController = null;
   let lastComparisonData = null;
+  let volumeDonutChart = null;
+  let volumeDonutRows = [];
   const SUMMARY_REFRESH_MS = 60000;
   const ORDERBOOK_WAITING_MESSAGE = '取引所から板データを取得中です。接続に数秒かかる場合があります。';
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
@@ -79,6 +85,95 @@ document.addEventListener('DOMContentLoaded', () => {
   let showOnlyMyExchanges = readStoredBoolean(MY_EXCHANGES_ONLY_STORAGE_KEY);
   const rowFlashUntilByExchange = new Map();
 
+  function readStoredTheme() {
+    try {
+      return localStorage.getItem(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark';
+    } catch (_) {
+      return document.documentElement.classList.contains('theme-light') ? 'light' : 'dark';
+    }
+  }
+
+  function writeStoredTheme(theme) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch (_) {
+      // noop
+    }
+  }
+
+  function syncTheme(theme) {
+    const isLight = theme === 'light';
+    document.documentElement.classList.toggle('theme-light', isLight);
+    document.body.classList.toggle('theme-light', isLight);
+
+    document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
+      const icon = button.querySelector('[data-theme-toggle-icon]');
+      const label = button.querySelector('[data-theme-toggle-label]');
+      button.classList.toggle('is-light', isLight);
+      button.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+      button.setAttribute('aria-label', isLight ? 'ダークモードに切り替え' : 'ライトモードに切り替え');
+      if (icon) icon.textContent = isLight ? '☾' : '☀';
+      if (label) label.textContent = isLight ? 'ダーク' : 'ライト';
+    });
+
+    applyVolumeDonutTheme();
+    window.dispatchEvent(new CustomEvent('okj:theme-change', { detail: { theme } }));
+  }
+
+  function initThemeToggle() {
+    let currentTheme = readStoredTheme();
+    syncTheme(currentTheme);
+    document.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest ? event.target.closest('[data-theme-toggle]') : null;
+      if (!button) return;
+      event.preventDefault();
+      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      writeStoredTheme(currentTheme);
+      syncTheme(currentTheme);
+    });
+  }
+
+  function switchMarketOptions() {
+    const defaults = [
+      { instrumentId: 'BTC-JPY', label: 'BTC/JPY' },
+      { instrumentId: 'ETH-JPY', label: 'ETH/JPY' },
+      { instrumentId: 'SOL-JPY', label: 'SOL/JPY' },
+      { instrumentId: 'XRP-JPY', label: 'XRP/JPY' },
+    ];
+    const configured = Array.isArray(config.switchMarkets) && config.switchMarkets.length > 0
+      ? config.switchMarkets
+      : defaults;
+    const options = [
+      { instrumentId, label: config.label || instrumentId },
+      ...configured,
+    ];
+    const seen = new Set();
+    return options
+      .map(option => ({
+        instrumentId: String(option.instrumentId || '').toUpperCase(),
+        label: option.label || option.instrumentId,
+      }))
+      .filter((option) => {
+        if (!option.instrumentId || seen.has(option.instrumentId)) return false;
+        seen.add(option.instrumentId);
+        return true;
+      });
+  }
+
+  function initPairSwitcher() {
+    const select = $('market-pair-switcher');
+    if (!select) return;
+    const options = switchMarketOptions();
+    select.innerHTML = options.map(option => `
+      <option value="${escapeHtml(option.instrumentId)}">${escapeHtml(option.label || option.instrumentId)}</option>
+    `).join('');
+    select.value = instrumentId;
+    select.addEventListener('change', () => {
+      if (!select.value || select.value === instrumentId) return;
+      window.location.href = marketPageUrl(select.value);
+    });
+  }
+
   function beginnerModeEnabled() {
     return Boolean(window.BeginnerMode && window.BeginnerMode.isEnabled && window.BeginnerMode.isEnabled());
   }
@@ -129,16 +224,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function exchangeIdentityHtml(exchangeId, label, subtext = '') {
     const id = normalizeExchangeId(exchangeId);
     const accent = exchangeAccent(id);
-    const myBadge = isMyExchange(id) ? '<span class="exchange-identity__badge">My</span>' : '';
+    const isPinned = isMyExchange(id);
     const safeColor = escapeHtml(accent.color);
+    const safeLabel = escapeHtml(label || exchangeId || '-');
     return `
       <div class="exchange-identity" style="--exchange-accent:${safeColor}">
         <span class="exchange-identity__swatch" aria-hidden="true"></span>
         <span class="exchange-identity__copy">
-          <span class="exchange-identity__name">${escapeHtml(label || exchangeId || '-')}</span>
+          <span class="exchange-identity__name">${safeLabel}</span>
           ${subtext ? `<span class="exchange-identity__meta">${escapeHtml(subtext)}</span>` : ''}
         </span>
-        ${myBadge}
+        <button class="exchange-identity__pin ${isPinned ? 'is-active' : ''}" type="button" data-market-star-exchange="${escapeHtml(id)}" aria-pressed="${isPinned ? 'true' : 'false'}" aria-label="${safeLabel}を上に固定">${isPinned ? '★' : '☆'}</button>
       </div>
     `;
   }
@@ -180,9 +276,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const tone = spreadTone(spread, options.min, options.max);
     const label = tone === 'low' ? '低コスト' : (tone === 'high' ? '警戒' : '注意');
     const best = options.best ? winnerBadge('最狭', 'green') : '';
+    const score = spread == null
+      ? 0
+      : (options.min != null && options.max != null && options.max > options.min)
+        ? Math.max(0, Math.min(100, ((spread - options.min) / (options.max - options.min)) * 100))
+        : Math.max(0, Math.min(100, (spread / 8) * 100));
     return `
-      <div class="spread-cost-cell spread-cost-cell--${tone}">
+      <div class="spread-cost-cell spread-cost-cell--${tone}" style="--spread-score:${score}%">
         <span class="spread-cost-cell__rate">${spread == null ? '-' : fmtPct(spread)}</span>
+        <span class="spread-cost-cell__meter" aria-hidden="true"><span></span></span>
         <span class="spread-cost-cell__label">${label}</span>
         ${best}
       </div>
@@ -215,10 +317,166 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
+  function chartCssVar(name, fallback) {
+    return AppUtil.cssVar ? AppUtil.cssVar(name, fallback) : fallback;
+  }
+
+  function applyVolumeDonutTheme() {
+    if (!volumeDonutChart) return;
+    const textColor = chartCssVar('--text-2', '#c9d3cd');
+    const mutedColor = chartCssVar('--text-4', '#6f7b76');
+    const surfaceColor = document.documentElement.classList.contains('theme-light')
+      ? 'rgba(255, 255, 255, 0.96)'
+      : 'rgba(8, 11, 12, 0.94)';
+    volumeDonutChart.options.plugins.tooltip.backgroundColor = surfaceColor;
+    volumeDonutChart.options.plugins.tooltip.titleColor = textColor;
+    volumeDonutChart.options.plugins.tooltip.bodyColor = mutedColor;
+    volumeDonutChart.update('none');
+  }
+
+  function initVolumeDonutChart() {
+    const canvas = $('market-volume-donut-chart');
+    if (!canvas || volumeDonutChart || typeof Chart === 'undefined') return;
+    volumeDonutChart = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: [],
+        datasets: [{
+          data: [],
+          backgroundColor: [],
+          borderColor: document.documentElement.classList.contains('theme-light') ? '#ffffff' : '#0d1214',
+          borderWidth: 2,
+          hoverOffset: 8,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '66%',
+        animation: { duration: 420, easing: 'easeOutQuart' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(8, 11, 12, 0.94)',
+            borderColor: 'rgba(200, 220, 210, 0.18)',
+            borderWidth: 1,
+            displayColors: true,
+            callbacks: {
+              label: (ctx) => {
+                const row = volumeDonutRows[ctx.dataIndex] || {};
+                return `${row.exchangeLabel || ctx.label}: ${Fmt.jpyLarge(row.quoteVolume)} / ${fmtPct(row.instrumentSharePct)}`;
+              },
+            },
+          },
+        },
+      },
+    });
+    applyVolumeDonutTheme();
+  }
+
+  function renderVolumeDonutLegend(rows) {
+    const host = $('market-volume-donut-legend');
+    if (!host) return;
+    if (!rows.length) {
+      host.textContent = '出来高データを取得中';
+      return;
+    }
+    host.innerHTML = rows.slice(0, 5).map((row, index) => {
+      const accent = exchangeAccent(row.exchangeId);
+      return `
+        <div class="market-volume-legend-row" style="--exchange-accent:${escapeHtml(accent.color)}">
+          <span class="market-volume-legend-row__rank">${index + 1}</span>
+          <span class="market-volume-legend-row__name">${escapeHtml(row.exchangeLabel || row.exchangeId)}</span>
+          <span class="market-volume-legend-row__value">${fmtPct(row.instrumentSharePct)}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function updateVolumeDonutChart(rows) {
+    const usableRows = (rows || [])
+      .filter(row => Number.isFinite(Number(row.quoteVolume)) && Number(row.quoteVolume) > 0)
+      .sort((a, b) => Number(b.quoteVolume || 0) - Number(a.quoteVolume || 0))
+      .slice(0, 8);
+    volumeDonutRows = usableRows;
+    renderVolumeDonutLegend(usableRows);
+    initVolumeDonutChart();
+    if (!volumeDonutChart) {
+      updateVolumeCssDonut(usableRows);
+      return;
+    }
+    updateVolumeCssDonut([]);
+    const dataset = volumeDonutChart.data.datasets[0];
+    volumeDonutChart.data.labels = usableRows.map(row => row.exchangeLabel || row.exchangeId || '-');
+    dataset.data = usableRows.map(row => Number(row.quoteVolume));
+    dataset.backgroundColor = usableRows.map(row => exchangeAccent(row.exchangeId).color);
+    dataset.borderColor = document.documentElement.classList.contains('theme-light') ? '#ffffff' : '#0d1214';
+    volumeDonutChart.update('none');
+  }
+
+  function updateVolumeCssDonut(rows) {
+    const donut = $('market-volume-css-donut');
+    const label = $('market-volume-css-donut-label');
+    const canvas = $('market-volume-donut-chart');
+    if (!donut) return;
+    const hasRows = Array.isArray(rows) && rows.length > 0;
+    donut.hidden = !hasRows;
+    if (canvas) canvas.hidden = hasRows;
+    if (!hasRows) return;
+
+    const total = rows.reduce((sum, row) => sum + Number(row.quoteVolume || 0), 0);
+    let cursor = 0;
+    const stops = rows.map((row) => {
+      const share = total > 0 ? (Number(row.quoteVolume || 0) / total) * 100 : 0;
+      const start = cursor;
+      cursor += share;
+      return `${exchangeAccent(row.exchangeId).color} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`;
+    });
+    donut.style.background = `conic-gradient(${stops.join(', ')})`;
+    donut.title = rows
+      .map(row => `${row.exchangeLabel || row.exchangeId}: ${Fmt.jpyLarge(row.quoteVolume)} / ${fmtPct(row.instrumentSharePct)}`)
+      .join('\n');
+    if (label) {
+      const top = rows[0];
+      label.textContent = top ? `${fmtPct(top.instrumentSharePct)}` : 'Share';
+    }
+  }
+
   function activeQuickAmount() {
     const amountType = $('market-amount-type')?.value === 'base' ? 'base' : 'jpy';
     if (amountType !== 'jpy') return null;
     return parseNumberInput($('market-amount')?.value);
+  }
+
+  function clampRangeAmount(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return AMOUNT_RANGE_MIN;
+    const stepped = Math.round(parsed / AMOUNT_RANGE_STEP) * AMOUNT_RANGE_STEP;
+    return Math.max(AMOUNT_RANGE_MIN, Math.min(AMOUNT_RANGE_MAX, stepped));
+  }
+
+  function amountRangeLabel(value) {
+    const amount = Number(value);
+    if (!Number.isFinite(amount)) return '-';
+    if (amount >= 10000) return `${Fmt.num(amount / 10000, amount % 10000 === 0 ? 0 : 1)}万円`;
+    return Fmt.jpy(amount);
+  }
+
+  function syncAmountRange() {
+    const slider = $('market-amount-range');
+    const label = $('market-amount-range-label');
+    const shell = $('market-amount-slider');
+    if (!slider) return;
+    const amountType = $('market-amount-type')?.value === 'base' ? 'base' : 'jpy';
+    const isJpy = amountType === 'jpy';
+    const active = activeQuickAmount();
+    const value = clampRangeAmount(active == null ? Number(slider.value) : active);
+    slider.disabled = !isJpy;
+    slider.value = String(value);
+    const pct = ((value - AMOUNT_RANGE_MIN) / (AMOUNT_RANGE_MAX - AMOUNT_RANGE_MIN)) * 100;
+    slider.style.setProperty('--range-pct', `${Math.max(0, Math.min(100, pct))}%`);
+    if (label) label.textContent = isJpy ? amountRangeLabel(value) : '数量入力中';
+    if (shell) shell.classList.toggle('is-disabled', !isJpy);
   }
 
   function syncQuickAmountButtons() {
@@ -227,6 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const value = Number(button.dataset.marketQuickAmount);
       button.classList.toggle('is-active', active != null && value === active);
     });
+    syncAmountRange();
   }
 
   function setQuickAmount(value) {
@@ -234,6 +493,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const amount = $('market-amount');
     if (amountType) amountType.value = 'jpy';
     if (amount) amount.value = String(value);
+    syncQuickAmountButtons();
+    if (comparisonTimer) clearTimeout(comparisonTimer);
+    comparisonTimer = setTimeout(loadComparison, 80);
+  }
+
+  function setAmountFromRange(value) {
+    const amountType = $('market-amount-type');
+    const amount = $('market-amount');
+    const nextValue = clampRangeAmount(value);
+    if (amountType) amountType.value = 'jpy';
+    if (amount) amount.value = String(nextValue);
     syncQuickAmountButtons();
     if (comparisonTimer) clearTimeout(comparisonTimer);
     comparisonTimer = setTimeout(loadComparison, 80);
@@ -258,8 +528,8 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="market-exchange-preferences__header">
         <div>
           <p class="market-exchange-preferences__eyebrow">My Exchanges</p>
-          <strong>自分の取引所を上に固定</strong>
-          <span>${selectedCount > 0 ? `${selectedCount}社を選択中` : 'チェックすると比較表の先頭に並びます'}</span>
+          <strong>スターした取引所を上に固定</strong>
+          <span>${selectedCount > 0 ? `${selectedCount}社を固定中` : '取引所名横のスターでも固定できます'}</span>
         </div>
         <div class="market-exchange-preferences__actions">
           <button class="market-preference-button ${showOnlyMyExchanges ? 'is-active' : ''}" type="button" data-market-my-only ${onlyDisabled ? 'disabled' : ''}>選択だけ表示</button>
@@ -274,6 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return `
             <label class="market-exchange-chip ${checked ? 'is-active' : ''}" style="--exchange-accent:${escapeHtml(accent.color)}">
               <input type="checkbox" data-market-my-exchange value="${escapeHtml(id)}" ${checked}>
+              <span class="market-exchange-chip__star" aria-hidden="true">${checked ? '★' : '☆'}</span>
               <span class="exchange-identity__swatch" aria-hidden="true"></span>
               <span>${escapeHtml(exchange.label || exchange.id)}</span>
             </label>
@@ -651,15 +922,18 @@ document.addEventListener('DOMContentLoaded', () => {
       .sort((a, b) => Number(b.quoteVolume || 0) - Number(a.quoteVolume || 0));
     const rows = orderRowsForMyExchanges(rawRows);
     if (rawRows.length === 0) {
+      updateVolumeDonutChart([]);
       setEmpty('market-volume-tbody', 4, '出来高データを取得中です。取得でき次第、取引所ごとの流動性を表示します。');
       return;
     }
     if (rows.length === 0) {
+      updateVolumeDonutChart([]);
       setEmpty('market-volume-tbody', 4, 'マイ取引所に一致する出来高データがありません。選択だけ表示を解除してください。');
       return;
     }
 
     const tbody = $('market-volume-tbody');
+    updateVolumeDonutChart(rows);
     const topVolumeIds = bestIds(rows, row => row.quoteVolume, 'max');
     tbody.innerHTML = rows.map(row => `
       <tr class="border-b border-gray-800/60 ${isMyExchange(row.exchangeId) ? 'data-table__row--my-exchange' : ''}">
@@ -821,6 +1095,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? comparisonStatusClass(result.executionStatus)
         : (status === 'stale' ? 'text-yellow-300' : 'text-gray-500');
       const rowClass = [
+        'data-table__row--comparison-refresh',
         row.rank === 1 && ready ? 'data-table__row--rank-1' : '',
         isMyExchange(row.exchangeId) ? 'data-table__row--my-exchange' : '',
         status === 'stale' ? 'data-table__row--stale' : '',
@@ -938,6 +1213,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  const amountRange = $('market-amount-range');
+  if (amountRange) {
+    amountRange.addEventListener('input', () => {
+      setAmountFromRange(amountRange.value);
+    });
+  }
+
+  document.addEventListener('click', (event) => {
+    const button = event.target && event.target.closest ? event.target.closest('[data-market-star-exchange]') : null;
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const id = normalizeExchangeId(button.dataset.marketStarExchange);
+    if (!id) return;
+    if (myExchangeIds.has(id)) myExchangeIds.delete(id);
+    else myExchangeIds.add(id);
+    writeStoredExchangeSet(myExchangeIds);
+    if (myExchangeIds.size === 0) {
+      showOnlyMyExchanges = false;
+      writeStoredBoolean(MY_EXCHANGES_ONLY_STORAGE_KEY, false);
+    }
+    rerenderMarketTables();
+  });
+
   const preferenceHost = $('market-exchange-preferences');
   if (preferenceHost) {
     preferenceHost.addEventListener('change', (event) => {
@@ -1028,8 +1327,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  initThemeToggle();
+  initPairSwitcher();
   initDepthChart();
+  initVolumeDonutChart();
   updateFeePresetHint();
+  syncAmountRange();
   loadSummary();
   ws.connect();
   summaryRefreshTask.start({ immediate: false });

@@ -17,8 +17,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-28">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=ui-31">
+  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-1">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-market-page="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -29,6 +30,10 @@
         <h1 class="page-title" id="market-page-title">__MARKET_PAGE_TITLE__</h1>
         <div class="brand-subtitle" id="market-page-subtitle">__MARKET_PAGE_SUBTITLE__</div>
       </div>
+      <label class="market-pair-switcher" for="market-pair-switcher">
+        <span class="sr-only">通貨ペアを切り替え</span>
+        <select id="market-pair-switcher" aria-label="通貨ペアを切り替え"></select>
+      </label>
     </div>
     <nav class="nav-menu" aria-label="ページ間ナビゲーション">
       <a class="nav-link" href="/">ホーム</a>
@@ -39,7 +44,7 @@
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
       <a class="nav-link" href="/campaigns">キャンペーン</a>
     </nav>
-    <div class="status-cluster" role="status" aria-live="polite" aria-atomic="true"><span class="badge badge--live">LIVE</span><span id="market-status" class="status-text">読み込み中</span><span class="text-xs text-gray-600 ml-2">更新: <span id="market-updated-at" class="text-gray-400">-</span></span><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
+    <div class="status-cluster" aria-label="銘柄ページの更新状態と表示設定"><span class="status-cluster__live" role="status" aria-live="polite" aria-atomic="true"><span class="badge badge--live">LIVE</span><span id="market-status" class="status-text">読み込み中</span><span class="text-xs text-gray-600 ml-2">更新: <span id="market-updated-at" class="text-gray-400">-</span></span></span><button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="ライトモードに切り替え"><span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__icon theme-toggle__icon--sun">☀</span><span class="theme-toggle__icon theme-toggle__icon--moon">☾</span><span class="theme-toggle__knob" data-theme-toggle-icon>☀</span></span><span class="sr-only" data-theme-toggle-label>ライト</span></button><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
   </header>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
@@ -188,6 +193,14 @@
           <button class="market-quick-amount" type="button" data-market-quick-amount="1000000">100万円</button>
         </div>
       </div>
+      <div class="market-amount-slider mb-3" id="market-amount-slider">
+        <div class="market-amount-slider__head">
+          <span>金額スライダー</span>
+          <output id="market-amount-range-label" for="market-amount-range">10万円</output>
+        </div>
+        <input id="market-amount-range" type="range" min="10000" max="1000000" step="10000" value="100000" aria-label="購入金額を1万円から100万円で調整">
+        <div class="market-amount-slider__scale" aria-hidden="true"><span>1万円</span><span>100万円</span></div>
+      </div>
       <p id="market-fee-preset-hint" class="field-help mb-3">未入力なら各取引所の既定 taker 手数料を使って比較します。</p>
       <div class="market-table-shell market-table-shell--sticky overflow-auto scrollbar-thin">
         <table class="data-table data-table--cards data-table--fixed data-table--market-comparison text-xs">
@@ -208,6 +221,13 @@
     <div class="dashboard-grid dashboard-grid--left info-layer info-layer--middle" data-info-layer="middle">
       <section class="panel panel--dense">
         <div class="panel-title-row mb-3"><div class="panel-title-with-help"><h2 class="panel-title">出来高シェア</h2><button class="term-help" type="button" data-term-key="volume-share" aria-label="出来高シェア の説明を開く"><span aria-hidden="true">?</span></button></div><span class="panel-kicker">Volume</span></div>
+        <div class="market-volume-visual" aria-label="出来高シェアのドーナツチャート">
+          <div class="market-volume-visual__chart">
+            <div id="market-volume-css-donut" class="market-volume-css-donut" hidden><span id="market-volume-css-donut-label">Share</span></div>
+            <canvas id="market-volume-donut-chart"></canvas>
+          </div>
+          <div id="market-volume-donut-legend" class="market-volume-visual__legend">出来高データを取得中</div>
+        </div>
         <div class="market-table-shell overflow-auto scrollbar-thin">
           <table class="data-table data-table--cards data-table--fixed data-table--market-volume text-xs">
             <colgroup>
@@ -308,6 +328,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-13"></script>
+  <script src="/js/market-page.js?v=market-15"></script>
 </body>
 </html>
