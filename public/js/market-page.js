@@ -20,8 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let volumeDonutChart = null;
   let volumeDonutRows = [];
   const SUMMARY_REFRESH_MS = 60000;
+  const CELL_FLASH_MS = 900;
   const ORDERBOOK_WAITING_MESSAGE = '取引所から板データを取得中です。接続に数秒かかる場合があります。';
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
+  const LOADING_MESSAGE_PATTERN = /(取得中|読み込み中|データ待ち|集計中|待機中|接続に数秒)/;
   const EXCHANGE_ACCENTS = Object.freeze({
     okj: { color: '#35c8d2' },
     coincheck: { color: '#2ed47a' },
@@ -52,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const storageKey = suffix => `okj.market.${instrumentId || 'default'}.${suffix}.v1`;
   const MY_EXCHANGES_STORAGE_KEY = storageKey('myExchanges');
   const MY_EXCHANGES_ONLY_STORAGE_KEY = storageKey('myExchangesOnly');
+  const PRETRADE_CHECKLIST_STORAGE_KEY = storageKey('pretradeChecklist');
   const readStoredExchangeSet = () => {
     try {
       const parsed = JSON.parse(localStorage.getItem(MY_EXCHANGES_STORAGE_KEY) || '[]');
@@ -84,6 +87,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let myExchangeIds = readStoredExchangeSet();
   let showOnlyMyExchanges = readStoredBoolean(MY_EXCHANGES_ONLY_STORAGE_KEY);
   const rowFlashUntilByExchange = new Map();
+  const cellFlashUntilByKey = new Map();
+  let summaryLoadedAt = 0;
 
   function readStoredTheme() {
     try {
@@ -221,6 +226,51 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id) rowFlashUntilByExchange.set(id, Date.now() + 900);
   }
 
+  function cellFlashKey(exchangeId, field) {
+    return `${normalizeExchangeId(exchangeId)}:${field}`;
+  }
+
+  function cellFlashClass(exchangeId, field) {
+    const key = cellFlashKey(exchangeId, field);
+    const state = cellFlashUntilByKey.get(key);
+    if (!state) return '';
+    if (Date.now() > state.until) {
+      cellFlashUntilByKey.delete(key);
+      return '';
+    }
+    return `market-cell-flash market-cell-flash--${state.direction}`;
+  }
+
+  function markCellChanged(exchangeId, field, previousValue, nextValue, options = {}) {
+    const id = normalizeExchangeId(exchangeId);
+    const previous = finiteNumber(previousValue);
+    const next = finiteNumber(nextValue);
+    if (!id || previous == null || next == null || Math.abs(previous - next) <= 1e-9) return;
+    const rose = next > previous;
+    const direction = options.inverse ? (rose ? 'down' : 'up') : (rose ? 'up' : 'down');
+    cellFlashUntilByKey.set(cellFlashKey(id, field), {
+      direction,
+      until: Date.now() + CELL_FLASH_MS,
+    });
+  }
+
+  function visibleDepthFromOrderbook(orderbook) {
+    if (!orderbook) return null;
+    const explicit = finiteNumber(orderbook.visibleDepthJPY);
+    if (explicit != null) return explicit;
+    const bid = finiteNumber(orderbook.totalBidDepthJPY) || 0;
+    const ask = finiteNumber(orderbook.totalAskDepthJPY) || 0;
+    return bid + ask;
+  }
+
+  function markOrderbookCellChanges(exchangeId, previousOrderbook, nextOrderbook) {
+    if (!previousOrderbook || !nextOrderbook) return;
+    markCellChanged(exchangeId, 'bestBid', previousOrderbook.bestBid, nextOrderbook.bestBid);
+    markCellChanged(exchangeId, 'bestAsk', previousOrderbook.bestAsk, nextOrderbook.bestAsk);
+    markCellChanged(exchangeId, 'spreadPct', previousOrderbook.spreadPct, nextOrderbook.spreadPct, { inverse: true });
+    markCellChanged(exchangeId, 'visibleDepthJPY', visibleDepthFromOrderbook(previousOrderbook), visibleDepthFromOrderbook(nextOrderbook));
+  }
+
   function exchangeIdentityHtml(exchangeId, label, subtext = '') {
     const id = normalizeExchangeId(exchangeId);
     const accent = exchangeAccent(id);
@@ -234,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="exchange-identity__name">${safeLabel}</span>
           ${subtext ? `<span class="exchange-identity__meta">${escapeHtml(subtext)}</span>` : ''}
         </span>
-        <button class="exchange-identity__pin ${isPinned ? 'is-active' : ''}" type="button" data-market-star-exchange="${escapeHtml(id)}" aria-pressed="${isPinned ? 'true' : 'false'}" aria-label="${safeLabel}を上に固定">${isPinned ? '★' : '☆'}</button>
+        <button class="exchange-identity__pin ${isPinned ? 'is-active' : ''}" type="button" data-market-star-exchange="${escapeHtml(id)}" aria-pressed="${isPinned ? 'true' : 'false'}" aria-label="${safeLabel}${isPinned ? 'の固定を解除' : 'を上に固定'}"><span class="exchange-identity__pin-icon" aria-hidden="true"></span></button>
       </div>
     `;
   }
@@ -313,6 +363,29 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="market-share-cell" style="--share-width:${pct}%">
         <span class="market-share-cell__value">${fmtPct(value)}</span>
         <span class="market-share-cell__track" aria-hidden="true"><span></span></span>
+      </div>
+    `;
+  }
+
+  function isLoadingMessage(message) {
+    return LOADING_MESSAGE_PATTERN.test(String(message || ''));
+  }
+
+  function skeletonStackHtml(label = 'データを取得中') {
+    return `
+      <div class="market-skeleton-stack" aria-label="${escapeHtml(label)}">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    `;
+  }
+
+  function waitingCellHtml(label = 'データを取得中') {
+    return `
+      <div class="market-skeleton-cell" aria-label="${escapeHtml(label)}">
+        <span></span>
+        <span></span>
       </div>
     `;
   }
@@ -486,6 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
       button.classList.toggle('is-active', active != null && value === active);
     });
     syncAmountRange();
+    syncAmountTypeToggle();
   }
 
   function setQuickAmount(value) {
@@ -509,6 +583,147 @@ document.addEventListener('DOMContentLoaded', () => {
     comparisonTimer = setTimeout(loadComparison, 80);
   }
 
+  function amountTypeValue() {
+    return $('market-amount-type')?.value === 'base' ? 'base' : 'jpy';
+  }
+
+  function syncAmountTypeToggle() {
+    const toggle = document.querySelector('.market-amount-type-toggle');
+    if (!toggle) return;
+    const value = amountTypeValue();
+    toggle.dataset.state = value;
+    toggle.querySelectorAll('[data-market-amount-type-toggle]').forEach((button) => {
+      const active = button.dataset.marketAmountTypeToggle === value;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
+  function initAmountTypeToggle() {
+    const select = $('market-amount-type');
+    const toggle = document.querySelector('.market-amount-type-toggle');
+    if (!select || !toggle) return;
+    toggle.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest ? event.target.closest('[data-market-amount-type-toggle]') : null;
+      if (!button) return;
+      const value = button.dataset.marketAmountTypeToggle === 'base' ? 'base' : 'jpy';
+      if (select.value === value) return;
+      select.value = value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    syncAmountTypeToggle();
+  }
+
+  function tableRowPositionMap() {
+    const positions = new Map();
+    [
+      'market-domestic-comparison-tbody',
+      'market-orderbook-tbody',
+      'market-volume-tbody',
+      'market-sales-tbody',
+      'market-comparison-tbody',
+    ].forEach((tbodyId) => {
+      const tbody = $(tbodyId);
+      if (!tbody) return;
+      tbody.querySelectorAll('tr[data-exchange-id]').forEach((row) => {
+        const id = row.getAttribute('data-exchange-id');
+        if (!id) return;
+        positions.set(`${tbodyId}:${id}`, row.getBoundingClientRect());
+      });
+    });
+    return positions;
+  }
+
+  function animateTableReorder(renderFn) {
+    const before = tableRowPositionMap();
+    renderFn();
+    window.requestAnimationFrame(() => {
+      [
+        'market-domestic-comparison-tbody',
+        'market-orderbook-tbody',
+        'market-volume-tbody',
+        'market-sales-tbody',
+        'market-comparison-tbody',
+      ].forEach((tbodyId) => {
+        const tbody = $(tbodyId);
+        if (!tbody) return;
+        tbody.querySelectorAll('tr[data-exchange-id]').forEach((row) => {
+          const id = row.getAttribute('data-exchange-id');
+          const first = before.get(`${tbodyId}:${id}`);
+          if (!first) return;
+          const last = row.getBoundingClientRect();
+          const dx = first.left - last.left;
+          const dy = first.top - last.top;
+          if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+          row.animate([
+            { transform: `translate(${dx}px, ${dy}px)`, opacity: 0.88 },
+            { transform: 'translate(0, 0)', opacity: 1 },
+          ], {
+            duration: 360,
+            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+          });
+        });
+      });
+    });
+  }
+
+  function readPretradeChecklistState() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(PRETRADE_CHECKLIST_STORAGE_KEY) || '[]');
+      return new Set((Array.isArray(parsed) ? parsed : []).map(value => String(value)));
+    } catch (_) {
+      return new Set();
+    }
+  }
+
+  function writePretradeChecklistState(checked) {
+    try {
+      localStorage.setItem(PRETRADE_CHECKLIST_STORAGE_KEY, JSON.stringify([...checked]));
+    } catch (_) {
+      // noop
+    }
+  }
+
+  function syncPretradeChecklist(list, options = {}) {
+    if (!list) return;
+    const checked = readPretradeChecklistState();
+    const buttons = Array.from(list.querySelectorAll('[data-pretrade-check]'));
+    buttons.forEach((button) => {
+      const active = checked.has(String(button.dataset.pretradeCheck));
+      button.classList.toggle('is-checked', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    const allDone = buttons.length > 0 && buttons.every(button => checked.has(String(button.dataset.pretradeCheck)));
+    const ready = document.querySelector('[data-pretrade-ready]');
+    if (ready) {
+      ready.hidden = !allDone;
+      ready.classList.toggle('is-celebrating', allDone && options.celebrate);
+      if (allDone && options.celebrate) {
+        window.setTimeout(() => ready.classList.remove('is-celebrating'), 900);
+      }
+    }
+  }
+
+  function initPretradeChecklist() {
+    const list = document.querySelector('[data-market-pretrade-checklist]');
+    if (!list) return;
+    syncPretradeChecklist(list);
+    list.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest ? event.target.closest('[data-pretrade-check]') : null;
+      if (!button) return;
+      const checked = readPretradeChecklistState();
+      const id = String(button.dataset.pretradeCheck);
+      const wasComplete = Array.from(list.querySelectorAll('[data-pretrade-check]'))
+        .every(item => checked.has(String(item.dataset.pretradeCheck)));
+      if (checked.has(id)) checked.delete(id);
+      else checked.add(id);
+      writePretradeChecklistState(checked);
+      const nowComplete = Array.from(list.querySelectorAll('[data-pretrade-check]'))
+        .every(item => checked.has(String(item.dataset.pretradeCheck)));
+      syncPretradeChecklist(list, { celebrate: !wasComplete && nowComplete });
+    });
+  }
+
   function renderExchangePreferences() {
     const host = $('market-exchange-preferences');
     if (!host) return;
@@ -524,32 +739,23 @@ document.addEventListener('DOMContentLoaded', () => {
       showOnlyMyExchanges = false;
       writeStoredBoolean(MY_EXCHANGES_ONLY_STORAGE_KEY, false);
     }
+    const pinned = exchanges.filter(exchange => isMyExchange(exchange.id));
     host.innerHTML = `
       <div class="market-exchange-preferences__header">
         <div>
           <p class="market-exchange-preferences__eyebrow">My Exchanges</p>
-          <strong>スターした取引所を上に固定</strong>
-          <span>${selectedCount > 0 ? `${selectedCount}社を固定中` : '取引所名横のスターでも固定できます'}</span>
+          <strong>ピン留めした取引所を上に固定</strong>
+          <span>${selectedCount > 0 ? `${selectedCount}社を固定中` : '取引所名横のピンで固定できます'}</span>
         </div>
         <div class="market-exchange-preferences__actions">
           <button class="market-preference-button ${showOnlyMyExchanges ? 'is-active' : ''}" type="button" data-market-my-only ${onlyDisabled ? 'disabled' : ''}>選択だけ表示</button>
           <button class="market-preference-button" type="button" data-market-my-clear ${onlyDisabled ? 'disabled' : ''}>クリア</button>
         </div>
       </div>
-      <div class="market-exchange-chip-row">
-        ${exchanges.map(exchange => {
-          const id = normalizeExchangeId(exchange.id);
-          const checked = isMyExchange(id) ? 'checked' : '';
-          const accent = exchangeAccent(id);
-          return `
-            <label class="market-exchange-chip ${checked ? 'is-active' : ''}" style="--exchange-accent:${escapeHtml(accent.color)}">
-              <input type="checkbox" data-market-my-exchange value="${escapeHtml(id)}" ${checked}>
-              <span class="market-exchange-chip__star" aria-hidden="true">${checked ? '★' : '☆'}</span>
-              <span class="exchange-identity__swatch" aria-hidden="true"></span>
-              <span>${escapeHtml(exchange.label || exchange.id)}</span>
-            </label>
-          `;
-        }).join('')}
+      <div class="market-pinned-strip" aria-live="polite">
+        ${pinned.length > 0
+          ? pinned.map(exchange => `<span class="market-pinned-strip__item">${escapeHtml(exchange.label || exchange.id)}</span>`).join('')
+          : '<span class="market-pinned-strip__empty">未固定</span>'}
       </div>
     `;
   }
@@ -604,9 +810,17 @@ document.addEventListener('DOMContentLoaded', () => {
       ? `現在は ${feeRatePct}% を全取引所に手動適用しています。空に戻すと各社の成行手数料に戻ります。`
       : `現在は ${feeRatePct}% を全取引所に手動適用しています。空に戻すと各取引所の既定手数料に戻ります。`;
   }
+
+  function shouldShowLoadingSkeleton(message) {
+    return isLoadingMessage(message);
+  }
+
   function setEmpty(tbodyId, colspan, message) {
     const tbody = $(tbodyId);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-gray-500 py-4">${escapeHtml(message)}</td></tr>`;
+    if (!tbody) return;
+    tbody.innerHTML = shouldShowLoadingSkeleton(message)
+      ? `<tr class="market-skeleton-row"><td colspan="${colspan}">${skeletonStackHtml(message)}</td></tr>`
+      : `<tr><td colspan="${colspan}" class="text-center text-gray-500 py-4">${escapeHtml(message)}</td></tr>`;
   }
 
   function supportedExchanges() {
@@ -694,16 +908,78 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (counts.fresh > 0) statusText = '集計済み';
     else if (counts.stale > 0) statusText = '鮮度切れ';
     setText('market-status', statusText);
-    setText('market-updated-at', fmtDateTime(summary.meta && summary.meta.generatedAt));
+    updateFreshnessProgress();
     setText('market-exchange-count', `${supportedExchanges().length}社`);
     setText('market-best-bid', bestBid ? `${bestBid.exchangeLabel} ${fmtJpyPrice(bestBid.bestBid)}` : '-');
     setText('market-best-ask', bestAsk ? `${bestAsk.exchangeLabel} ${fmtJpyPrice(bestAsk.bestAsk)}` : '-');
     setText('market-hero-meta', `板 新鮮 ${counts.fresh}社 / stale ${counts.stale}社 / 待機 ${counts.waiting}社 | 出来高 ${summary.volume.rows.length}件 | 販売所 ${summary.sales.rows.length}件`);
   }
 
+  function relativeSecondsLabel(ms) {
+    if (!Number.isFinite(ms) || ms <= 0) return '-';
+    const seconds = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+    if (seconds < 60) return `${seconds}秒前`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}分前`;
+    return `${Math.floor(minutes / 60)}時間前`;
+  }
+
+  function updateFreshnessProgress() {
+    const ring = $('market-refresh-progress');
+    const label = $('market-updated-at');
+    if (!summaryLoadedAt) {
+      if (label) label.textContent = '最終更新 -';
+      if (ring) ring.style.setProperty('--refresh-progress', '0deg');
+      return;
+    }
+    const elapsed = Math.max(0, Date.now() - summaryLoadedAt);
+    const progress = Math.max(0, Math.min(1, elapsed / SUMMARY_REFRESH_MS));
+    const remaining = Math.max(0, Math.ceil((SUMMARY_REFRESH_MS - elapsed) / 1000));
+    if (ring) {
+      ring.style.setProperty('--refresh-progress', `${Math.round(progress * 360)}deg`);
+      ring.title = `次のREST更新まで約${remaining}秒`;
+      ring.setAttribute('aria-label', `次のREST更新まで約${remaining}秒`);
+    }
+    if (label) {
+      const sourceTime = summary && summary.meta && summary.meta.generatedAt ? ` / ${fmtDateTime(summary.meta.generatedAt)}` : '';
+      label.textContent = `最終更新 ${relativeSecondsLabel(summaryLoadedAt)}（REST）`;
+      if (sourceTime) label.title = `生成時刻 ${sourceTime.replace(/^ \/ /, '')}`;
+    }
+  }
+
   function setSnapshotMetric(key, value, meta) {
     setText(`market-summary-${key}`, value);
     setText(`market-summary-${key}-meta`, meta);
+  }
+
+  function renderBeginnerSimpleCard() {
+    const bestExchange = $('market-beginner-best-exchange');
+    const receive = $('market-beginner-receive');
+    const note = $('market-beginner-note');
+    if (!bestExchange || !receive || !note || !summary) return;
+
+    const rows = Array.isArray(summary.domesticComparison && summary.domesticComparison.rows)
+      ? summary.domesticComparison.rows
+      : [];
+    const baseCurrency = (summary.market && summary.market.baseCurrency) || instrumentId.split('-')[0] || '';
+    const ranked = rows
+      .filter(row => row && row.cost100k && row.cost100k.status === 'fresh' && Number.isFinite(Number(row.cost100k.totalBaseFilled)))
+      .slice()
+      .sort((a, b) => Number(a.cost100k.rank || 999) - Number(b.cost100k.rank || 999));
+    const best = ranked[0] || null;
+    if (!best) {
+      bestExchange.textContent = summary.snapshot && summary.snapshot.cheapestBuy
+        ? summary.snapshot.cheapestBuy.exchangeLabel
+        : 'データ待ち';
+      receive.textContent = '-';
+      note.textContent = ORDERBOOK_WAITING_MESSAGE;
+      return;
+    }
+    const cost = best.cost100k;
+    const status = cost.executionStatusLabel || '発注可能';
+    bestExchange.textContent = best.exchangeLabel || best.exchangeId || 'データ待ち';
+    receive.textContent = `${Fmt.baseCompact(cost.totalBaseFilled)} ${baseCurrency}`;
+    note.textContent = `${status} / 平均価格 ${fmtJpyPrice(cost.effectiveVWAP)} / 影響度 ${fmtPct(cost.marketImpactPct)}`;
   }
 
   function fundingSupportSummary() {
@@ -842,26 +1118,28 @@ document.addEventListener('DOMContentLoaded', () => {
       const salesCellClass = salesReady && isBestSales ? 'market-cell-highlight market-cell-highlight--green' : '';
 
       return `
-        <tr class="border-b border-gray-800/60 ${rowClass}">
+        <tr class="border-b border-gray-800/60 ${rowClass}" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}">
           <td class="text-left" data-label="対応取引所">
             ${exchangeIdentityHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, `対応銘柄 / ${row.instrumentLabel || instrumentId}`)}
           </td>
           <td class="is-num text-right font-mono" data-label="最良Bid / Ask">
-            <div class="text-green-300">Bid ${hasBook ? fmtJpyPrice(orderbook.bestBid) : '-'}</div>
-            <div class="text-red-300">Ask ${hasBook ? fmtJpyPrice(orderbook.bestAsk) : '-'}</div>
-            <div class="text-[10px] text-gray-500">${hasBook ? `Spread ${fmtPct(orderbook.spreadPct)}` : escapeHtml(orderbook.message || ORDERBOOK_WAITING_MESSAGE)}</div>
-            ${freshnessBadge(orderbookStatus)}
+            ${hasBook ? `
+              <div class="text-green-300 ${cellFlashClass(row.exchangeId, 'bestBid')}">Bid ${fmtJpyPrice(orderbook.bestBid)}</div>
+              <div class="text-red-300 ${cellFlashClass(row.exchangeId, 'bestAsk')}">Ask ${fmtJpyPrice(orderbook.bestAsk)}</div>
+              <div class="text-[10px] text-gray-500 ${cellFlashClass(row.exchangeId, 'spreadPct')}">Spread ${fmtPct(orderbook.spreadPct)}</div>
+              ${freshnessBadge(orderbookStatus)}
+            ` : waitingCellHtml(orderbook.message || ORDERBOOK_WAITING_MESSAGE)}
           </td>
-          <td class="is-num text-right font-mono ${depthCellClass}" data-label="板厚">
-            <div class="text-gray-200">${hasBook ? Fmt.jpyLarge(orderbook.visibleDepthJPY) : '-'}</div>
-            <div class="text-[10px] text-gray-500">${hasBook ? 'Bid + Ask可視深さ' : '-'}</div>
+          <td class="is-num text-right font-mono ${depthCellClass} ${cellFlashClass(row.exchangeId, 'visibleDepthJPY')}" data-label="板厚">
+            <div class="text-gray-200">${hasBook ? Fmt.jpyLarge(orderbook.visibleDepthJPY) : waitingCellHtml(orderbook.message || ORDERBOOK_WAITING_MESSAGE)}</div>
+            <div class="text-[10px] text-gray-500">${hasBook ? 'Bid + Ask可視深さ' : ''}</div>
             ${hasBook ? depthMiniChartHtml(orderbook) : ''}
             ${hasBook && isBestDepth ? winnerBadge('最大板厚', 'green') : ''}
           </td>
           <td class="is-num text-right font-mono ${costCellClass}" data-label="10万円買い">
-            <div class="${costReady ? 'text-red-300' : 'text-gray-500'}">${costReady ? `${cost.rank ? `#${cost.rank} ` : ''}${Fmt.baseCompact(cost.totalBaseFilled)} ${escapeHtml(baseCurrency)}` : '-'}</div>
-            <div class="text-[10px] text-gray-500">${costReady ? `${termText('VWAP', '平均価格')} ${fmtJpyPrice(cost.effectiveVWAP)} / ${termText('Impact', '影響度')} ${fmtPct(cost.marketImpactPct)}` : escapeHtml(costStatus)}</div>
-            ${costReady && cost.rank === 1 ? winnerBadge('10万円買い最良') : ''}
+            <div class="${costReady ? 'text-red-300' : 'text-gray-500'}">${costReady ? `${cost.rank ? `#${cost.rank} ` : ''}${Fmt.baseCompact(cost.totalBaseFilled)} ${escapeHtml(baseCurrency)}` : (isLoadingMessage(costStatus) ? waitingCellHtml(costStatus) : '-')}</div>
+            <div class="text-[10px] text-gray-500">${costReady ? `${termText('VWAP', '平均価格')} ${fmtJpyPrice(cost.effectiveVWAP)} / ${termText('Impact', '影響度')} ${fmtPct(cost.marketImpactPct)}` : (isLoadingMessage(costStatus) ? '' : escapeHtml(costStatus))}</div>
+            ${costReady && cost.rank === 1 ? winnerBadge('最安 Low Cost') : ''}
           </td>
           <td class="is-num text-right font-mono ${salesCellClass}" data-label="販売所Spread">
             ${salesReady ? spreadCostHtml(sales.spreadPct, { min: minSales, max: maxSales, best: isBestSales }) : '<div class="text-gray-500">-</div>'}
@@ -899,13 +1177,13 @@ document.addEventListener('DOMContentLoaded', () => {
         liveFlashClass(row.exchangeId),
       ].filter(Boolean).join(' ');
       return `
-        <tr class="border-b border-gray-800/60 ${rowClass}">
+        <tr class="border-b border-gray-800/60 ${rowClass}" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}">
           <td class="text-left" data-label="取引所">
             ${exchangeIdentityHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, hasBook ? String(row.source || '-').toUpperCase() : (row.message || ORDERBOOK_WAITING_MESSAGE))}
           </td>
-          <td class="is-num text-right font-mono text-green-300" data-label="Bid">${hasBook ? fmtJpyPrice(row.bestBid) : '-'}</td>
-          <td class="is-num text-right font-mono text-red-300" data-label="Ask">${hasBook ? fmtJpyPrice(row.bestAsk) : '-'}</td>
-          <td class="is-num text-right font-mono text-yellow-300" data-label="Spread">${hasBook ? fmtPct(row.spreadPct) : '-'}</td>
+          <td class="is-num text-right font-mono text-green-300 ${cellFlashClass(row.exchangeId, 'bestBid')}" data-label="Bid">${hasBook ? fmtJpyPrice(row.bestBid) : waitingCellHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</td>
+          <td class="is-num text-right font-mono text-red-300 ${cellFlashClass(row.exchangeId, 'bestAsk')}" data-label="Ask">${hasBook ? fmtJpyPrice(row.bestAsk) : waitingCellHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</td>
+          <td class="is-num text-right font-mono text-yellow-300 ${cellFlashClass(row.exchangeId, 'spreadPct')}" data-label="Spread">${hasBook ? fmtPct(row.spreadPct) : waitingCellHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</td>
           <td class="text-right font-mono text-gray-400" data-label="更新">
             <div>${hasBook ? escapeHtml(updatedAtLabel(row)) : '-'}</div>
             <div class="text-[10px] text-gray-500">${hasBook ? escapeHtml(ageLabel(row)) : escapeHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</div>
@@ -936,7 +1214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateVolumeDonutChart(rows);
     const topVolumeIds = bestIds(rows, row => row.quoteVolume, 'max');
     tbody.innerHTML = rows.map(row => `
-      <tr class="border-b border-gray-800/60 ${isMyExchange(row.exchangeId) ? 'data-table__row--my-exchange' : ''}">
+      <tr class="border-b border-gray-800/60 ${isMyExchange(row.exchangeId) ? 'data-table__row--my-exchange' : ''}" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}">
         <td class="font-bold text-gray-200" data-label="取引所">${exchangeIdentityHtml(row.exchangeId, row.exchangeLabel || row.exchangeId)}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="出来高">${Fmt.jpyLarge(row.quoteVolume)}</td>
         <td class="is-num text-right font-mono" data-label="銘柄内シェア">
@@ -978,7 +1256,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const latest = row.latest || {};
       const isBestSales = bestSalesIds.has(normalizeExchangeId(row.exchangeId));
       return `
-        <tr class="border-b border-gray-800/60 ${isMyExchange(row.exchangeId) ? 'data-table__row--my-exchange' : ''}">
+        <tr class="border-b border-gray-800/60 ${isMyExchange(row.exchangeId) ? 'data-table__row--my-exchange' : ''}" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}">
           <td class="font-bold text-gray-200" data-label="販売所">${exchangeIdentityHtml(row.exchangeId, row.exchangeLabel || row.exchangeId)}</td>
           <td class="is-num text-right font-mono text-red-300" data-label="買値">${fmtJpyPrice(latest.buyPrice)}</td>
           <td class="is-num text-right font-mono text-green-300" data-label="売値">${fmtJpyPrice(latest.sellPrice)}</td>
@@ -1103,14 +1381,14 @@ document.addEventListener('DOMContentLoaded', () => {
       ].filter(Boolean).join(' ');
       const resultCellClass = ready && row.rank === 1 ? 'market-cell-highlight market-cell-highlight--gold' : '';
       return `
-        <tr class="border-b border-gray-800/60 ${rowClass}">
+        <tr class="border-b border-gray-800/60 ${rowClass}" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}">
           <td class="is-num text-right font-mono text-gray-300" data-label="順位">${ready && row.rank ? `#${row.rank}` : '-'}</td>
           <td class="text-left" data-label="取引所">
             ${exchangeIdentityHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, String(row.source || '-').toUpperCase())}
           </td>
           <td class="is-num text-right font-mono ${valueClass} ${resultCellClass}" data-label="結果">
-            <div>${value}</div>
-            ${ready && row.rank === 1 ? winnerBadge(isSell ? '売却最良' : '購入最良') : ''}
+            <div>${ready ? value : (isLoadingMessage(statusText) ? waitingCellHtml(statusText) : value)}</div>
+            ${ready && row.rank === 1 ? winnerBadge(isSell ? '売却最良' : '最安 Low Cost') : ''}
           </td>
           <td class="is-num text-right font-mono text-gray-300" data-label="${termText('VWAP', '平均購入価格')}">${vwap}</td>
           <td class="is-num text-right font-mono text-yellow-300" data-label="${termText('Impact', '値幅への影響度')}">${ready ? fmtPct(result.marketImpactPct) : '-'}</td>
@@ -1126,6 +1404,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderSummary(data) {
     summary = data;
+    summaryLoadedAt = Date.now();
     updatePageLabels();
     updateFeePresetHint();
     populateBoardExchangeSelect();
@@ -1136,6 +1415,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderOrderbookRows();
     renderVolumeRows();
     renderSalesRows();
+    renderBeginnerSimpleCard();
+    updateFreshnessProgress();
     syncQuickAmountButtons();
     connectSelectedOrderbook();
   }
@@ -1177,7 +1458,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderDomesticComparisonRows();
         renderOrderbookRows();
         updateSelectedOrderbookMeta();
+        renderBeginnerSimpleCard();
       }
+      updateFreshnessProgress();
       if (lastComparisonData) renderComparison(lastComparisonData);
     },
   });
@@ -1196,6 +1479,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const eventName = el.tagName === 'SELECT' ? 'change' : 'input';
     el.addEventListener(eventName, () => {
       if (id === 'market-fee-rate') updateFeePresetHint();
+      if (id === 'market-amount-type') syncAmountTypeToggle();
       syncQuickAmountButtons();
       if (comparisonTimer) clearTimeout(comparisonTimer);
       comparisonTimer = setTimeout(loadComparison, 250);
@@ -1234,7 +1518,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showOnlyMyExchanges = false;
       writeStoredBoolean(MY_EXCHANGES_ONLY_STORAGE_KEY, false);
     }
-    rerenderMarketTables();
+    animateTableReorder(rerenderMarketTables);
   });
 
   const preferenceHost = $('market-exchange-preferences');
@@ -1251,7 +1535,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showOnlyMyExchanges = false;
         writeStoredBoolean(MY_EXCHANGES_ONLY_STORAGE_KEY, false);
       }
-      rerenderMarketTables();
+      animateTableReorder(rerenderMarketTables);
     });
     preferenceHost.addEventListener('click', (event) => {
       const target = event.target && event.target.closest ? event.target : null;
@@ -1261,13 +1545,13 @@ document.addEventListener('DOMContentLoaded', () => {
       if (onlyButton) {
         showOnlyMyExchanges = !showOnlyMyExchanges;
         writeStoredBoolean(MY_EXCHANGES_ONLY_STORAGE_KEY, showOnlyMyExchanges);
-        rerenderMarketTables();
+        animateTableReorder(rerenderMarketTables);
       } else if (clearButton) {
         myExchangeIds = new Set();
         showOnlyMyExchanges = false;
         writeStoredExchangeSet(myExchangeIds);
         writeStoredBoolean(MY_EXCHANGES_ONLY_STORAGE_KEY, false);
-        rerenderMarketTables();
+        animateTableReorder(rerenderMarketTables);
       }
     });
   }
@@ -1275,6 +1559,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('okj:beginner-mode-change', () => {
     updateFeePresetHint();
     rerenderMarketTables();
+    renderBeginnerSimpleCard();
   });
 
   ws.on('connected', () => {
@@ -1286,6 +1571,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (summary && Array.isArray(summary.orderbooks)) {
       const index = summary.orderbooks.findIndex(row => row.exchangeId === data.exchangeId && row.instrumentId === data.instrumentId);
       if (index >= 0) {
+        markOrderbookCellChanges(data.exchangeId, summary.orderbooks[index], data);
         summary.orderbooks[index] = {
           ...summary.orderbooks[index],
           ...data,
@@ -1301,6 +1587,7 @@ document.addEventListener('DOMContentLoaded', () => {
         : [];
       const domesticRow = domesticRows.find(row => row.exchangeId === data.exchangeId && row.instrumentId === data.instrumentId);
       if (domesticRow) {
+        markOrderbookCellChanges(data.exchangeId, domesticRow.orderbook, data);
         domesticRow.orderbook = {
           ...domesticRow.orderbook,
           status: 'fresh',
@@ -1324,11 +1611,14 @@ document.addEventListener('DOMContentLoaded', () => {
       renderHero();
       renderDomesticComparisonRows();
       renderOrderbookRows();
+      renderBeginnerSimpleCard();
     }
   });
 
   initThemeToggle();
   initPairSwitcher();
+  initAmountTypeToggle();
+  initPretradeChecklist();
   initDepthChart();
   initVolumeDonutChart();
   updateFeePresetHint();

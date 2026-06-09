@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css?v=ui-31">
-  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-1">
+  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-3">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-market-page="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -44,7 +44,7 @@
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
       <a class="nav-link" href="/campaigns">キャンペーン</a>
     </nav>
-    <div class="status-cluster" aria-label="銘柄ページの更新状態と表示設定"><span class="status-cluster__live" role="status" aria-live="polite" aria-atomic="true"><span class="badge badge--live">LIVE</span><span id="market-status" class="status-text">読み込み中</span><span class="text-xs text-gray-600 ml-2">更新: <span id="market-updated-at" class="text-gray-400">-</span></span></span><button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="ライトモードに切り替え"><span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__icon theme-toggle__icon--sun">☀</span><span class="theme-toggle__icon theme-toggle__icon--moon">☾</span><span class="theme-toggle__knob" data-theme-toggle-icon>☀</span></span><span class="sr-only" data-theme-toggle-label>ライト</span></button><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
+    <div class="status-cluster" aria-label="銘柄ページの更新状態と表示設定"><span class="status-cluster__live" role="status" aria-live="polite" aria-atomic="true"><span class="badge badge--live">LIVE</span><span id="market-status" class="status-text">読み込み中</span><span class="market-freshness-status text-xs text-gray-600 ml-2"><span id="market-refresh-progress" class="market-refresh-progress" aria-hidden="true"><span></span></span><span id="market-updated-at" class="text-gray-400">最終更新 -</span></span></span><button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="ライトモードに切り替え"><span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__icon theme-toggle__icon--sun">☀</span><span class="theme-toggle__icon theme-toggle__icon--moon">☾</span><span class="theme-toggle__knob" data-theme-toggle-icon>☀</span></span><span class="sr-only" data-theme-toggle-label>ライト</span></button><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
   </header>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
@@ -69,8 +69,28 @@
         </div>
         <span class="panel-kicker">Compare</span>
       </div>
-      <div class="market-comparison-layout">
+        <div class="market-comparison-layout">
         <!-- MARKET_COMPARISON_SUMMARY_CARD -->
+        <article class="market-beginner-simple-card beginner-only" data-market-beginner-simple>
+          <div>
+            <p class="market-insight-card__eyebrow">Beginner View</p>
+            <h3 class="market-beginner-simple-card__title">10万円で買うならここを先に確認</h3>
+          </div>
+          <dl class="market-beginner-simple-card__metrics">
+            <div>
+              <dt>最安候補</dt>
+              <dd id="market-beginner-best-exchange">データ待ち</dd>
+            </div>
+            <div>
+              <dt>実質受取量</dt>
+              <dd id="market-beginner-receive">-</dd>
+            </div>
+            <div>
+              <dt>確認ポイント</dt>
+              <dd id="market-beginner-note">板データを取得中です</dd>
+            </div>
+          </dl>
+        </article>
         <div class="market-supported-panel">
           <div class="market-supported-panel__header">
             <p class="market-insight-card__eyebrow">Supported Exchanges</p>
@@ -126,7 +146,7 @@
               </tr>
             </thead>
             <tbody id="market-domestic-comparison-tbody">
-              <tr><td colspan="6" class="text-center text-gray-500 py-4">国内取引所比較を取得中</td></tr>
+              <tr class="market-skeleton-row"><td colspan="6"><div class="market-skeleton-stack" aria-label="国内取引所比較を取得中"><span></span><span></span><span></span></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -163,7 +183,7 @@
               <col style="width:14%">
             </colgroup>
             <thead class="sticky"><tr><th class="text-left">取引所</th><th class="is-num text-right">Bid</th><th class="is-num text-right">Ask</th><th class="is-num text-right">Spread</th><th class="text-right">更新</th></tr></thead>
-            <tbody id="market-orderbook-tbody"><tr><td colspan="5" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+            <tbody id="market-orderbook-tbody"><tr class="market-skeleton-row"><td colspan="5"><div class="market-skeleton-stack" aria-label="板データを取得中"><span></span><span></span><span></span></div></td></tr></tbody>
           </table>
         </div>
       </section>
@@ -179,7 +199,7 @@
       </div>
       <div class="filter-grid mb-3" aria-label="比較条件">
         <label class="filter-control" for="market-side"><span>売買</span><select id="market-side" class="field"><option value="buy">買い</option><option value="sell">売り</option></select></label>
-        <label class="filter-control" for="market-amount-type"><span>入力タイプ</span><select id="market-amount-type" class="field"><option value="jpy">金額 (JPY)</option><option value="base">数量</option></select></label>
+        <div class="filter-control market-amount-type-control"><span>入力タイプ</span><div class="market-amount-type-toggle" role="group" aria-label="入力タイプ"><button type="button" data-market-amount-type-toggle="jpy">金額</button><button type="button" data-market-amount-type-toggle="base">数量</button><span class="market-amount-type-toggle__thumb" aria-hidden="true"></span></div><select id="market-amount-type" class="field market-amount-type-select" aria-label="入力タイプ" tabindex="-1" aria-hidden="true"><option value="jpy">金額 (JPY)</option><option value="base">数量</option></select></div>
         <label class="filter-control" for="market-amount"><span>数量 / 金額</span><input id="market-amount" class="field font-mono" inputmode="decimal" value="100000"></label>
         <label class="filter-control" for="market-fee-rate"><span>手数料率 (%)</span><input id="market-fee-rate" class="field font-mono" type="number" min="0" step="0.001" placeholder="各取引所の既定値"></label>
       </div>
@@ -213,7 +233,7 @@
             <col style="width:17%">
           </colgroup>
           <thead class="sticky"><tr><th class="is-num text-right">順位</th><th class="text-left">取引所</th><th class="is-num text-right">結果</th><th class="is-num text-right"><span class="term-label"><span class="term-copy--expert">VWAP</span><span class="term-copy--beginner">平均購入価格</span><button class="term-help" type="button" data-term-key="vwap" aria-label="VWAP の説明を開く"><span aria-hidden="true">?</span></button></span></th><th class="is-num text-right"><span class="term-label"><span class="term-copy--expert">Impact</span><span class="term-copy--beginner">値幅への影響度</span><button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button></span></th><th class="text-left">判定</th></tr></thead>
-          <tbody id="market-comparison-tbody"><tr><td colspan="6" class="text-center text-gray-500 py-4">比較を取得中</td></tr></tbody>
+          <tbody id="market-comparison-tbody"><tr class="market-skeleton-row"><td colspan="6"><div class="market-skeleton-stack" aria-label="比較を取得中"><span></span><span></span><span></span></div></td></tr></tbody>
         </table>
       </div>
     </section>
@@ -237,7 +257,7 @@
               <col style="width:24%">
             </colgroup>
             <thead class="sticky"><tr><th class="text-left">取引所</th><th class="is-num text-right">出来高</th><th class="is-num text-right">銘柄内シェア</th><th class="text-right">取得</th></tr></thead>
-            <tbody id="market-volume-tbody"><tr><td colspan="4" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+            <tbody id="market-volume-tbody"><tr class="market-skeleton-row"><td colspan="4"><div class="market-skeleton-stack" aria-label="出来高データを取得中"><span></span><span></span><span></span></div></td></tr></tbody>
           </table>
         </div>
       </section>
@@ -254,7 +274,7 @@
               <col style="width:18%">
             </colgroup>
             <thead class="sticky"><tr><th class="text-left">販売所</th><th class="is-num text-right">買値</th><th class="is-num text-right">売値</th><th class="is-num text-right">Spread</th><th class="text-right">取得</th></tr></thead>
-            <tbody id="market-sales-tbody"><tr><td colspan="5" class="text-center text-gray-500 py-4">読み込み中</td></tr></tbody>
+            <tbody id="market-sales-tbody"><tr class="market-skeleton-row"><td colspan="5"><div class="market-skeleton-stack" aria-label="販売所スプレッドを取得中"><span></span><span></span><span></span></div></td></tr></tbody>
           </table>
         </div>
       </section>
@@ -316,6 +336,13 @@
     </section>
   </main>
 
+  <nav class="market-mobile-quick-nav" aria-label="銘柄ページのクイックナビ">
+    <a href="#market-conclusion">結論</a>
+    <a href="#market-exchange-comparison">比較</a>
+    <a href="#market-research">解説</a>
+    <a href="#market-pretrade-check">チェック</a>
+  </nav>
+
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | <span id="market-footer-label">__MARKET_FOOTER_LABEL__</span></footer>
 
   <script>window.MARKET_PAGE = __MARKET_PAGE_JSON__;</script>
@@ -328,6 +355,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-15"></script>
+  <script src="/js/market-page.js?v=market-16"></script>
 </body>
 </html>
