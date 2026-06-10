@@ -33,6 +33,24 @@ document.addEventListener('DOMContentLoaded', () => {
     binance_japan: { color: '#f0b90b' },
     bittrade: { color: '#ff5f6d' },
   });
+  const EXCHANGE_SLUGS = Object.freeze({
+    okj: 'okj',
+    coincheck: 'coincheck',
+    bitflyer: 'bitflyer',
+    bitbank: 'bitbank',
+    gmo: 'gmo-coin',
+    binance_japan: 'binance-japan',
+    bittrade: 'bittrade',
+  });
+  const EXCHANGE_INITIALS = Object.freeze({
+    okj: 'OKJ',
+    coincheck: 'CC',
+    bitflyer: 'BF',
+    bitbank: 'BB',
+    gmo: 'GMO',
+    binance_japan: 'BJ',
+    bittrade: 'BT',
+  });
   const DEFAULT_EXCHANGE_ACCENT = Object.freeze({ color: '#8fb0ff' });
 
   const $ = AppUtil.byId;
@@ -195,6 +213,75 @@ document.addEventListener('DOMContentLoaded', () => {
     return EXCHANGE_ACCENTS[normalizeExchangeId(exchangeId)] || DEFAULT_EXCHANGE_ACCENT;
   }
 
+  function exchangeInitials(exchangeId, label) {
+    const id = normalizeExchangeId(exchangeId);
+    if (EXCHANGE_INITIALS[id]) return EXCHANGE_INITIALS[id];
+    const words = String(label || exchangeId || '')
+      .replace(/[^A-Za-z0-9\s]/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (words.length >= 2) return words.slice(0, 2).map(word => word[0]).join('').toUpperCase();
+    return String(words[0] || id || '?').slice(0, 3).toUpperCase();
+  }
+
+  function fallbackExchangeDetailPath(exchangeId) {
+    const id = normalizeExchangeId(exchangeId);
+    return `/exchanges/${encodeURIComponent(EXCHANGE_SLUGS[id] || id || exchangeId || '')}`;
+  }
+
+  function findExchangeActionSource(exchangeId) {
+    const id = normalizeExchangeId(exchangeId);
+    const exchanges = (summary && Array.isArray(summary.exchanges)) ? summary.exchanges : [];
+    const exchange = exchanges.find(item => normalizeExchangeId(item.id) === id);
+    if (exchange && exchange.actions) return exchange.actions;
+    const domesticRows = summary && summary.domesticComparison && Array.isArray(summary.domesticComparison.rows)
+      ? summary.domesticComparison.rows
+      : [];
+    const domesticRow = domesticRows.find(item => normalizeExchangeId(item.exchangeId) === id);
+    if (domesticRow && domesticRow.actions) return domesticRow.actions;
+    const supported = supportedExchanges().find(item => normalizeExchangeId(item.id) === id);
+    return (supported && supported.actions) || null;
+  }
+
+  function exchangeActionMeta(exchangeId) {
+    const id = normalizeExchangeId(exchangeId);
+    const actions = findExchangeActionSource(id) || {};
+    const detailPath = actions.detailPath || fallbackExchangeDetailPath(id);
+    const officialUrl = actions.officialUrl || '';
+    const signupUrl = actions.signupUrl || officialUrl || '';
+    return {
+      detailPath,
+      officialUrl,
+      signupUrl,
+      primaryHref: signupUrl || officialUrl || detailPath,
+    };
+  }
+
+  function isExternalHref(href) {
+    return /^https?:\/\//i.test(String(href || ''));
+  }
+
+  function actionLinkAttrs(href) {
+    const safeHref = escapeHtml(href || '#');
+    if (!isExternalHref(href)) return `href="${safeHref}"`;
+    return `href="${safeHref}" target="_blank" rel="noopener noreferrer"`;
+  }
+
+  function exchangeActionHtml(exchangeId, label) {
+    const actions = exchangeActionMeta(exchangeId);
+    const safeLabel = label || exchangeId || '取引所';
+    const primaryLabel = isExternalHref(actions.primaryHref)
+      ? `${safeLabel}で取引する`
+      : `${safeLabel}の詳細`;
+    return `
+      <div class="market-row-actions">
+        <a class="market-row-action market-row-action--secondary" ${actionLinkAttrs(actions.detailPath)}>詳細</a>
+        <a class="market-row-action market-row-action--primary" ${actionLinkAttrs(actions.primaryHref)}>${escapeHtml(primaryLabel)}</a>
+      </div>
+    `;
+  }
+
   function shouldShowExchange(exchangeId) {
     return !showOnlyMyExchanges || myExchangeIds.size === 0 || isMyExchange(exchangeId);
   }
@@ -279,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const safeLabel = escapeHtml(label || exchangeId || '-');
     return `
       <div class="exchange-identity" style="--exchange-accent:${safeColor}">
-        <span class="exchange-identity__swatch" aria-hidden="true"></span>
+        <span class="exchange-identity__logo" aria-hidden="true">${escapeHtml(exchangeInitials(id, label))}</span>
         <span class="exchange-identity__copy">
           <span class="exchange-identity__name">${safeLabel}</span>
           ${subtext ? `<span class="exchange-identity__meta">${escapeHtml(subtext)}</span>` : ''}
@@ -387,6 +474,18 @@ document.addEventListener('DOMContentLoaded', () => {
         <span></span>
         <span></span>
       </div>
+    `;
+  }
+
+  function freshnessBadgeHtml(status, row = null) {
+    if (status !== 'stale') return freshnessBadge(status);
+    const age = row ? ageLabel(row) : '古い';
+    return `
+      <button class="market-stale-refresh" type="button" data-market-refresh aria-label="データを再読み込み">
+        <span aria-hidden="true">!</span>
+        <span>${escapeHtml(age)}のデータ</span>
+        <small>タップで再読み込み</small>
+      </button>
     `;
   }
 
@@ -538,6 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function syncAmountRange() {
     const slider = $('market-amount-range');
     const label = $('market-amount-range-label');
+    const bubble = $('market-amount-range-bubble');
     const shell = $('market-amount-slider');
     if (!slider) return;
     const amountType = $('market-amount-type')?.value === 'base' ? 'base' : 'jpy';
@@ -547,9 +647,15 @@ document.addEventListener('DOMContentLoaded', () => {
     slider.disabled = !isJpy;
     slider.value = String(value);
     const pct = ((value - AMOUNT_RANGE_MIN) / (AMOUNT_RANGE_MAX - AMOUNT_RANGE_MIN)) * 100;
-    slider.style.setProperty('--range-pct', `${Math.max(0, Math.min(100, pct))}%`);
-    if (label) label.textContent = isJpy ? amountRangeLabel(value) : '数量入力中';
-    if (shell) shell.classList.toggle('is-disabled', !isJpy);
+    const clampedPct = `${Math.max(0, Math.min(100, pct))}%`;
+    slider.style.setProperty('--range-pct', clampedPct);
+    if (shell) {
+      shell.style.setProperty('--range-pct', clampedPct);
+      shell.classList.toggle('is-disabled', !isJpy);
+    }
+    const text = isJpy ? amountRangeLabel(value) : '数量入力中';
+    if (label) label.textContent = text;
+    if (bubble) bubble.textContent = text;
   }
 
   function syncQuickAmountButtons() {
@@ -684,6 +790,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function bestPretradeExchange() {
+    const snapshotBest = summary && summary.snapshot && summary.snapshot.cheapestBuy
+      ? summary.snapshot.cheapestBuy
+      : null;
+    if (snapshotBest) return snapshotBest;
+    const rows = summary && summary.domesticComparison && Array.isArray(summary.domesticComparison.rows)
+      ? summary.domesticComparison.rows
+      : [];
+    return rows
+      .filter(row => row && row.cost100k && row.cost100k.status === 'fresh' && Number.isFinite(Number(row.cost100k.rank)))
+      .sort((a, b) => Number(a.cost100k.rank) - Number(b.cost100k.rank))[0] || null;
+  }
+
+  function isPretradeChecklistComplete() {
+    const list = document.querySelector('[data-market-pretrade-checklist]');
+    if (!list) return false;
+    const checked = readPretradeChecklistState();
+    const buttons = Array.from(list.querySelectorAll('[data-pretrade-check]'));
+    return buttons.length > 0 && buttons.every(button => checked.has(String(button.dataset.pretradeCheck)));
+  }
+
+  function updatePretradeCta(enabled = false) {
+    const cta = $('market-pretrade-primary-cta');
+    if (!cta) return;
+    const best = bestPretradeExchange();
+    const label = best && (best.exchangeLabel || best.exchangeId) ? (best.exchangeLabel || best.exchangeId) : '最安候補';
+    const actions = best ? exchangeActionMeta(best.exchangeId) : { primaryHref: '#market-exchange-comparison' };
+    const href = actions.primaryHref || '#market-exchange-comparison';
+    cta.textContent = isExternalHref(href) ? `${label}で取引する` : `${label}の詳細を見る`;
+    cta.href = href;
+    if (isExternalHref(href)) {
+      cta.target = '_blank';
+      cta.rel = 'noopener noreferrer';
+    } else {
+      cta.removeAttribute('target');
+      cta.removeAttribute('rel');
+    }
+    cta.classList.toggle('is-disabled', !enabled);
+    cta.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+  }
+
   function syncPretradeChecklist(list, options = {}) {
     if (!list) return;
     const checked = readPretradeChecklistState();
@@ -702,6 +849,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.setTimeout(() => ready.classList.remove('is-celebrating'), 900);
       }
     }
+    updatePretradeCta(allDone);
   }
 
   function initPretradeChecklist() {
@@ -730,6 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const exchanges = supportedExchanges();
     if (exchanges.length === 0) {
       host.hidden = true;
+      renderFloatingMyExchanges([]);
       return;
     }
     host.hidden = false;
@@ -756,6 +905,38 @@ document.addEventListener('DOMContentLoaded', () => {
         ${pinned.length > 0
           ? pinned.map(exchange => `<span class="market-pinned-strip__item">${escapeHtml(exchange.label || exchange.id)}</span>`).join('')
           : '<span class="market-pinned-strip__empty">未固定</span>'}
+      </div>
+    `;
+    renderFloatingMyExchanges(pinned);
+  }
+
+  function renderFloatingMyExchanges(pinnedExchanges = null) {
+    const host = $('market-floating-my-exchanges');
+    if (!host) return;
+    const exchanges = Array.isArray(pinnedExchanges)
+      ? pinnedExchanges
+      : supportedExchanges().filter(exchange => isMyExchange(exchange.id));
+    if (exchanges.length === 0) {
+      host.hidden = true;
+      host.innerHTML = '';
+      return;
+    }
+    const domesticRows = summary && summary.domesticComparison && Array.isArray(summary.domesticComparison.rows)
+      ? summary.domesticComparison.rows
+      : [];
+    host.hidden = false;
+    host.innerHTML = `
+      <span class="market-floating-my-exchanges__label">My Exchanges</span>
+      <div class="market-floating-my-exchanges__items">
+        ${exchanges.map((exchange) => {
+          const row = domesticRows.find(item => normalizeExchangeId(item.exchangeId) === normalizeExchangeId(exchange.id));
+          const cost = row && row.cost100k;
+          const sales = row && row.salesSpread;
+          const primary = cost && cost.status === 'fresh' && Number.isFinite(Number(cost.rank))
+            ? `#${cost.rank} ${fmtJpyPrice(cost.effectiveVWAP)}`
+            : (sales && sales.status === 'ready' && Number.isFinite(Number(sales.spreadPct)) ? `Spread ${fmtPct(sales.spreadPct)}` : '比較中');
+          return `<span class="market-floating-my-exchanges__item" style="--exchange-accent:${escapeHtml(exchangeAccent(exchange.id).color)}"><b>${escapeHtml(exchange.label || exchange.id)}</b><small>${escapeHtml(primary)}</small></span>`;
+        }).join('')}
       </div>
     `;
   }
@@ -952,6 +1133,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setText(`market-summary-${key}-meta`, meta);
   }
 
+  function setConclusionMetric(key, value, meta) {
+    setText(`market-conclusion-${key}`, value);
+    setText(`market-conclusion-${key}-meta`, meta);
+  }
+
   function renderBeginnerSimpleCard() {
     const bestExchange = $('market-beginner-best-exchange');
     const receive = $('market-beginner-receive');
@@ -1055,6 +1241,24 @@ document.addEventListener('DOMContentLoaded', () => {
       snapshot && snapshot.topVolume ? snapshot.topVolume.exchangeLabel : 'データ待ち',
       snapshot && snapshot.topVolume ? `24h出来高 ${Fmt.jpyLarge(snapshot.topVolume.quoteVolume)}` : '出来高データを取得中です'
     );
+    setConclusionMetric(
+      'best-board',
+      snapshot && snapshot.cheapestBuy ? snapshot.cheapestBuy.exchangeLabel : 'データ待ち',
+      snapshot && snapshot.cheapestBuy
+        ? `10万円買い / 実効VWAP ${fmtJpyPrice(snapshot.cheapestBuy.effectiveVWAP)}`
+        : `${defaultExchangeCount}社の板を集計`
+    );
+    setConclusionMetric(
+      'best-sales',
+      snapshot && snapshot.tightestSalesSpread ? snapshot.tightestSalesSpread.exchangeLabel : 'データ待ち',
+      snapshot && snapshot.tightestSalesSpread ? `販売所スプレッド ${fmtPct(snapshot.tightestSalesSpread.spreadPct)}` : '販売所スプレッドを確認中'
+    );
+    setConclusionMetric(
+      'top-volume',
+      snapshot && snapshot.topVolume ? snapshot.topVolume.exchangeLabel : 'データ待ち',
+      snapshot && snapshot.topVolume ? `24h出来高 ${Fmt.jpyLarge(snapshot.topVolume.quoteVolume)}` : '24h売買代金ベース'
+    );
+    updatePretradeCta(isPretradeChecklistComplete());
   }
 
   function fundingLabel(funding) {
@@ -1079,11 +1283,11 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     if (rawRows.length === 0) {
-      setEmpty('market-domestic-comparison-tbody', 6, '国内取引所比較データを取得中です。');
+      setEmpty('market-domestic-comparison-tbody', 7, '国内取引所比較データを取得中です。');
       return;
     }
     if (rows.length === 0) {
-      setEmpty('market-domestic-comparison-tbody', 6, 'マイ取引所に一致する行がありません。選択だけ表示を解除してください。');
+      setEmpty('market-domestic-comparison-tbody', 7, 'マイ取引所に一致する行がありません。選択だけ表示を解除してください。');
       return;
     }
 
@@ -1124,10 +1328,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td class="is-num text-right font-mono" data-label="最良Bid / Ask">
             ${hasBook ? `
-              <div class="text-green-300 ${cellFlashClass(row.exchangeId, 'bestBid')}">Bid ${fmtJpyPrice(orderbook.bestBid)}</div>
-              <div class="text-red-300 ${cellFlashClass(row.exchangeId, 'bestAsk')}">Ask ${fmtJpyPrice(orderbook.bestAsk)}</div>
+              <div class="text-green-300 ${cellFlashClass(row.exchangeId, 'bestBid')}"><span class="market-term" data-term-key="bid" tabindex="0">Bid</span> ${fmtJpyPrice(orderbook.bestBid)}</div>
+              <div class="text-red-300 ${cellFlashClass(row.exchangeId, 'bestAsk')}"><span class="market-term" data-term-key="ask" tabindex="0">Ask</span> ${fmtJpyPrice(orderbook.bestAsk)}</div>
               <div class="text-[10px] text-gray-500 ${cellFlashClass(row.exchangeId, 'spreadPct')}">Spread ${fmtPct(orderbook.spreadPct)}</div>
-              ${freshnessBadge(orderbookStatus)}
+              ${freshnessBadgeHtml(orderbookStatus, orderbook)}
             ` : waitingCellHtml(orderbook.message || ORDERBOOK_WAITING_MESSAGE)}
           </td>
           <td class="is-num text-right font-mono ${depthCellClass} ${cellFlashClass(row.exchangeId, 'visibleDepthJPY')}" data-label="板厚">
@@ -1149,9 +1353,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="font-bold text-gray-200">${escapeHtml(fundingLabel(row.funding))}</div>
             <div class="text-[10px] text-gray-500">${escapeHtml((row.funding && row.funding.note) || '銀行・銘柄・ネットワーク別の条件は公式確認')}</div>
           </td>
+          <td class="text-right market-action-cell" data-label="アクション">
+            ${exchangeActionHtml(row.exchangeId, row.exchangeLabel || row.exchangeId)}
+          </td>
         </tr>
       `;
     }).join('');
+    renderFloatingMyExchanges();
   }
 
   function renderOrderbookRows() {
@@ -1187,7 +1395,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="text-right font-mono text-gray-400" data-label="更新">
             <div>${hasBook ? escapeHtml(updatedAtLabel(row)) : '-'}</div>
             <div class="text-[10px] text-gray-500">${hasBook ? escapeHtml(ageLabel(row)) : escapeHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</div>
-            ${freshnessBadge(status)}
+            ${freshnessBadgeHtml(status, row)}
           </td>
         </tr>
       `;
@@ -1303,7 +1511,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (!Number.isFinite(amount) || amount <= 0 || Number.isNaN(feeRatePct) || (feeRatePct != null && (feeRatePct < 0 || feeRatePct > 100))) {
       lastComparisonData = null;
-      setEmpty('market-comparison-tbody', 6, '数量または金額、手数料率を確認してください。');
+      setEmpty('market-comparison-tbody', 7, '数量または金額、手数料率を確認してください。');
       return;
     }
 
@@ -1322,12 +1530,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await Api.fetchJson(`/api/market-impact-comparison?${params.toString()}`, {
         signal: controller.signal,
       });
-      renderComparison(data);
+      if (lastComparisonData) animateTableReorder(() => renderComparison(data));
+      else renderComparison(data);
     } catch (err) {
       if (err.name === 'AbortError') return;
       lastComparisonData = null;
       setText('market-comparison-meta', '比較データを取得できませんでした。');
-      setEmpty('market-comparison-tbody', 6, '比較データを取得できませんでした。時間をおいて再度お試しください。');
+      setEmpty('market-comparison-tbody', 7, '比較データを取得できませんでした。時間をおいて再度お試しください。');
     } finally {
       if (comparisonAbortController === controller) {
         comparisonAbortController = null;
@@ -1343,11 +1552,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const counts = summarizeStatuses(rawRows);
     setText('market-comparison-meta', `${marketLabel()} | ${meta.side === 'sell' ? '売り' : '買い'} | ${comparisonAmountLabel(meta)} | ${termText('手数料', '成行手数料')} ${meta.feeRate == null ? termText('各取引所既定', '各社の既定値') : fmtPct(meta.feeRate * 100)}${showOnlyMyExchanges && myExchangeIds.size > 0 ? ` | マイ取引所 ${rows.length}件表示` : ''} | 新鮮 ${counts.fresh || 0}件 / stale ${counts.stale || 0}件 / 待機 ${counts.waiting || 0}件${counts.waiting > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`);
     if (rawRows.length === 0) {
-      setEmpty('market-comparison-tbody', 6, '比較できる取引所がありません。別の銘柄または条件で確認してください。');
+      setEmpty('market-comparison-tbody', 7, '比較できる取引所がありません。別の銘柄または条件で確認してください。');
       return;
     }
     if (rows.length === 0) {
-      setEmpty('market-comparison-tbody', 6, 'マイ取引所に一致する比較行がありません。選択だけ表示を解除してください。');
+      setEmpty('market-comparison-tbody', 7, 'マイ取引所に一致する比較行がありません。選択だけ表示を解除してください。');
       return;
     }
 
@@ -1395,7 +1604,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="${statusClass}" data-label="判定">
             <div class="font-bold">${escapeHtml(statusText)}</div>
             ${statusSub ? `<div class="text-[10px] text-gray-500">${escapeHtml(statusSub)}</div>` : ''}
-            ${freshnessBadge(status)}
+            ${freshnessBadgeHtml(status, row)}
+          </td>
+          <td class="text-right market-action-cell" data-label="アクション">
+            ${exchangeActionHtml(row.exchangeId, row.exchangeLabel || row.exchangeId)}
           </td>
         </tr>
       `;
@@ -1505,6 +1717,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.addEventListener('click', (event) => {
+    const refreshButton = event.target && event.target.closest ? event.target.closest('[data-market-refresh]') : null;
+    if (refreshButton) {
+      event.preventDefault();
+      void loadSummary();
+      return;
+    }
+    const disabledCta = event.target && event.target.closest ? event.target.closest('.market-pretrade-ready__cta[aria-disabled="true"]') : null;
+    if (disabledCta) {
+      event.preventDefault();
+      return;
+    }
     const button = event.target && event.target.closest ? event.target.closest('[data-market-star-exchange]') : null;
     if (!button) return;
     event.preventDefault();
