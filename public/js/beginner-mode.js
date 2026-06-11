@@ -275,9 +275,9 @@
       return {
         eyebrow: '🔰 初心者モード',
         title: 'この銘柄は要点から見ます',
-        summary: 'まずページ上部の結論カードと比較サマリーを見てから、「取引所別コスト比較」「出来高シェア」「販売所スプレッド」の順に確認してください。',
-        metrics: ['取引所別コスト比較', 'Impact', '販売所スプレッド'],
-        terms: ['effective-cost', 'impact', 'volume-share', 'sales-spread'],
+        summary: 'ONの間は専門用語に点線の下線を付け、複雑な板比較は折りたたみます。まず結論カード、比較サマリー、3大結論カードの順に見ると迷いにくくなります。',
+        metrics: ['3大結論カード', '取引所別コスト比較', '販売所スプレッド'],
+        terms: ['bid', 'ask', 'taker', 'vwap', 'impact', 'volume-share', 'sales-spread'],
         warning: 'Impactが高い取引所や、販売所スプレッドが広い取引所は、注文サイズを下げて再確認すると判断しやすくなります。',
         links: [
           { href: '/learn/exchange-vs-broker', label: '販売所と取引所の違い' },
