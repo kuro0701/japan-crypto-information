@@ -282,13 +282,17 @@ document.addEventListener('DOMContentLoaded', () => {
   function exchangeActionHtml(exchangeId, label) {
     const actions = exchangeActionMeta(exchangeId);
     const safeLabel = label || exchangeId || '取引所';
-    const primaryLabel = isExternalHref(actions.primaryHref)
-      ? `${safeLabel}で取引する`
+    const isExternal = isExternalHref(actions.primaryHref);
+    const primaryLabel = isExternal
+      ? '口座開設・ログイン'
       : `${safeLabel}の詳細`;
+    const primaryContent = isExternal
+      ? `<span class="market-row-action__main">${escapeHtml(primaryLabel)}</span><span class="market-row-action__meta">${escapeHtml(safeLabel)}公式サイト</span>`
+      : escapeHtml(primaryLabel);
     return `
       <div class="market-row-actions">
         <a class="market-row-action market-row-action--secondary" ${actionLinkAttrs(actions.detailPath)}>詳細</a>
-        <a class="market-row-action market-row-action--primary" ${actionLinkAttrs(actions.primaryHref)}>${escapeHtml(primaryLabel)}</a>
+        <a class="market-row-action market-row-action--primary ${isExternal ? 'market-row-action--external' : ''}" ${actionLinkAttrs(actions.primaryHref)}>${primaryContent}</a>
       </div>
     `;
   }
@@ -409,6 +413,47 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(item => normalizeExchangeId(item.row.exchangeId)));
   }
 
+  function heatCellClass(value, min, max, direction = 'min') {
+    const numeric = finiteNumber(value);
+    const low = finiteNumber(min);
+    const high = finiteNumber(max);
+    if (numeric == null || low == null || high == null || high < low) return '';
+    if (Math.abs(high - low) <= 1e-9) return 'market-heat-cell market-heat-cell--best';
+    const normalized = Math.max(0, Math.min(1, (numeric - low) / (high - low)));
+    const riskScore = direction === 'max' ? 1 - normalized : normalized;
+    if (riskScore <= 0.24) return 'market-heat-cell market-heat-cell--best';
+    if (riskScore <= 0.52) return 'market-heat-cell market-heat-cell--good';
+    if (riskScore <= 0.76) return 'market-heat-cell market-heat-cell--watch';
+    return 'market-heat-cell market-heat-cell--risk';
+  }
+
+  function isRiskExecution(result) {
+    if (!result) return false;
+    const impact = Math.abs(Number(result.marketImpactPct));
+    return result.executionStatus === 'auto_cancel'
+      || result.executionStatus === 'circuit_breaker'
+      || (Number.isFinite(impact) && impact >= 5);
+  }
+
+  function receiveComparisonBarHtml(value, min, max, baseCurrency, options = {}) {
+    const numeric = finiteNumber(value);
+    const low = finiteNumber(min);
+    const high = finiteNumber(max);
+    if (numeric == null || low == null || high == null || high <= 0) return '';
+    const normalized = Math.abs(high - low) <= 1e-12 ? 1 : (numeric - low) / (high - low);
+    const width = Math.max(18, Math.min(100, Math.round(54 + (normalized * 46))));
+    const delta = Math.max(0, high - numeric);
+    const deltaLabel = delta > 0
+      ? `${Fmt.baseCompact(delta)} ${baseCurrency}差`
+      : (options.best ? '受取量 最大' : 'ほぼ同水準');
+    return `
+      <div class="market-receive-bar ${options.best ? 'market-receive-bar--best' : ''}" style="--receive-width:${width}%">
+        <span class="market-receive-bar__track" aria-hidden="true"><span></span></span>
+        <span class="market-receive-bar__label">${escapeHtml(deltaLabel)}</span>
+      </div>
+    `;
+  }
+
   function spreadTone(value, min, max) {
     const spread = finiteNumber(value);
     if (spread == null) return 'neutral';
@@ -444,9 +489,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function depthPriceHtml(exchangeId, field, price, side, depth, maxDepth, label) {
     const termKey = side === 'ask' ? 'ask' : 'bid';
+    const readableLabel = termKey === 'ask'
+      ? termText(label, '売り手最安値')
+      : termText(label, '買い手最高値');
     return `
       <div class="market-depth-value market-depth-value--${escapeHtml(side)} ${cellFlashClass(exchangeId, field)}" style="--depth-pct:${depthPct(depth, maxDepth)}" title="${escapeHtml(`${label} depth ${Fmt.jpyLarge(depth)}`)}">
-        <span class="market-depth-value__label market-term" data-term-key="${termKey}" tabindex="0">${escapeHtml(label)}</span>
+        <span class="market-depth-value__label market-term" data-term-key="${termKey}" tabindex="0">${escapeHtml(readableLabel)}</span>
         <span>${fmtJpyPrice(price)}</span>
       </div>
     `;
@@ -950,7 +998,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const label = best && (best.exchangeLabel || best.exchangeId) ? (best.exchangeLabel || best.exchangeId) : '最安候補';
     const actions = best ? exchangeActionMeta(best.exchangeId) : { primaryHref: '#market-exchange-comparison' };
     const href = actions.primaryHref || '#market-exchange-comparison';
-    cta.textContent = isExternalHref(href) ? `${label}で取引する` : `${label}の詳細を見る`;
+    cta.textContent = isExternalHref(href) ? `${label}公式で口座開設・ログイン` : `${label}の詳細を見る`;
     cta.href = href;
     if (isExternalHref(href)) {
       cta.target = '_blank';
@@ -1294,7 +1342,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setConclusionMetric(key, value, meta) {
-    setText(`market-conclusion-${key}`, value);
+    const node = $(`market-conclusion-${key}`);
+    if (node) {
+      const shouldSignal = ['best-board', 'best-sales', 'top-volume'].includes(key)
+        && value
+        && value !== 'データ待ち';
+      node.innerHTML = shouldSignal
+        ? `<span class="market-signal-badge">${escapeHtml(value)}</span>`
+        : escapeHtml(value || '-');
+    }
     setText(`market-conclusion-${key}-meta`, meta);
   }
 
@@ -1307,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rows = Array.isArray(summary.domesticComparison && summary.domesticComparison.rows)
       ? summary.domesticComparison.rows
       : [];
-    const baseCurrency = (summary.market && summary.market.baseCurrency) || instrumentId.split('-')[0] || '';
+    const baseCurrency = (summary && summary.market && summary.market.baseCurrency) || instrumentId.split('-')[0] || '';
     const ranked = rows
       .filter(row => row && row.cost100k && row.cost100k.status === 'fresh' && Number.isFinite(Number(row.cost100k.totalBaseFilled)))
       .slice()
@@ -1455,11 +1511,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const salesValues = readySalesRows.map(row => Number(row.salesSpread.spreadPct));
     const minSales = salesValues.length > 0 ? Math.min(...salesValues) : null;
     const maxSales = salesValues.length > 0 ? Math.max(...salesValues) : null;
+    const readyCostRows = rows.filter(row => row.cost100k && row.cost100k.status === 'fresh' && Number.isFinite(Number(row.cost100k.effectiveVWAP)));
+    const costVwapValues = readyCostRows.map(row => Number(row.cost100k.effectiveVWAP));
+    const minCostVwap = costVwapValues.length > 0 ? Math.min(...costVwapValues) : null;
+    const maxCostVwap = costVwapValues.length > 0 ? Math.max(...costVwapValues) : null;
     const bestSalesIds = bestIds(readySalesRows, row => row.salesSpread.spreadPct, 'min');
     const bestDepthIds = bestIds(rows.filter(row => row.orderbook && (row.orderbook.status === 'fresh' || row.orderbook.status === 'stale')), row => row.orderbook.visibleDepthJPY, 'max');
     const depthRows = rows
       .map(row => row.orderbook || {})
       .filter(orderbook => liveRowStatus(orderbook) === 'fresh' || liveRowStatus(orderbook) === 'stale');
+    const visibleDepthValues = depthRows
+      .map(orderbook => finiteNumber(visibleDepthFromOrderbook(orderbook)))
+      .filter(value => value != null);
+    const minVisibleDepth = visibleDepthValues.length > 0 ? Math.min(...visibleDepthValues) : null;
+    const maxVisibleDepth = visibleDepthValues.length > 0 ? Math.max(...visibleDepthValues) : null;
     const maxBidDepth = Math.max(0, ...depthRows.map(orderbook => finiteNumber(orderbook.totalBidDepthJPY) || 0));
     const maxAskDepth = Math.max(0, ...depthRows.map(orderbook => finiteNumber(orderbook.totalAskDepthJPY) || 0));
 
@@ -1480,18 +1545,29 @@ document.addEventListener('DOMContentLoaded', () => {
       const costStatus = costReady
         ? (cost.executionStatusLabel || '参考値')
         : (cost.status === 'stale' ? '板データが古い' : (cost.message || ORDERBOOK_WAITING_MESSAGE));
+      const costRisk = costReady && isRiskExecution(cost);
       const isBestSales = bestSalesIds.has(normalizeExchangeId(row.exchangeId));
       const isBestDepth = bestDepthIds.has(normalizeExchangeId(row.exchangeId));
-      const costCellClass = costReady && cost.rank === 1 ? 'market-cell-highlight market-cell-highlight--gold' : '';
-      const depthCellClass = hasBook && isBestDepth ? 'market-cell-highlight market-cell-highlight--green' : '';
-      const salesCellClass = salesReady && isBestSales ? 'market-cell-highlight market-cell-highlight--green' : '';
+      const costCellClass = [
+        costReady && cost.rank === 1 ? 'market-cell-highlight market-cell-highlight--gold' : '',
+        costReady ? heatCellClass(cost.effectiveVWAP, minCostVwap, maxCostVwap, 'min') : '',
+        costRisk ? 'market-risk-cell' : '',
+      ].filter(Boolean).join(' ');
+      const depthCellClass = [
+        hasBook && isBestDepth ? 'market-cell-highlight market-cell-highlight--green' : '',
+        hasBook ? heatCellClass(visibleDepthFromOrderbook(orderbook), minVisibleDepth, maxVisibleDepth, 'max') : '',
+      ].filter(Boolean).join(' ');
+      const salesCellClass = [
+        salesReady && isBestSales ? 'market-cell-highlight market-cell-highlight--green' : '',
+        salesReady ? heatCellClass(sales.spreadPct, minSales, maxSales, 'min') : '',
+      ].filter(Boolean).join(' ');
 
       return `
-        <tr class="border-b border-gray-800/60 ${rowClass}" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}">
+        <tr class="border-b border-gray-800/60 ${rowClass} ${costRisk ? 'data-table__row--risk-warning' : ''}" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}">
           <td class="text-left" data-label="対応取引所">
             ${exchangeIdentityHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, `対応銘柄 / ${row.instrumentLabel || instrumentId}`)}
           </td>
-          <td class="is-num text-right font-mono" data-label="最良Bid / Ask">
+          <td class="is-num text-right font-mono" data-label="${escapeHtml(termText('最良Bid / Ask', '買い手最高値 / 売り手最安値'))}">
             ${hasBook ? `
               <div class="text-green-300">${depthPriceHtml(row.exchangeId, 'bestBid', orderbook.bestBid, 'bid', orderbook.totalBidDepthJPY, maxBidDepth, 'Bid')}</div>
               <div class="text-red-300">${depthPriceHtml(row.exchangeId, 'bestAsk', orderbook.bestAsk, 'ask', orderbook.totalAskDepthJPY, maxAskDepth, 'Ask')}</div>
@@ -1507,7 +1583,8 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td class="is-num text-right font-mono ${costCellClass}" data-label="10万円買い">
             <div class="${costReady ? 'text-red-300' : 'text-gray-500'}">${costReady ? `${cost.rank ? `#${cost.rank} ` : ''}${Fmt.baseCompact(cost.totalBaseFilled)} ${escapeHtml(baseCurrency)}` : (isLoadingMessage(costStatus) ? waitingCellHtml(costStatus) : '-')}</div>
-            <div class="text-[10px] text-gray-500">${costReady ? `${termText('VWAP', '平均価格')} ${fmtJpyPrice(cost.effectiveVWAP)} / ${termText('Impact', '影響度')} ${fmtPct(cost.marketImpactPct)}` : (isLoadingMessage(costStatus) ? '' : escapeHtml(costStatus))}</div>
+            <div class="text-[10px] text-gray-500">${costReady ? `${termText('VWAP', '実質購入価格')} ${fmtJpyPrice(cost.effectiveVWAP)} / ${termText('Impact', '影響度')} ${fmtPct(cost.marketImpactPct)}` : (isLoadingMessage(costStatus) ? '' : escapeHtml(costStatus))}</div>
+            ${costRisk ? `<div class="market-risk-note">${escapeHtml(cost.executionStatusLabel || '自動キャンセル対象')} / Impact ${fmtPct(cost.marketImpactPct)}</div>` : ''}
             ${costReady && cost.rank === 1 ? winnerBadge('最安 Low Cost') : ''}
           </td>
           <td class="is-num text-right font-mono ${salesCellClass}" data-label="販売所Spread">
@@ -1557,8 +1634,8 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="text-left" data-label="取引所">
             ${exchangeIdentityHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, hasBook ? String(row.source || '-').toUpperCase() : (row.message || ORDERBOOK_WAITING_MESSAGE))}
           </td>
-          <td class="is-num text-right font-mono text-green-300" data-label="Bid">${hasBook ? depthPriceHtml(row.exchangeId, 'bestBid', row.bestBid, 'bid', row.totalBidDepthJPY, maxBidDepth, 'Bid') : waitingCellHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</td>
-          <td class="is-num text-right font-mono text-red-300" data-label="Ask">${hasBook ? depthPriceHtml(row.exchangeId, 'bestAsk', row.bestAsk, 'ask', row.totalAskDepthJPY, maxAskDepth, 'Ask') : waitingCellHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</td>
+          <td class="is-num text-right font-mono text-green-300" data-label="${escapeHtml(termText('Bid', '買い手最高値'))}">${hasBook ? depthPriceHtml(row.exchangeId, 'bestBid', row.bestBid, 'bid', row.totalBidDepthJPY, maxBidDepth, 'Bid') : waitingCellHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</td>
+          <td class="is-num text-right font-mono text-red-300" data-label="${escapeHtml(termText('Ask', '売り手最安値'))}">${hasBook ? depthPriceHtml(row.exchangeId, 'bestAsk', row.bestAsk, 'ask', row.totalAskDepthJPY, maxAskDepth, 'Ask') : waitingCellHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</td>
           <td class="is-num text-right font-mono text-yellow-300 ${cellFlashClass(row.exchangeId, 'spreadPct')}" data-label="Spread">${hasBook ? fmtPct(row.spreadPct) : waitingCellHtml(row.message || ORDERBOOK_WAITING_MESSAGE)}</td>
           <td class="text-right font-mono text-gray-400" data-label="更新">
             <div>${hasBook ? escapeHtml(updatedAtLabel(row)) : '-'}</div>
@@ -1665,7 +1742,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function comparisonAmountLabel(meta) {
     if (!meta) return '-';
     if (meta.amountType === 'jpy') return Fmt.jpy(meta.amount);
-    return `${Fmt.baseCompact(meta.amount)} ${(summary.market && summary.market.baseCurrency) || instrumentId.split('-')[0] || ''}`;
+    return `${Fmt.baseCompact(meta.amount)} ${(summary && summary.market && summary.market.baseCurrency) || instrumentId.split('-')[0] || ''}`;
   }
 
   async function loadComparison() {
@@ -1730,11 +1807,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const isSell = meta.side === 'sell';
     const tbody = $('market-comparison-tbody');
+    const fixedQuote = meta.amountType === 'jpy';
+    const baseCurrency = (summary && summary.market && summary.market.baseCurrency) || instrumentId.split('-')[0] || '';
+    const readyRows = rows.filter(row => liveRowStatus(row) === 'fresh' && row.result && !row.result.error);
+    const resultScoreDirection = (!isSell && fixedQuote) ? 'max' : (isSell ? 'max' : 'min');
+    const resultScoreValue = (row) => {
+      const result = row && row.result;
+      if (!result || result.error) return null;
+      if (!isSell && fixedQuote) return result.totalBTCFilled;
+      return result.effectiveCostJPY;
+    };
+    const resultScoreValues = readyRows
+      .map(resultScoreValue)
+      .map(finiteNumber)
+      .filter(value => value != null);
+    const minResultScore = resultScoreValues.length > 0 ? Math.min(...resultScoreValues) : null;
+    const maxResultScore = resultScoreValues.length > 0 ? Math.max(...resultScoreValues) : null;
+    const vwapValues = readyRows
+      .map(row => finiteNumber(row.result && row.result.effectiveVWAP))
+      .filter(value => value != null);
+    const minVwap = vwapValues.length > 0 ? Math.min(...vwapValues) : null;
+    const maxVwap = vwapValues.length > 0 ? Math.max(...vwapValues) : null;
+    const impactValues = readyRows
+      .map(row => finiteNumber(row.result && Math.abs(Number(row.result.marketImpactPct))))
+      .filter(value => value != null);
+    const minImpact = impactValues.length > 0 ? Math.min(...impactValues) : null;
+    const maxImpact = impactValues.length > 0 ? Math.max(...impactValues) : null;
+    const receiveValues = (!isSell && fixedQuote)
+      ? readyRows
+        .map(row => finiteNumber(row.result && row.result.totalBTCFilled))
+        .filter(value => value != null)
+      : [];
+    const minReceive = receiveValues.length > 0 ? Math.min(...receiveValues) : null;
+    const maxReceive = receiveValues.length > 0 ? Math.max(...receiveValues) : null;
     tbody.innerHTML = rows.map(row => {
       const result = row.result || null;
       const status = liveRowStatus(row);
       const ready = status === 'fresh' && result && !result.error;
-      const fixedQuote = meta.amountType === 'jpy';
       const value = ready
         ? (fixedQuote ? `${Fmt.baseCompact(result.totalBTCFilled)} ${(row.baseCurrency || '').toUpperCase()}` : Fmt.jpy(result.effectiveCostJPY))
         : '-';
@@ -1749,14 +1858,22 @@ document.addEventListener('DOMContentLoaded', () => {
       const statusClass = ready
         ? comparisonStatusClass(result.executionStatus)
         : (status === 'stale' ? 'text-yellow-300' : 'text-gray-500');
+      const resultRisk = ready && isRiskExecution(result);
       const rowClass = [
         'data-table__row--comparison-refresh',
         row.rank === 1 && ready ? 'data-table__row--rank-1' : '',
         isMyExchange(row.exchangeId) ? 'data-table__row--my-exchange' : '',
         status === 'stale' ? 'data-table__row--stale' : '',
+        resultRisk ? 'data-table__row--risk-warning' : '',
         liveFlashClass(row.exchangeId),
       ].filter(Boolean).join(' ');
-      const resultCellClass = ready && row.rank === 1 ? 'market-cell-highlight market-cell-highlight--gold' : '';
+      const resultCellClass = [
+        ready && row.rank === 1 ? 'market-cell-highlight market-cell-highlight--gold' : '',
+        ready ? heatCellClass(resultScoreValue(row), minResultScore, maxResultScore, resultScoreDirection) : '',
+        resultRisk ? 'market-risk-cell' : '',
+      ].filter(Boolean).join(' ');
+      const vwapCellClass = ready ? heatCellClass(result.effectiveVWAP, minVwap, maxVwap, isSell ? 'max' : 'min') : '';
+      const impactCellClass = ready ? heatCellClass(Math.abs(Number(result.marketImpactPct)), minImpact, maxImpact, 'min') : '';
       return `
         <tr class="border-b border-gray-800/60 ${rowClass}" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}">
           <td class="is-num text-right font-mono text-gray-300" data-label="順位">${ready && row.rank ? `#${row.rank}` : '-'}</td>
@@ -1765,13 +1882,15 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td class="is-num text-right font-mono ${valueClass} ${resultCellClass}" data-label="結果">
             <div>${ready ? value : (isLoadingMessage(statusText) ? waitingCellHtml(statusText) : value)}</div>
+            ${ready && fixedQuote && !isSell ? receiveComparisonBarHtml(result.totalBTCFilled, minReceive, maxReceive, (row.baseCurrency || baseCurrency || '').toUpperCase(), { best: row.rank === 1 }) : ''}
             ${ready && row.rank === 1 ? winnerBadge(isSell ? '売却最良' : '最安 Low Cost') : ''}
           </td>
-          <td class="is-num text-right font-mono text-gray-300" data-label="${termText('VWAP', '平均購入価格')}">${vwap}</td>
-          <td class="is-num text-right font-mono text-yellow-300" data-label="${termText('Impact', '値幅への影響度')}">${ready ? fmtPct(result.marketImpactPct) : '-'}</td>
-          <td class="${statusClass}" data-label="判定">
+          <td class="is-num text-right font-mono text-gray-300 ${vwapCellClass}" data-label="${termText('VWAP', '実質購入価格')}">${vwap}</td>
+          <td class="is-num text-right font-mono text-yellow-300 ${impactCellClass} ${resultRisk ? 'market-risk-cell' : ''}" data-label="${termText('Impact', '値幅への影響度')}">${ready ? fmtPct(result.marketImpactPct) : '-'}</td>
+          <td class="${statusClass} ${resultRisk ? 'market-risk-cell' : ''}" data-label="判定">
             <div class="font-bold">${escapeHtml(statusText)}</div>
             ${statusSub ? `<div class="text-[10px] text-gray-500">${escapeHtml(statusSub)}</div>` : ''}
+            ${resultRisk ? `<div class="market-risk-note">${escapeHtml(result.executionStatusLabel || '自動キャンセル対象')} / Impact ${fmtPct(result.marketImpactPct)}</div>` : ''}
             ${freshnessBadgeHtml(status, row)}
           </td>
           <td class="text-right market-action-cell" data-label="アクション">

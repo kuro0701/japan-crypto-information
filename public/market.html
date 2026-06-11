@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css?v=ui-31">
-  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-5">
+  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-6">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-market-page="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -149,7 +149,7 @@
             <thead class="sticky">
               <tr>
                 <th class="text-left">対応取引所</th>
-                <th class="is-num text-right"><span class="term-label"><span data-term-key="best-bid-ask" class="market-term" tabindex="0">最良Bid / Ask</span><button class="term-help" type="button" data-term-key="best-bid-ask" aria-label="最良Bid / Ask の説明を開く"><span aria-hidden="true">?</span></button></span></th>
+                <th class="is-num text-right"><span class="term-label"><span data-term-key="best-bid-ask" class="market-term" tabindex="0"><span class="term-copy--expert">最良Bid / Ask</span><span class="term-copy--beginner">買い手最高値 / 売り手最安値</span></span><button class="term-help" type="button" data-term-key="best-bid-ask" aria-label="最良Bid / Ask の説明を開く"><span aria-hidden="true">?</span></button></span></th>
                 <th class="is-num text-right">板厚</th>
                 <th class="is-num text-right">10万円買い</th>
                 <th class="is-num text-right">販売所Spread</th>
@@ -203,7 +203,7 @@
               <col style="width:10%">
               <col style="width:14%">
             </colgroup>
-            <thead class="sticky"><tr><th class="text-left">取引所</th><th class="is-num text-right"><span class="market-term" data-term-key="bid" tabindex="0">Bid</span></th><th class="is-num text-right"><span class="market-term" data-term-key="ask" tabindex="0">Ask</span></th><th class="is-num text-right">Spread</th><th class="text-right">更新</th></tr></thead>
+            <thead class="sticky"><tr><th class="text-left">取引所</th><th class="is-num text-right"><span class="market-term" data-term-key="bid" tabindex="0"><span class="term-copy--expert">Bid</span><span class="term-copy--beginner">買い手最高値</span></span></th><th class="is-num text-right"><span class="market-term" data-term-key="ask" tabindex="0"><span class="term-copy--expert">Ask</span><span class="term-copy--beginner">売り手最安値</span></span></th><th class="is-num text-right">Spread</th><th class="text-right">更新</th></tr></thead>
             <tbody id="market-orderbook-tbody"><tr class="market-skeleton-row"><td colspan="5"><div class="market-skeleton-stack" aria-label="板データを取得中"><span></span><span></span><span></span></div></td></tr></tbody>
           </table>
         </div>
@@ -228,8 +228,10 @@
         <span class="market-quick-amounts__label">クイック金額</span>
         <div class="market-quick-amounts__buttons">
           <button class="market-quick-amount" type="button" data-market-quick-amount="10000">1万円</button>
+          <button class="market-quick-amount" type="button" data-market-quick-amount="30000">3万円</button>
           <button class="market-quick-amount" type="button" data-market-quick-amount="50000">5万円</button>
           <button class="market-quick-amount" type="button" data-market-quick-amount="100000">10万円</button>
+          <button class="market-quick-amount" type="button" data-market-quick-amount="300000">30万円</button>
           <button class="market-quick-amount" type="button" data-market-quick-amount="500000">50万円</button>
           <button class="market-quick-amount" type="button" data-market-quick-amount="1000000">100万円</button>
         </div>
@@ -242,6 +244,12 @@
         <div class="market-amount-slider__range-wrap">
           <input id="market-amount-range" type="range" min="10000" max="1000000" step="10000" value="100000" aria-label="購入金額を1万円から100万円で調整">
           <output id="market-amount-range-bubble" class="market-amount-slider__bubble" for="market-amount-range">10万円</output>
+          <div class="market-amount-slider__markers" aria-label="よく使われる購入金額">
+            <button type="button" data-market-quick-amount="30000" style="--marker-pct:2.02%"><span>3万円</span></button>
+            <button type="button" data-market-quick-amount="50000" style="--marker-pct:4.04%"><span>5万円</span></button>
+            <button type="button" data-market-quick-amount="100000" style="--marker-pct:9.09%"><span>10万円</span><small>人気</small></button>
+            <button type="button" data-market-quick-amount="300000" style="--marker-pct:29.29%"><span>30万円</span></button>
+          </div>
         </div>
         <div class="market-amount-slider__scale" aria-hidden="true"><span>1万円</span><span>100万円</span></div>
       </div>
@@ -257,7 +265,7 @@
             <col style="width:15%">
             <col style="width:10%">
           </colgroup>
-          <thead class="sticky"><tr><th class="is-num text-right">順位</th><th class="text-left">取引所</th><th class="is-num text-right">結果</th><th class="is-num text-right"><span class="term-label"><span class="term-copy--expert">VWAP</span><span class="term-copy--beginner">平均購入価格</span><button class="term-help" type="button" data-term-key="vwap" aria-label="VWAP の説明を開く"><span aria-hidden="true">?</span></button></span></th><th class="is-num text-right"><span class="term-label"><span class="term-copy--expert">Impact</span><span class="term-copy--beginner">値幅への影響度</span><button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button></span></th><th class="text-left">判定</th><th class="text-right">アクション</th></tr></thead>
+          <thead class="sticky"><tr><th class="is-num text-right">順位</th><th class="text-left">取引所</th><th class="is-num text-right">結果</th><th class="is-num text-right"><span class="term-label"><span class="term-copy--expert">VWAP</span><span class="term-copy--beginner">手数料込みの実質購入価格</span><button class="term-help" type="button" data-term-key="vwap" aria-label="VWAP の説明を開く"><span aria-hidden="true">?</span></button></span></th><th class="is-num text-right"><span class="term-label"><span class="term-copy--expert">Impact</span><span class="term-copy--beginner">値幅への影響度</span><button class="term-help" type="button" data-term-key="impact" aria-label="Impact の説明を開く"><span aria-hidden="true">?</span></button></span></th><th class="text-left">判定</th><th class="text-right">アクション</th></tr></thead>
           <tbody id="market-comparison-tbody"><tr class="market-skeleton-row"><td colspan="7"><div class="market-skeleton-stack" aria-label="比較を取得中"><span></span><span></span><span></span></div></td></tr></tbody>
         </table>
       </div>
@@ -384,7 +392,7 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | <span id="market-footer-label">__MARKET_FOOTER_LABEL__</span></footer>
 
   <script>window.MARKET_PAGE = __MARKET_PAGE_JSON__;</script>
-  <script src="/js/beginner-mode.js?v=7"></script>
+  <script src="/js/beginner-mode.js?v=8"></script>
   <script src="/js/formatter.js?v=volume-1"></script>
   <script src="/js/app-utils.js?v=app-utils-1"></script>
   <script src="/js/app-formatters.js?v=app-formatters-1"></script>
@@ -393,6 +401,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-18"></script>
+  <script src="/js/market-page.js?v=market-19"></script>
 </body>
 </html>

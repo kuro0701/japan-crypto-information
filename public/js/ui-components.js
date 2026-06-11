@@ -137,7 +137,10 @@
     return [
       '<dl class="ui-fact-grid market-conclusion-facts">',
       items.map(item => [
-        '  <div>',
+        `  <div${attrs({
+          class: item.className,
+          'data-fact-key': item.key,
+        })}>`,
         `    <dt>${escapeHtml(item.label)}</dt>`,
         `    <dd>${htmlOrText({ html: item.valueHtml, text: item.value })}</dd>`,
         '  </div>',
