@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css?v=ui-31">
-  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-6">
+  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-9">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-market-page="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -65,6 +65,13 @@
           <p class="text-xs text-gray-500 mt-1">値動きの予測ではなく、国内取引所で買う前に見るべき要点をまとめています</p>
         </div>
         <span class="panel-kicker">Conclusion</span>
+      </div>
+      <div class="market-mode-switch" aria-label="表示モード切り替え">
+        <div class="market-mode-switch__copy">
+          <span>表示モード</span>
+          <strong>結論だけ / 詳細まで</strong>
+        </div>
+        <button class="beginner-toggle beginner-toggle--hero" type="button" data-beginner-toggle data-beginner-toggle-label="初心者モード" data-beginner-toggle-on-text="初心者モード: ON" data-beginner-toggle-off-text="初心者モード: OFF" aria-pressed="false">初心者モード: OFF</button>
       </div>
       <div class="market-conclusion-layout market-conclusion-layout--single">
         <!-- MARKET_CONCLUSION_CARD -->
@@ -380,6 +387,19 @@
   </main>
 
   <div id="market-floating-my-exchanges" class="market-floating-my-exchanges" aria-live="polite" hidden></div>
+  <div id="market-sticky-simulator" class="market-sticky-simulator" aria-live="polite" hidden>
+    <div class="market-sticky-simulator__summary">
+      <span class="market-sticky-simulator__eyebrow">Simulator</span>
+      <strong id="market-sticky-amount">10万円</strong>
+      <span>最安 <b id="market-sticky-best">データ待ち</b></span>
+    </div>
+    <div class="market-sticky-simulator__actions" aria-label="購入金額を切り替え">
+      <button type="button" data-market-sticky-amount="10000">1万</button>
+      <button type="button" data-market-sticky-amount="100000">10万</button>
+      <button type="button" data-market-sticky-amount="500000">50万</button>
+      <a href="#market-board-cost">比較</a>
+    </div>
+  </div>
 
   <nav class="market-mobile-quick-nav" aria-label="銘柄ページのクイックナビ">
     <a class="is-active" href="#market-conclusion" data-market-section-target>結論</a>
@@ -401,6 +421,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-19"></script>
+  <script src="/js/market-page.js?v=market-22"></script>
 </body>
 </html>

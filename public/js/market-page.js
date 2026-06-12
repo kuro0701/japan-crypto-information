@@ -52,6 +52,11 @@ document.addEventListener('DOMContentLoaded', () => {
     bittrade: 'BT',
   });
   const DEFAULT_EXCHANGE_ACCENT = Object.freeze({ color: '#8fb0ff' });
+  const animatedValueCache = new Map();
+  const prefersReducedMotion = window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : { matches: false };
+  let copyToastTimer = null;
 
   const $ = AppUtil.byId;
   const setText = AppUtil.setText;
@@ -400,6 +405,132 @@ document.addEventListener('DOMContentLoaded', () => {
     return Number.isFinite(num) ? num : null;
   }
 
+  function formatAnimatedValue(format, value, suffix = '') {
+    const numeric = finiteNumber(value);
+    if (numeric == null) return '-';
+    if (format === 'jpy') return fmtJpyPrice(numeric);
+    if (format === 'pct') return fmtPct(numeric);
+    if (format === 'base') {
+      const unit = String(suffix || '').trim();
+      return `${Fmt.baseCompact(numeric)}${unit ? ` ${unit}` : ''}`;
+    }
+    return Fmt.num(numeric);
+  }
+
+  function animatedNumberHtml(key, value, format, suffix = '') {
+    const numeric = finiteNumber(value);
+    const text = numeric == null ? '-' : formatAnimatedValue(format, numeric, suffix);
+    if (numeric == null) return escapeHtml(text);
+    return `<span class="market-animated-number" data-animate-key="${escapeHtml(key)}" data-animate-value="${escapeHtml(String(numeric))}" data-animate-format="${escapeHtml(format)}" data-animate-suffix="${escapeHtml(suffix)}">${escapeHtml(text)}</span>`;
+  }
+
+  function copyButtonHtml(value, label) {
+    const text = String(value == null ? '' : value).trim();
+    if (!text || text === '-') return '';
+    return `
+      <button class="market-copy-button" type="button" data-market-copy-value="${escapeHtml(text)}" data-market-copy-label="${escapeHtml(label || '値')}" aria-label="${escapeHtml(label || '値')}をコピー">
+        <span class="market-copy-button__icon" aria-hidden="true"></span>
+      </button>
+    `;
+  }
+
+  function copyableMetricHtml(key, value, format, suffix, label, options = {}) {
+    const numeric = finiteNumber(value);
+    const text = numeric == null ? '-' : formatAnimatedValue(format, numeric, suffix);
+    return `
+      <span class="market-copyable">
+        ${animatedNumberHtml(key, value, format, suffix)}
+        ${copyButtonHtml(options.copyText || text, label)}
+      </span>
+    `;
+  }
+
+  function animateNumberSpans(root) {
+    if (!root) return;
+    root.querySelectorAll('[data-animate-key]').forEach((node) => {
+      const key = node.dataset.animateKey;
+      const target = finiteNumber(node.dataset.animateValue);
+      if (!key || target == null) return;
+      const previous = animatedValueCache.get(key);
+      const format = node.dataset.animateFormat || 'number';
+      const suffix = node.dataset.animateSuffix || '';
+      if (previous == null || prefersReducedMotion.matches || Math.abs(previous - target) <= 1e-10) {
+        node.textContent = formatAnimatedValue(format, target, suffix);
+        animatedValueCache.set(key, target);
+        return;
+      }
+      const start = Number(previous);
+      const delta = target - start;
+      const startedAt = performance.now();
+      const duration = 420;
+      node.classList.add('is-counting');
+      const tick = (now) => {
+        const progress = Math.min(1, (now - startedAt) / duration);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        node.textContent = formatAnimatedValue(format, start + (delta * eased), suffix);
+        if (progress < 1) {
+          window.requestAnimationFrame(tick);
+          return;
+        }
+        node.textContent = formatAnimatedValue(format, target, suffix);
+        node.classList.remove('is-counting');
+        animatedValueCache.set(key, target);
+      };
+      window.requestAnimationFrame(tick);
+    });
+  }
+
+  function showCopyToast(label, options = {}) {
+    let toast = document.querySelector('[data-market-copy-toast]');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'market-copy-toast';
+      toast.dataset.marketCopyToast = 'true';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toast);
+    }
+    toast.textContent = options.error ? 'コピーできませんでした' : `${label || '値'}をコピーしました`;
+    toast.hidden = false;
+    toast.classList.remove('is-visible');
+    void toast.offsetWidth;
+    toast.classList.add('is-visible');
+    if (copyToastTimer) window.clearTimeout(copyToastTimer);
+    copyToastTimer = window.setTimeout(() => {
+      toast.classList.remove('is-visible');
+      copyToastTimer = window.setTimeout(() => {
+        toast.hidden = true;
+      }, 180);
+    }, 1300);
+  }
+
+  async function copyMarketValue(value, label) {
+    const text = String(value == null ? '' : value).trim();
+    if (!text) return;
+    let copied = false;
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text);
+        copied = true;
+      } catch (_) {
+        copied = false;
+      }
+    }
+    if (!copied) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.top = '-1000px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      copied = document.execCommand('copy');
+      textarea.remove();
+    }
+    if (!copied) throw new Error('copy failed');
+    showCopyToast(label);
+  }
+
   function bestIds(rows, valueSelector, direction = 'min') {
     const values = (rows || [])
       .map(row => ({ row, value: finiteNumber(valueSelector(row)) }))
@@ -472,7 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : Math.max(0, Math.min(100, (spread / 8) * 100));
     return `
       <div class="spread-cost-cell spread-cost-cell--${tone}" style="--spread-score:${score}%">
-        <span class="spread-cost-cell__rate">${spread == null ? '-' : fmtPct(spread)}</span>
+        <span class="spread-cost-cell__rate">${options.copyKey ? copyableMetricHtml(options.copyKey, spread, 'pct', '', '販売所スプレッド') : (spread == null ? '-' : fmtPct(spread))}</span>
         <span class="spread-cost-cell__meter" aria-hidden="true"><span></span></span>
         <span class="spread-cost-cell__label">${label}</span>
         ${best}
@@ -735,6 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
         node.classList.add('market-number-tick');
       }
     });
+    renderStickySimulator();
   }
 
   function syncQuickAmountButtons() {
@@ -1121,6 +1253,72 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
+  function comparisonBestRow(data) {
+    const rows = orderRowsForMyExchanges(Array.isArray(data && data.rows) ? data.rows : []);
+    return rows
+      .filter(row => liveRowStatus(row) === 'fresh' && row.result && !row.result.error && Number.isFinite(Number(row.rank)))
+      .slice()
+      .sort((a, b) => Number(a.rank) - Number(b.rank))[0] || null;
+  }
+
+  function domesticBestCostRow() {
+    const rows = summary && summary.domesticComparison && Array.isArray(summary.domesticComparison.rows)
+      ? orderRowsForMyExchanges(summary.domesticComparison.rows)
+      : [];
+    return rows
+      .filter(row => row && row.cost100k && row.cost100k.status === 'fresh' && Number.isFinite(Number(row.cost100k.rank)))
+      .slice()
+      .sort((a, b) => Number(a.cost100k.rank) - Number(b.cost100k.rank))[0] || null;
+  }
+
+  function stickyAmountLabel() {
+    if (lastComparisonData && lastComparisonData.meta) return comparisonAmountLabel(lastComparisonData.meta);
+    const active = activeQuickAmount();
+    return active == null ? '数量入力中' : amountRangeLabel(active);
+  }
+
+  function renderStickySimulator() {
+    const host = $('market-sticky-simulator');
+    if (!host) return;
+    const amount = $('market-sticky-amount');
+    const best = $('market-sticky-best');
+    const bestComparison = comparisonBestRow(lastComparisonData);
+    const bestDomestic = domesticBestCostRow();
+    let label = 'データ待ち';
+    let meta = ORDERBOOK_WAITING_MESSAGE;
+
+    if (bestComparison && bestComparison.result) {
+      const result = bestComparison.result;
+      label = bestComparison.exchangeLabel || bestComparison.exchangeId || '最安候補';
+      meta = `VWAP ${fmtJpyPrice(result.effectiveVWAP)}`;
+    } else if (bestDomestic && bestDomestic.cost100k) {
+      label = bestDomestic.exchangeLabel || bestDomestic.exchangeId || '最安候補';
+      meta = `10万円買い VWAP ${fmtJpyPrice(bestDomestic.cost100k.effectiveVWAP)}`;
+    } else {
+      const snapshotBest = summary && summary.snapshot && summary.snapshot.cheapestBuy;
+      if (snapshotBest) {
+        label = snapshotBest.exchangeLabel || snapshotBest.exchangeId || '最安候補';
+        meta = `10万円買い VWAP ${fmtJpyPrice(snapshotBest.effectiveVWAP)}`;
+      }
+    }
+
+    if (amount) amount.textContent = stickyAmountLabel();
+    if (best) {
+      best.textContent = label;
+      best.title = meta;
+    }
+    host.hidden = false;
+    host.classList.toggle('is-ready', label !== 'データ待ち');
+    syncStickySimulatorVisibility();
+  }
+
+  function syncStickySimulatorVisibility() {
+    const host = $('market-sticky-simulator');
+    if (!host || host.hidden) return;
+    const threshold = window.innerWidth < 768 ? 360 : 520;
+    host.classList.toggle('is-visible', window.scrollY > threshold);
+  }
+
   function rerenderMarketTables() {
     renderExchangePreferences();
     syncQuickAmountButtons();
@@ -1133,6 +1331,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateSelectedOrderbookMeta();
     }
     if (lastComparisonData) renderComparison(lastComparisonData);
+    renderStickySimulator();
   }
 
   function orderbookRowsByExchange(data) {
@@ -1293,10 +1492,19 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(row => Number.isFinite(Number(row.bestAsk)))
       .sort((a, b) => Number(a.bestAsk) - Number(b.bestAsk))[0];
     let statusText = '板データ取得中';
+    let statusTone = 'waiting';
     if (counts.fresh > 0 && counts.stale > 0) statusText = '鮮度注意';
-    else if (counts.fresh > 0) statusText = '集計済み';
-    else if (counts.stale > 0) statusText = '鮮度切れ';
+    if (counts.fresh > 0 && counts.stale > 0) statusTone = 'warning';
+    else if (counts.fresh > 0) {
+      statusText = '集計済み';
+      statusTone = 'fresh';
+    } else if (counts.stale > 0) {
+      statusText = '鮮度切れ';
+      statusTone = 'stale';
+    }
     setText('market-status', statusText);
+    const statusNode = $('market-status');
+    if (statusNode) statusNode.dataset.statusTone = statusTone;
     updateFreshnessProgress();
     setText('market-exchange-count', `${supportedExchanges().length}社`);
     setText('market-best-bid', bestBid ? `${bestBid.exchangeLabel} ${fmtJpyPrice(bestBid.bestBid)}` : '-');
@@ -1484,6 +1692,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${summaryText} (${statusText})`;
   }
 
+  function fundingCompactHtml(funding) {
+    const summary = fundingLabel(funding);
+    const status = (funding && funding.statusLabel) || '公式確認';
+    const note = (funding && funding.note) || '銀行・銘柄・ネットワーク別の条件は公式確認';
+    const fiatReady = Boolean(funding && funding.fiatDeposit && funding.fiatWithdrawal);
+    const cryptoReady = Boolean(funding && funding.cryptoDeposit && funding.cryptoWithdrawal);
+    return `
+      <div class="market-funding-compact" tabindex="0" aria-label="${escapeHtml(`${summary}。${note}`)}">
+        <span class="market-funding-chip ${fiatReady ? 'is-ready' : ''}">JPY</span>
+        <span class="market-funding-chip ${cryptoReady ? 'is-ready' : ''}">Crypto</span>
+        <strong>${escapeHtml(status)}</strong>
+        <span class="market-funding-tooltip" role="tooltip">${escapeHtml(summary)}<br>${escapeHtml(note)}</span>
+      </div>
+    `;
+  }
+
   function renderDomesticComparisonRows() {
     const tbody = $('market-domestic-comparison-tbody');
     if (!tbody) return;
@@ -1529,6 +1753,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxAskDepth = Math.max(0, ...depthRows.map(orderbook => finiteNumber(orderbook.totalAskDepthJPY) || 0));
 
     tbody.innerHTML = rows.map((row) => {
+      const rowId = normalizeExchangeId(row.exchangeId);
       const orderbook = row.orderbook || {};
       const orderbookStatus = liveRowStatus(orderbook);
       const hasBook = orderbookStatus === 'fresh' || orderbookStatus === 'stale';
@@ -1563,7 +1788,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ].filter(Boolean).join(' ');
 
       return `
-        <tr class="border-b border-gray-800/60 ${rowClass} ${costRisk ? 'data-table__row--risk-warning' : ''}" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}">
+        <tr class="border-b border-gray-800/60 ${rowClass} ${costRisk ? 'data-table__row--risk-warning' : ''}" data-exchange-id="${escapeHtml(rowId)}">
           <td class="text-left" data-label="対応取引所">
             ${exchangeIdentityHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, `対応銘柄 / ${row.instrumentLabel || instrumentId}`)}
           </td>
@@ -1582,18 +1807,17 @@ document.addEventListener('DOMContentLoaded', () => {
             ${hasBook && isBestDepth ? winnerBadge('最大板厚', 'green') : ''}
           </td>
           <td class="is-num text-right font-mono ${costCellClass}" data-label="10万円買い">
-            <div class="${costReady ? 'text-red-300' : 'text-gray-500'}">${costReady ? `${cost.rank ? `#${cost.rank} ` : ''}${Fmt.baseCompact(cost.totalBaseFilled)} ${escapeHtml(baseCurrency)}` : (isLoadingMessage(costStatus) ? waitingCellHtml(costStatus) : '-')}</div>
-            <div class="text-[10px] text-gray-500">${costReady ? `${termText('VWAP', '実質購入価格')} ${fmtJpyPrice(cost.effectiveVWAP)} / ${termText('Impact', '影響度')} ${fmtPct(cost.marketImpactPct)}` : (isLoadingMessage(costStatus) ? '' : escapeHtml(costStatus))}</div>
+            <div class="${costReady ? 'text-red-300' : 'text-gray-500'}">${costReady ? `${cost.rank ? `<span class="market-rank-prefix">#${escapeHtml(cost.rank)}</span> ` : ''}${animatedNumberHtml(`domestic:${rowId}:filled`, cost.totalBaseFilled, 'base', baseCurrency)}` : (isLoadingMessage(costStatus) ? waitingCellHtml(costStatus) : '-')}</div>
+            <div class="text-[10px] text-gray-500">${costReady ? `${termText('VWAP', '実質購入価格')} ${copyableMetricHtml(`domestic:${rowId}:vwap`, cost.effectiveVWAP, 'jpy', '', termText('VWAP', '実質購入価格'))} / ${termText('Impact', '影響度')} ${animatedNumberHtml(`domestic:${rowId}:impact`, cost.marketImpactPct, 'pct')}` : (isLoadingMessage(costStatus) ? '' : escapeHtml(costStatus))}</div>
             ${costRisk ? `<div class="market-risk-note">${escapeHtml(cost.executionStatusLabel || '自動キャンセル対象')} / Impact ${fmtPct(cost.marketImpactPct)}</div>` : ''}
             ${costReady && cost.rank === 1 ? winnerBadge('最安 Low Cost') : ''}
           </td>
           <td class="is-num text-right font-mono ${salesCellClass}" data-label="販売所Spread">
-            ${salesReady ? spreadCostHtml(sales.spreadPct, { min: minSales, max: maxSales, best: isBestSales }) : '<div class="text-gray-500">-</div>'}
+            ${salesReady ? spreadCostHtml(sales.spreadPct, { min: minSales, max: maxSales, best: isBestSales, copyKey: `domestic:${rowId}:sales-spread` }) : '<div class="text-gray-500">-</div>'}
             <div class="text-[10px] text-gray-500">${salesReady ? `買 ${fmtJpyPrice(sales.buyPrice)} / 売 ${fmtJpyPrice(sales.sellPrice)}` : escapeHtml(sales.message || '販売所データなし')}</div>
           </td>
           <td class="text-left" data-label="入出金対応">
-            <div class="font-bold text-gray-200">${escapeHtml(fundingLabel(row.funding))}</div>
-            <div class="text-[10px] text-gray-500">${escapeHtml((row.funding && row.funding.note) || '銀行・銘柄・ネットワーク別の条件は公式確認')}</div>
+            ${fundingCompactHtml(row.funding)}
           </td>
           <td class="text-right market-action-cell" data-label="アクション">
             ${exchangeActionHtml(row.exchangeId, row.exchangeLabel || row.exchangeId)}
@@ -1601,7 +1825,9 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>
       `;
     }).join('');
+    animateNumberSpans(tbody);
     renderFloatingMyExchanges();
+    renderStickySimulator();
   }
 
   function renderOrderbookRows() {
@@ -1757,6 +1983,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!Number.isFinite(amount) || amount <= 0 || Number.isNaN(feeRatePct) || (feeRatePct != null && (feeRatePct < 0 || feeRatePct > 100))) {
       lastComparisonData = null;
       setEmpty('market-comparison-tbody', 7, '数量または金額、手数料率を確認してください。');
+      renderStickySimulator();
       return;
     }
 
@@ -1782,6 +2009,7 @@ document.addEventListener('DOMContentLoaded', () => {
       lastComparisonData = null;
       setText('market-comparison-meta', '比較データを取得できませんでした。');
       setEmpty('market-comparison-tbody', 7, '比較データを取得できませんでした。時間をおいて再度お試しください。');
+      renderStickySimulator();
     } finally {
       if (comparisonAbortController === controller) {
         comparisonAbortController = null;
@@ -1841,13 +2069,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const minReceive = receiveValues.length > 0 ? Math.min(...receiveValues) : null;
     const maxReceive = receiveValues.length > 0 ? Math.max(...receiveValues) : null;
     tbody.innerHTML = rows.map(row => {
+      const rowId = normalizeExchangeId(row.exchangeId);
       const result = row.result || null;
       const status = liveRowStatus(row);
       const ready = status === 'fresh' && result && !result.error;
       const value = ready
-        ? (fixedQuote ? `${Fmt.baseCompact(result.totalBTCFilled)} ${(row.baseCurrency || '').toUpperCase()}` : Fmt.jpy(result.effectiveCostJPY))
+        ? (fixedQuote
+          ? animatedNumberHtml(`comparison:${rowId}:result-base`, result.totalBTCFilled, 'base', (row.baseCurrency || baseCurrency || '').toUpperCase())
+          : animatedNumberHtml(`comparison:${rowId}:result-jpy`, result.effectiveCostJPY, 'jpy'))
         : '-';
-      const vwap = ready ? Fmt.jpy(result.effectiveVWAP) : '-';
+      const vwap = ready
+        ? copyableMetricHtml(`comparison:${rowId}:vwap`, result.effectiveVWAP, 'jpy', '', 'VWAP')
+        : '-';
       const statusText = ready
         ? (result.executionStatusLabel || '発注可能')
         : (status === 'stale' ? '板データが古いため比較停止' : (row.message || ORDERBOOK_WAITING_MESSAGE));
@@ -1875,7 +2108,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const vwapCellClass = ready ? heatCellClass(result.effectiveVWAP, minVwap, maxVwap, isSell ? 'max' : 'min') : '';
       const impactCellClass = ready ? heatCellClass(Math.abs(Number(result.marketImpactPct)), minImpact, maxImpact, 'min') : '';
       return `
-        <tr class="border-b border-gray-800/60 ${rowClass}" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}">
+        <tr class="border-b border-gray-800/60 ${rowClass}" data-exchange-id="${escapeHtml(rowId)}">
           <td class="is-num text-right font-mono text-gray-300" data-label="順位">${ready && row.rank ? `#${row.rank}` : '-'}</td>
           <td class="text-left" data-label="取引所">
             ${exchangeIdentityHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, String(row.source || '-').toUpperCase())}
@@ -1886,7 +2119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ${ready && row.rank === 1 ? winnerBadge(isSell ? '売却最良' : '最安 Low Cost') : ''}
           </td>
           <td class="is-num text-right font-mono text-gray-300 ${vwapCellClass}" data-label="${termText('VWAP', '実質購入価格')}">${vwap}</td>
-          <td class="is-num text-right font-mono text-yellow-300 ${impactCellClass} ${resultRisk ? 'market-risk-cell' : ''}" data-label="${termText('Impact', '値幅への影響度')}">${ready ? fmtPct(result.marketImpactPct) : '-'}</td>
+          <td class="is-num text-right font-mono text-yellow-300 ${impactCellClass} ${resultRisk ? 'market-risk-cell' : ''}" data-label="${termText('Impact', '値幅への影響度')}">${ready ? animatedNumberHtml(`comparison:${rowId}:impact`, result.marketImpactPct, 'pct') : '-'}</td>
           <td class="${statusClass} ${resultRisk ? 'market-risk-cell' : ''}" data-label="判定">
             <div class="font-bold">${escapeHtml(statusText)}</div>
             ${statusSub ? `<div class="text-[10px] text-gray-500">${escapeHtml(statusSub)}</div>` : ''}
@@ -1899,6 +2132,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>
       `;
     }).join('');
+    animateNumberSpans(tbody);
+    renderStickySimulator();
   }
 
   function renderSummary(data) {
@@ -1918,6 +2153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBeginnerSimpleCard();
     updateFreshnessProgress();
     syncQuickAmountButtons();
+    renderStickySimulator();
     connectSelectedOrderbook();
   }
 
@@ -2005,6 +2241,24 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   document.addEventListener('click', (event) => {
+    const copyButton = event.target && event.target.closest ? event.target.closest('[data-market-copy-value]') : null;
+    if (copyButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      const value = copyButton.dataset.marketCopyValue;
+      const label = copyButton.dataset.marketCopyLabel || '値';
+      copyMarketValue(value, label).catch(() => {
+        showCopyToast(label, { error: true });
+      });
+      return;
+    }
+    const stickyAmountButton = event.target && event.target.closest ? event.target.closest('[data-market-sticky-amount]') : null;
+    if (stickyAmountButton) {
+      event.preventDefault();
+      const value = Number(stickyAmountButton.dataset.marketStickyAmount);
+      if (Number.isFinite(value)) setQuickAmount(value);
+      return;
+    }
     const refreshButton = event.target && event.target.closest ? event.target.closest('[data-market-refresh]') : null;
     if (refreshButton) {
       event.preventDefault();
@@ -2073,6 +2327,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderBeginnerSimpleCard();
     syncBeginnerCollapses();
   });
+
+  window.addEventListener('scroll', syncStickySimulatorVisibility, { passive: true });
+  window.addEventListener('resize', syncStickySimulatorVisibility);
 
   ws.on('connected', () => {
     connectSelectedOrderbook();
