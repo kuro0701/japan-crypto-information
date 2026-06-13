@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css?v=ui-31">
-  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-9">
+  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-11">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-market-page="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -58,6 +58,33 @@
   </nav>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
+    <section class="market-mega-summary" aria-labelledby="market-mega-summary-title">
+      <div class="market-mega-summary__copy">
+        <p class="market-mega-summary__eyebrow">3秒サマリー</p>
+        <h2 id="market-mega-summary-title" class="market-mega-summary__title">__MARKET_PAGE_TITLE__</h2>
+        <p class="market-mega-summary__line">
+          <span>最安取引所 <strong id="market-mega-best-board">データ待ち</strong></span>
+          <span>販売所スプレッド最小 <strong id="market-mega-best-sales">データ待ち</strong></span>
+          <span>流動性 <strong id="market-mega-top-volume">データ待ち</strong></span>
+        </p>
+        <p id="market-mega-summary-note" class="market-mega-summary__note">板、販売所、出来高を同じ銘柄で集計中です。</p>
+      </div>
+      <nav class="market-intent-nav" aria-label="目的別クイックナビ">
+        <a href="#market-cost-comparison" data-market-intent-target>
+          <span class="market-intent-nav__icon market-intent-nav__icon--cost" aria-hidden="true"></span>
+          <span>最安で買う</span>
+        </a>
+        <a href="#market-sales-spread-comparison" data-market-intent-target>
+          <span class="market-intent-nav__icon market-intent-nav__icon--spread" aria-hidden="true"></span>
+          <span>スプレッド比較</span>
+        </a>
+        <a href="#market-pretrade-check" data-market-intent-target>
+          <span class="market-intent-nav__icon market-intent-nav__icon--risk" aria-hidden="true"></span>
+          <span>送金リスク確認</span>
+        </a>
+      </nav>
+    </section>
+
     <section id="market-conclusion" class="panel panel--dense info-layer info-layer--top beginner-focus" data-info-layer="top" data-beginner-focus="true">
       <div class="panel-title-row mb-4">
         <div>
@@ -217,7 +244,7 @@
       </section>
     </div>
 
-    <section class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
+    <section id="market-cost-comparison" class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
       <div class="panel-title-row mb-3">
         <div>
           <h2 class="panel-title">取引所別コスト比較</h2>
@@ -302,7 +329,7 @@
         </div>
       </section>
 
-      <section class="panel panel--dense">
+      <section id="market-sales-spread-comparison" class="panel panel--dense">
         <div class="panel-title-row mb-3"><div class="panel-title-with-help"><h2 class="panel-title">販売所スプレッド</h2><button class="term-help" type="button" data-term-key="sales-spread" aria-label="販売所スプレッド の説明を開く"><span aria-hidden="true">?</span></button></div><span class="panel-kicker">Sales Spread</span></div>
         <div class="market-table-shell overflow-auto scrollbar-thin">
           <table class="data-table data-table--cards data-table--fixed data-table--market-sales text-xs">
@@ -397,7 +424,7 @@
       <button type="button" data-market-sticky-amount="10000">1万</button>
       <button type="button" data-market-sticky-amount="100000">10万</button>
       <button type="button" data-market-sticky-amount="500000">50万</button>
-      <a href="#market-board-cost">比較</a>
+      <a id="market-sticky-action" href="#market-cost-comparison">比較</a>
     </div>
   </div>
 
@@ -421,6 +448,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-22"></script>
+  <script src="/js/market-page.js?v=market-25"></script>
 </body>
 </html>
