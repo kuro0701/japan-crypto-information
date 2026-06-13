@@ -33,6 +33,74 @@ html:has([data-market-page]) {
   scroll-behavior: smooth;
 }
 
+[data-market-page] {
+  background:
+    radial-gradient(circle at 18% -10%, rgba(53, 200, 210, 0.08), transparent 30%),
+    linear-gradient(180deg, #050914 0%, #05080d 42%, #04070a 100%) !important;
+}
+
+[data-market-page] .topbar {
+  grid-template-columns: minmax(280px, 0.8fr) minmax(360px, 1fr) minmax(320px, 0.9fr);
+  background: rgba(5, 9, 16, 0.9);
+  border-bottom-color: rgba(200, 220, 210, 0.1);
+}
+
+[data-market-page] .market-control-bar {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-height: 46px;
+  padding: 5px 7px;
+  border-color: rgba(53, 200, 210, 0.2);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(53, 200, 210, 0.08), rgba(53, 224, 165, 0.045)),
+    rgba(8, 12, 14, 0.76) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 28px rgba(0, 0, 0, 0.24);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+[data-market-page] .market-control-bar::-webkit-scrollbar {
+  display: none;
+}
+
+[data-market-page] .market-control-bar__divider {
+  width: 1px;
+  align-self: stretch;
+  flex: 0 0 1px;
+  background: rgba(200, 220, 210, 0.12);
+}
+
+[data-market-page] .market-control-bar .beginner-toggle {
+  min-height: 34px;
+  border-radius: 999px !important;
+}
+
+[data-market-page] .market-bento-firstview {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr);
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+[data-market-page] .market-bento-firstview > * {
+  min-width: 0;
+}
+
+[data-market-page] .market-conclusion-panel {
+  display: grid;
+  align-content: start;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(53, 224, 165, 0.12), transparent 32%),
+    linear-gradient(150deg, rgba(17, 22, 24, 0.96), rgba(9, 13, 14, 0.94)) !important;
+}
+
+[data-market-page] .market-conclusion-panel::before {
+  background: linear-gradient(90deg, rgba(53, 224, 165, 0.3), rgba(53, 200, 210, 0.14), transparent);
+}
+
 [data-market-page] .market-mega-summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.54fr);
@@ -49,7 +117,7 @@ html:has([data-market-page]) {
 
 [data-market-page] .market-mega-summary__copy {
   display: grid;
-  align-content: center;
+  align-content: start;
   min-width: 0;
   gap: 8px;
 }
@@ -230,7 +298,44 @@ html:has([data-market-page]) {
 }
 
 [data-market-page] .market-pair-tabs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: min(520px, 100%);
+  overflow-x: auto;
+  padding: 2px 0 4px;
+  scrollbar-width: none;
+}
+
+[data-market-page] .market-pair-tabs::-webkit-scrollbar {
   display: none;
+}
+
+[data-market-page] .market-pair-tabs a {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(53, 200, 210, 0.22);
+  border-radius: 999px;
+  background: rgba(53, 200, 210, 0.075);
+  color: var(--text-2) !important;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+[data-market-page] .market-pair-tabs a:hover,
+[data-market-page] .market-pair-tabs a:focus-visible,
+[data-market-page] .market-pair-tabs a.is-active {
+  border-color: rgba(53, 224, 165, 0.44);
+  background: rgba(53, 224, 165, 0.13);
+  color: var(--bid) !important;
+  box-shadow: 0 0 16px rgba(53, 224, 165, 0.1);
 }
 
 [data-market-page] .text-gray-500,
@@ -1163,14 +1268,14 @@ html.theme-light [data-market-page] .exchange-identity__pin {
 
 [data-market-page] .market-heat-cell--best,
 [data-market-page] .market-heat-cell--good {
-  background-color: rgba(53, 224, 165, 0.09) !important;
-  box-shadow: inset 0 0 0 1px rgba(53, 224, 165, 0.1);
+  background-color: rgba(0, 255, 127, 0.09) !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 255, 127, 0.1);
 }
 
 [data-market-page] .market-heat-cell--best {
   background:
-    linear-gradient(135deg, rgba(53, 224, 165, 0.16), rgba(53, 200, 210, 0.07)) !important;
-  box-shadow: inset 0 0 0 1px rgba(53, 224, 165, 0.18), 0 0 18px rgba(53, 224, 165, 0.08);
+    linear-gradient(135deg, rgba(0, 255, 127, 0.14), rgba(53, 200, 210, 0.07)) !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 255, 127, 0.18), 0 0 18px rgba(0, 255, 127, 0.08);
 }
 
 [data-market-page] .market-heat-cell--watch {
@@ -1192,6 +1297,25 @@ html.theme-light [data-market-page] .exchange-identity__pin {
   border-color: rgba(255, 107, 112, 0.22) !important;
   background:
     linear-gradient(135deg, rgba(255, 107, 112, 0.16), rgba(244, 201, 93, 0.06)) !important;
+}
+
+[data-market-page] .market-depth-cell {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+[data-market-page] .market-depth-cell::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  bottom: 7px;
+  z-index: -1;
+  width: max(12px, var(--depth-cell-width, 0%));
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, rgba(53, 200, 210, 0.035), rgba(53, 224, 165, 0.22));
+  opacity: 0.95;
 }
 
 [data-market-page] .market-risk-note {
@@ -1750,11 +1874,32 @@ body.beginner-mode[data-market-page] .market-beginner-simple-card {
 }
 
 [data-market-page] .market-beginner-simple-card__metrics div {
+  position: relative;
+  overflow: hidden;
   min-width: 0;
   padding: var(--sp-3);
   border: 1px solid rgba(53, 224, 165, 0.16);
   border-radius: var(--r-sm);
   background: rgba(11, 16, 18, 0.6);
+}
+
+[data-market-page] .market-beginner-simple-card__metric::before {
+  content: "";
+  position: absolute;
+  inset: auto 10px 10px auto;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: rgba(53, 224, 165, 0.08);
+  filter: blur(1px);
+}
+
+[data-market-page] .market-beginner-simple-card__metric--broker::before {
+  background: rgba(53, 200, 210, 0.09);
+}
+
+[data-market-page] .market-beginner-simple-card__metric--recommend::before {
+  background: rgba(244, 201, 93, 0.1);
 }
 
 [data-market-page] .market-beginner-simple-card__metrics dt {
@@ -1767,15 +1912,34 @@ body.beginner-mode[data-market-page] .market-beginner-simple-card {
 [data-market-page] .market-beginner-simple-card__metrics dd {
   margin: 7px 0 0;
   color: var(--text-1);
-  font-size: var(--fs-base);
+  font-size: var(--fs-lg);
   font-weight: 900;
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
+[data-market-page] .market-beginner-simple-card__metrics small {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 850;
+  line-height: 1.45;
+}
+
 body.beginner-mode[data-market-page] .market-beginner-simple-card:not([hidden]) {
   display: grid !important;
   animation: market-beginner-card-in 260ms ease-out;
+}
+
+body.beginner-mode[data-market-page] [data-beginner-advanced] {
+  display: none !important;
+}
+
+body.beginner-mode[data-market-page] .market-comparison-layout {
+  grid-template-columns: 1fr;
 }
 
 body.beginner-mode[data-market-page] .dashboard-grid--left {
@@ -2028,11 +2192,19 @@ body.beginner-mode[data-market-page] [data-beginner-collapse].is-collapsed {
   border-color: rgba(53, 224, 165, 0.34);
   background: rgba(53, 224, 165, 0.1);
   color: var(--bid) !important;
+  box-shadow: 0 0 0 rgba(53, 224, 165, 0);
 }
 
 [data-market-page] .market-row-action:hover,
 [data-market-page] .market-row-action:focus-visible {
   transform: translateY(-1px);
+}
+
+[data-market-page] .market-row-action--primary:hover,
+[data-market-page] .market-row-action--primary:focus-visible {
+  border-color: rgba(53, 224, 165, 0.56);
+  background: rgba(53, 224, 165, 0.16);
+  box-shadow: 0 10px 24px rgba(53, 224, 165, 0.12), 0 0 18px rgba(53, 224, 165, 0.18);
 }
 
 [data-market-page] .data-table__row--stale {
@@ -2402,6 +2574,25 @@ body.beginner-mode[data-market-page] .term-label :is(.term-copy--expert, .term-c
   cursor: help;
 }
 
+[data-market-page] .market-table-sort {
+  justify-content: flex-end;
+  width: 100%;
+  cursor: pointer;
+}
+
+[data-market-page] .market-table-sort:hover,
+[data-market-page] .market-table-sort:focus-visible {
+  color: var(--accent) !important;
+}
+
+[data-market-page] .market-table-sort.is-active {
+  color: var(--bid) !important;
+}
+
+[data-market-page] .market-mobile-row-toggle {
+  display: none;
+}
+
 .market-mobile-quick-nav {
   display: none;
 }
@@ -2418,6 +2609,28 @@ body.beginner-mode[data-market-page] .term-label :is(.term-copy--expert, .term-c
   100% {
     background-color: transparent;
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 1279px) {
+  [data-market-page] .topbar {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "brand"
+      "nav"
+      "status";
+    align-items: stretch;
+  }
+
+  [data-market-page] .brand-cluster,
+  [data-market-page] .nav-menu,
+  [data-market-page] .market-control-bar {
+    justify-self: stretch;
+  }
+
+  [data-market-page] .market-control-bar {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 
@@ -2605,6 +2818,35 @@ body.beginner-mode[data-market-page] .term-label :is(.term-copy--expert, .term-c
     scroll-snap-align: none;
   }
 
+  [data-market-page] .data-table--market-domestic tr:not(.is-mobile-expanded) td:not([data-label="対応取引所"]):not([data-label="10万円買い"]):not([data-label="アクション"]) {
+    display: none !important;
+  }
+
+  [data-market-page] .data-table--market-domestic tr.is-mobile-expanded td:not([data-label="対応取引所"]):not([data-label="10万円買い"]):not([data-label="アクション"]) {
+    animation: market-mobile-detail-in 180ms ease-out;
+  }
+
+  [data-market-page] .market-mobile-row-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 34px;
+    margin-top: 9px;
+    border: 1px solid rgba(53, 200, 210, 0.22);
+    border-radius: 999px;
+    background: rgba(53, 200, 210, 0.08);
+    color: var(--accent);
+    font-size: var(--fs-xs);
+    font-weight: 900;
+  }
+
+  [data-market-page] .data-table--market-domestic tr.is-mobile-expanded .market-mobile-row-toggle {
+    border-color: rgba(53, 224, 165, 0.34);
+    background: rgba(53, 224, 165, 0.1);
+    color: var(--bid);
+  }
+
   [data-market-page] .data-table--market-domestic td:is(.text-right, .is-num, .num, [data-type="number"], [data-align="number"]) {
     text-align: left !important;
   }
@@ -2677,6 +2919,10 @@ body.beginner-mode[data-market-page] .term-label :is(.term-copy--expert, .term-c
     display: none;
   }
 
+  [data-market-page] .market-bento-firstview {
+    grid-template-columns: 1fr;
+  }
+
   [data-market-page] .market-panel-actions {
     width: 100%;
     justify-content: flex-start;
@@ -2687,6 +2933,17 @@ body.beginner-mode[data-market-page] .term-label :is(.term-copy--expert, .term-c
   }
 }
 
+@keyframes market-mobile-detail-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 html.theme-light [data-market-page] .market-refresh-progress span,
 html.theme-light [data-market-page] .market-beginner-simple-card__metrics div {
   background: rgba(255, 255, 255, 0.86);
@@ -2694,6 +2951,8 @@ html.theme-light [data-market-page] .market-beginner-simple-card__metrics div {
 
 html.theme-light [data-market-page] .market-beginner-simple-card,
 html.theme-light [data-market-page] .market-mega-summary,
+html.theme-light [data-market-page] .market-conclusion-panel,
+html.theme-light [data-market-page] .market-control-bar,
 html.theme-light .market-mobile-quick-nav,
 html.theme-light [data-market-page] .market-floating-my-exchanges,
 html.theme-light [data-market-page] .market-sticky-simulator,
@@ -2707,6 +2966,8 @@ html.theme-light [data-market-page] .market-mode-switch,
 html.theme-light [data-market-page] .market-conclusion-trend,
 html.theme-light [data-market-page] .market-intent-nav a,
 html.theme-light [data-market-page] .market-mega-summary__line span,
+html.theme-light [data-market-page] .market-pair-tabs a,
+html.theme-light [data-market-page] .market-mobile-row-toggle,
 html.theme-light [data-market-page] .market-yen-cost-note,
 html.theme-light [data-market-page] .market-copy-toast,
 html.theme-light [data-market-page] .market-funding-tooltip {

@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css?v=ui-31">
-  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-11">
+  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-13">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-market-page="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -44,7 +44,7 @@
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
       <a class="nav-link" href="/campaigns">キャンペーン</a>
     </nav>
-    <div class="status-cluster" aria-label="銘柄ページの更新状態と表示設定"><span class="status-cluster__live" role="status" aria-live="polite" aria-atomic="true"><span class="badge badge--live"><span class="market-live-pulse" aria-hidden="true"></span>LIVE</span><span id="market-status" class="status-text">読み込み中</span><span class="market-freshness-status text-xs text-gray-600 ml-2"><span id="market-refresh-progress" class="market-refresh-progress" aria-hidden="true"><span></span></span><span id="market-updated-at" class="text-gray-400">最終更新 -</span></span></span><button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="ライトモードに切り替え"><span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__icon theme-toggle__icon--sun">☀</span><span class="theme-toggle__icon theme-toggle__icon--moon">☾</span><span class="theme-toggle__knob" data-theme-toggle-icon>☀</span></span><span class="sr-only" data-theme-toggle-label>ライト</span></button><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
+    <div class="status-cluster market-control-bar" aria-label="銘柄ページの更新状態と表示設定"><span class="status-cluster__live" role="status" aria-live="polite" aria-atomic="true"><span class="badge badge--live"><span class="market-live-pulse" aria-hidden="true"></span>LIVE</span><span id="market-status" class="status-text">読み込み中</span><span class="market-freshness-status text-xs text-gray-600 ml-2"><span id="market-refresh-progress" class="market-refresh-progress" aria-hidden="true"><span></span></span><span id="market-updated-at" class="text-gray-400">最終更新 -</span></span></span><span class="market-control-bar__divider" aria-hidden="true"></span><button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="ライトモードに切り替え"><span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__icon theme-toggle__icon--sun">☀</span><span class="theme-toggle__icon theme-toggle__icon--moon">☾</span><span class="theme-toggle__knob" data-theme-toggle-icon>☀</span></span><span class="sr-only" data-theme-toggle-label>ライト</span></button><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
   </header>
 
   <nav class="market-section-nav" data-market-section-nav aria-label="銘柄ページ内ナビゲーション">
@@ -58,7 +58,8 @@
   </nav>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1920px] mx-auto">
-    <section class="market-mega-summary" aria-labelledby="market-mega-summary-title">
+    <section id="market-conclusion" class="market-bento-firstview info-layer info-layer--top beginner-focus" data-info-layer="top" data-beginner-focus="true" aria-labelledby="market-mega-summary-title">
+    <article class="market-mega-summary">
       <div class="market-mega-summary__copy">
         <p class="market-mega-summary__eyebrow">3秒サマリー</p>
         <h2 id="market-mega-summary-title" class="market-mega-summary__title">__MARKET_PAGE_TITLE__</h2>
@@ -83,9 +84,9 @@
           <span>送金リスク確認</span>
         </a>
       </nav>
-    </section>
+    </article>
 
-    <section id="market-conclusion" class="panel panel--dense info-layer info-layer--top beginner-focus" data-info-layer="top" data-beginner-focus="true">
+    <article class="panel panel--dense market-conclusion-panel">
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">1. 銘柄の結論カード</h2>
@@ -103,6 +104,7 @@
       <div class="market-conclusion-layout market-conclusion-layout--single">
         <!-- MARKET_CONCLUSION_CARD -->
       </div>
+    </article>
     </section>
 
     <section id="market-exchange-comparison" class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
@@ -121,21 +123,23 @@
             <h3 class="market-beginner-simple-card__title">10万円で買うならここを先に確認</h3>
           </div>
           <dl class="market-beginner-simple-card__metrics">
-            <div>
-              <dt>最安候補</dt>
+            <div class="market-beginner-simple-card__metric market-beginner-simple-card__metric--exchange">
+              <dt>取引所形式</dt>
               <dd id="market-beginner-best-exchange">データ待ち</dd>
+              <small id="market-beginner-receive">実質受取量 -</small>
             </div>
-            <div>
-              <dt>実質受取量</dt>
-              <dd id="market-beginner-receive">-</dd>
+            <div class="market-beginner-simple-card__metric market-beginner-simple-card__metric--broker">
+              <dt>販売所形式</dt>
+              <dd id="market-beginner-best-sales">データ待ち</dd>
+              <small id="market-beginner-sales-note">販売所スプレッドを確認中</small>
             </div>
-            <div>
-              <dt>確認ポイント</dt>
+            <div class="market-beginner-simple-card__metric market-beginner-simple-card__metric--recommend">
+              <dt>おすすめ</dt>
               <dd id="market-beginner-note">板データを取得中です</dd>
             </div>
           </dl>
         </article>
-        <div class="market-supported-panel">
+        <div class="market-supported-panel" data-beginner-advanced>
           <div class="market-supported-panel__header">
             <p class="market-insight-card__eyebrow">Supported Exchanges</p>
             <h3 class="market-supported-panel__title">この銘柄を扱う国内取引所</h3>
@@ -145,7 +149,7 @@
           </div>
         </div>
       </div>
-      <aside class="market-live-card mt-4" aria-labelledby="market-hero-title">
+      <aside class="market-live-card mt-4" aria-labelledby="market-hero-title" data-beginner-advanced>
         <div class="market-live-card__header">
           <div>
             <p class="market-insight-card__eyebrow">Live Data</p>
@@ -160,7 +164,7 @@
           <div class="metric-row metric-row--hero ask"><span class="metric-label">最良Ask</span><span id="market-best-ask" class="metric-value metric-value--hero text-red-300">-</span></div>
         </dl>
       </aside>
-      <div class="market-domestic-comparison mt-4">
+      <div class="market-domestic-comparison mt-4" data-beginner-advanced>
         <div class="panel-title-row mb-3">
           <div>
             <h3 class="market-domestic-comparison__title">国内取引所 比較一覧</h3>
@@ -184,9 +188,9 @@
               <tr>
                 <th class="text-left">対応取引所</th>
                 <th class="is-num text-right"><span class="term-label"><span data-term-key="best-bid-ask" class="market-term" tabindex="0"><span class="term-copy--expert">最良Bid / Ask</span><span class="term-copy--beginner">買い手最高値 / 売り手最安値</span></span><button class="term-help" type="button" data-term-key="best-bid-ask" aria-label="最良Bid / Ask の説明を開く"><span aria-hidden="true">?</span></button></span></th>
-                <th class="is-num text-right">板厚</th>
-                <th class="is-num text-right">10万円買い</th>
-                <th class="is-num text-right">販売所Spread</th>
+                <th class="is-num text-right" aria-sort="none"><button class="market-table-sort" type="button" data-market-domestic-sort="depth">板厚</button></th>
+                <th class="is-num text-right" aria-sort="ascending"><button class="market-table-sort is-active" type="button" data-market-domestic-sort="cost" data-sort-direction="asc">10万円買い</button></th>
+                <th class="is-num text-right" aria-sort="none"><button class="market-table-sort" type="button" data-market-domestic-sort="spread">販売所Spread</button></th>
                 <th class="text-left">入出金対応</th>
                 <th class="text-right">アクション</th>
               </tr>
@@ -199,7 +203,7 @@
       </div>
     </section>
 
-    <div id="market-board-cost" class="dashboard-grid dashboard-grid--left info-layer info-layer--middle" data-info-layer="middle">
+    <div id="market-board-cost" class="dashboard-grid dashboard-grid--left info-layer info-layer--middle" data-info-layer="middle" data-beginner-advanced>
       <section class="panel panel--dense">
         <div class="panel-title-row mb-3">
           <div>
@@ -244,7 +248,7 @@
       </section>
     </div>
 
-    <section id="market-cost-comparison" class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle">
+    <section id="market-cost-comparison" class="panel panel--dense info-layer info-layer--middle" data-info-layer="middle" data-beginner-advanced>
       <div class="panel-title-row mb-3">
         <div>
           <h2 class="panel-title">取引所別コスト比較</h2>
@@ -305,7 +309,7 @@
       </div>
     </section>
 
-    <div class="dashboard-grid dashboard-grid--left info-layer info-layer--middle" data-info-layer="middle">
+    <div class="dashboard-grid dashboard-grid--left info-layer info-layer--middle" data-info-layer="middle" data-beginner-advanced>
       <section class="panel panel--dense">
         <div class="panel-title-row mb-3"><div class="panel-title-with-help"><h2 class="panel-title">出来高シェア</h2><button class="term-help" type="button" data-term-key="volume-share" aria-label="出来高シェア の説明を開く"><span aria-hidden="true">?</span></button></div><span class="panel-kicker">Volume</span></div>
         <div class="market-volume-visual" aria-label="出来高シェアのドーナツチャート">
@@ -448,6 +452,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-25"></script>
+  <script src="/js/market-page.js?v=market-27"></script>
 </body>
 </html>
