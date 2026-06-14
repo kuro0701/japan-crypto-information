@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css?v=ui-31">
-  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-13">
+  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-15">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-market-page="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -33,6 +33,12 @@
       <label class="market-pair-switcher" for="market-pair-switcher">
         <span class="sr-only">通貨ペアを切り替え</span>
         <select id="market-pair-switcher" aria-label="通貨ペアを切り替え"></select>
+        <span class="market-pair-combobox" data-market-pair-combobox>
+          <span class="market-pair-combobox__current" id="market-pair-combobox-current">PAIR</span>
+          <input id="market-pair-combobox-input" class="market-pair-combobox__input" type="search" role="combobox" aria-expanded="false" aria-controls="market-pair-combobox-list" aria-autocomplete="list" autocomplete="off" placeholder="銘柄検索">
+          <span class="market-pair-combobox__chevron" aria-hidden="true"></span>
+          <span id="market-pair-combobox-list" class="market-pair-combobox__list" role="listbox" hidden></span>
+        </span>
       </label>
     </div>
     <nav class="nav-menu" aria-label="ページ間ナビゲーション">
@@ -64,9 +70,21 @@
         <p class="market-mega-summary__eyebrow">3秒サマリー</p>
         <h2 id="market-mega-summary-title" class="market-mega-summary__title">__MARKET_PAGE_TITLE__</h2>
         <p class="market-mega-summary__line">
-          <span>最安取引所 <strong id="market-mega-best-board">データ待ち</strong></span>
-          <span>販売所スプレッド最小 <strong id="market-mega-best-sales">データ待ち</strong></span>
-          <span>流動性 <strong id="market-mega-top-volume">データ待ち</strong></span>
+          <span class="market-mega-summary__badge market-mega-summary__badge--board" data-market-mega-card="board">
+            <span class="market-mega-summary__badge-copy">最安取引所</span>
+            <span id="market-mega-best-board-icon" class="market-mega-summary__exchange-mark" aria-hidden="true">--</span>
+            <strong id="market-mega-best-board">データ待ち</strong>
+          </span>
+          <span class="market-mega-summary__badge market-mega-summary__badge--sales" data-market-mega-card="sales">
+            <span class="market-mega-summary__badge-copy">販売所最小</span>
+            <span id="market-mega-best-sales-icon" class="market-mega-summary__exchange-mark" aria-hidden="true">--</span>
+            <strong id="market-mega-best-sales">データ待ち</strong>
+          </span>
+          <span class="market-mega-summary__badge market-mega-summary__badge--volume" data-market-mega-card="volume">
+            <span class="market-mega-summary__badge-copy">高流動性</span>
+            <span id="market-mega-top-volume-icon" class="market-mega-summary__exchange-mark" aria-hidden="true">--</span>
+            <strong id="market-mega-top-volume">データ待ち</strong>
+          </span>
         </p>
         <p id="market-mega-summary-note" class="market-mega-summary__note">板、販売所、出来高を同じ銘柄で集計中です。</p>
       </div>
@@ -215,9 +233,20 @@
           </div>
           <span class="panel-kicker">Order Book</span>
         </div>
-        <label class="filter-control mb-3" for="market-board-exchange"><span>取引所</span><select id="market-board-exchange" class="field" aria-label="板表示取引所"></select></label>
-        <div class="chart-container history-chart-container">
-          <canvas id="depth-chart"></canvas>
+        <div class="market-board-toolbar">
+          <label class="filter-control" for="market-board-exchange"><span>取引所</span><select id="market-board-exchange" class="field" aria-label="板表示取引所"></select></label>
+          <div class="market-orderbook-view-toggle" role="group" aria-label="板ビュー切り替え">
+            <button class="is-active" type="button" data-market-orderbook-view="depth" aria-pressed="true">深さ</button>
+            <button type="button" data-market-orderbook-view="ladder" aria-pressed="false">縦型板</button>
+          </div>
+        </div>
+        <div class="market-orderbook-view-panel" data-market-orderbook-view-panel="depth">
+          <div class="chart-container history-chart-container">
+            <canvas id="depth-chart"></canvas>
+          </div>
+        </div>
+        <div id="market-orderbook-ladder" class="market-orderbook-ladder market-orderbook-view-panel" data-market-orderbook-view-panel="ladder" hidden>
+          <div class="market-orderbook-ladder__empty">選択中の取引所から板データを取得中です。</div>
         </div>
       </section>
 
@@ -280,7 +309,11 @@
           <output id="market-amount-range-label" for="market-amount-range">10万円</output>
         </div>
         <div class="market-amount-slider__range-wrap">
-          <input id="market-amount-range" type="range" min="10000" max="1000000" step="10000" value="100000" aria-label="購入金額を1万円から100万円で調整">
+          <div class="market-amount-slider__control">
+            <button class="market-amount-step" type="button" data-market-amount-step="-10000" aria-label="購入金額を1万円減らす">-</button>
+            <input id="market-amount-range" type="range" min="10000" max="1000000" step="10000" value="100000" aria-label="購入金額を1万円から100万円で調整">
+            <button class="market-amount-step" type="button" data-market-amount-step="10000" aria-label="購入金額を1万円増やす">+</button>
+          </div>
           <output id="market-amount-range-bubble" class="market-amount-slider__bubble" for="market-amount-range">10万円</output>
           <div class="market-amount-slider__markers" aria-label="よく使われる購入金額">
             <button type="button" data-market-quick-amount="30000" style="--marker-pct:2.02%"><span>3万円</span></button>
@@ -316,6 +349,7 @@
           <div class="market-volume-visual__chart">
             <div id="market-volume-css-donut" class="market-volume-css-donut" hidden><span id="market-volume-css-donut-label">Share</span></div>
             <canvas id="market-volume-donut-chart"></canvas>
+            <span id="market-volume-donut-center" class="market-volume-donut-center">Share</span>
           </div>
           <div id="market-volume-donut-legend" class="market-volume-visual__legend">出来高データを取得中</div>
         </div>
@@ -452,6 +486,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-27"></script>
+  <script src="/js/market-page.js?v=market-29"></script>
 </body>
 </html>

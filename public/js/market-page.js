@@ -19,11 +19,31 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastComparisonData = null;
   let volumeDonutChart = null;
   let volumeDonutRows = [];
+  let lastSelectedDepthData = null;
+  let lastSelectedMidPrice = null;
+  let orderbookViewMode = 'depth';
   const SUMMARY_REFRESH_MS = 60000;
   const CELL_FLASH_MS = 900;
   const ORDERBOOK_WAITING_MESSAGE = '取引所から板データを取得中です。接続に数秒かかる場合があります。';
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
   const LOADING_MESSAGE_PATTERN = /(取得中|読み込み中|データ待ち|集計中|待機中|接続に数秒)/;
+  const MARKET_BEGINNER_TOUR_STEPS = Object.freeze([
+    {
+      selector: '#market-conclusion',
+      title: 'まず3秒サマリー',
+      body: '最安候補、販売所スプレッド、流動性の偏りだけ先に見ます。価格予想ではなく、買う場所の比較です。',
+    },
+    {
+      selector: '[data-market-beginner-simple]',
+      title: '販売所より板を先に',
+      body: '販売所は操作が簡単ですが、買値と売値の差がコストになります。板で買える銘柄は、実質コストを先に比べるのが基本です。',
+    },
+    {
+      selector: '#market-pretrade-check',
+      title: '最後にチェック',
+      body: '注文方式、板の厚み、入出金条件を確認してから公式サイトへ進みます。大きい注文は金額を下げて再確認すると安全です。',
+    },
+  ]);
   const EXCHANGE_ACCENTS = Object.freeze({
     okj: { color: '#35c8d2' },
     coincheck: { color: '#2ed47a' },
@@ -117,6 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
     direction: 'asc',
   };
   let summaryLoadedAt = 0;
+  let beginnerTourIndex = -1;
+  let beginnerTourActive = false;
 
   function readStoredTheme() {
     try {
@@ -205,6 +227,82 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!select.value || select.value === instrumentId) return;
       window.location.href = marketPageUrl(select.value);
     });
+
+    const combo = document.querySelector('[data-market-pair-combobox]');
+    const input = $('market-pair-combobox-input');
+    const list = $('market-pair-combobox-list');
+    const current = $('market-pair-combobox-current');
+    const activeOption = options.find(option => option.instrumentId === instrumentId) || options[0];
+    if (current && activeOption) current.textContent = String(activeOption.instrumentId || '').split('-')[0] || 'PAIR';
+    if (input && activeOption) input.value = activeOption.label || activeOption.instrumentId;
+
+    const setComboOpen = (open) => {
+      if (!combo || !input || !list) return;
+      combo.classList.toggle('is-open', open);
+      input.setAttribute('aria-expanded', open ? 'true' : 'false');
+      list.hidden = !open;
+    };
+    const chooseOption = (option) => {
+      if (!option) return;
+      if (option.instrumentId === instrumentId) {
+        if (input) input.value = option.label || option.instrumentId;
+        setComboOpen(false);
+        return;
+      }
+      window.location.href = marketPageUrl(option.instrumentId);
+    };
+    const renderComboOptions = (query = '') => {
+      if (!list) return;
+      const needle = String(query || '').trim().toUpperCase();
+      const filtered = options.filter(option => {
+        const haystack = `${option.instrumentId} ${option.label || ''}`.toUpperCase();
+        return !needle || haystack.includes(needle.replace('/', '-')) || haystack.includes(needle);
+      });
+      list.innerHTML = (filtered.length > 0 ? filtered : options).slice(0, 8).map((option, index) => {
+        const active = option.instrumentId === instrumentId;
+        return `
+          <button class="${active ? 'is-active' : ''}" type="button" role="option" data-market-pair-option="${escapeHtml(option.instrumentId)}" aria-selected="${active ? 'true' : 'false'}" ${index === 0 ? 'data-first-option="true"' : ''}>
+            <span>${escapeHtml(option.label || option.instrumentId)}</span>
+            <small>${escapeHtml(option.instrumentId)}</small>
+          </button>
+        `;
+      }).join('');
+    };
+    if (combo && input && list) {
+      renderComboOptions(input.value);
+      input.addEventListener('focus', () => {
+        renderComboOptions(input.value);
+        setComboOpen(true);
+        input.select();
+      });
+      input.addEventListener('input', () => {
+        renderComboOptions(input.value);
+        setComboOpen(true);
+      });
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          setComboOpen(false);
+          input.value = activeOption ? (activeOption.label || activeOption.instrumentId) : instrumentId;
+          return;
+        }
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        const first = list.querySelector('[data-first-option]');
+        const selectedId = first ? first.getAttribute('data-market-pair-option') : '';
+        chooseOption(options.find(option => option.instrumentId === selectedId));
+      });
+      list.addEventListener('click', (event) => {
+        const button = event.target && event.target.closest ? event.target.closest('[data-market-pair-option]') : null;
+        if (!button) return;
+        event.preventDefault();
+        chooseOption(options.find(option => option.instrumentId === button.dataset.marketPairOption));
+      });
+      document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (target && combo.contains(target)) return;
+        setComboOpen(false);
+      });
+    }
 
     const existingTabs = document.querySelector('[data-market-pair-tabs]');
     const tabHost = existingTabs || document.createElement('div');
@@ -477,6 +575,21 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
+  function setExchangeMark(nodeId, exchangeId, label) {
+    const node = $(nodeId);
+    if (!node) return;
+    const id = normalizeExchangeId(exchangeId);
+    if (!id) {
+      node.textContent = '--';
+      node.classList.add('is-waiting');
+      node.style.removeProperty('--exchange-accent');
+      return;
+    }
+    node.textContent = exchangeInitials(id, label);
+    node.classList.remove('is-waiting');
+    node.style.setProperty('--exchange-accent', exchangeAccent(id).color);
+  }
+
   function winnerBadge(label, tone = 'gold') {
     return `<span class="market-winner-badge market-winner-badge--${escapeHtml(tone)}">${escapeHtml(label)}</span>`;
   }
@@ -681,9 +794,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const parts = [];
     if (fees != null) parts.push(`手数料 ${Fmt.jpy(Math.abs(fees))}`);
     if (slippageCost != null) parts.push(`価格差 ${Fmt.jpy(slippageCost)}`);
+    const feeCost = fees != null ? Math.abs(fees) : 0;
+    const priceCost = slippageCost != null ? Math.abs(slippageCost) : 0;
+    const feeShare = total > 0 ? Math.round((feeCost / total) * 100) : 0;
+    const priceShare = Math.max(0, 100 - feeShare);
     return `
-      <div class="market-yen-cost-note">
+      <div class="market-yen-cost-note" style="--fee-share:${feeShare}%; --price-share:${priceShare}%">
         <span>実質コスト 約${Fmt.jpy(total)}</span>
+        <span class="market-yen-cost-note__bar" aria-hidden="true"><i></i><b></b></span>
         ${parts.length > 0 ? `<small>${escapeHtml(parts.join(' / '))}</small>` : ''}
       </div>
     `;
@@ -707,7 +825,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : Math.max(0, Math.min(100, (spread / 8) * 100));
     return `
       <div class="spread-cost-cell spread-cost-cell--${tone}" style="--spread-score:${score}%">
-        <span class="spread-cost-cell__rate">${options.copyKey ? copyableMetricHtml(options.copyKey, spread, 'pct', '', '販売所スプレッド') : (spread == null ? '-' : fmtPct(spread))}</span>
+        <span class="spread-cost-cell__rate">${tone === 'high' ? '<span class="spread-cost-cell__risk-dot" aria-hidden="true"></span>' : ''}${options.copyKey ? copyableMetricHtml(options.copyKey, spread, 'pct', '', '販売所スプレッド') : (spread == null ? '-' : fmtPct(spread))}</span>
         <span class="spread-cost-cell__meter" aria-hidden="true"><span></span></span>
         <span class="spread-cost-cell__label">${label}</span>
         ${best}
@@ -855,11 +973,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderVolumeDonutLegend(rows) {
     const host = $('market-volume-donut-legend');
+    const center = $('market-volume-donut-center');
     if (!host) return;
     if (!rows.length) {
       host.textContent = '出来高データを取得中';
+      if (center) center.textContent = 'Share';
       return;
     }
+    if (center) center.textContent = fmtPct(rows[0].instrumentSharePct);
     host.innerHTML = rows.slice(0, 5).map((row, index) => {
       const accent = exchangeAccent(row.exchangeId);
       return `
@@ -1002,6 +1123,13 @@ document.addEventListener('DOMContentLoaded', () => {
     syncQuickAmountButtons();
     if (comparisonTimer) clearTimeout(comparisonTimer);
     comparisonTimer = setTimeout(loadComparison, 80);
+  }
+
+  function stepAmountRange(delta) {
+    const current = activeQuickAmount();
+    const slider = $('market-amount-range');
+    const baseValue = current == null ? Number(slider && slider.value) : current;
+    setAmountFromRange(clampRangeAmount((Number.isFinite(baseValue) ? baseValue : AMOUNT_RANGE_MIN) + Number(delta || 0)));
   }
 
   function amountTypeValue() {
@@ -1721,6 +1849,85 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSelectedOrderbookMeta();
   }
 
+  function setOrderbookViewMode(mode) {
+    orderbookViewMode = mode === 'ladder' ? 'ladder' : 'depth';
+    document.querySelectorAll('[data-market-orderbook-view]').forEach((button) => {
+      const active = button.dataset.marketOrderbookView === orderbookViewMode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-market-orderbook-view-panel]').forEach((panel) => {
+      panel.hidden = panel.dataset.marketOrderbookViewPanel !== orderbookViewMode;
+    });
+    if (orderbookViewMode === 'ladder') renderOrderbookLadder();
+  }
+
+  function levelsFromDepthPoints(points) {
+    let previous = 0;
+    return (Array.isArray(points) ? points : [])
+      .map((point) => {
+        const price = finiteNumber(point && point.price);
+        const cumulative = finiteNumber(point && point.cumulative);
+        const quantity = cumulative == null ? null : Math.max(0, cumulative - previous);
+        if (cumulative != null) previous = cumulative;
+        return { price, cumulative, quantity };
+      })
+      .filter(level => level.price != null && level.quantity != null && level.quantity > 0);
+  }
+
+  function orderbookLadderRowHtml(level, side, maxDepthJpy) {
+    const depthJpy = Math.max(0, Number(level.price || 0) * Number(level.quantity || 0));
+    const width = maxDepthJpy > 0 ? Math.max(8, Math.min(100, Math.round((depthJpy / maxDepthJpy) * 100))) : 8;
+    return `
+      <div class="market-orderbook-ladder__row market-orderbook-ladder__row--${escapeHtml(side)}" style="--ladder-depth:${width}%">
+        <span class="market-orderbook-ladder__price">${fmtJpyPrice(level.price)}</span>
+        <span class="market-orderbook-ladder__qty">${Fmt.baseCompact(level.quantity)}</span>
+        <span class="market-orderbook-ladder__depth">${Fmt.jpyLarge(depthJpy)}</span>
+      </div>
+    `;
+  }
+
+  function renderOrderbookLadder() {
+    const host = $('market-orderbook-ladder');
+    if (!host) return;
+    const exchange = selectedExchange();
+    const row = selectedOrderbookRow();
+    const depthData = lastSelectedDepthData;
+    if (!depthData || !Array.isArray(depthData.askPoints) || !Array.isArray(depthData.bidPoints)) {
+      host.innerHTML = `<div class="market-orderbook-ladder__empty">${escapeHtml(ORDERBOOK_WAITING_MESSAGE)}</div>`;
+      return;
+    }
+    const askLevels = levelsFromDepthPoints(depthData.askPoints).slice(0, 8).reverse();
+    const bidLevels = levelsFromDepthPoints(depthData.bidPoints).slice(0, 8);
+    const allLevels = [...askLevels, ...bidLevels];
+    const maxDepthJpy = Math.max(0, ...allLevels.map(level => Number(level.price || 0) * Number(level.quantity || 0)));
+    const midPrice = finiteNumber(lastSelectedMidPrice)
+      || (row && finiteNumber(row.midPrice))
+      || (row && finiteNumber(row.bestAsk) != null && finiteNumber(row.bestBid) != null
+        ? (Number(row.bestAsk) + Number(row.bestBid)) / 2
+        : null);
+    const baseCurrency = (summary && summary.market && summary.market.baseCurrency) || instrumentId.split('-')[0] || '';
+    host.innerHTML = `
+      <div class="market-orderbook-ladder__head">
+        <span>${escapeHtml(exchange ? (exchange.label || exchange.id) : '選択中の取引所')}</span>
+        <strong>${midPrice != null ? fmtJpyPrice(midPrice) : '-'}</strong>
+        <small>${escapeHtml(baseCurrency)} / JPY</small>
+      </div>
+      <div class="market-orderbook-ladder__book" aria-label="縦型リアルタイム板">
+        <div class="market-orderbook-ladder__side market-orderbook-ladder__side--ask">
+          ${askLevels.length ? askLevels.map(level => orderbookLadderRowHtml(level, 'ask', maxDepthJpy)).join('') : '<span class="market-orderbook-ladder__empty">Ask待機中</span>'}
+        </div>
+        <div class="market-orderbook-ladder__mid">
+          <span>現在値</span>
+          <strong>${midPrice != null ? fmtJpyPrice(midPrice) : '-'}</strong>
+        </div>
+        <div class="market-orderbook-ladder__side market-orderbook-ladder__side--bid">
+          ${bidLevels.length ? bidLevels.map(level => orderbookLadderRowHtml(level, 'bid', maxDepthJpy)).join('') : '<span class="market-orderbook-ladder__empty">Bid待機中</span>'}
+        </div>
+      </div>
+    `;
+  }
+
   function renderHero() {
     const rows = sortedOrderbookRows();
     const counts = summarizeStatuses(rows);
@@ -1826,15 +2033,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const salesBest = bestSalesFromSummary();
     const volumeBest = topVolumeFromSummary();
     const cheapest = snapshot.cheapestBuy || (domesticBest && domesticBest.cost100k ? {
+      exchangeId: domesticBest.exchangeId,
       exchangeLabel: domesticBest.exchangeLabel || domesticBest.exchangeId,
       effectiveVWAP: domesticBest.cost100k.effectiveVWAP,
       executionStatusLabel: domesticBest.cost100k.executionStatusLabel,
     } : null);
     const tightestSales = snapshot.tightestSalesSpread || (salesBest && salesBest.salesSpread ? {
+      exchangeId: salesBest.exchangeId,
       exchangeLabel: salesBest.exchangeLabel || salesBest.exchangeId,
       spreadPct: salesBest.salesSpread.spreadPct,
     } : null);
     const topVolume = snapshot.topVolume || (volumeBest ? {
+      exchangeId: volumeBest.exchangeId,
       exchangeLabel: volumeBest.exchangeLabel || volumeBest.exchangeId,
       quoteVolume: volumeBest.quoteVolume,
     } : null);
@@ -1842,6 +2052,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setText('market-mega-best-board', cheapest ? cheapest.exchangeLabel : 'データ待ち');
     setText('market-mega-best-sales', tightestSales ? tightestSales.exchangeLabel : 'データ待ち');
     setText('market-mega-top-volume', topVolume ? topVolume.exchangeLabel : 'データ待ち');
+    setExchangeMark('market-mega-best-board-icon', cheapest && cheapest.exchangeId, cheapest && cheapest.exchangeLabel);
+    setExchangeMark('market-mega-best-sales-icon', tightestSales && tightestSales.exchangeId, tightestSales && tightestSales.exchangeLabel);
+    setExchangeMark('market-mega-top-volume-icon', topVolume && topVolume.exchangeId, topVolume && topVolume.exchangeLabel);
 
     const noteParts = [];
     if (cheapest && Number.isFinite(Number(cheapest.effectiveVWAP))) {
@@ -1912,6 +2125,95 @@ document.addEventListener('DOMContentLoaded', () => {
       ? `スプレッド ${fmtPct(summary.snapshot.tightestSalesSpread.spreadPct)}`
       : '販売所データを取得中';
     if (!best) note.textContent = ORDERBOOK_WAITING_MESSAGE;
+  }
+
+  function ensureBeginnerTour() {
+    let node = document.querySelector('[data-market-beginner-tour]');
+    if (node) return node;
+    node = document.createElement('div');
+    node.className = 'market-beginner-tour';
+    node.dataset.marketBeginnerTour = 'true';
+    node.hidden = true;
+    node.setAttribute('role', 'dialog');
+    node.setAttribute('aria-live', 'polite');
+    document.body.appendChild(node);
+    return node;
+  }
+
+  function clearBeginnerTourTarget() {
+    document.querySelectorAll('.market-beginner-tour-target').forEach((node) => {
+      node.classList.remove('market-beginner-tour-target');
+    });
+  }
+
+  function visibleTourStep(index) {
+    for (let i = index; i < MARKET_BEGINNER_TOUR_STEPS.length; i += 1) {
+      const step = MARKET_BEGINNER_TOUR_STEPS[i];
+      const target = document.querySelector(step.selector);
+      if (!target || target.hidden) continue;
+      const style = window.getComputedStyle(target);
+      if (style.display === 'none' || style.visibility === 'hidden') continue;
+      return { step, index: i, target };
+    }
+    return null;
+  }
+
+  function positionBeginnerTour(node, target) {
+    if (!node || !target) return;
+    const rect = target.getBoundingClientRect();
+    const margin = 12;
+    const width = Math.min(330, window.innerWidth - (margin * 2));
+    node.style.width = `${width}px`;
+    const left = Math.max(margin, Math.min(rect.left + 12, window.innerWidth - width - margin));
+    let top = rect.top + Math.min(82, Math.max(12, rect.height * 0.28));
+    if (top + node.offsetHeight > window.innerHeight - margin) {
+      top = Math.max(margin, rect.bottom - node.offsetHeight - 12);
+    }
+    node.style.left = `${left}px`;
+    node.style.top = `${top}px`;
+  }
+
+  function closeBeginnerTour() {
+    beginnerTourActive = false;
+    beginnerTourIndex = -1;
+    clearBeginnerTourTarget();
+    const node = document.querySelector('[data-market-beginner-tour]');
+    if (node) node.hidden = true;
+  }
+
+  function renderBeginnerTourStep(index = beginnerTourIndex) {
+    if (!beginnerModeEnabled()) {
+      closeBeginnerTour();
+      return;
+    }
+    const match = visibleTourStep(Math.max(0, index));
+    if (!match) {
+      closeBeginnerTour();
+      return;
+    }
+    beginnerTourIndex = match.index;
+    beginnerTourActive = true;
+    clearBeginnerTourTarget();
+    match.target.classList.add('market-beginner-tour-target');
+    match.target.scrollIntoView({ block: 'center', behavior: prefersReducedMotion.matches ? 'auto' : 'smooth' });
+    const node = ensureBeginnerTour();
+    const isLast = beginnerTourIndex >= MARKET_BEGINNER_TOUR_STEPS.length - 1;
+    node.innerHTML = `
+      <div class="market-beginner-tour__step">Step ${beginnerTourIndex + 1} / ${MARKET_BEGINNER_TOUR_STEPS.length}</div>
+      <strong>${escapeHtml(match.step.title)}</strong>
+      <p>${escapeHtml(match.step.body)}</p>
+      <div class="market-beginner-tour__actions">
+        <button type="button" data-market-tour-close>終了</button>
+        <button type="button" data-market-tour-next>${isLast ? '完了' : '次へ'}</button>
+      </div>
+    `;
+    node.hidden = false;
+    window.setTimeout(() => positionBeginnerTour(node, match.target), prefersReducedMotion.matches ? 0 : 180);
+  }
+
+  function startBeginnerTour() {
+    if (!beginnerModeEnabled()) return;
+    renderBeginnerTourStep(0);
   }
 
   function fundingSupportSummary() {
@@ -2540,9 +2842,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (boardSelect) {
     boardSelect.addEventListener('change', () => {
       selectedExchangeId = boardSelect.value;
+      lastSelectedDepthData = null;
+      lastSelectedMidPrice = null;
+      renderOrderbookLadder();
       connectSelectedOrderbook();
     });
   }
+
+  document.querySelectorAll('[data-market-orderbook-view]').forEach((button) => {
+    button.addEventListener('click', () => {
+      setOrderbookViewMode(button.dataset.marketOrderbookView);
+    });
+  });
 
   ['market-side', 'market-amount-type', 'market-amount', 'market-fee-rate'].forEach((id) => {
     const el = $(id);
@@ -2575,7 +2886,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  document.querySelectorAll('[data-market-amount-step]').forEach((button) => {
+    button.addEventListener('click', () => {
+      stepAmountRange(Number(button.dataset.marketAmountStep));
+    });
+  });
+
   document.addEventListener('click', (event) => {
+    const tourNext = event.target && event.target.closest ? event.target.closest('[data-market-tour-next]') : null;
+    if (tourNext) {
+      event.preventDefault();
+      if (beginnerTourIndex >= MARKET_BEGINNER_TOUR_STEPS.length - 1) closeBeginnerTour();
+      else renderBeginnerTourStep(beginnerTourIndex + 1);
+      return;
+    }
+    const tourClose = event.target && event.target.closest ? event.target.closest('[data-market-tour-close]') : null;
+    if (tourClose) {
+      event.preventDefault();
+      closeBeginnerTour();
+      return;
+    }
     const sortButton = event.target && event.target.closest ? event.target.closest('[data-market-domestic-sort]') : null;
     if (sortButton) {
       event.preventDefault();
@@ -2680,15 +3010,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  window.addEventListener('okj:beginner-mode-change', () => {
+  window.addEventListener('okj:beginner-mode-change', (event) => {
     updateFeePresetHint();
     rerenderMarketTables();
     renderBeginnerSimpleCard();
     syncBeginnerCollapses();
+    if (event.detail && event.detail.enabled) {
+      window.setTimeout(startBeginnerTour, 120);
+    } else {
+      closeBeginnerTour();
+    }
   });
 
   window.addEventListener('scroll', syncStickySimulatorVisibility, { passive: true });
   window.addEventListener('resize', syncStickySimulatorVisibility);
+  window.addEventListener('resize', () => {
+    if (!beginnerTourActive) return;
+    const match = visibleTourStep(beginnerTourIndex);
+    const node = document.querySelector('[data-market-beginner-tour]');
+    if (match && node && !node.hidden) positionBeginnerTour(node, match.target);
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && beginnerTourActive) closeBeginnerTour();
+  });
 
   ws.on('connected', () => {
     connectSelectedOrderbook();
@@ -2735,6 +3079,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSelectedOrderbookMeta();
     setChartBaseCurrency(data.market?.baseCurrency || (summary.market && summary.market.baseCurrency) || 'BTC');
     updateDepthChart(data.depthChart, data.midPrice);
+    lastSelectedDepthData = data.depthChart || null;
+    lastSelectedMidPrice = finiteNumber(data.midPrice);
+    renderOrderbookLadder();
     if (summary) {
       renderHero();
       renderDomesticComparisonRows();
@@ -2756,6 +3103,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initVolumeDonutChart();
   updateFeePresetHint();
   syncAmountRange();
+  setOrderbookViewMode(orderbookViewMode);
+  if (beginnerModeEnabled()) window.setTimeout(startBeginnerTour, 420);
   loadSummary();
   ws.connect();
   summaryRefreshTask.start({ immediate: false });
