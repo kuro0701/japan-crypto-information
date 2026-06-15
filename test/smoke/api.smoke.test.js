@@ -8,6 +8,8 @@ const { createTempDir, removeTempDir } = require('../helpers/temp-dir');
 
 const SERVER_PATH = path.resolve(__dirname, '../../server.js');
 const TEST_ENV_KEYS = ['ANALYTICS_ADMIN_TOKEN', 'ANALYTICS_ADMIN_TOKEN_HASH', 'DATA_DIR', 'DATABASE_URL', 'LEGACY_HOSTS', 'NODE_ENV', 'SITE_ORIGIN'];
+const COINCHECK_AFFILIATE_URL = 'https://h.accesstrade.net/sp/cc?rk=0100nerr00osx0';
+const COINCHECK_TRACKING_PIXEL_URL = 'https://h.accesstrade.net/sp/rr?rk=0100nerr00osx0';
 
 function volumeRecord(exchangeId, exchangeLabel, instrumentId, quoteVolume24h, capturedAt, overrides = {}) {
   return {
@@ -551,7 +553,17 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 	  assert.ok(exchangeHtml.body.includes('キャンペーン条件'));
   assert.ok(exchangeHtml.body.includes('https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0'));
   assert.ok(exchangeHtml.body.includes('招待コード: C250678'));
-	  assertCommonDisclosure(exchangeHtml.body);
+  assertCommonDisclosure(exchangeHtml.body);
+
+  const coincheckHtml = await fetchText(baseUrl, '/exchanges/coincheck');
+  assert.equal(coincheckHtml.status, 200);
+  assert.ok(coincheckHtml.body.includes('Coincheckの特徴まとめ'));
+  assert.ok(coincheckHtml.body.includes(COINCHECK_AFFILIATE_URL));
+  assert.ok(coincheckHtml.body.includes(COINCHECK_TRACKING_PIXEL_URL));
+  assert.ok(coincheckHtml.body.includes('rel="nofollow"'));
+  assert.ok(coincheckHtml.body.includes('referrerpolicy="no-referrer-when-downgrade"'));
+  assert.ok(coincheckHtml.body.includes('紹介条件を見る'));
+  assertCommonDisclosure(coincheckHtml.body);
 
   const bitflyerHtml = await fetchText(baseUrl, '/exchanges/bitflyer');
 	  assert.equal(bitflyerHtml.status, 200);
@@ -702,6 +714,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(volumeSharePage.body.includes('目的別取引所マップ'));
   assert.ok(volumeSharePage.body.includes('取引所（口座開設）'));
   assert.ok(volumeSharePage.body.includes('市場のトレンド速報'));
+  assert.ok(volumeSharePage.body.includes(COINCHECK_AFFILIATE_URL));
+  assert.ok(volumeSharePage.body.includes(COINCHECK_TRACKING_PIXEL_URL));
   assert.ok(volumeSharePage.body.includes('https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0'));
   assert.ok(volumeSharePage.body.includes('https://www.okcoin.jp/account/join?invitation=C250678\\u0026type=0'));
   assert.ok(volumeSharePage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl\\u0026lang=ja-JP'));
@@ -745,6 +759,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(campaignsPage.body.includes('PR / アフィリエイト表記'));
   assert.ok(campaignsPage.body.includes('/campaigns/gmo-coin'));
   assert.ok(campaignsPage.body.includes('/campaigns/referrals'));
+  assert.ok(campaignsPage.body.includes(COINCHECK_AFFILIATE_URL));
+  assert.ok(campaignsPage.body.includes(COINCHECK_TRACKING_PIXEL_URL));
   assert.ok(campaignsPage.body.includes('https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0'));
   assert.ok(campaignsPage.body.includes('https://h.accesstrade.net/sp/rr?rk=0100mtgp00osx0'));
   assert.ok(campaignsPage.body.includes('https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0'));
@@ -762,6 +778,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(referralBenefitsPage.body.includes('紹介特典比較'));
   assert.ok(referralBenefitsPage.body.includes('招待した方と、招待された方に 1,500 円分のビットコインをプレゼント！'));
   assert.ok(referralBenefitsPage.body.includes('1,500円分のビットコイン'));
+  assert.ok(referralBenefitsPage.body.includes(COINCHECK_AFFILIATE_URL));
+  assert.ok(referralBenefitsPage.body.includes(COINCHECK_TRACKING_PIXEL_URL));
   assert.ok(referralBenefitsPage.body.includes('https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0'));
   assert.ok(referralBenefitsPage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
   assert.ok(referralBenefitsPage.body.includes('https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH'));
@@ -783,6 +801,15 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(gmoCampaignPage.body.includes('キャンペーン内容だけでなく、手数料・スプレッド・板の厚みも確認した上で利用を検討してください。'));
   assert.ok(gmoCampaignPage.body.includes('/simulator?exchange=gmo&amp;market=BTC-JPY'));
   assertCommonDisclosure(gmoCampaignPage.body);
+
+  const coincheckCampaignPage = await fetchText(baseUrl, '/campaigns/coincheck');
+  assert.equal(coincheckCampaignPage.status, 200);
+  assert.ok(coincheckCampaignPage.body.includes(COINCHECK_AFFILIATE_URL));
+  assert.ok(coincheckCampaignPage.body.includes(COINCHECK_TRACKING_PIXEL_URL));
+  assert.ok(coincheckCampaignPage.body.includes('rel="nofollow"'));
+  assert.ok(coincheckCampaignPage.body.includes('referrerpolicy="no-referrer-when-downgrade"'));
+  assert.ok(coincheckCampaignPage.body.includes('紹介リンクを開く'));
+  assertCommonDisclosure(coincheckCampaignPage.body);
 
   const bitflyerCampaignPage = await fetchText(baseUrl, '/campaigns/bitflyer');
   assert.equal(bitflyerCampaignPage.status, 200);

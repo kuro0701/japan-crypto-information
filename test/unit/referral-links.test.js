@@ -10,6 +10,8 @@ const BINANCE_JAPAN_REFERRAL_URL = 'https://s.binance.com/OKkHnAGC?ref=GRO_55250
 const BITTRADE_REFERRAL_URL = 'https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p';
 const GMO_COIN_AFFILIATE_URL = 'https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0';
 const GMO_COIN_TRACKING_PIXEL_URL = 'https://h.accesstrade.net/sp/rr?rk=0100mtgp00osx0';
+const COINCHECK_AFFILIATE_URL = 'https://h.accesstrade.net/sp/cc?rk=0100nerr00osx0';
+const COINCHECK_TRACKING_PIXEL_URL = 'https://h.accesstrade.net/sp/rr?rk=0100nerr00osx0';
 
 function withEnvValue(key, value, fn) {
   const previous = process.env[key];
@@ -92,5 +94,22 @@ test('GMO Coin affiliate link is populated by default', () => {
     assert.equal(campaign.affiliateReferrerPolicy, 'no-referrer-when-downgrade');
     assert.equal(campaign.affiliateTarget, null);
     assert.equal(getExchangePageContent('gmo').referralUrl, GMO_COIN_AFFILIATE_URL);
+  });
+});
+
+test('Coincheck affiliate link is populated by default', () => {
+  withEnvValue('COINCHECK_REFERRAL_URL', undefined, () => {
+    const campaign = getCampaign('coincheck');
+    const exchangeContent = getExchangePageContent('coincheck');
+    assert.equal(campaign.affiliateUrl, COINCHECK_AFFILIATE_URL);
+    assert.equal(campaign.trackingPixelUrl, COINCHECK_TRACKING_PIXEL_URL);
+    assert.equal(campaign.affiliateRel, 'nofollow');
+    assert.equal(campaign.affiliateReferrerPolicy, 'no-referrer-when-downgrade');
+    assert.equal(campaign.affiliateTarget, null);
+    assert.equal(exchangeContent.referralUrl, COINCHECK_AFFILIATE_URL);
+    assert.equal(exchangeContent.referralRel, 'nofollow');
+    assert.equal(exchangeContent.referralReferrerPolicy, 'no-referrer-when-downgrade');
+    assert.equal(exchangeContent.referralTarget, null);
+    assert.equal(exchangeContent.referralTrackingPixelUrl, COINCHECK_TRACKING_PIXEL_URL);
   });
 });
