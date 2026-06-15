@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css?v=ui-31">
-  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-15">
+  <link rel="stylesheet" href="/css/market-page.css?v=market-ui-19">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen" data-market-page="true">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -285,46 +285,50 @@
         </div>
         <span class="panel-kicker">Execution</span>
       </div>
-      <div class="filter-grid mb-3" aria-label="比較条件">
-        <label class="filter-control" for="market-side"><span>売買</span><select id="market-side" class="field"><option value="buy">買い</option><option value="sell">売り</option></select></label>
-        <div class="filter-control market-amount-type-control"><span>入力タイプ</span><div class="market-amount-type-toggle" role="group" aria-label="入力タイプ"><button type="button" data-market-amount-type-toggle="jpy">金額</button><button type="button" data-market-amount-type-toggle="base">数量</button><span class="market-amount-type-toggle__thumb" aria-hidden="true"></span></div><select id="market-amount-type" class="field market-amount-type-select" aria-label="入力タイプ" tabindex="-1" aria-hidden="true"><option value="jpy">金額 (JPY)</option><option value="base">数量</option></select></div>
-        <label class="filter-control" for="market-amount"><span>数量 / 金額</span><input id="market-amount" class="field font-mono" inputmode="decimal" value="100000"></label>
-        <label class="filter-control" for="market-fee-rate"><span>手数料率 (%)</span><input id="market-fee-rate" class="field font-mono" type="number" min="0" step="0.001" placeholder="各取引所の既定値"></label>
-      </div>
-      <div class="market-quick-amounts mb-3" aria-label="クイック金額">
-        <span class="market-quick-amounts__label">クイック金額</span>
-        <div class="market-quick-amounts__buttons">
-          <button class="market-quick-amount" type="button" data-market-quick-amount="10000">1万円</button>
-          <button class="market-quick-amount" type="button" data-market-quick-amount="30000">3万円</button>
-          <button class="market-quick-amount" type="button" data-market-quick-amount="50000">5万円</button>
-          <button class="market-quick-amount" type="button" data-market-quick-amount="100000">10万円</button>
-          <button class="market-quick-amount" type="button" data-market-quick-amount="300000">30万円</button>
-          <button class="market-quick-amount" type="button" data-market-quick-amount="500000">50万円</button>
-          <button class="market-quick-amount" type="button" data-market-quick-amount="1000000">100万円</button>
+      <div class="market-amount-composer mb-3">
+        <div class="filter-grid market-amount-composer__fields" aria-label="比較条件">
+          <label class="filter-control" for="market-side"><span>売買</span><select id="market-side" class="field"><option value="buy">買い</option><option value="sell">売り</option></select></label>
+          <div class="filter-control market-amount-type-control"><span>入力タイプ</span><div class="market-amount-type-toggle" role="group" aria-label="入力タイプ"><button type="button" data-market-amount-type-toggle="jpy">金額</button><button type="button" data-market-amount-type-toggle="base">数量</button><span class="market-amount-type-toggle__thumb" aria-hidden="true"></span></div><select id="market-amount-type" class="field market-amount-type-select" aria-label="入力タイプ" tabindex="-1" aria-hidden="true"><option value="jpy">金額 (JPY)</option><option value="base">数量</option></select></div>
+          <label class="filter-control" for="market-amount"><span>数量 / 金額</span><input id="market-amount" class="field font-mono" inputmode="decimal" value="100000"></label>
+          <label class="filter-control" for="market-fee-rate"><span>手数料率 (%)</span><input id="market-fee-rate" class="field font-mono" type="number" min="0" step="0.001" placeholder="各取引所の既定値"></label>
         </div>
-      </div>
-      <div class="market-amount-slider mb-3" id="market-amount-slider">
-        <div class="market-amount-slider__head">
-          <span>金額スライダー</span>
-          <output id="market-amount-range-label" for="market-amount-range">10万円</output>
-        </div>
-        <div class="market-amount-slider__range-wrap">
-          <div class="market-amount-slider__control">
-            <button class="market-amount-step" type="button" data-market-amount-step="-10000" aria-label="購入金額を1万円減らす">-</button>
-            <input id="market-amount-range" type="range" min="10000" max="1000000" step="10000" value="100000" aria-label="購入金額を1万円から100万円で調整">
-            <button class="market-amount-step" type="button" data-market-amount-step="10000" aria-label="購入金額を1万円増やす">+</button>
+        <div class="market-amount-composer__dock">
+          <div class="market-quick-amounts" aria-label="クイック金額">
+            <span class="market-quick-amounts__label">クイック金額</span>
+            <div class="market-quick-amounts__buttons">
+              <button class="market-quick-amount" type="button" data-market-quick-amount="10000">1万円</button>
+              <button class="market-quick-amount" type="button" data-market-quick-amount="30000">3万円</button>
+              <button class="market-quick-amount" type="button" data-market-quick-amount="50000">5万円</button>
+              <button class="market-quick-amount" type="button" data-market-quick-amount="100000">10万円</button>
+              <button class="market-quick-amount" type="button" data-market-quick-amount="300000">30万円</button>
+              <button class="market-quick-amount" type="button" data-market-quick-amount="500000">50万円</button>
+              <button class="market-quick-amount" type="button" data-market-quick-amount="1000000">100万円</button>
+            </div>
           </div>
-          <output id="market-amount-range-bubble" class="market-amount-slider__bubble" for="market-amount-range">10万円</output>
-          <div class="market-amount-slider__markers" aria-label="よく使われる購入金額">
-            <button type="button" data-market-quick-amount="30000" style="--marker-pct:2.02%"><span>3万円</span></button>
-            <button type="button" data-market-quick-amount="50000" style="--marker-pct:4.04%"><span>5万円</span></button>
-            <button type="button" data-market-quick-amount="100000" style="--marker-pct:9.09%"><span>10万円</span><small>人気</small></button>
-            <button type="button" data-market-quick-amount="300000" style="--marker-pct:29.29%"><span>30万円</span></button>
+          <div class="market-amount-slider" id="market-amount-slider">
+            <div class="market-amount-slider__head">
+              <span>金額スライダー</span>
+              <output id="market-amount-range-label" for="market-amount-range">10万円</output>
+            </div>
+            <div class="market-amount-slider__range-wrap">
+              <div class="market-amount-slider__control">
+                <button class="market-amount-step" type="button" data-market-amount-step="-10000" aria-label="購入金額を1万円減らす">-</button>
+                <input id="market-amount-range" type="range" min="10000" max="1000000" step="10000" value="100000" aria-label="購入金額を1万円から100万円で調整">
+                <button class="market-amount-step" type="button" data-market-amount-step="10000" aria-label="購入金額を1万円増やす">+</button>
+              </div>
+              <output id="market-amount-range-bubble" class="market-amount-slider__bubble" for="market-amount-range">10万円</output>
+              <div class="market-amount-slider__markers" aria-label="よく使われる購入金額">
+                <button type="button" data-market-quick-amount="30000" style="--marker-pct:2.02%"><span>3万円</span></button>
+                <button type="button" data-market-quick-amount="50000" style="--marker-pct:4.04%"><span>5万円</span></button>
+                <button type="button" data-market-quick-amount="100000" style="--marker-pct:9.09%"><span>10万円</span><small>人気</small></button>
+                <button type="button" data-market-quick-amount="300000" style="--marker-pct:29.29%"><span>30万円</span></button>
+              </div>
+            </div>
+            <div class="market-amount-slider__scale" aria-hidden="true"><span>1万円</span><span>100万円</span></div>
           </div>
         </div>
-        <div class="market-amount-slider__scale" aria-hidden="true"><span>1万円</span><span>100万円</span></div>
+        <p id="market-fee-preset-hint" class="field-help market-amount-composer__hint">未入力なら各取引所の既定 taker 手数料を使って比較します。</p>
       </div>
-      <p id="market-fee-preset-hint" class="field-help mb-3">未入力なら各取引所の既定 taker 手数料を使って比較します。</p>
       <div class="market-table-shell market-table-shell--sticky overflow-auto scrollbar-thin">
         <table class="data-table data-table--cards data-table--fixed data-table--market-comparison text-xs">
           <colgroup>
@@ -486,6 +490,6 @@
   <script src="/js/page-poller.js?v=poller-1"></script>
   <script src="/js/ws-client.js?v=volume-1"></script>
   <script src="/js/chart.js?v=volume-1"></script>
-  <script src="/js/market-page.js?v=market-29"></script>
+  <script src="/js/market-page.js?v=market-30"></script>
 </body>
 </html>
