@@ -422,6 +422,21 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
+  function exchangeInlineCtaHtml(exchangeId, label, options = {}) {
+    const actions = exchangeActionMeta(exchangeId);
+    const href = actions.primaryHref || actions.detailPath || '#market-exchange-comparison';
+    const safeLabel = label || exchangeId || '取引所';
+    const isExternal = isExternalHref(href);
+    const text = options.text || (isExternal ? '購入へ進む' : '詳細を見る');
+    const meta = options.meta || (isExternal ? `${safeLabel}公式` : `${safeLabel}の詳細`);
+    return `
+      <a class="market-inline-cta ${options.primary ? 'market-inline-cta--primary' : ''} ${isExternal ? 'market-inline-cta--external' : ''}" ${actionLinkAttrs(href)} aria-label="${escapeHtml(`${safeLabel} ${text}`)}">
+        <span>${escapeHtml(text)}</span>
+        <small>${escapeHtml(meta)}</small>
+      </a>
+    `;
+  }
+
   function shouldShowExchange(exchangeId) {
     return !showOnlyMyExchanges || myExchangeIds.size === 0 || isMyExchange(exchangeId);
   }
@@ -599,6 +614,12 @@ document.addEventListener('DOMContentLoaded', () => {
   function finiteNumber(value) {
     const num = Number(value);
     return Number.isFinite(num) ? num : null;
+  }
+
+  function finiteRank(value) {
+    if (value == null) return null;
+    const rank = finiteNumber(value);
+    return rank != null && rank > 0 ? rank : null;
   }
 
   function formatAnimatedValue(format, value, suffix = '') {
@@ -783,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   }
 
-  function effectiveCostBreakdownHtml(result) {
+  function effectiveCostBreakdownHtml(result, options = {}) {
     if (!result) return '';
     const fees = finiteNumber(result.feesJPY);
     const slippagePerBase = finiteNumber(result.slippageFromBestJPY);
@@ -800,8 +821,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const priceCost = slippageCost != null ? Math.abs(slippageCost) : 0;
     const feeShare = total > 0 ? Math.round((feeCost / total) * 100) : 0;
     const priceShare = Math.max(0, 100 - feeShare);
+    const className = [
+      'market-yen-cost-note',
+      options.compact ? 'market-yen-cost-note--compact' : '',
+    ].filter(Boolean).join(' ');
     return `
-      <div class="market-yen-cost-note" style="--fee-share:${feeShare}%; --price-share:${priceShare}%">
+      <div class="${className}" style="--fee-share:${feeShare}%; --price-share:${priceShare}%">
         <span>実質コスト 約${Fmt.jpy(total)}</span>
         <span class="market-yen-cost-note__bar" aria-hidden="true"><i></i><b></b></span>
         ${parts.length > 0 ? `<small>${escapeHtml(parts.join(' / '))}</small>` : ''}
@@ -1020,7 +1045,7 @@ document.addEventListener('DOMContentLoaded', () => {
     host.innerHTML = rows.slice(0, 5).map((row, index) => {
       const accent = exchangeAccent(row.exchangeId);
       return `
-        <div class="market-volume-legend-row" style="--exchange-accent:${escapeHtml(accent.color)}">
+        <div class="market-volume-legend-row" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}" style="--exchange-accent:${escapeHtml(accent.color)}">
           <span class="market-volume-legend-row__rank">${index + 1}</span>
           <span class="market-volume-legend-row__name">${escapeHtml(row.exchangeLabel || row.exchangeId)}</span>
           <span class="market-volume-legend-row__value">${fmtPct(row.instrumentSharePct)}</span>
@@ -1252,6 +1277,65 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  let activeLinkedExchangeId = '';
+  let linkedExchangeTapTimer = 0;
+
+  function syncLinkedExchangeHighlight() {
+    const activeId = normalizeExchangeId(activeLinkedExchangeId);
+    document.body.classList.toggle('has-exchange-highlight', Boolean(activeId));
+    document.querySelectorAll('[data-exchange-id]').forEach((node) => {
+      const id = normalizeExchangeId(node.getAttribute('data-exchange-id'));
+      node.classList.toggle('is-exchange-linked', Boolean(activeId && id === activeId));
+    });
+  }
+
+  function setLinkedExchangeHighlight(exchangeId) {
+    const id = normalizeExchangeId(exchangeId);
+    if (activeLinkedExchangeId === id) return;
+    activeLinkedExchangeId = id;
+    syncLinkedExchangeHighlight();
+  }
+
+  function initExchangeCrossHighlight() {
+    const targetSelector = 'tr[data-exchange-id], .market-volume-legend-row[data-exchange-id]';
+
+    const handleEnter = (event) => {
+      const target = event.target && event.target.closest ? event.target.closest(targetSelector) : null;
+      if (!target) return;
+      setLinkedExchangeHighlight(target.getAttribute('data-exchange-id'));
+    };
+    const handleLeave = (event) => {
+      const target = event.target && event.target.closest ? event.target.closest(targetSelector) : null;
+      if (!target) return;
+      const related = event.relatedTarget && event.relatedTarget.closest ? event.relatedTarget.closest(targetSelector) : null;
+      if (related && related.getAttribute('data-exchange-id') === target.getAttribute('data-exchange-id')) return;
+      setLinkedExchangeHighlight('');
+    };
+
+    document.addEventListener('pointerover', handleEnter);
+    document.addEventListener('pointerout', handleLeave);
+    document.addEventListener('mouseover', handleEnter);
+    document.addEventListener('mouseout', handleLeave);
+    document.addEventListener('click', (event) => {
+      const target = event.target && event.target.closest ? event.target.closest(targetSelector) : null;
+      if (!target) return;
+      window.clearTimeout(linkedExchangeTapTimer);
+      setLinkedExchangeHighlight(target.getAttribute('data-exchange-id'));
+      linkedExchangeTapTimer = window.setTimeout(() => {
+        setLinkedExchangeHighlight('');
+      }, 1800);
+    });
+    document.addEventListener('focusin', (event) => {
+      const target = event.target && event.target.closest ? event.target.closest(targetSelector) : null;
+      if (target) setLinkedExchangeHighlight(target.getAttribute('data-exchange-id'));
+    });
+    document.addEventListener('focusout', (event) => {
+      const related = event.relatedTarget && event.relatedTarget.closest ? event.relatedTarget.closest(targetSelector) : null;
+      if (related) return;
+      setLinkedExchangeHighlight('');
+    });
+  }
+
   function highlightMarketTarget(id) {
     const section = document.getElementById(id);
     if (!section) return;
@@ -1418,8 +1502,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ? summary.domesticComparison.rows
       : [];
     return rows
-      .filter(row => row && row.cost100k && row.cost100k.status === 'fresh' && Number.isFinite(Number(row.cost100k.rank)))
-      .sort((a, b) => Number(a.cost100k.rank) - Number(b.cost100k.rank))[0] || null;
+      .filter(row => row && row.cost100k && row.cost100k.status === 'fresh' && finiteRank(row.cost100k.rank) != null)
+      .sort((a, b) => finiteRank(a.cost100k.rank) - finiteRank(b.cost100k.rank))[0] || null;
   }
 
   function isPretradeChecklistComplete() {
@@ -1556,7 +1640,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const row = domesticRows.find(item => normalizeExchangeId(item.exchangeId) === normalizeExchangeId(exchange.id));
           const cost = row && row.cost100k;
           const sales = row && row.salesSpread;
-          const primary = cost && cost.status === 'fresh' && Number.isFinite(Number(cost.rank))
+          const primary = cost && cost.status === 'fresh' && finiteRank(cost.rank) != null
             ? `#${cost.rank} ${fmtJpyPrice(cost.effectiveVWAP)}`
             : (sales && sales.status === 'ready' && Number.isFinite(Number(sales.spreadPct)) ? `Spread ${fmtPct(sales.spreadPct)}` : '比較中');
           return `<span class="market-floating-my-exchanges__item" style="--exchange-accent:${escapeHtml(exchangeAccent(exchange.id).color)}"><b>${escapeHtml(exchange.label || exchange.id)}</b><small>${escapeHtml(primary)}</small></span>`;
@@ -1635,9 +1719,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function comparisonBestRow(data) {
     const rows = orderRowsForMyExchanges(Array.isArray(data && data.rows) ? data.rows : []);
     return rows
-      .filter(row => liveRowStatus(row) === 'fresh' && row.result && !row.result.error && Number.isFinite(Number(row.rank)))
+      .filter(row => liveRowStatus(row) === 'fresh' && row.result && !row.result.error && finiteRank(row.rank) != null)
       .slice()
-      .sort((a, b) => Number(a.rank) - Number(b.rank))[0] || null;
+      .sort((a, b) => finiteRank(a.rank) - finiteRank(b.rank))[0] || null;
   }
 
   function domesticBestCostRow() {
@@ -1645,9 +1729,9 @@ document.addEventListener('DOMContentLoaded', () => {
       ? orderRowsForMyExchanges(summary.domesticComparison.rows)
       : [];
     return rows
-      .filter(row => row && row.cost100k && row.cost100k.status === 'fresh' && Number.isFinite(Number(row.cost100k.rank)))
+      .filter(row => row && row.cost100k && row.cost100k.status === 'fresh' && finiteRank(row.cost100k.rank) != null)
       .slice()
-      .sort((a, b) => Number(a.cost100k.rank) - Number(b.cost100k.rank))[0] || null;
+      .sort((a, b) => finiteRank(a.cost100k.rank) - finiteRank(b.cost100k.rank))[0] || null;
   }
 
   function stickyAmountLabel() {
@@ -1691,7 +1775,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     actionExternal = isExternalHref(actionHref);
-    actionLabel = actionExternal ? '公式' : '詳細';
+    actionLabel = actionExternal ? '購入へ進む' : '詳細';
 
     if (amount) amount.textContent = stickyAmountLabel();
     if (best) {
@@ -2123,9 +2207,9 @@ document.addEventListener('DOMContentLoaded', () => {
       : [];
     const baseCurrency = (summary && summary.market && summary.market.baseCurrency) || instrumentId.split('-')[0] || '';
     const ranked = rows
-      .filter(row => row && row.cost100k && row.cost100k.status === 'fresh' && Number.isFinite(Number(row.cost100k.totalBaseFilled)))
+      .filter(row => row && row.cost100k && row.cost100k.status === 'fresh' && finiteRank(row.cost100k.rank) != null && Number.isFinite(Number(row.cost100k.totalBaseFilled)))
       .slice()
-      .sort((a, b) => Number(a.cost100k.rank || 999) - Number(b.cost100k.rank || 999));
+      .sort((a, b) => finiteRank(a.cost100k.rank) - finiteRank(b.cost100k.rank));
     const best = ranked[0] || null;
     if (!best) {
       bestExchange.textContent = summary.snapshot && summary.snapshot.cheapestBuy
@@ -2476,9 +2560,11 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
           <td class="is-num text-right font-mono ${costCellClass}" data-label="10万円買い">
             <div class="market-primary-metric ${costReady ? 'text-green-300' : 'text-gray-500'}">${costReady ? `${cost.rank ? `<span class="market-rank-prefix">#${escapeHtml(cost.rank)}</span> ` : ''}${animatedNumberHtml(`domestic:${rowId}:filled`, cost.totalBaseFilled, 'base', baseCurrency)}` : (isLoadingMessage(costStatus) ? waitingCellHtml(costStatus) : '-')}</div>
-            ${costReady ? costMetricDetailsHtml({ ...cost, totalBTCFilled: cost.totalBaseFilled }, { keyPrefix: `domestic:${rowId}`, summaryLabel: `${termText('VWAP', '実質購入価格')} / ${termText('Impact', '影響度')}` }) : `<div class="text-[10px] text-gray-500">${isLoadingMessage(costStatus) ? '' : escapeHtml(costStatus)}</div>`}
+            ${costReady ? effectiveCostBreakdownHtml({ ...cost, totalBTCFilled: cost.totalBaseFilled }, { compact: true }) : ''}
+            ${costReady ? costMetricDetailsHtml({ ...cost, totalBTCFilled: cost.totalBaseFilled }, { keyPrefix: `domestic:${rowId}`, summaryLabel: `${termText('VWAP', '実質購入価格')} / ${termText('Impact', '影響度')}`, includeBreakdown: false }) : `<div class="text-[10px] text-gray-500">${isLoadingMessage(costStatus) ? '' : escapeHtml(costStatus)}</div>`}
             ${costRisk ? `<div class="market-risk-note">${escapeHtml(cost.executionStatusLabel || '自動キャンセル対象')} / Impact ${fmtPct(cost.marketImpactPct)}</div>` : ''}
             ${costReady && cost.rank === 1 ? winnerBadge('最安 Low Cost', 'green') : ''}
+            ${costReady && cost.rank === 1 ? exchangeInlineCtaHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, { primary: true, meta: '最安候補' }) : ''}
           </td>
           <td class="is-num text-right font-mono ${salesCellClass}" data-label="販売所Spread">
             ${salesReady ? spreadCostHtml(sales.spreadPct, { min: minSales, max: maxSales, best: isBestSales, copyKey: `domestic:${rowId}:sales-spread` }) : '<div class="text-gray-500">-</div>'}
@@ -2496,6 +2582,7 @@ document.addEventListener('DOMContentLoaded', () => {
     animateNumberSpans(tbody);
     renderFloatingMyExchanges();
     renderStickySimulator();
+    syncLinkedExchangeHighlight();
   }
 
   function renderOrderbookRows() {
@@ -2539,6 +2626,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>
       `;
     }).join('');
+    syncLinkedExchangeHighlight();
   }
 
   function renderVolumeRows() {
@@ -2571,6 +2659,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td class="text-right font-mono text-gray-400" data-label="取得">${fmtDateTime(row.lastFetchedAt || row.capturedAt)}</td>
       </tr>
     `).join('');
+    syncLinkedExchangeHighlight();
   }
 
   function renderSalesRows() {
@@ -2612,6 +2701,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </tr>
       `;
     }).join('');
+    syncLinkedExchangeHighlight();
   }
 
   function comparisonStatusClass(status) {
@@ -2787,11 +2877,13 @@ document.addEventListener('DOMContentLoaded', () => {
           <td class="is-num text-right font-mono ${valueClass} ${resultCellClass}" data-label="結果">
             <div>${ready ? value : (isLoadingMessage(statusText) ? waitingCellHtml(statusText) : value)}</div>
             ${ready && fixedQuote && !isSell ? receiveComparisonBarHtml(result.totalBTCFilled, minReceive, maxReceive, (row.baseCurrency || baseCurrency || '').toUpperCase(), { best: row.rank === 1, yenDelta: receiveYenDelta }) : ''}
-            ${ready ? costMetricDetailsHtml(result, { keyPrefix: `comparison:${rowId}:details`, summaryLabel: '手数料・価格差', includeVwap: false, includeImpact: false }) : ''}
+            ${ready ? effectiveCostBreakdownHtml(result, { compact: true }) : ''}
+            ${ready ? costMetricDetailsHtml(result, { keyPrefix: `comparison:${rowId}:details`, summaryLabel: '手数料・価格差', includeVwap: false, includeImpact: false, includeBreakdown: false }) : ''}
             ${ready && row.rank === 1 ? winnerBadge(isSell ? '売却最良' : '最安 Low Cost', 'green') : ''}
+            ${ready && row.rank === 1 ? exchangeInlineCtaHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, { primary: true, meta: isSell ? '売却最良' : '最安候補' }) : ''}
           </td>
-          <td class="is-num text-right font-mono text-gray-300 market-soft-metric ${vwapCellClass}" data-label="${termText('VWAP', '実質購入価格')}">${vwap}</td>
-          <td class="is-num text-right font-mono text-yellow-300 market-soft-metric ${impactCellClass} ${resultRisk ? 'market-risk-cell' : ''}" data-label="${termText('Impact', '値幅への影響度')}">${ready ? animatedNumberHtml(`comparison:${rowId}:impact`, result.marketImpactPct, 'pct') : '-'}</td>
+          <td class="is-num text-right font-mono text-gray-300 market-soft-metric beginner-optional ${vwapCellClass}" data-label="${termText('VWAP', '実質購入価格')}">${vwap}</td>
+          <td class="is-num text-right font-mono text-yellow-300 market-soft-metric beginner-optional ${impactCellClass} ${resultRisk ? 'market-risk-cell' : ''}" data-label="${termText('Impact', '値幅への影響度')}">${ready ? animatedNumberHtml(`comparison:${rowId}:impact`, result.marketImpactPct, 'pct') : '-'}</td>
           <td class="${statusClass} ${resultRisk ? 'market-risk-cell' : ''}" data-label="判定">
             <div class="font-bold">${escapeHtml(statusText)}</div>
             ${statusSub ? `<div class="text-[10px] text-gray-500">${escapeHtml(statusSub)}</div>` : ''}
@@ -2806,6 +2898,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
     animateNumberSpans(tbody);
     renderStickySimulator();
+    syncLinkedExchangeHighlight();
   }
 
   function renderSummary(data) {
@@ -3133,6 +3226,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initBeginnerCollapses();
   initAmountTypeToggle();
   initExchangeDragSorting();
+  initExchangeCrossHighlight();
   initPretradeChecklist();
   initDepthChart();
   initVolumeDonutChart();
