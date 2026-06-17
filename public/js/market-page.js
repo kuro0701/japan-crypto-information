@@ -98,6 +98,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const MY_EXCHANGES_STORAGE_KEY = storageKey('myExchanges');
   const MY_EXCHANGES_ONLY_STORAGE_KEY = storageKey('myExchangesOnly');
   const PRETRADE_CHECKLIST_STORAGE_KEY = storageKey('pretradeChecklist');
+
+  function setHtml(id, html) {
+    const node = $(id);
+    if (node) node.innerHTML = html;
+    return node;
+  }
+
   const readStoredExchangeSet = () => {
     try {
       const parsed = JSON.parse(localStorage.getItem(MY_EXCHANGES_STORAGE_KEY) || '[]');
@@ -384,11 +391,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const detailPath = actions.detailPath || fallbackExchangeDetailPath(id);
     const officialUrl = actions.officialUrl || '';
     const signupUrl = actions.signupUrl || officialUrl || '';
+    const referralUrl = actions.referralUrl || '';
     return {
       detailPath,
       officialUrl,
       signupUrl,
-      primaryHref: signupUrl || officialUrl || detailPath,
+      referralUrl,
+      referralRel: actions.referralRel || null,
+      referralReferrerPolicy: actions.referralReferrerPolicy || null,
+      referralTarget: Object.prototype.hasOwnProperty.call(actions, 'referralTarget') ? actions.referralTarget : undefined,
+      referralTrackingPixelUrl: actions.referralTrackingPixelUrl || null,
+      hasReferral: Boolean(referralUrl),
+      primaryHref: referralUrl || signupUrl || officialUrl || detailPath,
     };
   }
 
@@ -396,10 +410,29 @@ document.addEventListener('DOMContentLoaded', () => {
     return /^https?:\/\//i.test(String(href || ''));
   }
 
-  function actionLinkAttrs(href) {
+  function actionLinkAttrs(href, options = {}) {
     const safeHref = escapeHtml(href || '#');
     if (!isExternalHref(href)) return `href="${safeHref}"`;
-    return `href="${safeHref}" target="_blank" rel="noopener noreferrer"`;
+    const attrs = [`href="${safeHref}"`];
+    const target = Object.prototype.hasOwnProperty.call(options, 'referralTarget') && options.referralTarget !== undefined
+      ? options.referralTarget
+      : '_blank';
+    if (target) attrs.push(`target="${escapeHtml(target)}"`);
+    attrs.push(`rel="${escapeHtml(options.referralRel || (options.hasReferral ? 'sponsored noopener' : 'noopener noreferrer'))}"`);
+    if (options.referralReferrerPolicy) attrs.push(`referrerpolicy="${escapeHtml(options.referralReferrerPolicy)}"`);
+    return attrs.join(' ');
+  }
+
+  function actionTrackingPixelHtml(actions) {
+    if (!actions || !actions.hasReferral || !actions.referralTrackingPixelUrl) return '';
+    return `<img src="${escapeHtml(actions.referralTrackingPixelUrl)}" width="1" height="1" border="0" alt="">`;
+  }
+
+  function exchangeNameLinkHtml(exchangeId, label, className = 'market-exchange-name-link') {
+    const actions = exchangeActionMeta(exchangeId);
+    const href = actions.hasReferral ? actions.primaryHref : actions.detailPath;
+    const attrs = actions.hasReferral ? actionLinkAttrs(href, actions) : actionLinkAttrs(href);
+    return `<a class="${escapeHtml(className)}" ${attrs}>${escapeHtml(label || exchangeId || '取引所')}${actionTrackingPixelHtml(actions)}</a>`;
   }
 
   function exchangeActionHtml(exchangeId, label, options = {}) {
@@ -417,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return `
       <div class="market-row-actions">
         <a class="market-row-action market-row-action--secondary" ${actionLinkAttrs(actions.detailPath)}>詳細</a>
-        <a class="market-row-action ${primaryClass} ${isExternal ? 'market-row-action--external' : ''}" ${actionLinkAttrs(actions.primaryHref)}>${primaryContent}</a>
+        <a class="market-row-action ${primaryClass} ${isExternal ? 'market-row-action--external' : ''}" ${actionLinkAttrs(actions.primaryHref, actions)}>${primaryContent}${actionTrackingPixelHtml(actions)}</a>
       </div>
     `;
   }
@@ -430,9 +463,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const text = options.text || (isExternal ? '購入へ進む' : '詳細を見る');
     const meta = options.meta || (isExternal ? `${safeLabel}公式` : `${safeLabel}の詳細`);
     return `
-      <a class="market-inline-cta ${options.primary ? 'market-inline-cta--primary' : ''} ${isExternal ? 'market-inline-cta--external' : ''}" ${actionLinkAttrs(href)} aria-label="${escapeHtml(`${safeLabel} ${text}`)}">
+      <a class="market-inline-cta ${options.primary ? 'market-inline-cta--primary' : ''} ${isExternal ? 'market-inline-cta--external' : ''}" ${actionLinkAttrs(href, actions)} aria-label="${escapeHtml(`${safeLabel} ${text}`)}">
         <span>${escapeHtml(text)}</span>
         <small>${escapeHtml(meta)}</small>
+        ${actionTrackingPixelHtml(actions)}
       </a>
     `;
   }
@@ -580,11 +614,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const isPinned = isMyExchange(id);
     const safeColor = escapeHtml(accent.color);
     const safeLabel = escapeHtml(label || exchangeId || '-');
+    const nameLink = exchangeNameLinkHtml(id, label || exchangeId || '-', 'exchange-identity__name market-exchange-name-link');
     return `
       <div class="exchange-identity" style="--exchange-accent:${safeColor}">
         <span class="exchange-identity__logo" aria-hidden="true">${escapeHtml(exchangeInitials(id, label))}</span>
         <span class="exchange-identity__copy">
-          <span class="exchange-identity__name">${safeLabel}</span>
+          ${nameLink}
           ${subtext ? `<span class="exchange-identity__meta">${escapeHtml(subtext)}</span>` : ''}
         </span>
         <button class="exchange-identity__pin ${isPinned ? 'is-active' : ''}" type="button" data-market-star-exchange="${escapeHtml(id)}" aria-pressed="${isPinned ? 'true' : 'false'}" aria-label="${safeLabel}${isPinned ? 'の固定を解除' : 'を上に固定'}" title="${safeLabel}${isPinned ? 'の固定を解除' : 'を上に固定'}"><span class="exchange-identity__pin-icon" aria-hidden="true"></span></button>
@@ -1047,7 +1082,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <div class="market-volume-legend-row" data-exchange-id="${escapeHtml(normalizeExchangeId(row.exchangeId))}" style="--exchange-accent:${escapeHtml(accent.color)}">
           <span class="market-volume-legend-row__rank">${index + 1}</span>
-          <span class="market-volume-legend-row__name">${escapeHtml(row.exchangeLabel || row.exchangeId)}</span>
+          <span class="market-volume-legend-row__name">${exchangeNameLinkHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, 'market-volume-legend-row__name-link')}</span>
           <span class="market-volume-legend-row__value">${fmtPct(row.instrumentSharePct)}</span>
         </div>
       `;
@@ -2074,8 +2109,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (statusNode) statusNode.dataset.statusTone = statusTone;
     updateFreshnessProgress();
     setText('market-exchange-count', `${supportedExchanges().length}社`);
-    setText('market-best-bid', bestBid ? `${bestBid.exchangeLabel} ${fmtJpyPrice(bestBid.bestBid)}` : '-');
-    setText('market-best-ask', bestAsk ? `${bestAsk.exchangeLabel} ${fmtJpyPrice(bestAsk.bestAsk)}` : '-');
+    setHtml('market-best-bid', bestBid ? `${exchangeNameLinkHtml(bestBid.exchangeId, bestBid.exchangeLabel, 'market-inline-exchange-link')} ${escapeHtml(fmtJpyPrice(bestBid.bestBid))}` : '-');
+    setHtml('market-best-ask', bestAsk ? `${exchangeNameLinkHtml(bestAsk.exchangeId, bestAsk.exchangeLabel, 'market-inline-exchange-link')} ${escapeHtml(fmtJpyPrice(bestAsk.bestAsk))}` : '-');
     setText('market-hero-meta', `板 新鮮 ${counts.fresh}社 / stale ${counts.stale}社 / 待機 ${counts.waiting}社 | 出来高 ${summary.volume.rows.length}件 | 販売所 ${summary.sales.rows.length}件`);
   }
 
@@ -2111,20 +2146,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function setSnapshotMetric(key, value, meta) {
-    setText(`market-summary-${key}`, value);
-    setText(`market-summary-${key}-meta`, meta);
+  function setSnapshotMetric(key, value, meta, options = {}) {
+    const valueNode = $(`market-summary-${key}`);
+    if (valueNode) {
+      valueNode.innerHTML = options.valueExchangeId
+        ? exchangeNameLinkHtml(options.valueExchangeId, value, 'market-summary-exchange-link')
+        : escapeHtml(value || '-');
+    }
+    const metaNode = $(`market-summary-${key}-meta`);
+    if (metaNode) {
+      metaNode.innerHTML = options.metaExchangeId
+        ? exchangeNameLinkHtml(options.metaExchangeId, meta, 'market-summary-exchange-link')
+        : escapeHtml(meta || '');
+    }
   }
 
-  function setConclusionMetric(key, value, meta) {
+  function setConclusionMetric(key, value, meta, exchangeId = '') {
     const node = $(`market-conclusion-${key}`);
     if (node) {
       const shouldSignal = ['best-board', 'best-sales', 'top-volume'].includes(key)
         && value
         && value !== 'データ待ち';
-      node.innerHTML = shouldSignal
-        ? `<span class="market-signal-badge">${escapeHtml(value)}</span>`
+      const valueHtml = exchangeId
+        ? exchangeNameLinkHtml(exchangeId, value, 'market-conclusion-exchange-link')
         : escapeHtml(value || '-');
+      node.innerHTML = shouldSignal
+        ? `<span class="market-signal-badge">${valueHtml}</span>`
+        : valueHtml;
     }
     setText(`market-conclusion-${key}-meta`, meta);
   }
@@ -2169,9 +2217,9 @@ document.addEventListener('DOMContentLoaded', () => {
       quoteVolume: volumeBest.quoteVolume,
     } : null);
 
-    setText('market-mega-best-board', cheapest ? cheapest.exchangeLabel : 'データ待ち');
-    setText('market-mega-best-sales', tightestSales ? tightestSales.exchangeLabel : 'データ待ち');
-    setText('market-mega-top-volume', topVolume ? topVolume.exchangeLabel : 'データ待ち');
+    setHtml('market-mega-best-board', cheapest ? exchangeNameLinkHtml(cheapest.exchangeId, cheapest.exchangeLabel, 'market-mega-exchange-link') : 'データ待ち');
+    setHtml('market-mega-best-sales', tightestSales ? exchangeNameLinkHtml(tightestSales.exchangeId, tightestSales.exchangeLabel, 'market-mega-exchange-link') : 'データ待ち');
+    setHtml('market-mega-top-volume', topVolume ? exchangeNameLinkHtml(topVolume.exchangeId, topVolume.exchangeLabel, 'market-mega-exchange-link') : 'データ待ち');
     setExchangeMark('market-mega-best-board-icon', cheapest && cheapest.exchangeId, cheapest && cheapest.exchangeLabel);
     setExchangeMark('market-mega-best-sales-icon', tightestSales && tightestSales.exchangeId, tightestSales && tightestSales.exchangeLabel);
     setExchangeMark('market-mega-top-volume-icon', topVolume && topVolume.exchangeId, topVolume && topVolume.exchangeLabel);
@@ -2212,15 +2260,15 @@ document.addEventListener('DOMContentLoaded', () => {
       .sort((a, b) => finiteRank(a.cost100k.rank) - finiteRank(b.cost100k.rank));
     const best = ranked[0] || null;
     if (!best) {
-      bestExchange.textContent = summary.snapshot && summary.snapshot.cheapestBuy
-        ? summary.snapshot.cheapestBuy.exchangeLabel
+      bestExchange.innerHTML = summary.snapshot && summary.snapshot.cheapestBuy
+        ? exchangeNameLinkHtml(summary.snapshot.cheapestBuy.exchangeId, summary.snapshot.cheapestBuy.exchangeLabel, 'market-beginner-exchange-link')
         : 'データ待ち';
       receive.textContent = '実質受取量 -';
       note.textContent = ORDERBOOK_WAITING_MESSAGE;
     } else {
       const cost = best.cost100k;
       const status = cost.executionStatusLabel || '発注可能';
-      bestExchange.textContent = best.exchangeLabel || best.exchangeId || 'データ待ち';
+      bestExchange.innerHTML = exchangeNameLinkHtml(best.exchangeId, best.exchangeLabel || best.exchangeId || 'データ待ち', 'market-beginner-exchange-link');
       receive.textContent = `${Fmt.baseCompact(cost.totalBaseFilled)} ${baseCurrency} / 平均 ${fmtJpyPrice(cost.effectiveVWAP)}`;
       note.textContent = `${status}。まずは取引所形式で実質コストを確認すると迷いにくいです。`;
     }
@@ -2228,7 +2276,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sales = bestSalesFromSummary();
     if (sales && sales.salesSpread) {
       const buyPrice = finiteNumber(sales.salesSpread.buyPrice);
-      bestSales.textContent = sales.exchangeLabel || sales.exchangeId || 'データ待ち';
+      bestSales.innerHTML = exchangeNameLinkHtml(sales.exchangeId, sales.exchangeLabel || sales.exchangeId || 'データ待ち', 'market-beginner-exchange-link');
       salesNote.textContent = buyPrice == null
         ? `スプレッド ${fmtPct(sales.salesSpread.spreadPct)} / 買値は公式画面で確認`
         : `スプレッド ${fmtPct(sales.salesSpread.spreadPct)} / 買 ${fmtJpyPrice(buyPrice)}`;
@@ -2238,8 +2286,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    bestSales.textContent = summary.snapshot && summary.snapshot.tightestSalesSpread
-      ? summary.snapshot.tightestSalesSpread.exchangeLabel
+    bestSales.innerHTML = summary.snapshot && summary.snapshot.tightestSalesSpread
+      ? exchangeNameLinkHtml(summary.snapshot.tightestSalesSpread.exchangeId, summary.snapshot.tightestSalesSpread.exchangeLabel, 'market-beginner-exchange-link')
       : 'データ待ち';
     salesNote.textContent = summary.snapshot && summary.snapshot.tightestSalesSpread
       ? `スプレッド ${fmtPct(summary.snapshot.tightestSalesSpread.spreadPct)}`
@@ -2375,29 +2423,34 @@ document.addEventListener('DOMContentLoaded', () => {
     setSnapshotMetric(
       'best-ask',
       snapshot && snapshot.bestAsk ? fmtJpyPrice(snapshot.bestAsk.price) : 'データ待ち',
-      snapshot && snapshot.bestAsk ? snapshot.bestAsk.exchangeLabel : ORDERBOOK_WAITING_MESSAGE
+      snapshot && snapshot.bestAsk ? snapshot.bestAsk.exchangeLabel : ORDERBOOK_WAITING_MESSAGE,
+      { metaExchangeId: snapshot && snapshot.bestAsk ? snapshot.bestAsk.exchangeId : '' }
     );
     setSnapshotMetric(
       'best-bid',
       snapshot && snapshot.bestBid ? fmtJpyPrice(snapshot.bestBid.price) : 'データ待ち',
-      snapshot && snapshot.bestBid ? snapshot.bestBid.exchangeLabel : ORDERBOOK_WAITING_MESSAGE
+      snapshot && snapshot.bestBid ? snapshot.bestBid.exchangeLabel : ORDERBOOK_WAITING_MESSAGE,
+      { metaExchangeId: snapshot && snapshot.bestBid ? snapshot.bestBid.exchangeId : '' }
     );
     setSnapshotMetric(
       'thickest-book',
       snapshot && snapshot.thickestBook ? snapshot.thickestBook.exchangeLabel : 'データ待ち',
-      snapshot && snapshot.thickestBook ? `可視板厚 ${Fmt.jpyLarge(snapshot.thickestBook.visibleDepthJPY)}` : 'Bid + Ask 可視深さ'
+      snapshot && snapshot.thickestBook ? `可視板厚 ${Fmt.jpyLarge(snapshot.thickestBook.visibleDepthJPY)}` : 'Bid + Ask 可視深さ',
+      { valueExchangeId: snapshot && snapshot.thickestBook ? snapshot.thickestBook.exchangeId : '' }
     );
     setSnapshotMetric(
       'cheapest-buy',
       snapshot && snapshot.cheapestBuy ? snapshot.cheapestBuy.exchangeLabel : 'データ待ち',
       snapshot && snapshot.cheapestBuy
         ? `${snapshot.cheapestBuy.executionStatusLabel || '参考値'} / 実効VWAP ${fmtJpyPrice(snapshot.cheapestBuy.effectiveVWAP)}`
-        : '買い / 100,000円 / 既定手数料'
+        : '買い / 100,000円 / 既定手数料',
+      { valueExchangeId: snapshot && snapshot.cheapestBuy ? snapshot.cheapestBuy.exchangeId : '' }
     );
     setSnapshotMetric(
       'tightest-sales',
       snapshot && snapshot.tightestSalesSpread ? snapshot.tightestSalesSpread.exchangeLabel : 'データ待ち',
-      snapshot && snapshot.tightestSalesSpread ? fmtPct(snapshot.tightestSalesSpread.spreadPct) : '販売所データ待ち'
+      snapshot && snapshot.tightestSalesSpread ? fmtPct(snapshot.tightestSalesSpread.spreadPct) : '販売所データ待ち',
+      { valueExchangeId: snapshot && snapshot.tightestSalesSpread ? snapshot.tightestSalesSpread.exchangeId : '' }
     );
     setSnapshotMetric(
       'funding-support',
@@ -2407,24 +2460,28 @@ document.addEventListener('DOMContentLoaded', () => {
     setSnapshotMetric(
       'top-volume',
       snapshot && snapshot.topVolume ? snapshot.topVolume.exchangeLabel : 'データ待ち',
-      snapshot && snapshot.topVolume ? `24h出来高 ${Fmt.jpyLarge(snapshot.topVolume.quoteVolume)}` : '出来高データを取得中です'
+      snapshot && snapshot.topVolume ? `24h出来高 ${Fmt.jpyLarge(snapshot.topVolume.quoteVolume)}` : '出来高データを取得中です',
+      { valueExchangeId: snapshot && snapshot.topVolume ? snapshot.topVolume.exchangeId : '' }
     );
     setConclusionMetric(
       'best-board',
       snapshot && snapshot.cheapestBuy ? snapshot.cheapestBuy.exchangeLabel : 'データ待ち',
       snapshot && snapshot.cheapestBuy
         ? `10万円買い / 実効VWAP ${fmtJpyPrice(snapshot.cheapestBuy.effectiveVWAP)}`
-        : `${defaultExchangeCount}社の板を集計`
+        : `${defaultExchangeCount}社の板を集計`,
+      snapshot && snapshot.cheapestBuy ? snapshot.cheapestBuy.exchangeId : ''
     );
     setConclusionMetric(
       'best-sales',
       snapshot && snapshot.tightestSalesSpread ? snapshot.tightestSalesSpread.exchangeLabel : 'データ待ち',
-      snapshot && snapshot.tightestSalesSpread ? `販売所スプレッド ${fmtPct(snapshot.tightestSalesSpread.spreadPct)}` : '販売所スプレッドを確認中'
+      snapshot && snapshot.tightestSalesSpread ? `販売所スプレッド ${fmtPct(snapshot.tightestSalesSpread.spreadPct)}` : '販売所スプレッドを確認中',
+      snapshot && snapshot.tightestSalesSpread ? snapshot.tightestSalesSpread.exchangeId : ''
     );
     setConclusionMetric(
       'top-volume',
       snapshot && snapshot.topVolume ? snapshot.topVolume.exchangeLabel : 'データ待ち',
-      snapshot && snapshot.topVolume ? `24h出来高 ${Fmt.jpyLarge(snapshot.topVolume.quoteVolume)}` : '24h売買代金ベース'
+      snapshot && snapshot.topVolume ? `24h出来高 ${Fmt.jpyLarge(snapshot.topVolume.quoteVolume)}` : '24h売買代金ベース',
+      snapshot && snapshot.topVolume ? snapshot.topVolume.exchangeId : ''
     );
     renderMegaSummary(snapshot);
     updatePretradeCta(isPretradeChecklistComplete());

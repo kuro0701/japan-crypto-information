@@ -351,14 +351,32 @@ document.addEventListener('DOMContentLoaded', () => {
     return `<a class="${className}" href="${escapeHtml(href)}"${attrs ? ` ${attrs}` : ''} aria-label="${escapeHtml(ariaLabel)}">${escapeHtml(label)}${hasAffiliate ? trackingPixelHtml(campaign) : ''}</a>`;
   }
 
+  function renderExchangeNameLink(exchangeId, exchangeLabel, className = 'volume-exchange-entry__name') {
+    const campaign = campaignForExchange(exchangeId);
+    const hasAffiliate = Boolean(campaign && campaign.affiliateUrl);
+    if (hasAffiliate) {
+      const href = safeHref(campaign.affiliateUrl, campaignDetailHref(campaign, exchangeId));
+      const attrs = affiliateAttrs(campaign);
+      return `<a class="${escapeHtml(className)}" href="${escapeHtml(href)}"${attrs ? ` ${attrs}` : ''}>${escapeHtml(exchangeLabel || exchangeId)}${trackingPixelHtml(campaign)}</a>`;
+    }
+    if (AppUtil.exchangeReferralNameHtml) {
+      return AppUtil.exchangeReferralNameHtml(exchangeId, exchangeLabel || exchangeId, {
+        className,
+        fallbackHref: campaignDetailHref(campaign, exchangeId),
+      });
+    }
+    return `<a class="${escapeHtml(className)}" href="${escapeHtml(campaignDetailHref(campaign, exchangeId))}">${escapeHtml(exchangeLabel || exchangeId)}</a>`;
+  }
+
   function renderExchangeNameCell(exchange) {
     const exchangeId = exchange.exchangeId || exchange.id || '';
     const exchangeLabel = displayExchangeLabel(exchangeId, exchange.exchangeLabel || exchange.label || exchangeId);
-    if (!SHOW_ACCOUNT_OPENING_CTA) return escapeHtml(exchangeLabel);
+    const exchangeName = renderExchangeNameLink(exchangeId, exchangeLabel);
+    if (!SHOW_ACCOUNT_OPENING_CTA) return exchangeName;
     return `
       <div class="volume-exchange-entry">
         <div class="volume-exchange-entry__copy">
-          <span class="volume-exchange-entry__name">${escapeHtml(exchangeLabel)}</span>
+          ${exchangeName}
           <span class="volume-exchange-entry__reason">${escapeHtml(exchangeReason(exchangeId))}</span>
         </div>
         ${renderAccountCta(exchangeId, exchangeLabel)}
@@ -874,7 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <tr${rowIdAttr} class="${rowClasses}">
           ${instrumentCell}
-          <td class="text-gray-300" data-label="取引所">${escapeHtml(displayExchangeLabel(row.exchangeId, row.exchangeLabel))}</td>
+          <td class="text-gray-300" data-label="取引所">${renderExchangeNameLink(row.exchangeId, displayExchangeLabel(row.exchangeId, row.exchangeLabel), 'volume-table-exchange-link')}</td>
           <td class="is-num text-right font-mono text-gray-300" data-label="${escapeHtml(volumeLabel)}">
             ${volumeDisplay(row.quoteVolume)}
           </td>
@@ -919,7 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = rows.map(row => `
       <tr class="border-b border-gray-800/60">
-        <td class="font-bold text-gray-200" data-label="取引所">${escapeHtml(displayExchangeLabel(row.exchangeId, row.exchangeLabel || row.exchangeId))}</td>
+        <td class="font-bold text-gray-200" data-label="取引所">${renderExchangeNameLink(row.exchangeId, displayExchangeLabel(row.exchangeId, row.exchangeLabel || row.exchangeId), 'volume-table-exchange-link')}</td>
         <td class="text-gray-300" data-label="API">${qualityStatusCell(row)}</td>
         <td class="text-gray-300" data-label="経路">${escapeHtml(transportLabel(row.transportSources))}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="サンプル">${Number(row.sampleCount) || 0}</td>
@@ -1354,6 +1372,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setText('total-volume-meta', `${label}累計 | ${filtered.rows.length}件`);
 
     setKpiValue('top-exchange', topExchange ? topExchange.exchangeLabel : '-', topExchange ? 'is-positive' : '');
+    if (topExchange) {
+      setHtml('top-exchange', renderExchangeNameLink(topExchange.exchangeId, topExchange.exchangeLabel, 'volume-kpi-exchange-link'));
+    }
     setText('top-exchange-meta', topExchange ? `全体シェア ${fmtPctCompact(topShare, 1)}` : '首位データ待ち');
 
     setKpiValue('top-share', topExchange ? fmtPctCompact(topShare, 1) : '-', topExchange ? shareTone(topShare) : '');
@@ -1515,7 +1536,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const exchangeLabel = displayExchangeLabel(insight.exchangeId, insight.exchange);
     return [
-      `<span class="volume-insight-item__exchange">${escapeHtml(exchangeLabel)}</span>: `,
+      `${renderExchangeNameLink(insight.exchangeId, exchangeLabel, 'volume-insight-item__exchange')}: `,
       `${escapeHtml(formatInsightShare(metadata.previousShare))} `,
       '<span class="volume-insight-item__arrow" aria-hidden="true">→</span> ',
       `<strong>${escapeHtml(formatInsightShare(metadata.latestShare))}</strong> `,

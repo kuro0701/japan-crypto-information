@@ -109,6 +109,34 @@ document.addEventListener('DOMContentLoaded', () => {
     widening_streak: '🔴 コスト上昇が継続',
     zscore_outlier: '要注意（コスト急変動）',
   };
+
+  function setHtml(id, html) {
+    const el = $(id);
+    if (el) el.innerHTML = html;
+    return el;
+  }
+
+  function exchangeNameLinkHtml(exchangeId, label, className = 'sales-spread-exchange-link') {
+    if (AppUtil.exchangeReferralNameHtml) {
+      return AppUtil.exchangeReferralNameHtml(exchangeId, label || exchangeId, {
+        className,
+        fallbackHref: exchangePageUrl(exchangeId),
+      });
+    }
+    return `<a class="${escapeHtml(className)}" href="${escapeHtml(exchangePageUrl(exchangeId))}">${escapeHtml(label || exchangeId || '取引所')}</a>`;
+  }
+
+  function exchangeAnchorAttrs(exchangeId) {
+    if (AppUtil.exchangeReferralAnchorAttrs) {
+      return AppUtil.exchangeReferralAnchorAttrs(exchangeId, exchangePageUrl(exchangeId));
+    }
+    return `href="${escapeHtml(exchangePageUrl(exchangeId))}"`;
+  }
+
+  function instrumentExchangeHtml(row) {
+    if (!row) return 'データ待ち';
+    return `${escapeHtml(row.instrumentLabel || row.instrumentId || '-')} / ${exchangeNameLinkHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, 'sales-spread-inline-exchange-link')}`;
+  }
   const INSIGHT_PERIOD_VALUES = new Set(Object.keys(INSIGHT_PERIODS));
   const TOP_RANKING_LIMIT = 10;
   const ORDERBOOK_SUGGESTION_LIMIT = 3;
@@ -867,8 +895,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="spread-ranking-item__topline">
             <div>
               <div class="spread-ranking-item__title">
-                ${item.titleHref
-                  ? `<a href="${item.titleHref}">${escapeHtml(item.title)}</a>`
+                ${item.titleAttrs
+                  ? `<a ${item.titleAttrs}>${escapeHtml(item.title)}</a>`
+                  : item.titleHref
+                    ? `<a href="${item.titleHref}">${escapeHtml(item.title)}</a>`
                   : escapeHtml(item.title)}
               </div>
               <div class="spread-ranking-item__subtitle">${escapeHtml(item.subtitle || '')}</div>
@@ -880,8 +910,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
           <div class="spread-ranking-item__footer">
             <span class="spread-ranking-item__delta">${escapeHtml(item.delta || '')}</span>
-            ${item.actionHref
-              ? `<a class="comparison-row-link" href="${item.actionHref}">${escapeHtml(item.actionLabel || '詳細を見る')}</a>`
+            ${item.actionAttrs
+              ? `<a class="comparison-row-link" ${item.actionAttrs}>${escapeHtml(item.actionLabel || '詳細を見る')}</a>`
+              : item.actionHref
+                ? `<a class="comparison-row-link" href="${item.actionHref}">${escapeHtml(item.actionLabel || '詳細を見る')}</a>`
               : ''}
           </div>
         </div>
@@ -1027,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function buildExchangeRankingItems(exchangeSummaries) {
     return exchangeSummaries.map(item => ({
       title: item.exchangeLabel,
-      titleHref: exchangePageUrl(item.exchangeId),
+      titleAttrs: exchangeAnchorAttrs(item.exchangeId),
       subtitle: `${item.current.instrumentCount}銘柄平均`,
       value: fmtPct(item.current.spreadPct),
       valueClass: currentSpreadValueClass(item.current.spreadPct),
@@ -1095,12 +1127,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <article class="spread-major-card spread-major-card--${spreadTone(best.summary.spreadPct)}">
           <div class="spread-major-card__head">
             <span class="spread-major-card__symbol">${escapeHtml(label)}</span>
-            <span class="spread-major-card__badge">最狭 ${escapeHtml(best.row.exchangeLabel)}</span>
+            <span class="spread-major-card__badge">最狭 ${exchangeNameLinkHtml(best.row.exchangeId, best.row.exchangeLabel, 'sales-spread-card-exchange-link')}</span>
           </div>
           <div class="spread-major-card__value">${fmtPct(best.summary.spreadPct)}</div>
           <div class="spread-major-card__meter">${spreadMeterHtml(best.summary.spreadPct)}</div>
           <p class="spread-major-card__meta">
-            平均 ${Number.isFinite(Number(average)) ? fmtPct(average) : '-'} / 最広 ${widest ? `${escapeHtml(widest.row.exchangeLabel)} ${fmtPct(widest.summary.spreadPct)}` : '-'}
+            平均 ${Number.isFinite(Number(average)) ? fmtPct(average) : '-'} / 最広 ${widest ? `${exchangeNameLinkHtml(widest.row.exchangeId, widest.row.exchangeLabel, 'sales-spread-card-exchange-link')} ${fmtPct(widest.summary.spreadPct)}` : '-'}
           </p>
           <a class="comparison-row-link" href="${href}">板取引の価格を見る</a>
         </article>
@@ -1141,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <span class="sales-spread-mobile-card__currency">${escapeHtml(row.currencyFullName || row.baseCurrency || '')}</span>
               </span>
             </span>
-            <span class="sales-spread-mobile-card__exchange">${escapeHtml(row.exchangeLabel)}</span>
+            <span class="sales-spread-mobile-card__exchange">${exchangeNameLinkHtml(row.exchangeId, row.exchangeLabel, 'sales-spread-mobile-exchange-link')}</span>
             <span class="sales-spread-mobile-card__current ${cellFlashClass(row, 'currentSpreadPct')}">
               <span>${currentLabel}</span>
               ${spreadMeterHtml(latest.spreadPct)}
@@ -1186,7 +1218,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td data-label="銘柄">
             ${instrumentCellHtml(row)}
           </td>
-          <td class="text-gray-300" data-label="取引所">${escapeHtml(row.exchangeLabel)}</td>
+          <td class="text-gray-300" data-label="取引所">${exchangeNameLinkHtml(row.exchangeId, row.exchangeLabel, 'sales-spread-table-exchange-link')}</td>
           <td class="is-num text-right font-mono text-red-300 ${cellFlashClass(row, 'buyPrice')}" data-label="買値">${fmtJpyPrice(latest.buyPrice, precision)}</td>
           <td class="is-num text-right font-mono text-green-300 ${cellFlashClass(row, 'sellPrice')}" data-label="売値">${fmtJpyPrice(latest.sellPrice, precision)}</td>
           <td class="is-num text-right ${cellFlashClass(row, 'currentSpreadPct')}" data-label="現在のスプレッド">${latestSpreadCell(row)}</td>
@@ -1227,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tbody.innerHTML = rows.map(row => `
       <tr class="border-b border-gray-800/60">
-        <td class="font-bold text-gray-200" data-label="取引所">${escapeHtml(row.exchangeLabel || row.exchangeId)}</td>
+        <td class="font-bold text-gray-200" data-label="取引所">${exchangeNameLinkHtml(row.exchangeId, row.exchangeLabel || row.exchangeId, 'sales-spread-table-exchange-link')}</td>
         <td class="text-gray-300" data-label="ステータス">${qualityStatusCell(row)}</td>
         <td class="is-num text-right font-mono text-gray-300" data-label="データ取得日時">
           ${escapeHtml(fmtDateTime(row.lastFetchedAt || row.lastSourceAt))}
@@ -1263,17 +1295,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const narrowSummary = narrowest && narrowest.summary;
     const wideSummary = widest && widest.summary;
-    setText(
+    setHtml(
       'spread-top-candidate',
-      narrowest ? `${narrowest.row.instrumentLabel} / ${narrowest.row.exchangeLabel}` : 'データ待ち'
+      narrowest ? instrumentExchangeHtml(narrowest.row) : 'データ待ち'
     );
     setText(
       'spread-top-candidate-meta',
       narrowSummary ? `現在 ${fmtPct(narrowSummary.spreadPct)} | ${narrowSummary.spread != null ? fmtJpyPrice(narrowSummary.spread, narrowSummary.quotePrecision) : '差額未取得'}` : '販売所価格を集計中'
     );
-    setText(
+    setHtml(
       'spread-top-caution',
-      widest ? `${widest.row.instrumentLabel} / ${widest.row.exchangeLabel}` : '広い銘柄も確認'
+      widest ? instrumentExchangeHtml(widest.row) : '広い銘柄も確認'
     );
     setText(
       'spread-top-caution-meta',
