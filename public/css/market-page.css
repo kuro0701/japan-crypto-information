@@ -1566,6 +1566,11 @@ html.theme-light [data-market-page] .exchange-identity__pin {
   min-width: 112px;
 }
 
+[data-market-page] .data-table--market-volume .market-share-cell {
+  width: 100%;
+  min-width: 0;
+}
+
 [data-market-page] .market-share-cell__value {
   position: relative;
   z-index: 1;
@@ -1591,6 +1596,22 @@ html.theme-light [data-market-page] .exchange-identity__pin {
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--share-accent, var(--accent)) 36%, transparent), var(--share-accent, var(--accent)));
   box-shadow: 0 0 12px color-mix(in srgb, var(--share-accent, var(--accent)) 18%, transparent);
+}
+
+@media (min-width: 768px) {
+  [data-market-page] .data-table--market-volume {
+    min-width: 720px;
+  }
+
+  [data-market-page] .data-table--market-volume td[data-label="銘柄内シェア"] {
+    min-width: 172px;
+    overflow: hidden;
+  }
+
+  [data-market-page] .data-table--market-volume td[data-label="取得"] {
+    min-width: 122px;
+    white-space: nowrap;
+  }
 }
 
 [data-market-page] .spread-cost-cell {
