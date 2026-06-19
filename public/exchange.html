@@ -42,6 +42,7 @@
       <span class="badge badge--live">Guide</span>
       <span class="status-text">比較の次に確認</span>
       <span class="text-xs text-gray-600 ml-2">取引所: <span class="text-gray-400">__EXCHANGE_LABEL__</span></span>
+      <button class="beginner-toggle beginner-toggle--switch exchange-mode-toggle" type="button" data-beginner-toggle data-beginner-toggle-style="switch" data-beginner-toggle-label="表示モード" data-beginner-toggle-beginner-label="初心者" data-beginner-toggle-beginner-note="販売所中心・シンプル表示" data-beginner-toggle-advanced-label="中上級者" data-beginner-toggle-advanced-note="Lightning板取引・詳細データ表示" data-beginner-toggle-on-title="初心者向けに、販売所中心のシンプル表示と用語説明を強調します" data-beginner-toggle-off-title="中上級者向けに、Lightning板取引と詳細データを表示します" aria-pressed="false">中上級者</button>
     </div>
   </header>
 
@@ -54,7 +55,7 @@
 
     <!-- EXCHANGE_TABS -->
 
-    <section class="panel panel--dense" data-exchange-tab-panel="simple">
+    <section id="exchange-overview" class="panel panel--dense" data-exchange-tab-panel="simple">
       <div class="panel-title-row mb-4">
         <div>
           <h2 class="panel-title">基本情報</h2>
@@ -174,7 +175,7 @@
   <!-- EXCHANGE_MOBILE_ACTIONS -->
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | __EXCHANGE_NAME__</footer>
-  <script src="/js/beginner-mode.js?v=6"></script>
-  <script src="/js/exchange-page.js?v=5"></script>
+  <script src="/js/beginner-mode.js?v=7"></script>
+  <script src="/js/exchange-page.js?v=7"></script>
 </body>
 </html>

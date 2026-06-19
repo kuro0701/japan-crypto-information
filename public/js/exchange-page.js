@@ -247,6 +247,57 @@
     setActiveNavLink(window.location.hash);
   }
 
+  function initStickyNavProgress() {
+    const progressNode = document.querySelector('[data-exchange-scroll-progress]');
+    const links = Array.from(document.querySelectorAll('.exchange-sticky-nav__links a[href^="#"]'));
+    if (!progressNode && links.length === 0) return;
+
+    function sectionForLink(link) {
+      const hash = link.getAttribute('href');
+      if (!hash || hash.length < 2) return null;
+      try {
+        return document.querySelector(hash);
+      } catch (_err) {
+        return null;
+      }
+    }
+
+    function sync() {
+      if (progressNode) {
+        const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+        const percent = clampPercent((window.scrollY / maxScroll) * 100);
+        progressNode.style.width = `${percent.toFixed(2)}%`;
+      }
+
+      const visibleSections = links
+        .map(link => ({ link, section: sectionForLink(link) }))
+        .filter(item => item.section && !item.section.hidden && item.section.offsetParent !== null);
+      if (visibleSections.length === 0) return;
+
+      const anchorY = window.scrollY + 132;
+      let active = visibleSections[0];
+      visibleSections.forEach((item) => {
+        if (item.section.offsetTop <= anchorY) active = item;
+      });
+
+      links.forEach((link) => {
+        const isActive = link === active.link;
+        link.classList.toggle('is-active', isActive);
+        if (isActive) link.setAttribute('aria-current', 'true');
+        else link.removeAttribute('aria-current');
+      });
+    }
+
+    window.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    document.addEventListener('click', (event) => {
+      if (event.target.closest('.exchange-sticky-nav__links a[href^="#"], .exchange-mobile-tabbar a[href^="#"]')) {
+        window.setTimeout(sync, 180);
+      }
+    });
+    sync();
+  }
+
   function initCoverageTool() {
     const tool = document.querySelector('[data-exchange-coverage-tool]');
     const dataNode = document.getElementById('exchange-coverage-data');
@@ -279,6 +330,19 @@
       return `/sales-spread?instrumentId=${encodedInstrumentId}`;
     }
 
+    function marketToken(value) {
+      return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'asset';
+    }
+
+    function assetMarkHtml(market) {
+      const symbol = String(market.baseCurrency || (market.instrumentId || '').split('-')[0] || '?').toUpperCase();
+      const label = symbol.slice(0, 4);
+      return `<span class="market-asset-mark market-asset-mark--xs market-asset-mark--${escapeHtml(marketToken(symbol))}" aria-hidden="true">${escapeHtml(label)}</span>`;
+    }
+
     function matchesFilter(market) {
       if (activeFilters.has('board') && !market.hasBoard) return false;
       if (activeFilters.has('sales') && !market.hasSales) return false;
@@ -306,9 +370,12 @@
       ].filter(Boolean).join('');
       return [
         `<a class="exchange-coverage-chip" href="${escapeHtml(marketHref(market))}">`,
-        `  <strong>${escapeHtml(market.label || market.instrumentId)}</strong>`,
-        `  <small>${escapeHtml(market.instrumentId)}</small>`,
-        `  <span class="exchange-coverage-chip__badges">${badges}</span>`,
+        `  ${assetMarkHtml(market)}`,
+        '  <span class="exchange-coverage-chip__body">',
+        `    <strong>${escapeHtml(market.label || market.instrumentId)}</strong>`,
+        `    <small>${escapeHtml(market.instrumentId)}</small>`,
+        `    <span class="exchange-coverage-chip__badges">${badges}</span>`,
+        '  </span>',
         '</a>',
       ].join('');
     }
@@ -319,9 +386,12 @@
       if (!hasSearchOrFilter && !showAll) rows = rows.filter(market => market.featured);
       if (!hasSearchOrFilter && !showAll && rows.length === 0) rows = markets.slice(0, 5);
 
+      resultNode.classList.remove('is-rendered');
       resultNode.innerHTML = rows.length > 0
         ? rows.map(renderMarket).join('')
         : '<p class="exchange-coverage-empty">該当する銘柄はありません。</p>';
+      void resultNode.offsetWidth;
+      resultNode.classList.add('is-rendered');
 
       if (countNode) {
         const mode = hasSearchOrFilter || showAll ? '条件に一致' : '主要銘柄';
@@ -384,19 +454,33 @@
     return '';
   }
 
-  function flashIfChanged(node, nextText) {
+  function flashIfChanged(node, nextText, flashTone) {
     if (!node) return;
     const previous = node.textContent;
     node.textContent = nextText;
     if (previous && previous !== nextText) {
-      node.classList.remove('is-live-tick');
+      node.classList.remove('is-live-tick', 'is-live-up', 'is-live-down');
       void node.offsetWidth;
       node.classList.add('is-live-tick');
+      if (flashTone) node.classList.add(`is-live-${flashTone}`);
     }
   }
 
-  function setQuoteField(field, text) {
-    document.querySelectorAll(`[data-quote-field="${field}"]`).forEach(node => flashIfChanged(node, text));
+  function quoteFlashTone(field, previousValue, nextValue) {
+    const previous = numberOrNull(previousValue);
+    const next = numberOrNull(nextValue);
+    if (previous == null || next == null || previous === next) return null;
+    if (field === 'spread') return next > previous ? 'down' : 'up';
+    return next > previous ? 'up' : 'down';
+  }
+
+  function setQuoteField(field, text, rawValue) {
+    document.querySelectorAll(`[data-quote-field="${field}"]`).forEach((node) => {
+      const tone = quoteFlashTone(field, node.dataset.quoteNumeric, rawValue);
+      flashIfChanged(node, text, tone);
+      if (rawValue == null || rawValue === '') delete node.dataset.quoteNumeric;
+      else node.dataset.quoteNumeric = String(rawValue);
+    });
   }
 
   function setDepthField(field, text) {
@@ -409,14 +493,55 @@
     });
   }
 
+  function depthLevelValue(level) {
+    const depthJpy = numberOrNull(level && level.depthJPY);
+    if (depthJpy != null) return depthJpy;
+    const price = numberOrNull(level && level.price);
+    const quantity = numberOrNull(level && level.quantity);
+    return price != null && quantity != null ? price * quantity : null;
+  }
+
+  function renderDepthHistogramSide(levels, side, maxDepth) {
+    const rows = Array.isArray(levels) ? levels.slice(0, 8) : [];
+    if (rows.length === 0 || !Number.isFinite(maxDepth) || maxDepth <= 0) {
+      return '<span class="exchange-depth-histogram__empty">待機中</span>';
+    }
+    return rows.map((level) => {
+      const depth = depthLevelValue(level) || 0;
+      const height = clampPercent(Math.max(8, (depth / maxDepth) * 100));
+      const price = numberOrNull(level && level.price);
+      return [
+        `<span class="exchange-depth-histogram__bar exchange-depth-histogram__bar--${escapeHtml(side)}" style="--depth-height:${height.toFixed(2)}%" title="${escapeHtml(price != null ? formatJpyPrice(price) : side)}">`,
+        '  <i></i>',
+        '</span>',
+      ].join('');
+    }).join('');
+  }
+
+  function updateDepthHistogram(orderbook) {
+    const askLevels = Array.isArray(orderbook && orderbook.askDepthLevels) ? orderbook.askDepthLevels : [];
+    const bidLevels = Array.isArray(orderbook && orderbook.bidDepthLevels) ? orderbook.bidDepthLevels : [];
+    const maxDepth = Math.max(
+      0,
+      ...askLevels.map(level => depthLevelValue(level) || 0),
+      ...bidLevels.map(level => depthLevelValue(level) || 0)
+    );
+    document.querySelectorAll('[data-depth-histogram-side="ask"]').forEach((node) => {
+      node.innerHTML = renderDepthHistogramSide(askLevels.slice().reverse(), 'ask', maxDepth);
+    });
+    document.querySelectorAll('[data-depth-histogram-side="bid"]').forEach((node) => {
+      node.innerHTML = renderDepthHistogramSide(bidLevels, 'bid', maxDepth);
+    });
+  }
+
   function updateMicroQuote(orderbook, state) {
     const bestBid = numberOrNull(orderbook && orderbook.bestBid);
     const bestAsk = numberOrNull(orderbook && orderbook.bestAsk);
     const spreadPct = numberOrNull(orderbook && orderbook.spreadPct);
 
-    setQuoteField('bid', bestBid != null ? formatJpyPrice(bestBid) : '-');
-    setQuoteField('ask', bestAsk != null ? formatJpyPrice(bestAsk) : '-');
-    setQuoteField('spread', spreadPct != null ? formatPct(spreadPct, 3) : '-');
+    setQuoteField('bid', bestBid != null ? formatJpyPrice(bestBid) : '-', bestBid);
+    setQuoteField('ask', bestAsk != null ? formatJpyPrice(bestAsk) : '-', bestAsk);
+    setQuoteField('spread', spreadPct != null ? formatPct(spreadPct, 3) : '-', spreadPct);
     setQuoteField('age', state === 'ready' ? 'live' : state === 'stale' ? 'stale' : 'waiting');
   }
 
@@ -431,6 +556,7 @@
     setDepthField('total', totalDepth != null ? formatJpyCompact(totalDepth) : '読み込み中');
     setDepthBar('bid', maxSide > 0 ? ((bidDepth || 0) / maxSide) * 100 : 0);
     setDepthBar('ask', maxSide > 0 ? ((askDepth || 0) / maxSide) * 100 : 0);
+    updateDepthHistogram(orderbook);
   }
 
   function updateOrderbookFields(report, row) {
@@ -581,9 +707,12 @@
   }
 
   function initCostSimulator() {
-    const simulator = document.querySelector('[data-exchange-cost-simulator]');
-    if (!simulator || !exchangeId || !instrumentId) return;
+    const simulators = Array.from(document.querySelectorAll('[data-exchange-cost-simulator]'));
+    if (simulators.length === 0 || !exchangeId || !instrumentId) return;
+    simulators.forEach(initSingleCostSimulator);
+  }
 
+  function initSingleCostSimulator(simulator) {
     const range = simulator.querySelector('[data-cost-amount-range]');
     const input = simulator.querySelector('[data-cost-amount-input]');
     const quickButtons = Array.from(simulator.querySelectorAll('[data-cost-quick-amount]'));
@@ -736,6 +865,72 @@
     });
   }
 
+  async function copyExchangeValue(value) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(value);
+        return;
+      } catch (_err) {
+        // Fall through to the selection-based copy path for restricted browser contexts.
+      }
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand('copy');
+    textarea.remove();
+    if (!copied) throw new Error('copy failed');
+  }
+
+  function showCopyFeedback(button, message) {
+    const panel = button.closest('.exchange-referral-copy-panel') || document;
+    const feedback = panel.querySelector('[data-exchange-copy-feedback]');
+    if (!feedback) return;
+    feedback.textContent = message;
+    feedback.classList.remove('is-visible');
+    void feedback.offsetWidth;
+    feedback.classList.add('is-visible');
+    window.clearTimeout(Number(feedback.dataset.hideTimer || 0));
+    const timer = window.setTimeout(() => {
+      feedback.classList.remove('is-visible');
+      feedback.textContent = '';
+      delete feedback.dataset.hideTimer;
+    }, 1800);
+    feedback.dataset.hideTimer = String(timer);
+  }
+
+  function initCopyButtons() {
+    document.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest
+        ? event.target.closest('[data-exchange-copy-value]')
+        : null;
+      if (!button) return;
+      event.preventDefault();
+      const value = button.getAttribute('data-exchange-copy-value') || '';
+      const label = button.getAttribute('data-exchange-copy-label') || '値';
+      copyExchangeValue(value)
+        .then(() => showCopyFeedback(button, `${label}をコピーしました`))
+        .catch(() => showCopyFeedback(button, 'コピーできませんでした'));
+    });
+  }
+
+  function initMobileDetailLists() {
+    document.querySelectorAll('[data-exchange-mobile-detail-list]').forEach((shell) => {
+      const button = shell.querySelector('[data-exchange-mobile-detail-toggle]');
+      if (!button) return;
+      button.addEventListener('click', () => {
+        const expanded = !shell.classList.contains('is-expanded');
+        shell.classList.toggle('is-expanded', expanded);
+        button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        button.textContent = expanded ? '詳細を隠す' : '詳細を表示';
+      });
+    });
+  }
+
   async function loadExchangeMarket(options = {}) {
     if (!exchangeId || !instrumentId) return;
 
@@ -800,9 +995,12 @@
   }
 
   initTabs();
+  initStickyNavProgress();
   initCoverageTool();
   initCostSimulator();
   initSourceVerifier();
+  initCopyButtons();
+  initMobileDetailLists();
   initPressFeedback();
 
   loadExchangeMarket()

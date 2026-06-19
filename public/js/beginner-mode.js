@@ -537,6 +537,28 @@
     return true;
   }
 
+  function renderSwitchToggle(button, currentLabel) {
+    const beginnerLabel = button.dataset.beginnerToggleBeginnerLabel || '初心者';
+    const beginnerNote = button.dataset.beginnerToggleBeginnerNote || 'シンプル表示';
+    const advancedLabel = button.dataset.beginnerToggleAdvancedLabel || '中上級者';
+    const advancedNote = button.dataset.beginnerToggleAdvancedNote || '詳細表示';
+    button.setAttribute('aria-label', `${button.dataset.beginnerToggleLabel || '表示モード'}: ${currentLabel}`);
+    button.innerHTML = `
+      <span class="beginner-toggle-switch__option beginner-toggle-switch__option--beginner">
+        <strong>${escapeHtml(beginnerLabel)}</strong>
+        <small>${escapeHtml(beginnerNote)}</small>
+      </span>
+      <span class="beginner-toggle-switch__track" aria-hidden="true">
+        <span class="beginner-toggle-switch__knob"></span>
+      </span>
+      <span class="beginner-toggle-switch__option beginner-toggle-switch__option--advanced">
+        <strong>${escapeHtml(advancedLabel)}</strong>
+        <small>${escapeHtml(advancedNote)}</small>
+      </span>
+      <span class="sr-only">${escapeHtml(currentLabel)}</span>
+    `;
+  }
+
   function syncToggleButtons() {
     if (isBeginnerModeDisabled()) return;
     ensurePageToggle();
@@ -548,9 +570,15 @@
       const offTitle = button.dataset.beginnerToggleOffTitle || '用語説明を見やすくする初心者モードを有効化';
       button.classList.toggle('is-active', beginnerMode);
       button.setAttribute('aria-pressed', beginnerMode ? 'true' : 'false');
-      button.textContent = beginnerMode
+      const currentText = beginnerMode
         ? (onText || `${label}: ON`)
         : (offText || `${label}: OFF`);
+      if (button.dataset.beginnerToggleStyle === 'switch') {
+        renderSwitchToggle(button, currentText);
+      } else {
+        button.textContent = currentText;
+        button.removeAttribute('aria-label');
+      }
       button.title = beginnerMode ? onTitle : offTitle;
     });
   }

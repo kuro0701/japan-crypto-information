@@ -569,7 +569,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 	  assert.equal(bitflyerHtml.status, 200);
 	  assert.ok(bitflyerHtml.body.includes('bitFlyerの特徴まとめ'));
 	  assert.ok(bitflyerHtml.body.includes('BTC・ETH・XRPなど主要銘柄を板取引で比較したい人'));
-	  assert.ok(bitflyerHtml.body.includes('10万円分買うときの実質コストを見る'));
+		  assert.ok(bitflyerHtml.body.includes('買う金額で概算コストを見る'));
+		  assert.ok(bitflyerHtml.body.includes('data-exchange-cost-simulator'));
 	  assert.ok(bitflyerHtml.body.includes('銘柄検索・対応形式フィルタ'));
 	  assert.ok(bitflyerHtml.body.includes('全銘柄を表示'));
 	  assert.ok(bitflyerHtml.body.includes('入出金・送金条件'));
