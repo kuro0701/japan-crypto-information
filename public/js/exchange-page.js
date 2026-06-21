@@ -12,12 +12,28 @@
   const errorClass = 'is-error';
   const refreshIntervalMs = 10000;
   const costDebounceMs = 220;
+  const slotCostFields = new Set([
+    'salesReceive',
+    'boardReceive',
+    'deltaJpy',
+    'deltaBase',
+    'salesBarLabel',
+    'boardBarLabel',
+    'proAmount',
+    'proSalesSpread',
+    'proImpact',
+    'proFee',
+  ]);
+  const slotTimers = new WeakMap();
   let latestReport = null;
   let latestExchangeRow = null;
   let refreshTimeoutId = null;
   let countdownIntervalId = null;
   let nextRefreshAt = 0;
   let lastUpdateLabel = '-';
+  let lastMarketApiLatencyMs = null;
+  let latestBoardSpreadPct = null;
+  let latestSalesSpreadPct = null;
 
   function numberOrNull(value) {
     if (value == null || value === '') return null;
@@ -73,6 +89,13 @@
     }).format(numeric)} ${currency || 'BTC'}`;
   }
 
+  function formatSignedBaseAmount(value, currency) {
+    const numeric = numberOrNull(value);
+    if (numeric == null) return '-';
+    const sign = numeric > 0 ? '+' : '';
+    return `${sign}${formatBaseAmount(numeric, currency)}`;
+  }
+
   function formatSignedJpy(value) {
     const numeric = numberOrNull(value);
     if (numeric == null) return '-';
@@ -95,6 +118,19 @@
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
+  }
+
+  function nowMs() {
+    return window.performance && typeof window.performance.now === 'function'
+      ? window.performance.now()
+      : Date.now();
+  }
+
+  function formatLatencyMs(value) {
+    const numeric = numberOrNull(value);
+    if (numeric == null) return '-';
+    if (numeric < 1000) return `${Math.max(0, Math.round(numeric))}ms`;
+    return `${(numeric / 1000).toFixed(numeric < 10000 ? 1 : 0)}s`;
   }
 
   function escapeHtml(value) {
@@ -133,12 +169,72 @@
 
   function setDataField(rootNode, field, text) {
     if (!rootNode) return;
+    const nextText = String(text == null ? '' : text);
     rootNode.querySelectorAll(`[data-cost-field="${field}"]`).forEach((node) => {
-      node.textContent = text;
+      const previous = node.textContent;
+      const shouldSlot = slotCostFields.has(field)
+        && previous
+        && previous !== nextText
+        && !/待ち|計算中|確認中|失敗/.test(previous)
+        && !/待ち|計算中|確認中|失敗/.test(nextText);
+      node.classList.toggle('is-slot-number', slotCostFields.has(field));
+      if (shouldSlot) {
+        node.dataset.slotPrev = previous;
+        node.dataset.slotNext = nextText;
+        node.classList.remove('is-slotting');
+        void node.offsetWidth;
+        node.classList.add('is-slotting');
+        window.clearTimeout(slotTimers.get(node));
+        slotTimers.set(node, window.setTimeout(() => {
+          node.classList.remove('is-slotting');
+        }, 460));
+      }
+      node.textContent = nextText;
       node.classList.remove('is-live-tick');
       void node.offsetWidth;
       node.classList.add('is-live-tick');
     });
+  }
+
+  function setStickyField(field, text, tone) {
+    document.querySelectorAll(`[data-exchange-sticky-field="${field}"]`).forEach((node) => {
+      const nextText = String(text == null ? '' : text);
+      const previous = node.textContent;
+      node.textContent = nextText;
+      if (tone) node.dataset.tone = tone;
+      else delete node.dataset.tone;
+      if (previous && previous !== nextText) {
+        node.classList.remove('is-live-tick');
+        void node.offsetWidth;
+        node.classList.add('is-live-tick');
+      }
+    });
+  }
+
+  function setMetaField(field, text, tone) {
+    document.querySelectorAll(`[data-exchange-meta-field="${field}"]`).forEach((node) => {
+      const nextText = String(text == null ? '' : text);
+      const previous = node.textContent;
+      node.textContent = nextText;
+      if (tone) node.dataset.tone = tone;
+      else delete node.dataset.tone;
+      if (previous && previous !== nextText) {
+        node.classList.remove('is-live-tick');
+        void node.offsetWidth;
+        node.classList.add('is-live-tick');
+      }
+    });
+  }
+
+  function updateStickySpread() {
+    const text = [
+      latestSalesSpreadPct != null ? `販売所 ${formatPct(latestSalesSpreadPct, 2)}` : '',
+      latestBoardSpreadPct != null ? `板 ${formatPct(latestBoardSpreadPct, 3)}` : '',
+    ].filter(Boolean).join(' / ') || '比較待ち';
+    const tone = latestSalesSpreadPct == null
+      ? (latestBoardSpreadPct != null && latestBoardSpreadPct < 0.1 ? 'calm' : 'neutral')
+      : (latestSalesSpreadPct <= 3 ? 'calm' : 'warning');
+    setStickyField('spread', text, tone);
   }
 
   function clampPercent(value) {
@@ -538,11 +634,19 @@
     const bestBid = numberOrNull(orderbook && orderbook.bestBid);
     const bestAsk = numberOrNull(orderbook && orderbook.bestAsk);
     const spreadPct = numberOrNull(orderbook && orderbook.spreadPct);
+    const bidDepth = numberOrNull(orderbook && orderbook.totalBidDepthJPY);
+    const askDepth = numberOrNull(orderbook && orderbook.totalAskDepthJPY);
+    const maxDepth = Math.max(bidDepth || 0, askDepth || 0);
 
     setQuoteField('bid', bestBid != null ? formatJpyPrice(bestBid) : '-', bestBid);
     setQuoteField('ask', bestAsk != null ? formatJpyPrice(bestAsk) : '-', bestAsk);
     setQuoteField('spread', spreadPct != null ? formatPct(spreadPct, 3) : '-', spreadPct);
     setQuoteField('age', state === 'ready' ? 'live' : state === 'stale' ? 'stale' : 'waiting');
+    document.querySelectorAll('[data-exchange-micro-quote]').forEach((node) => {
+      node.dataset.state = state || 'waiting';
+      node.style.setProperty('--quote-bid-depth', `${maxDepth > 0 ? clampPercent((bidDepth || 0) / maxDepth * 100).toFixed(2) : '0'}%`);
+      node.style.setProperty('--quote-ask-depth', `${maxDepth > 0 ? clampPercent((askDepth || 0) / maxDepth * 100).toFixed(2) : '0'}%`);
+    });
   }
 
   function updateDepthMiniChart(orderbook) {
@@ -559,18 +663,36 @@
     updateDepthHistogram(orderbook);
   }
 
+  function updateSourceMetadata(row) {
+    const orderbook = row && row.orderbook ? row.orderbook : null;
+    const source = String((orderbook && orderbook.source) || (row && row.source) || 'api').toUpperCase();
+    const updatedAt = numberOrNull(orderbook && (orderbook.updatedAt || orderbook.receivedAt));
+    const ageMs = updatedAt != null ? Math.max(0, Date.now() - updatedAt) : null;
+    const ageTone = ageMs == null ? 'neutral' : ageMs > 15000 ? 'warning' : 'calm';
+
+    setMetaField('source', source, source === 'WEBSOCKET' ? 'calm' : 'neutral');
+    setMetaField('dataAge', ageMs != null ? formatLatencyMs(ageMs) : '-', ageTone);
+    setMetaField('pageApi', lastMarketApiLatencyMs != null ? formatLatencyMs(lastMarketApiLatencyMs) : '-', lastMarketApiLatencyMs != null && lastMarketApiLatencyMs < 500 ? 'calm' : 'neutral');
+  }
+
   function updateOrderbookFields(report, row) {
     const marketLabel = (report.market && report.market.label) || instrumentId.replace(/-/g, '/');
     const orderbook = row && row.orderbook ? row.orderbook : null;
     const state = orderbookState(orderbook);
     const bestBid = numberOrNull(orderbook && orderbook.bestBid);
     const bestAsk = numberOrNull(orderbook && orderbook.bestAsk);
+    const spreadPct = numberOrNull(orderbook && orderbook.spreadPct);
     const visibleDepth = numberOrNull(orderbook && orderbook.visibleDepthJPY);
+    latestBoardSpreadPct = spreadPct;
 
     if (bestBid != null && bestAsk != null) {
       setLiveField('bidAsk', `${marketLabel}: Bid ${formatJpyPrice(bestBid)} / Ask ${formatJpyPrice(bestAsk)}${stateSuffix(state)}`, state);
+      setStickyField('price', `Ask ${formatJpyPrice(bestAsk).replace('￥', '¥')}`, state === 'ready' ? 'calm' : state);
+      updateStickySpread();
     } else {
       setLiveField('bidAsk', `${marketLabel}: Bid / Ask は公式画面で確認してください。`, 'stale');
+      setStickyField('price', '公式確認', 'warning');
+      updateStickySpread();
     }
 
     if (visibleDepth != null && visibleDepth > 0) {
@@ -588,6 +710,7 @@
 
     updateMicroQuote(orderbook, state);
     updateDepthMiniChart(orderbook);
+    updateSourceMetadata(row);
   }
 
   function updateCostFields(report, row) {
@@ -638,15 +761,37 @@
     return row && (row.baseCurrency || (row.instrumentId || '').split('-')[0]) || fallback;
   }
 
-  function updateCostBars(simulator, salesBase, boardBase) {
+  function updateCostBars(simulator, salesBase, boardBase, deltaBase) {
     const maxBase = Math.max(Number(salesBase) || 0, Number(boardBase) || 0);
     const salesPercent = maxBase > 0 ? (Number(salesBase) || 0) / maxBase * 100 : 0;
     const boardPercent = maxBase > 0 ? (Number(boardBase) || 0) / maxBase * 100 : 0;
+    const deltaPercent = maxBase > 0 ? Math.abs(Number(deltaBase) || 0) / maxBase * 100 : 0;
     simulator.querySelectorAll('[data-cost-bar="sales"]').forEach((node) => {
       node.style.width = `${clampPercent(salesPercent).toFixed(2)}%`;
     });
     simulator.querySelectorAll('[data-cost-bar="board"]').forEach((node) => {
       node.style.width = `${clampPercent(boardPercent).toFixed(2)}%`;
+    });
+    simulator.querySelectorAll('[data-cost-bar="delta"]').forEach((node) => {
+      node.style.width = `${clampPercent(Math.max(5, deltaPercent)).toFixed(2)}%`;
+    });
+  }
+
+  function simulatorRiskTone(impact, result) {
+    const tone = impactTone(impact);
+    if (tone === 'danger' || tone === 'warning') return tone;
+    const levelsConsumed = numberOrNull(result && result.levelsConsumed);
+    const slippageFromBestPct = Math.abs(numberOrNull(result && result.slippageFromBestPct) || 0);
+    if (result && (result.insufficient || result.executionStatus === 'guard_rejected')) return 'danger';
+    if ((levelsConsumed != null && levelsConsumed >= 4) || slippageFromBestPct >= 0.02) return 'warning';
+    return tone;
+  }
+
+  function syncSimulatorTone(simulator, impact, result) {
+    const tone = simulatorRiskTone(impact, result);
+    simulator.dataset.impactTone = tone;
+    simulator.querySelectorAll('[data-cost-field="proImpact"], [data-cost-field="boardMeta"]').forEach((node) => {
+      node.dataset.tone = tone;
     });
   }
 
@@ -662,10 +807,14 @@
     const salesSpreadPct = numberOrNull(salesRow && salesRow.spreadPct);
     const deltaBase = boardBase != null && salesBase != null ? boardBase - salesBase : null;
     const deltaJpy = deltaBase != null && salesPrice != null ? deltaBase * salesPrice : null;
+    const impactRiskTone = simulatorRiskTone(impact, boardResult);
+    const levelsConsumed = numberOrNull(boardResult && boardResult.levelsConsumed);
+    const levelsText = levelsConsumed != null && levelsConsumed > 1 ? ` / 板${levelsConsumed}段消費` : '';
 
     setDataField(simulator, 'status', '再計算済み');
     setDataField(simulator, 'proAmount', formatJpyAmount(amount).replace('￥', '¥'));
     setDataField(simulator, 'salesReceive', salesBase != null ? formatBaseAmount(salesBase, baseCurrency) : '販売所データ待ち');
+    setDataField(simulator, 'salesBarLabel', salesBase != null ? formatBaseAmount(salesBase, baseCurrency) : '販売所データ待ち');
     setDataField(
       simulator,
       'salesMeta',
@@ -674,17 +823,23 @@
         : (salesRow && salesRow.message) || '販売所価格を確認中'
     );
     setDataField(simulator, 'boardReceive', boardBase != null ? formatBaseAmount(boardBase, baseCurrency) : '板データ待ち');
+    setDataField(simulator, 'boardBarLabel', boardBase != null ? formatBaseAmount(boardBase, baseCurrency) : '板データ待ち');
     setDataField(
       simulator,
       'boardMeta',
       impact != null
-        ? `Impact ${formatPct(impact, 3)} / ${boardResult.executionStatusLabel || '参考値'}`
+        ? `Impact ${formatPct(impact, 3)} / ${boardResult.executionStatusLabel || '参考値'}${levelsText}`
         : (boardRow && boardRow.message) || '板データを確認中'
     );
     setDataField(
       simulator,
       'deltaJpy',
       deltaJpy != null ? formatSignedJpy(deltaJpy) : '比較待ち'
+    );
+    setDataField(
+      simulator,
+      'deltaBase',
+      deltaBase != null ? formatSignedBaseAmount(deltaBase, baseCurrency) : '比較待ち'
     );
     setDataField(
       simulator,
@@ -703,7 +858,12 @@
     setDataField(simulator, 'proSalesSpread', salesSpreadPct != null ? formatPct(salesSpreadPct, 3) : '-');
     setDataField(simulator, 'proImpact', impact != null ? formatPct(impact, 4) : '-');
     setDataField(simulator, 'proFee', feeRatePct != null ? `${formatPct(feeRatePct, 4)} / ${boardResult.feeLabel || '既定'}` : '-');
-    updateCostBars(simulator, salesBase, boardBase);
+    syncSimulatorTone(simulator, impact, boardResult);
+    updateCostBars(simulator, salesBase, boardBase, deltaBase);
+    latestSalesSpreadPct = salesSpreadPct;
+    updateStickySpread();
+    setStickyField('delta', deltaJpy != null ? formatSignedJpy(deltaJpy).replace('￥', '¥') : '比較待ち', deltaJpy != null && deltaJpy > 0 ? 'calm' : 'neutral');
+    setStickyField('amount', `${formatJpyAmount(amount).replace('￥', '¥')}買い`, impactRiskTone);
   }
 
   function initCostSimulator() {
@@ -945,7 +1105,9 @@
       setGaugeField('slippage', { value: '読み込み中', percent: 0, tone: 'neutral', state: 'waiting' });
     }
 
+    const requestStartedAt = nowMs();
     const report = await fetchJson(`/api/markets/${encodeURIComponent(instrumentId)}`);
+    lastMarketApiLatencyMs = Math.max(0, nowMs() - requestStartedAt);
     latestReport = report;
     lastUpdateLabel = formatDateTime(report && report.meta && report.meta.generatedAt);
     const rows = report && report.domesticComparison && Array.isArray(report.domesticComparison.rows)
