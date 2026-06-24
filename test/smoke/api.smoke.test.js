@@ -7,7 +7,25 @@ const OrderBook = require('../../lib/orderbook');
 const { createTempDir, removeTempDir } = require('../helpers/temp-dir');
 
 const SERVER_PATH = path.resolve(__dirname, '../../server.js');
-const TEST_ENV_KEYS = ['ANALYTICS_ADMIN_TOKEN', 'ANALYTICS_ADMIN_TOKEN_HASH', 'DATA_DIR', 'DATABASE_URL', 'LEGACY_HOSTS', 'NODE_ENV', 'SITE_ORIGIN'];
+const TEST_ENV_KEYS = [
+  'ANALYTICS_ADMIN_TOKEN',
+  'ANALYTICS_ADMIN_TOKEN_HASH',
+  'DATA_DIR',
+  'DATABASE_URL',
+  'GOOGLE_CLIENT_EMAIL',
+  'GOOGLE_PRIVATE_KEY',
+  'GOOGLE_SERVICE_ACCOUNT_EMAIL',
+  'GOOGLE_SHEETS_PRIVATE_KEY',
+  'GOOGLE_SHEETS_SERVICE_ACCOUNT_EMAIL',
+  'GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON',
+  'GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON_BASE64',
+  'GOOGLE_SHEETS_SHEET_NAME',
+  'GOOGLE_SHEETS_SPREADSHEET_ID',
+  'LEGACY_HOSTS',
+  'NODE_ENV',
+  'SITE_ORIGIN',
+  'SNAPSHOT_STORAGE',
+];
 const COINCHECK_AFFILIATE_URL = 'https://h.accesstrade.net/sp/cc?rk=0100nerr00osx0';
 const COINCHECK_TRACKING_PIXEL_URL = 'https://h.accesstrade.net/sp/rr?rk=0100nerr00osx0';
 
@@ -151,13 +169,12 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const tempDir = createTempDir('okj-smoke-');
   const previousEnv = new Map(TEST_ENV_KEYS.map((key) => [key, process.env[key]]));
 
+  for (const key of TEST_ENV_KEYS) {
+    delete process.env[key];
+  }
   process.env.ANALYTICS_ADMIN_TOKEN = 'test-token';
-  delete process.env.ANALYTICS_ADMIN_TOKEN_HASH;
   process.env.DATA_DIR = tempDir;
-  delete process.env.DATABASE_URL;
-  delete process.env.LEGACY_HOSTS;
   process.env.NODE_ENV = 'test';
-  delete process.env.SITE_ORIGIN;
 
   delete require.cache[SERVER_PATH];
   const runtime = require(SERVER_PATH);

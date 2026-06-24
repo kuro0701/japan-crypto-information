@@ -13,6 +13,7 @@
     "test": "npm run test:unit && npm run test:smoke",
     "test:unit": "node --test --test-concurrency=1 ./test/unit/*.test.js",
     "test:smoke": "node --test --test-concurrency=1 ./test/smoke/*.test.js",
+    "migrate:snapshots:neon-to-sheets": "node scripts/migrate-snapshot-history-neon-to-sheets.js",
     "deploy": "wrangler deploy",
     "preview": "wrangler dev"
   },

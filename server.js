@@ -21,6 +21,10 @@ const VolumeShareStore = require('./lib/volume-share-store');
 const SalesSpreadStore = require('./lib/sales-spread-store');
 const AnalyticsStore = require('./lib/analytics-store');
 const { NeonStateStore } = require('./lib/neon-state-store');
+const {
+  GoogleSheetsStateStore,
+  loadGoogleSheetsServiceAccountFromEnv,
+} = require('./lib/google-sheets-state-store');
 const { ensureDataDirHealth, resolveDataDir } = require('./lib/data-storage');
 const { calculateImpact } = require('./lib/impact-calculator');
 const { injectGoogleTag, renderHeadMeta } = require('./lib/head-meta');
@@ -63,7 +67,9 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const CHART_JS_BROWSER_PATH = path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.min.js');
 const BUNDLED_DATA_DIR = path.join(__dirname, 'data');
 const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
-const USE_NEON_SNAPSHOT_STORAGE = Boolean(DATABASE_URL);
+const SNAPSHOT_STORAGE = String(process.env.SNAPSHOT_STORAGE || '').trim().toLowerCase();
+const GOOGLE_SHEETS_SPREADSHEET_ID = String(process.env.GOOGLE_SHEETS_SPREADSHEET_ID || '').trim();
+const GOOGLE_SHEETS_SHEET_NAME = String(process.env.GOOGLE_SHEETS_SHEET_NAME || '').trim();
 const DATA_DIR = resolveDataDir({ projectRoot: __dirname });
 const DATA_DIR_CONFIGURED = Boolean(String(process.env.DATA_DIR || '').trim());
 const BUNDLED_DATA_FILES = Object.freeze({
@@ -75,7 +81,57 @@ const DATA_FILES = Object.freeze({
   salesSpread: path.join(DATA_DIR, 'sales-spread-history.json'),
   analytics: path.join(DATA_DIR, 'analytics.json'),
 });
-const EXPECTED_DATA_FILES = USE_NEON_SNAPSHOT_STORAGE
+
+function createSnapshotStateStore() {
+  const requestedStorage = SNAPSHOT_STORAGE;
+  const hasGoogleSheetsConfig = Boolean(GOOGLE_SHEETS_SPREADSHEET_ID);
+  const storage = requestedStorage
+    || (hasGoogleSheetsConfig ? 'google-sheets' : (DATABASE_URL ? 'neon' : 'json'));
+
+  if (storage === 'json' || storage === 'file' || storage === 'local') {
+    return {
+      label: 'JSON',
+      store: null,
+    };
+  }
+
+  if (storage === 'google-sheets' || storage === 'sheets' || storage === 'sheet') {
+    if (!GOOGLE_SHEETS_SPREADSHEET_ID) {
+      throw new Error('GOOGLE_SHEETS_SPREADSHEET_ID is required when SNAPSHOT_STORAGE=google-sheets');
+    }
+    const serviceAccount = loadGoogleSheetsServiceAccountFromEnv(process.env);
+    if (!serviceAccount) {
+      throw new Error('Google Sheets service account credentials are required when SNAPSHOT_STORAGE=google-sheets');
+    }
+
+    return {
+      label: 'Google Sheets',
+      store: new GoogleSheetsStateStore({
+        spreadsheetId: GOOGLE_SHEETS_SPREADSHEET_ID,
+        sheetName: GOOGLE_SHEETS_SHEET_NAME || undefined,
+        serviceAccount,
+      }),
+    };
+  }
+
+  if (storage === 'neon' || storage === 'postgres' || storage === 'postgresql') {
+    if (!DATABASE_URL) {
+      throw new Error('DATABASE_URL is required when SNAPSHOT_STORAGE=neon');
+    }
+
+    return {
+      label: 'Neon',
+      store: new NeonStateStore({ connectionString: DATABASE_URL }),
+    };
+  }
+
+  throw new Error(`Unsupported SNAPSHOT_STORAGE value: ${requestedStorage}`);
+}
+
+const snapshotPersistence = createSnapshotStateStore();
+const snapshotStateStore = snapshotPersistence.store;
+const USE_REMOTE_SNAPSHOT_STORAGE = Boolean(snapshotStateStore);
+const EXPECTED_DATA_FILES = USE_REMOTE_SNAPSHOT_STORAGE
   ? [DATA_FILES.analytics]
   : Object.values(DATA_FILES);
 
@@ -135,18 +191,15 @@ const SITEMAP_PAGES = [
   },
 ];
 
-const snapshotStateStore = USE_NEON_SNAPSHOT_STORAGE
-  ? new NeonStateStore({ connectionString: DATABASE_URL })
-  : null;
 const volumeShareStore = new VolumeShareStore({
-  dataFilePath: USE_NEON_SNAPSHOT_STORAGE ? null : DATA_FILES.volumeShare,
-  seedFilePath: USE_NEON_SNAPSHOT_STORAGE ? BUNDLED_DATA_FILES.volumeShare : DATA_FILES.volumeShare,
+  dataFilePath: USE_REMOTE_SNAPSHOT_STORAGE ? null : DATA_FILES.volumeShare,
+  seedFilePath: USE_REMOTE_SNAPSHOT_STORAGE ? BUNDLED_DATA_FILES.volumeShare : DATA_FILES.volumeShare,
   persistence: snapshotStateStore,
   persistenceKey: 'volume-share',
 });
 const salesSpreadStore = new SalesSpreadStore({
-  dataFilePath: USE_NEON_SNAPSHOT_STORAGE ? null : DATA_FILES.salesSpread,
-  seedFilePath: USE_NEON_SNAPSHOT_STORAGE ? BUNDLED_DATA_FILES.salesSpread : DATA_FILES.salesSpread,
+  dataFilePath: USE_REMOTE_SNAPSHOT_STORAGE ? null : DATA_FILES.salesSpread,
+  seedFilePath: USE_REMOTE_SNAPSHOT_STORAGE ? BUNDLED_DATA_FILES.salesSpread : DATA_FILES.salesSpread,
   persistence: snapshotStateStore,
   persistenceKey: 'sales-spread',
 });
@@ -851,7 +904,7 @@ function startRuntime(options = {}) {
         const displayHost = actualHost === '0.0.0.0' || actualHost === '::' ? 'localhost' : actualHost;
 
         if (shouldLog) {
-          const storageLabel = USE_NEON_SNAPSHOT_STORAGE ? 'snapshot history: Neon' : 'snapshot history: JSON';
+          const storageLabel = `snapshot history: ${snapshotPersistence.label}`;
           console.log(`取引コスト計算（板シミュレーター） running on http://${displayHost}:${actualPort} (${EXCHANGES.map(exchange => exchange.label).join(', ')}; ${storageLabel})`);
         }
 

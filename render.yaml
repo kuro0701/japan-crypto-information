@@ -17,5 +17,11 @@ services:
         value: https://get-crypto.org
       - key: LEGACY_HOSTS
         value: japan-crypto-information.onrender.com
-      - key: DATABASE_URL
+      - key: SNAPSHOT_STORAGE
         sync: false
+      - key: GOOGLE_SHEETS_SPREADSHEET_ID
+        sync: false
+      - key: GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON_BASE64
+        sync: false
+      - key: GOOGLE_SHEETS_SHEET_NAME
+        value: app_state_snapshots
