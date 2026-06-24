@@ -303,6 +303,46 @@ test('VolumeShareStore supports extended history windows for longer comparisons'
   assert.equal(history.rows.length, 2);
 });
 
+test('VolumeShareStore filters history windows by calendar days rather than sparse snapshot count', (t) => {
+  const tempDir = createTempDir('okj-volume-store-calendar-window-');
+  t.after(() => removeTempDir(tempDir));
+
+  const store = new VolumeShareStore({
+    dataFilePath: path.join(tempDir, 'volume-share-history.json'),
+  });
+
+  for (const [date, volume] of [
+    ['2026-04-16', 100],
+    ['2026-05-25', 200],
+    ['2026-05-26', 300],
+    ['2026-06-18', 400],
+    ['2026-06-24', 500],
+  ]) {
+    store.captureDaily([
+      volumeRecord('okj', 'BTC-JPY', volume, `${date}T00:00:00.000Z`),
+    ], {
+      capturedAt: `${date}T00:00:00.000Z`,
+      volumeDateJst: date,
+      reason: 'jst-midnight',
+    });
+  }
+
+  const history30d = store.getHistory('30d');
+  assert.deepEqual([...new Set(history30d.rows.map(row => row.date))], [
+    '2026-05-26',
+    '2026-06-18',
+    '2026-06-24',
+  ]);
+  assert.equal(history30d.meta.historySnapshotCount, 3);
+
+  const history7d = store.getHistory('7d');
+  assert.deepEqual([...new Set(history7d.rows.map(row => row.date))], [
+    '2026-06-18',
+    '2026-06-24',
+  ]);
+  assert.equal(history7d.meta.historySnapshotCount, 2);
+});
+
 test('VolumeShareStore excludes provisional current-day snapshots from history windows', (t) => {
   const tempDir = createTempDir('okj-volume-store-provisional-');
   t.after(() => removeTempDir(tempDir));

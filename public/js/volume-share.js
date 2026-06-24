@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const ALL_VALUE = '__all__';
   const HISTORY_FETCH_WINDOW = '90d';
-  const INSIGHTS_FETCH_WINDOW = '90d';
   const pageRoot = document.querySelector('[data-volume-page]') || document.body;
   const API_BASE = (String(pageRoot.getAttribute('data-volume-api-base') || '/api/volume-share').replace(/\/+$/, '') || '/api/volume-share');
   const IS_DERIVATIVES_PAGE = API_BASE.includes('/derivatives/');
@@ -530,9 +529,14 @@ document.addEventListener('DOMContentLoaded', () => {
     return `<span class="quality-kind" title="${escapeHtml(description)}" aria-label="${escapeHtml(description)}" tabindex="0"><span>${escapeHtml(label)}</span>${helpIcon}</span>`;
   }
 
-  function historySourceLabel(meta) {
+  function historySourceLabel(meta, visibleSnapshotCount = null) {
     if (!meta) return 'データ取得中';
-    if (meta.source === 'daily-snapshots') return `日次 ${meta.historySnapshotCount}件`;
+    if (meta.source === 'daily-snapshots') {
+      const count = Number.isFinite(Number(visibleSnapshotCount))
+        ? Number(visibleSnapshotCount)
+        : meta.historySnapshotCount;
+      return `日次 ${count}件`;
+    }
     if (meta.source === 'latest-fallback') return '最新24h収集値';
     return 'データ取得中';
   }
@@ -1035,6 +1039,18 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${byType.year}-${byType.month}-${byType.day}`;
   }
 
+  function addDaysToIsoDate(dateString, days) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateString || ''));
+    if (!match) return null;
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+
+  function yesterdayJstDateString() {
+    return addDaysToIsoDate(todayJstDateString(), -1);
+  }
+
   function relativeTimeLabel(date) {
     const elapsedMs = Math.max(0, Date.now() - date.getTime());
     const elapsedMinutes = Math.floor(elapsedMs / 60000);
@@ -1223,15 +1239,22 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(([date, totalQuoteVolume]) => ({ date, totalQuoteVolume }));
   }
 
-  function historyRowsForWindow(windowKey) {
+  function historyDatesForWindow(windowKey) {
     const targetDays = {
       '7d': 7,
       '30d': 30,
     }[windowKey];
-    if (!targetDays) return volumeHistoryRows.slice();
-
     const dates = Array.from(new Set(volumeHistoryRows.map(row => row.date).filter(Boolean))).sort();
-    const targetDateSet = new Set(dates.slice(-targetDays));
+    if (!targetDays || dates.length === 0) return dates;
+
+    const latestDate = dates[dates.length - 1];
+    const startDate = addDaysToIsoDate(latestDate, -(targetDays - 1));
+    if (!startDate) return dates.slice(-targetDays);
+    return dates.filter(date => date >= startDate && date <= latestDate);
+  }
+
+  function historyRowsForWindow(windowKey) {
+    const targetDateSet = new Set(historyDatesForWindow(windowKey));
     return volumeHistoryRows.filter(row => targetDateSet.has(row.date));
   }
 
@@ -1240,12 +1263,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const comparisonLabel = PERIOD_COMPARISON_LABELS[windowKey] || '前期間比';
 
     if (windowKey === '1d') {
-      const previous = totals[totals.length - 1];
+      const excludedComparisonDates = new Set([
+        todayJstDateString(),
+        volumeHistoryMeta && volumeHistoryMeta.latestProvisionalVolumeDateJst,
+      ].filter(Boolean));
+      const comparisonTotals = totals.filter(row => !excludedComparisonDates.has(row.date));
+      const previous = comparisonTotals[comparisonTotals.length - 1];
       if (!previous || !(previous.totalQuoteVolume > 0)) {
         return {
           label: comparisonLabel,
           value: '-',
-          detail: '前日データ待ち',
+          detail: '比較できる確定履歴待ち',
           tone: '',
         };
       }
@@ -1253,10 +1281,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const diff = Number(filteredTotalQuoteVolume || 0) - previous.totalQuoteVolume;
       const percentChange = (diff / previous.totalQuoteVolume) * 100;
       const trendNote = nearFlatTrendNote(percentChange);
+      const comparisonDateLabel = previous.date === yesterdayJstDateString()
+        ? `前日 ${shortDate(previous.date)} 比`
+        : `前回履歴 ${shortDate(previous.date)} 比`;
       return {
         label: comparisonLabel,
         value: formatSignedPercent(percentChange),
-        detail: [`${formatSignedJpy(diff)} | 前日 ${shortDate(previous.date)} 比`, trendNote].filter(Boolean).join(' | '),
+        detail: [`${formatSignedJpy(diff)} | ${comparisonDateLabel}`, trendNote].filter(Boolean).join(' | '),
         tone: diff > 0 ? 'is-positive' : diff < 0 ? 'is-danger' : '',
       };
     }
@@ -1829,7 +1860,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setText(
       'volume-history-meta',
-      [instrumentLabel, exchangeLabel, range, seriesLabel, historySourceLabel(volumeHistoryMeta), provisionalNote, partialNote].filter(Boolean).join(' | ')
+      [instrumentLabel, exchangeLabel, range, seriesLabel, historySourceLabel(volumeHistoryMeta, dates.length), provisionalNote, partialNote].filter(Boolean).join(' | ')
     );
   }
 
@@ -1899,7 +1930,7 @@ document.addEventListener('DOMContentLoaded', () => {
     volumeInsightsAbortController = controller;
     try {
       const params = new URLSearchParams({
-        window: INSIGHTS_FETCH_WINDOW,
+        window: selectedHistoryWindow,
         periods: '1',
         periodLabel: 'day',
         zscoreWindow: '8',
@@ -2034,6 +2065,7 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedHistoryWindow = normalizeHistoryWindow(button.dataset.volumeHistoryWindow, '30d');
       syncTabButtons('[data-volume-history-window]', 'volumeHistoryWindow', selectedHistoryWindow);
       renderVolumeHistory();
+      loadInsights();
       writeUrlState();
     });
   });
