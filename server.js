@@ -71,9 +71,8 @@ const SNAPSHOT_STORAGE = String(process.env.SNAPSHOT_STORAGE || '').trim().toLow
 const GOOGLE_SHEETS_SPREADSHEET_ID = String(process.env.GOOGLE_SHEETS_SPREADSHEET_ID || '').trim();
 const GOOGLE_SHEETS_SHEET_NAME = String(process.env.GOOGLE_SHEETS_SHEET_NAME || '').trim();
 const IS_PRODUCTION = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
-const DEFAULT_VOLUME_SHARE_HISTORY_START_DATE_JST = IS_PRODUCTION ? '2026-06-25' : '';
 const VOLUME_SHARE_HISTORY_START_DATE_JST = String(
-  process.env.VOLUME_SHARE_HISTORY_START_DATE_JST || DEFAULT_VOLUME_SHARE_HISTORY_START_DATE_JST
+  process.env.VOLUME_SHARE_HISTORY_START_DATE_JST || ''
 ).trim();
 const DATA_DIR = resolveDataDir({ projectRoot: __dirname });
 const DATA_DIR_CONFIGURED = Boolean(String(process.env.DATA_DIR || '').trim());
