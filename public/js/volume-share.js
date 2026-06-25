@@ -541,6 +541,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return 'データ取得中';
   }
 
+  function historyStartRangeLabel(meta) {
+    const startDate = meta && meta.historyStartDateJst;
+    return startDate ? `積み上げ開始 ${startDate}` : '履歴データ待ち';
+  }
+
   function chartColor(index) {
     return CHART_COLORS[index % CHART_COLORS.length];
   }
@@ -1587,7 +1592,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '全取引所');
     if (selectedInstrument !== ALL_VALUE) filterParts.push(instrumentLabel);
     if (selectedExchange !== ALL_VALUE) filterParts.push(exchangeLabel);
-    const range = meta.earliestDate && meta.latestDate ? `${meta.earliestDate} - ${meta.latestDate}` : '履歴データ待ち';
+    const range = meta.earliestDate && meta.latestDate
+      ? `${meta.earliestDate} - ${meta.latestDate}`
+      : historyStartRangeLabel(meta);
     const trendScope = `${period.comparisonLabel || '前回比'}分析`;
     setText(
       'volume-insights-meta',
@@ -1851,7 +1858,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const range = dates.length > 0
       ? `${dates[0]} - ${dates[dates.length - 1]}`
-      : '履歴データ待ち';
+      : historyStartRangeLabel(volumeHistoryMeta);
     const instrumentLabel = activeInstrumentLabel('全銘柄');
     const exchangeLabel = selectedOptionLabel('volume-exchange-filter', '全取引所');
     const seriesLabel = series.length > 0 ? `${series.length}系列` : '該当なし';

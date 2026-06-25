@@ -70,6 +70,11 @@ const DATABASE_URL = String(process.env.DATABASE_URL || '').trim();
 const SNAPSHOT_STORAGE = String(process.env.SNAPSHOT_STORAGE || '').trim().toLowerCase();
 const GOOGLE_SHEETS_SPREADSHEET_ID = String(process.env.GOOGLE_SHEETS_SPREADSHEET_ID || '').trim();
 const GOOGLE_SHEETS_SHEET_NAME = String(process.env.GOOGLE_SHEETS_SHEET_NAME || '').trim();
+const IS_PRODUCTION = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production';
+const DEFAULT_VOLUME_SHARE_HISTORY_START_DATE_JST = IS_PRODUCTION ? '2026-06-25' : '';
+const VOLUME_SHARE_HISTORY_START_DATE_JST = String(
+  process.env.VOLUME_SHARE_HISTORY_START_DATE_JST || DEFAULT_VOLUME_SHARE_HISTORY_START_DATE_JST
+).trim();
 const DATA_DIR = resolveDataDir({ projectRoot: __dirname });
 const DATA_DIR_CONFIGURED = Boolean(String(process.env.DATA_DIR || '').trim());
 const BUNDLED_DATA_FILES = Object.freeze({
@@ -135,7 +140,7 @@ const EXPECTED_DATA_FILES = USE_REMOTE_SNAPSHOT_STORAGE
   ? [DATA_FILES.analytics]
   : Object.values(DATA_FILES);
 
-if (String(process.env.NODE_ENV || '').trim().toLowerCase() === 'production' && !DATA_DIR_CONFIGURED) {
+if (IS_PRODUCTION && !DATA_DIR_CONFIGURED) {
   console.warn('[data-storage] DATA_DIR is not configured in production; falling back to the bundled data directory.');
 }
 
@@ -196,6 +201,7 @@ const volumeShareStore = new VolumeShareStore({
   seedFilePath: USE_REMOTE_SNAPSHOT_STORAGE ? BUNDLED_DATA_FILES.volumeShare : DATA_FILES.volumeShare,
   persistence: snapshotStateStore,
   persistenceKey: 'volume-share',
+  historyStartDateJst: VOLUME_SHARE_HISTORY_START_DATE_JST,
 });
 const salesSpreadStore = new SalesSpreadStore({
   dataFilePath: USE_REMOTE_SNAPSHOT_STORAGE ? null : DATA_FILES.salesSpread,
