@@ -411,14 +411,17 @@
     const resultNode = tool.querySelector('[data-exchange-coverage-results]');
     const countNode = tool.querySelector('[data-exchange-coverage-count]');
     const showAllButton = tool.querySelector('[data-exchange-coverage-show-all]');
+    const detailNode = tool.querySelector('[data-exchange-coverage-detail]');
     const filters = Array.from(tool.querySelectorAll('[data-exchange-coverage-filter]'));
     const tagButtons = Array.from(tool.querySelectorAll('[data-exchange-coverage-tag]'));
     const activeFilters = new Set();
     const activeTags = new Set();
     let query = '';
     let showAll = false;
+    let selectedInstrumentId = null;
 
     function marketHref(market) {
+      if (market.href) return market.href;
       const encodedInstrumentId = encodeURIComponent(market.instrumentId || '');
       if (market.hasBoard) {
         return `/simulator?exchange=${encodeURIComponent(exchangeId)}&market=${encodedInstrumentId}`;
@@ -458,21 +461,79 @@
       return haystack.includes(query);
     }
 
+    function tagLabel(tag) {
+      return {
+        major3: '主要3銘柄',
+        staking: 'ステーキング候補',
+        l1l2: 'L1/L2',
+        meme: 'ミーム',
+      }[tag] || tag;
+    }
+
+    function statusPill(label, active) {
+      return `<span class="${active ? 'is-supported' : 'is-muted'}">${escapeHtml(label)}</span>`;
+    }
+
+    function renderCoverageDetail(market) {
+      if (!detailNode || !market) return;
+      const tags = Array.isArray(market.tags) ? market.tags : [];
+      const boardHref = market.hasBoard
+        ? `/simulator?exchange=${encodeURIComponent(exchangeId)}&market=${encodeURIComponent(market.instrumentId || '')}`
+        : null;
+      const salesHref = `/sales-spread?instrumentId=${encodeURIComponent(market.instrumentId || '')}`;
+      detailNode.hidden = false;
+      detailNode.innerHTML = [
+        '<div class="exchange-coverage-detail__header">',
+        '  <div>',
+        `    <span>${escapeHtml(market.instrumentId || '')}</span>`,
+        `    <strong>${escapeHtml(market.label || market.instrumentId)}</strong>`,
+        '  </div>',
+        '  <button type="button" data-exchange-coverage-detail-close aria-label="詳細を閉じる">x</button>',
+        '</div>',
+        '<div class="exchange-coverage-detail__status">',
+        statusPill('板取引', market.hasBoard),
+        statusPill('販売所', market.hasSales),
+        statusPill('スプレッド取得', market.hasSpread),
+        '</div>',
+        tags.length > 0
+          ? `<div class="exchange-coverage-detail__tags">${tags.map(tag => `<span>${escapeHtml(tagLabel(tag))}</span>`).join('')}</div>`
+          : '',
+        '<div class="exchange-coverage-detail__actions">',
+        boardHref ? `<a href="${escapeHtml(boardHref)}">板シミュレーター</a>` : '',
+        `<a href="${escapeHtml(salesHref)}">販売所スプレッド</a>`,
+        '</div>',
+      ].filter(Boolean).join('');
+
+      const closeButton = detailNode.querySelector('[data-exchange-coverage-detail-close]');
+      if (closeButton) {
+        closeButton.addEventListener('click', () => {
+          selectedInstrumentId = null;
+          detailNode.hidden = true;
+          detailNode.innerHTML = '';
+          resultNode.querySelectorAll('[data-exchange-coverage-market]').forEach((button) => {
+            button.classList.remove('is-selected');
+            button.setAttribute('aria-pressed', 'false');
+          });
+        });
+      }
+    }
+
     function renderMarket(market) {
       const badges = [
         market.hasBoard ? '<span>板</span>' : '',
         market.hasSales ? '<span>販売所</span>' : '',
         market.hasSpread ? '<span>スプレッド</span>' : '',
       ].filter(Boolean).join('');
+      const selected = selectedInstrumentId === market.instrumentId;
       return [
-        `<a class="exchange-coverage-chip" href="${escapeHtml(marketHref(market))}">`,
+        `<button class="exchange-coverage-chip${selected ? ' is-selected' : ''}" type="button" data-exchange-coverage-market="${escapeHtml(market.instrumentId || '')}" aria-pressed="${selected ? 'true' : 'false'}">`,
         `  ${assetMarkHtml(market)}`,
         '  <span class="exchange-coverage-chip__body">',
         `    <strong>${escapeHtml(market.label || market.instrumentId)}</strong>`,
         `    <small>${escapeHtml(market.instrumentId)}</small>`,
         `    <span class="exchange-coverage-chip__badges">${badges}</span>`,
         '  </span>',
-        '</a>',
+        '</button>',
       ].join('');
     }
 
@@ -488,6 +549,17 @@
         : '<p class="exchange-coverage-empty">該当する銘柄はありません。</p>';
       void resultNode.offsetWidth;
       resultNode.classList.add('is-rendered');
+      resultNode.querySelectorAll('[data-exchange-coverage-market]').forEach((button) => {
+        button.addEventListener('click', () => {
+          selectedInstrumentId = button.getAttribute('data-exchange-coverage-market');
+          resultNode.querySelectorAll('[data-exchange-coverage-market]').forEach((item) => {
+            const selected = item === button;
+            item.classList.toggle('is-selected', selected);
+            item.setAttribute('aria-pressed', selected ? 'true' : 'false');
+          });
+          renderCoverageDetail(markets.find(market => market.instrumentId === selectedInstrumentId));
+        });
+      });
 
       if (countNode) {
         const mode = hasSearchOrFilter || showAll ? '条件に一致' : '主要銘柄';
@@ -796,6 +868,9 @@
   }
 
   function renderCostSimulatorResult(simulator, amount, boardRow, salesRow) {
+    simulator.classList.remove('is-loading', 'is-error');
+    simulator.classList.add('is-ready');
+    simulator.setAttribute('aria-busy', 'false');
     const boardResult = boardRow && boardRow.result && !boardRow.result.error ? boardRow.result : null;
     const salesResult = salesRow && salesRow.result ? salesRow.result : null;
     const baseCurrency = resultBaseCurrency(boardRow || salesRow);
@@ -810,17 +885,18 @@
     const impactRiskTone = simulatorRiskTone(impact, boardResult);
     const levelsConsumed = numberOrNull(boardResult && boardResult.levelsConsumed);
     const levelsText = levelsConsumed != null && levelsConsumed > 1 ? ` / 板${levelsConsumed}段消費` : '';
+    const hasFullComparison = boardBase != null && salesBase != null;
 
-    setDataField(simulator, 'status', '再計算済み');
+    setDataField(simulator, 'status', hasFullComparison ? '再計算済み' : '一部取得');
     setDataField(simulator, 'proAmount', formatJpyAmount(amount).replace('￥', '¥'));
-    setDataField(simulator, 'salesReceive', salesBase != null ? formatBaseAmount(salesBase, baseCurrency) : '販売所データ待ち');
-    setDataField(simulator, 'salesBarLabel', salesBase != null ? formatBaseAmount(salesBase, baseCurrency) : '販売所データ待ち');
+    setDataField(simulator, 'salesReceive', salesBase != null ? formatBaseAmount(salesBase, baseCurrency) : '公式確認');
+    setDataField(simulator, 'salesBarLabel', salesBase != null ? formatBaseAmount(salesBase, baseCurrency) : '公式確認');
     setDataField(
       simulator,
       'salesMeta',
       salesSpreadPct != null
         ? `スプレッド ${formatPct(salesSpreadPct, 2)} / 価格再提示リスクあり`
-        : (salesRow && salesRow.message) || '販売所価格を確認中'
+        : (salesRow && salesRow.message) || '販売所価格は公式画面で確認'
     );
     setDataField(simulator, 'boardReceive', boardBase != null ? formatBaseAmount(boardBase, baseCurrency) : '板データ待ち');
     setDataField(simulator, 'boardBarLabel', boardBase != null ? formatBaseAmount(boardBase, baseCurrency) : '板データ待ち');
@@ -834,26 +910,30 @@
     setDataField(
       simulator,
       'deltaJpy',
-      deltaJpy != null ? formatSignedJpy(deltaJpy) : '比較待ち'
+      deltaJpy != null ? formatSignedJpy(deltaJpy) : '公式確認'
     );
     setDataField(
       simulator,
       'deltaBase',
-      deltaBase != null ? formatSignedBaseAmount(deltaBase, baseCurrency) : '比較待ち'
+      deltaBase != null ? formatSignedBaseAmount(deltaBase, baseCurrency) : '公式確認'
     );
     setDataField(
       simulator,
       'deltaMeta',
       deltaJpy != null && deltaJpy > 0
         ? '取引所形式のほうが受取数量が多い目安'
-        : '販売所価格は注文直前に再提示される場合があります'
+        : hasFullComparison
+          ? '販売所価格は注文直前に再提示される場合があります'
+          : '比較に足りない価格は公式画面で確認してください'
     );
     setDataField(
       simulator,
       'beginnerLoss',
       deltaJpy != null && deltaJpy > 0
         ? `販売所だと約${formatJpyAmount(deltaJpy).replace('￥', '¥')}分だけ受取が少ない目安です`
-        : '同じ金額で受け取れる数量を比較しています'
+        : hasFullComparison
+          ? '同じ金額で受け取れる数量を比較しています'
+          : '板データと販売所価格がそろう銘柄で差額を比較できます'
     );
     setDataField(simulator, 'proSalesSpread', salesSpreadPct != null ? formatPct(salesSpreadPct, 3) : '-');
     setDataField(simulator, 'proImpact', impact != null ? formatPct(impact, 4) : '-');
@@ -862,7 +942,7 @@
     updateCostBars(simulator, salesBase, boardBase, deltaBase);
     latestSalesSpreadPct = salesSpreadPct;
     updateStickySpread();
-    setStickyField('delta', deltaJpy != null ? formatSignedJpy(deltaJpy).replace('￥', '¥') : '比較待ち', deltaJpy != null && deltaJpy > 0 ? 'calm' : 'neutral');
+    setStickyField('delta', deltaJpy != null ? formatSignedJpy(deltaJpy).replace('￥', '¥') : '公式確認', deltaJpy != null && deltaJpy > 0 ? 'calm' : 'neutral');
     setStickyField('amount', `${formatJpyAmount(amount).replace('￥', '¥')}買い`, impactRiskTone);
   }
 
@@ -908,6 +988,9 @@
         amountType: 'jpy',
         amount: String(amount),
       });
+      simulator.classList.add('is-loading');
+      simulator.classList.remove('is-ready', 'is-error');
+      simulator.setAttribute('aria-busy', 'true');
       setDataField(simulator, 'status', '再計算中');
 
       try {
@@ -924,9 +1007,21 @@
         );
       } catch (_err) {
         if (currentRequestId !== requestId) return;
+        simulator.classList.remove('is-loading');
+        simulator.classList.add('is-error');
+        simulator.setAttribute('aria-busy', 'false');
         setDataField(simulator, 'status', '取得失敗');
+        setDataField(simulator, 'salesReceive', '公式確認');
+        setDataField(simulator, 'salesMeta', '販売所価格を取得できませんでした');
+        setDataField(simulator, 'boardReceive', '公式確認');
+        setDataField(simulator, 'boardMeta', '板データを取得できませんでした');
         setDataField(simulator, 'deltaJpy', '公式確認');
+        setDataField(simulator, 'deltaBase', '公式確認');
+        setDataField(simulator, 'salesBarLabel', '取得失敗');
+        setDataField(simulator, 'boardBarLabel', '取得失敗');
         setDataField(simulator, 'deltaMeta', 'データ取得に失敗しました。注文前は公式画面を確認してください。');
+        setDataField(simulator, 'beginnerLoss', 'データ取得に失敗しました。公式画面で最新条件を確認してください。');
+        updateCostBars(simulator, 0, 0, 0);
       }
     }
 
