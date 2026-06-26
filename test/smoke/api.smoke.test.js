@@ -615,6 +615,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/business-report-12th.pdf'));
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
   assert.ok(bitflyerHtml.body.includes('招待コード: ml1wjtkl'));
+  assert.ok(bitflyerHtml.body.includes('class="exchange-hero-referral"'));
+  assert.ok(bitflyerHtml.body.includes('公式サイトで条件を確認'));
+  assert.ok(bitflyerHtml.body.includes('class="exchange-check-order__link exchange-check-order__link--pr"'));
+  assert.ok(bitflyerHtml.body.includes('PRリンクで確認'));
   assert.ok(bitflyerHtml.body.includes('rel="sponsored noopener noreferrer"'));
   assert.ok(bitflyerHtml.body.includes('紹介条件を見る'));
 
