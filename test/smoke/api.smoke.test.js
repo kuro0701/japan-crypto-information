@@ -165,7 +165,7 @@ function assertCommonDisclosure(body) {
 function assertExchangeDetailReferralCtas(body, href) {
   assert.ok(body.includes('class="exchange-hero-referral"'));
   assert.ok(body.includes(`class="exchange-hero-referral__button" href="${href}"`));
-  assert.ok(body.includes('公式サイトで条件を確認'));
+  assert.ok(body.includes('紹介条件を見る'));
   assert.ok(body.includes(`class="exchange-check-order__link exchange-check-order__link--pr" href="${href}"`));
   assert.ok(body.includes('PRリンクで確認'));
 }
