@@ -596,7 +596,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 	  assert.ok(exchangeHtml.body.includes('/simulator?exchange=okj&amp;market=BTC-JPY'));
   assert.ok(exchangeHtml.body.includes('キャンペーン条件'));
   assert.ok(exchangeHtml.body.includes('https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0'));
-  assert.ok(exchangeHtml.body.includes('招待コード: C250678'));
+  assert.ok(exchangeHtml.body.includes('招待コードはリンクに適用済みです。紹介特典や適用条件を確認できます。'));
   assertExchangeDetailReferralCtas(exchangeHtml.body, OKJ_REFERRAL_URL_ESCAPED);
   assertCommonDisclosure(exchangeHtml.body);
 
@@ -628,7 +628,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/financial-statement-12th.pdf'));
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/business-report-12th.pdf'));
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
-  assert.ok(bitflyerHtml.body.includes('招待コード: ml1wjtkl'));
+  assert.ok(bitflyerHtml.body.includes('招待コードはリンクに適用済みです。公式の招待ページで'));
+  assert.ok(!bitflyerHtml.body.includes('data-exchange-copy-value'));
   assertExchangeDetailReferralCtas(bitflyerHtml.body, BITFLYER_REFERRAL_URL_ESCAPED);
   assert.ok(bitflyerHtml.body.includes('rel="sponsored noopener noreferrer"'));
   assert.ok(bitflyerHtml.body.includes('紹介条件を見る'));
@@ -656,7 +657,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(binanceHtml.body.includes('https://about.paypay.ne.jp/pr/20251009/01/'));
   assert.ok(binanceHtml.body.includes('https://public.bnbstatic.com/static/terms_doc/Announcement_Capital_Reduction_Nov_14_ja.pdf'));
   assert.ok(binanceHtml.body.includes('https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH'));
-  assert.ok(binanceHtml.body.includes('招待コード: GRO_55250_0VBAH'));
+  assert.ok(binanceHtml.body.includes('招待コードはリンクに適用済みです。紹介特典や適用条件を確認できます。'));
   assertExchangeDetailReferralCtas(binanceHtml.body, BINANCE_JAPAN_REFERRAL_URL);
 
   const gmoLegacy = await fetch(new URL('/exchanges/gmo', baseUrl), { redirect: 'manual' });
@@ -698,7 +699,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bittradeHtml.body.includes('https://static.bittrade.co.jp/pdf/20241231Capital-Adequacy-Ratio.pdf'));
   assert.ok(bittradeHtml.body.includes('https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf'));
   assert.ok(bittradeHtml.body.includes('https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p'));
-  assert.ok(bittradeHtml.body.includes('招待コード: tHc3p'));
+  assert.ok(bittradeHtml.body.includes('招待コードはリンクに適用済みです。紹介特典や適用条件を確認できます。'));
   assertExchangeDetailReferralCtas(bittradeHtml.body, BITTRADE_REFERRAL_URL);
 
   const aboutHtml = await fetchText(baseUrl, '/about');

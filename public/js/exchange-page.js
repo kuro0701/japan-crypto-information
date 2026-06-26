@@ -1127,75 +1127,6 @@
     });
   }
 
-  async function copyExchangeValue(value) {
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      try {
-        await navigator.clipboard.writeText(value);
-        return;
-      } catch (_err) {
-        // Fall through to the selection-based copy path for restricted browser contexts.
-      }
-    }
-    const textarea = document.createElement('textarea');
-    textarea.value = value;
-    textarea.setAttribute('readonly', '');
-    textarea.style.position = 'fixed';
-    textarea.style.left = '-9999px';
-    document.body.appendChild(textarea);
-    textarea.select();
-    const copied = document.execCommand('copy');
-    textarea.remove();
-    if (!copied) throw new Error('copy failed');
-  }
-
-  function showCopyFeedback(button, message) {
-    const panel = button.closest('.exchange-hero-referral, .exchange-referral-copy-panel') || document;
-    const feedback = panel.querySelector('[data-exchange-copy-feedback]');
-    const labelNode = button.querySelector('[data-exchange-copy-button-label]');
-    if (labelNode && !button.dataset.originalCopyLabel) {
-      button.dataset.originalCopyLabel = labelNode.textContent || '';
-    }
-    const success = /コピーしました|Copied/i.test(message);
-    button.classList.toggle('is-copied', success);
-    button.classList.toggle('is-copy-error', !success);
-    if (labelNode) labelNode.textContent = success ? 'Copied! ✨' : 'Retry';
-    if (feedback) {
-      feedback.textContent = message;
-      feedback.classList.remove('is-visible');
-      void feedback.offsetWidth;
-      feedback.classList.add('is-visible');
-      window.clearTimeout(Number(feedback.dataset.hideTimer || 0));
-    }
-    window.clearTimeout(Number(button.dataset.copyResetTimer || 0));
-    const timer = window.setTimeout(() => {
-      button.classList.remove('is-copied', 'is-copy-error');
-      if (labelNode) labelNode.textContent = button.dataset.originalCopyLabel || 'Tap to copy';
-      delete button.dataset.copyResetTimer;
-      if (feedback) {
-        feedback.classList.remove('is-visible');
-        feedback.textContent = '';
-        delete feedback.dataset.hideTimer;
-      }
-    }, 1800);
-    button.dataset.copyResetTimer = String(timer);
-    if (feedback) feedback.dataset.hideTimer = String(timer);
-  }
-
-  function initCopyButtons() {
-    document.addEventListener('click', (event) => {
-      const button = event.target && event.target.closest
-        ? event.target.closest('[data-exchange-copy-value]')
-        : null;
-      if (!button) return;
-      event.preventDefault();
-      const value = button.getAttribute('data-exchange-copy-value') || '';
-      const label = button.getAttribute('data-exchange-copy-label') || '値';
-      copyExchangeValue(value)
-        .then(() => showCopyFeedback(button, `${label}をコピーしました`))
-        .catch(() => showCopyFeedback(button, 'コピーできませんでした'));
-    });
-  }
-
   function initScoreTooltips() {
     const buttons = Array.from(document.querySelectorAll('[data-score-popover-title]'));
     if (buttons.length === 0) return;
@@ -1373,7 +1304,6 @@
   initCoverageTool();
   initCostSimulator();
   initSourceVerifier();
-  initCopyButtons();
   initScoreTooltips();
   initMobileDetailLists();
   initPressFeedback();
