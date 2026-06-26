@@ -438,7 +438,14 @@
 
     function assetMarkHtml(market) {
       const symbol = String(market.baseCurrency || (market.instrumentId || '').split('-')[0] || '?').toUpperCase();
-      const label = symbol.slice(0, 4);
+      const label = {
+        BTC: '₿',
+        WBTC: '₿',
+        ETH: 'Ξ',
+        XRP: 'X',
+        SOL: 'S',
+        DOGE: 'Ð',
+      }[symbol] || symbol.slice(0, 4);
       return `<span class="market-asset-mark market-asset-mark--xs market-asset-mark--${escapeHtml(marketToken(symbol))}" aria-hidden="true">${escapeHtml(label)}</span>`;
     }
 
@@ -1142,20 +1149,36 @@
   }
 
   function showCopyFeedback(button, message) {
-    const panel = button.closest('.exchange-referral-copy-panel') || document;
+    const panel = button.closest('.exchange-hero-referral, .exchange-referral-copy-panel') || document;
     const feedback = panel.querySelector('[data-exchange-copy-feedback]');
-    if (!feedback) return;
-    feedback.textContent = message;
-    feedback.classList.remove('is-visible');
-    void feedback.offsetWidth;
-    feedback.classList.add('is-visible');
-    window.clearTimeout(Number(feedback.dataset.hideTimer || 0));
-    const timer = window.setTimeout(() => {
+    const labelNode = button.querySelector('[data-exchange-copy-button-label]');
+    if (labelNode && !button.dataset.originalCopyLabel) {
+      button.dataset.originalCopyLabel = labelNode.textContent || '';
+    }
+    const success = /コピーしました|Copied/i.test(message);
+    button.classList.toggle('is-copied', success);
+    button.classList.toggle('is-copy-error', !success);
+    if (labelNode) labelNode.textContent = success ? 'Copied! ✨' : 'Retry';
+    if (feedback) {
+      feedback.textContent = message;
       feedback.classList.remove('is-visible');
-      feedback.textContent = '';
-      delete feedback.dataset.hideTimer;
+      void feedback.offsetWidth;
+      feedback.classList.add('is-visible');
+      window.clearTimeout(Number(feedback.dataset.hideTimer || 0));
+    }
+    window.clearTimeout(Number(button.dataset.copyResetTimer || 0));
+    const timer = window.setTimeout(() => {
+      button.classList.remove('is-copied', 'is-copy-error');
+      if (labelNode) labelNode.textContent = button.dataset.originalCopyLabel || 'Tap to copy';
+      delete button.dataset.copyResetTimer;
+      if (feedback) {
+        feedback.classList.remove('is-visible');
+        feedback.textContent = '';
+        delete feedback.dataset.hideTimer;
+      }
     }, 1800);
-    feedback.dataset.hideTimer = String(timer);
+    button.dataset.copyResetTimer = String(timer);
+    if (feedback) feedback.dataset.hideTimer = String(timer);
   }
 
   function initCopyButtons() {
@@ -1170,6 +1193,100 @@
       copyExchangeValue(value)
         .then(() => showCopyFeedback(button, `${label}をコピーしました`))
         .catch(() => showCopyFeedback(button, 'コピーできませんでした'));
+    });
+  }
+
+  function initScoreTooltips() {
+    const buttons = Array.from(document.querySelectorAll('[data-score-popover-title]'));
+    if (buttons.length === 0) return;
+
+    let tooltip = null;
+    let activeButton = null;
+    let pinned = false;
+
+    function ensureTooltip() {
+      if (tooltip) return tooltip;
+      tooltip = document.createElement('div');
+      tooltip.className = 'term-tooltip exchange-score-tooltip';
+      tooltip.hidden = true;
+      tooltip.setAttribute('role', 'tooltip');
+      document.body.appendChild(tooltip);
+      return tooltip;
+    }
+
+    function positionTooltip(button) {
+      if (!tooltip || !button) return;
+      const rect = button.getBoundingClientRect();
+      const margin = 12;
+      const maxLeft = window.innerWidth - tooltip.offsetWidth - margin;
+      const left = Math.max(margin, Math.min(rect.left + rect.width / 2 - tooltip.offsetWidth / 2, maxLeft));
+      let top = rect.bottom + 10;
+      if (top + tooltip.offsetHeight > window.innerHeight - margin) {
+        top = Math.max(margin, rect.top - tooltip.offsetHeight - 10);
+      }
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+    }
+
+    function hideTooltip() {
+      if (activeButton) activeButton.classList.remove('is-open');
+      activeButton = null;
+      pinned = false;
+      if (tooltip) tooltip.hidden = true;
+    }
+
+    function showTooltip(button, options = {}) {
+      if (!button) return;
+      const node = ensureTooltip();
+      node.innerHTML = [
+        `<div class="term-tooltip__title">${escapeHtml(button.getAttribute('data-score-popover-title') || '')}</div>`,
+        `<div class="term-tooltip__body">${escapeHtml(button.getAttribute('data-score-popover-body') || '')}</div>`,
+      ].join('');
+      node.hidden = false;
+      if (activeButton && activeButton !== button) activeButton.classList.remove('is-open');
+      activeButton = button;
+      pinned = Boolean(options.pinned);
+      button.classList.add('is-open');
+      positionTooltip(button);
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (activeButton === button && tooltip && !tooltip.hidden && pinned) {
+          hideTooltip();
+          return;
+        }
+        showTooltip(button, { pinned: true });
+      });
+      button.addEventListener('focus', () => showTooltip(button, { pinned: false }));
+      button.addEventListener('mouseover', () => {
+        if (pinned && activeButton === button) return;
+        showTooltip(button, { pinned: false });
+      });
+      button.addEventListener('mouseout', (event) => {
+        if (pinned) return;
+        const related = event.relatedTarget;
+        if (related && (button.contains(related) || (tooltip && tooltip.contains(related)))) return;
+        if (activeButton === button) hideTooltip();
+      });
+      button.addEventListener('blur', () => {
+        if (!pinned && activeButton === button) hideTooltip();
+      });
+    });
+
+    document.addEventListener('click', (event) => {
+      const target = event.target && event.target.closest ? event.target : null;
+      if (!target) return;
+      if (target.closest('[data-score-popover-title]') || target.closest('.exchange-score-tooltip')) return;
+      hideTooltip();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') hideTooltip();
+    });
+    window.addEventListener('resize', () => {
+      if (activeButton && tooltip && !tooltip.hidden) positionTooltip(activeButton);
     });
   }
 
@@ -1257,6 +1374,7 @@
   initCostSimulator();
   initSourceVerifier();
   initCopyButtons();
+  initScoreTooltips();
   initMobileDetailLists();
   initPressFeedback();
 

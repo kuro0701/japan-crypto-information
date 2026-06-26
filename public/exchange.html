@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-33">
+  <link rel="stylesheet" href="/css/style.css?v=ui-34">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -42,11 +42,18 @@
       <span class="badge badge--live">Guide</span>
       <span class="status-text">比較の次に確認</span>
       <span class="text-xs text-gray-600 ml-2">取引所: <span class="text-gray-400">__EXCHANGE_LABEL__</span></span>
-      <button class="beginner-toggle beginner-toggle--switch exchange-mode-toggle" type="button" data-beginner-toggle data-beginner-toggle-style="switch" data-beginner-toggle-label="表示モード" data-beginner-toggle-beginner-label="Simple" data-beginner-toggle-beginner-note="販売所中心・要点表示" data-beginner-toggle-advanced-label="Advanced" data-beginner-toggle-advanced-note="Lightning板・詳細データ" data-beginner-toggle-on-title="Simple表示で、販売所中心の要点と用語説明を強調します" data-beginner-toggle-off-title="Advanced表示で、Lightning板取引と詳細データを表示します" aria-pressed="false">Advanced</button>
     </div>
   </header>
 
   <main id="main" class="dashboard-shell flex flex-col gap-4 p-4 max-w-[1600px] mx-auto" data-exchange-page data-exchange-id="__EXCHANGE_ID__" data-default-instrument-id="__EXCHANGE_DEFAULT_INSTRUMENT_ID__">
+    <div class="exchange-mode-panel" aria-label="表示モード">
+      <div>
+        <span>View Mode</span>
+        <strong>Simple / Advanced</strong>
+      </div>
+      <button class="beginner-toggle beginner-toggle--switch exchange-mode-toggle" type="button" data-beginner-toggle data-beginner-toggle-style="switch" data-beginner-toggle-label="表示モード" data-beginner-toggle-beginner-label="Simple" data-beginner-toggle-beginner-note="販売所中心・要点表示" data-beginner-toggle-advanced-label="Advanced" data-beginner-toggle-advanced-note="Lightning板・詳細データ" data-beginner-toggle-on-title="Simple表示で、販売所中心の要点と用語説明を強調します" data-beginner-toggle-off-title="Advanced表示で、Lightning板取引と詳細データを表示します" aria-pressed="false">Advanced</button>
+    </div>
+
     <section id="exchange-conclusion" class="ui-conclusion-card ui-conclusion-card--exchange decision-summary-card exchange-conclusion-card">
       <!-- EXCHANGE_CONCLUSION_CARD -->
     </section>
@@ -55,6 +62,8 @@
 
     <!-- EXCHANGE_TABS -->
 
+    <div class="exchange-page-body">
+      <div class="exchange-page-body__content">
     <section id="exchange-overview" class="panel panel--dense" data-exchange-tab-panel="simple">
       <div class="panel-title-row mb-4">
         <div>
@@ -170,12 +179,17 @@
       </div>
       <!-- EXCHANGE_FAQ_CARDS -->
     </section>
+      </div>
+      <aside class="exchange-page-body__rail" aria-label="追従Live Cost">
+        <!-- EXCHANGE_STICKY_LIVE_COST -->
+      </aside>
+    </div>
   </main>
 
   <!-- EXCHANGE_MOBILE_ACTIONS -->
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | __EXCHANGE_NAME__</footer>
   <script src="/js/beginner-mode.js?v=7"></script>
-  <script src="/js/exchange-page.js?v=9"></script>
+  <script src="/js/exchange-page.js?v=10"></script>
 </body>
 </html>
