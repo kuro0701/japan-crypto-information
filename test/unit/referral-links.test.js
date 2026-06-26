@@ -88,12 +88,17 @@ test('bitFlyer referral link can still be overridden through env', () => {
 test('GMO Coin affiliate link is populated by default', () => {
   withEnvValue('GMO_COIN_REFERRAL_URL', undefined, () => {
     const campaign = getCampaign('gmo-coin');
+    const exchangeContent = getExchangePageContent('gmo');
     assert.equal(campaign.affiliateUrl, GMO_COIN_AFFILIATE_URL);
     assert.equal(campaign.trackingPixelUrl, GMO_COIN_TRACKING_PIXEL_URL);
     assert.equal(campaign.affiliateRel, 'nofollow');
     assert.equal(campaign.affiliateReferrerPolicy, 'no-referrer-when-downgrade');
     assert.equal(campaign.affiliateTarget, null);
-    assert.equal(getExchangePageContent('gmo').referralUrl, GMO_COIN_AFFILIATE_URL);
+    assert.equal(exchangeContent.referralUrl, GMO_COIN_AFFILIATE_URL);
+    assert.equal(exchangeContent.referralRel, 'nofollow');
+    assert.equal(exchangeContent.referralReferrerPolicy, 'no-referrer-when-downgrade');
+    assert.equal(exchangeContent.referralTarget, null);
+    assert.equal(exchangeContent.referralTrackingPixelUrl, GMO_COIN_TRACKING_PIXEL_URL);
   });
 });
 

@@ -10,8 +10,14 @@ const SERVER_PATH = path.resolve(__dirname, '../../server.js');
 const TEST_ENV_KEYS = [
   'ANALYTICS_ADMIN_TOKEN',
   'ANALYTICS_ADMIN_TOKEN_HASH',
+  'BINANCE_JAPAN_REFERRAL_URL',
+  'BITBANK_REFERRAL_URL',
+  'BITFLYER_REFERRAL_URL',
+  'BITTRADE_REFERRAL_URL',
+  'COINCHECK_REFERRAL_URL',
   'DATA_DIR',
   'DATABASE_URL',
+  'GMO_COIN_REFERRAL_URL',
   'GOOGLE_CLIENT_EMAIL',
   'GOOGLE_PRIVATE_KEY',
   'GOOGLE_SERVICE_ACCOUNT_EMAIL',
@@ -23,11 +29,14 @@ const TEST_ENV_KEYS = [
   'GOOGLE_SHEETS_SPREADSHEET_ID',
   'LEGACY_HOSTS',
   'NODE_ENV',
+  'OKJ_REFERRAL_URL',
   'SITE_ORIGIN',
   'SNAPSHOT_STORAGE',
 ];
 const COINCHECK_AFFILIATE_URL = 'https://h.accesstrade.net/sp/cc?rk=0100nerr00osx0';
 const COINCHECK_TRACKING_PIXEL_URL = 'https://h.accesstrade.net/sp/rr?rk=0100nerr00osx0';
+const GMO_COIN_TRACKING_PIXEL_URL = 'https://h.accesstrade.net/sp/rr?rk=0100mtgp00osx0';
+const OKJ_REFERRAL_URL_ESCAPED = 'https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0';
 
 function volumeRecord(exchangeId, exchangeLabel, instrumentId, quoteVolume24h, capturedAt, overrides = {}) {
   return {
@@ -483,6 +492,12 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(exchangesHtml.body.includes('nav-menu--grouped'));
   assert.ok(exchangesHtml.body.includes('/exchanges/bitflyer'));
   assert.ok(exchangesHtml.body.includes('/exchanges/gmo-coin'));
+  assert.ok(exchangesHtml.body.includes(`class="exchange-index-card__pr-link" href="${OKJ_REFERRAL_URL_ESCAPED}"`));
+  assert.ok(exchangesHtml.body.includes(`class="exchange-index-row__link exchange-index-row__link--pr" href="${OKJ_REFERRAL_URL_ESCAPED}"`));
+  assert.ok(exchangesHtml.body.includes(COINCHECK_AFFILIATE_URL));
+  assert.ok(exchangesHtml.body.includes(COINCHECK_TRACKING_PIXEL_URL));
+  assert.ok(exchangesHtml.body.includes(GMO_COIN_TRACKING_PIXEL_URL));
+  assert.ok(exchangesHtml.body.includes('referrerpolicy="no-referrer-when-downgrade"'));
   assertCommonDisclosure(exchangesHtml.body);
 
   const financialComparisonHtml = await fetchText(baseUrl, '/financial-comparison');

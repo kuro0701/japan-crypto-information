@@ -288,6 +288,43 @@ document.addEventListener('DOMContentLoaded', () => {
     return `<td class="${isBest ? 'is-best' : ''}">${escapeHtml(value)}</td>`;
   }
 
+  function exchangeActionAttrs(link) {
+    const href = String(link && link.href || '/');
+    const isExternal = /^https?:\/\//i.test(href);
+    const hasTarget = Object.prototype.hasOwnProperty.call(link || {}, 'target');
+    const target = hasTarget ? link.target : (isExternal ? '_blank' : null);
+    const rel = link && link.rel ? link.rel : (isExternal ? 'noopener noreferrer' : null);
+    const referrerPolicy = link && link.referrerPolicy ? link.referrerPolicy : null;
+    return [
+      `href="${escapeHtml(href)}"`,
+      target ? `target="${escapeHtml(target)}"` : '',
+      rel ? `rel="${escapeHtml(rel)}"` : '',
+      referrerPolicy ? `referrerpolicy="${escapeHtml(referrerPolicy)}"` : '',
+    ].filter(Boolean).join(' ');
+  }
+
+  function referralLinkForExchange(exchange) {
+    if (!exchange || !exchange.referralUrl) return null;
+    return {
+      href: exchange.referralUrl,
+      target: Object.prototype.hasOwnProperty.call(exchange, 'referralTarget')
+        ? exchange.referralTarget
+        : '_blank',
+      rel: exchange.referralRel || 'sponsored noopener noreferrer',
+      referrerPolicy: exchange.referralReferrerPolicy || null,
+      trackingPixelUrl: exchange.referralTrackingPixelUrl || null,
+    };
+  }
+
+  function referralCell(exchange) {
+    const link = referralLinkForExchange(exchange);
+    if (!link) return compareCell('-');
+    const pixel = link.trackingPixelUrl
+      ? `<img src="${escapeHtml(link.trackingPixelUrl)}" width="1" height="1" border="0" alt="">`
+      : '';
+    return `<td><a class="exchange-compare-dialog__link" ${exchangeActionAttrs(link)}>PR 公式で確認${pixel}</a></td>`;
+  }
+
   function renderCompareDialog() {
     const selected = selectedExchanges();
     const dialog = ensureCompareDialog();
@@ -317,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
       row('出来高データ', selected.map(exchange => compareCell(exchange.volumeCount > 0 ? `${formatCount(exchange.volumeCount)}銘柄` : 'データ待ち', Number(exchange.volumeCount) === best.volume))),
       row('レバレッジ', selected.map(exchange => compareCell(exchange.hasLeverage ? '対応あり' : '現物中心'))),
       row('詳細ページ', selected.map(exchange => `<td><a class="exchange-compare-dialog__link" href="${escapeHtml(exchange.path)}">${escapeHtml(exchange.label)}の詳細へ</a></td>`)),
+      row('PRリンク', selected.map(referralCell)),
       '    </tbody>',
       '  </table>',
       '</div>',

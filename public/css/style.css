@@ -6527,6 +6527,8 @@ html:has(.market-sticky-nav) {
 
 .exchange-index-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
   min-height: 348px;
   border: 1px solid var(--line);
   border-radius: var(--r);
@@ -6579,7 +6581,8 @@ html:has(.market-sticky-nav) {
 .exchange-index-card__main {
   position: relative;
   z-index: 1;
-  min-height: inherit;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
@@ -6791,6 +6794,48 @@ html:has(.market-sticky-nav) {
   transform: translateX(4px);
 }
 
+.exchange-index-card__footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  padding: 0 var(--sp-3) var(--sp-3);
+}
+
+.exchange-index-card__pr-link {
+  width: 100%;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--exchange-accent, var(--accent)) 44%, transparent);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--exchange-accent, var(--accent)) 14%, rgba(8, 12, 14, 0.82));
+  color: var(--text-1) !important;
+  font-size: var(--fs-xs);
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.exchange-index-card__pr-link span {
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(244, 201, 93, 0.14);
+  color: var(--warn);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.exchange-index-card__pr-link:hover,
+.exchange-index-card__pr-link:focus-visible {
+  border-color: color-mix(in srgb, var(--exchange-accent, var(--accent)) 72%, transparent);
+  background: color-mix(in srgb, var(--exchange-accent, var(--accent)) 22%, rgba(8, 12, 14, 0.88));
+}
+
 .exchange-index-table-wrap {
   overflow-x: auto;
   border: 1px solid var(--line);
@@ -6822,6 +6867,17 @@ html:has(.market-sticky-nav) {
 .exchange-index-row__link:focus-visible {
   border-color: rgba(53, 200, 210, 0.42);
   background: rgba(53, 200, 210, 0.1);
+}
+
+.exchange-index-row__link--pr {
+  border-color: rgba(244, 201, 93, 0.34);
+  color: var(--warn) !important;
+}
+
+.exchange-index-row__link--pr:hover,
+.exchange-index-row__link--pr:focus-visible {
+  border-color: rgba(244, 201, 93, 0.52);
+  background: rgba(244, 201, 93, 0.1);
 }
 
 .exchange-compare-bar {
