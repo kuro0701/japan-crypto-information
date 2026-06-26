@@ -35,8 +35,12 @@ const TEST_ENV_KEYS = [
 ];
 const COINCHECK_AFFILIATE_URL = 'https://h.accesstrade.net/sp/cc?rk=0100nerr00osx0';
 const COINCHECK_TRACKING_PIXEL_URL = 'https://h.accesstrade.net/sp/rr?rk=0100nerr00osx0';
+const GMO_COIN_AFFILIATE_URL = 'https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0';
 const GMO_COIN_TRACKING_PIXEL_URL = 'https://h.accesstrade.net/sp/rr?rk=0100mtgp00osx0';
 const OKJ_REFERRAL_URL_ESCAPED = 'https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0';
+const BITFLYER_REFERRAL_URL_ESCAPED = 'https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP';
+const BINANCE_JAPAN_REFERRAL_URL = 'https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH';
+const BITTRADE_REFERRAL_URL = 'https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p';
 
 function volumeRecord(exchangeId, exchangeLabel, instrumentId, quoteVolume24h, capturedAt, overrides = {}) {
   return {
@@ -156,6 +160,14 @@ function assertCommonDisclosure(body) {
   assert.ok(body.includes('公開API / WebSocket の取得失敗'));
   assert.ok(body.includes('広告・PR・アフィリエイトリンクが含まれる場合があります'));
   assert.ok(body.includes('キャンペーン情報の最終確認日は'));
+}
+
+function assertExchangeDetailReferralCtas(body, href) {
+  assert.ok(body.includes('class="exchange-hero-referral"'));
+  assert.ok(body.includes(`class="exchange-hero-referral__button" href="${href}"`));
+  assert.ok(body.includes('公式サイトで条件を確認'));
+  assert.ok(body.includes(`class="exchange-check-order__link exchange-check-order__link--pr" href="${href}"`));
+  assert.ok(body.includes('PRリンクで確認'));
 }
 
 function assertHomeDisclosure(body) {
@@ -582,9 +594,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
 	  assert.ok(exchangeHtml.body.includes('詳しく知る'));
 	  assert.ok(exchangeHtml.body.includes('申込前に確認'));
 	  assert.ok(exchangeHtml.body.includes('/simulator?exchange=okj&amp;market=BTC-JPY'));
-	  assert.ok(exchangeHtml.body.includes('キャンペーン条件'));
+  assert.ok(exchangeHtml.body.includes('キャンペーン条件'));
   assert.ok(exchangeHtml.body.includes('https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0'));
   assert.ok(exchangeHtml.body.includes('招待コード: C250678'));
+  assertExchangeDetailReferralCtas(exchangeHtml.body, OKJ_REFERRAL_URL_ESCAPED);
   assertCommonDisclosure(exchangeHtml.body);
 
   const coincheckHtml = await fetchText(baseUrl, '/exchanges/coincheck');
@@ -595,6 +608,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(coincheckHtml.body.includes('rel="nofollow"'));
   assert.ok(coincheckHtml.body.includes('referrerpolicy="no-referrer-when-downgrade"'));
   assert.ok(coincheckHtml.body.includes('紹介条件を見る'));
+  assertExchangeDetailReferralCtas(coincheckHtml.body, COINCHECK_AFFILIATE_URL);
   assertCommonDisclosure(coincheckHtml.body);
 
   const bitflyerHtml = await fetchText(baseUrl, '/exchanges/bitflyer');
@@ -615,12 +629,15 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/business-report-12th.pdf'));
   assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
   assert.ok(bitflyerHtml.body.includes('招待コード: ml1wjtkl'));
-  assert.ok(bitflyerHtml.body.includes('class="exchange-hero-referral"'));
-  assert.ok(bitflyerHtml.body.includes('公式サイトで条件を確認'));
-  assert.ok(bitflyerHtml.body.includes('class="exchange-check-order__link exchange-check-order__link--pr"'));
-  assert.ok(bitflyerHtml.body.includes('PRリンクで確認'));
+  assertExchangeDetailReferralCtas(bitflyerHtml.body, BITFLYER_REFERRAL_URL_ESCAPED);
   assert.ok(bitflyerHtml.body.includes('rel="sponsored noopener noreferrer"'));
   assert.ok(bitflyerHtml.body.includes('紹介条件を見る'));
+
+  const bitbankHtml = await fetchText(baseUrl, '/exchanges/bitbank');
+  assert.equal(bitbankHtml.status, 200);
+  assert.ok(bitbankHtml.body.includes('bitbankの特徴まとめ'));
+  assert.ok(!bitbankHtml.body.includes('class="exchange-hero-referral"'));
+  assert.ok(!bitbankHtml.body.includes('exchange-check-order__link--pr'));
 
   const binanceHtml = await fetchText(baseUrl, '/exchanges/binance-japan');
   assert.equal(binanceHtml.status, 200);
@@ -640,6 +657,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(binanceHtml.body.includes('https://public.bnbstatic.com/static/terms_doc/Announcement_Capital_Reduction_Nov_14_ja.pdf'));
   assert.ok(binanceHtml.body.includes('https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH'));
   assert.ok(binanceHtml.body.includes('招待コード: GRO_55250_0VBAH'));
+  assertExchangeDetailReferralCtas(binanceHtml.body, BINANCE_JAPAN_REFERRAL_URL);
 
   const gmoLegacy = await fetch(new URL('/exchanges/gmo', baseUrl), { redirect: 'manual' });
   assert.equal(gmoLegacy.status, 301);
@@ -662,6 +680,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/capital_ratio_2026_03.pdf?ver=202603'));
   assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/disclosure_2025_12.pdf?ver=202512'));
   assert.ok(gmoHtml.body.includes('https://www.gmofh.com/ir/stock/memo.html'));
+  assert.ok(gmoHtml.body.includes(GMO_COIN_AFFILIATE_URL));
+  assert.ok(gmoHtml.body.includes(GMO_COIN_TRACKING_PIXEL_URL));
+  assertExchangeDetailReferralCtas(gmoHtml.body, GMO_COIN_AFFILIATE_URL);
 
   const bittradeHtml = await fetchText(baseUrl, '/exchanges/bittrade');
   assert.equal(bittradeHtml.status, 200);
@@ -678,6 +699,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bittradeHtml.body.includes('https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf'));
   assert.ok(bittradeHtml.body.includes('https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p'));
   assert.ok(bittradeHtml.body.includes('招待コード: tHc3p'));
+  assertExchangeDetailReferralCtas(bittradeHtml.body, BITTRADE_REFERRAL_URL);
 
   const aboutHtml = await fetchText(baseUrl, '/about');
   assert.equal(aboutHtml.status, 200);
