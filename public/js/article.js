@@ -497,6 +497,59 @@
     update();
   }
 
+  function initBrokerChoiceTool() {
+    const root = $('[data-broker-choice-tool]');
+    if (!root) return;
+
+    const buttons = $$('[data-broker-choice]', root);
+    const result = $('[data-broker-choice-result]', root);
+    const link = $('[data-broker-choice-link]', root);
+    const choices = {
+      easy: {
+        eyebrow: '販売所寄り',
+        title: '少額でまず慣れたいなら、販売所から確認しやすいです。',
+        body: 'ただし、買う前にスプレッドを見て、同じ金額を取引所形式で買った場合のコストも比べてください。',
+        href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000',
+        linkText: '10万円買いで板コストも計算する',
+      },
+      cost: {
+        eyebrow: '取引所寄り',
+        title: '実質コストを抑えたいなら、取引所形式を候補にします。',
+        body: '板が薄いとスリッページが出るため、希望金額でどの価格帯まで約定しそうかを先に見ておくと判断しやすくなります。',
+        href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000',
+        linkText: '成行コストを計算してみる',
+      },
+    };
+
+    const setChoice = (choiceKey) => {
+      const choice = choices[choiceKey] || choices.easy;
+      buttons.forEach((button) => {
+        const active = button.dataset.brokerChoice === choiceKey;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+
+      if (result) {
+        result.innerHTML = `
+          <span>${escapeHtml(choice.eyebrow)}</span>
+          <strong>${escapeHtml(choice.title)}</strong>
+          <small>${escapeHtml(choice.body)}</small>
+        `;
+      }
+
+      if (link) {
+        link.href = choice.href;
+        link.textContent = choice.linkText;
+      }
+    };
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        setChoice(button.dataset.brokerChoice || 'easy');
+      });
+    });
+  }
+
   function syncArticleTerms(enabled) {
     $$(ARTICLE_TERM_SELECTOR).forEach((term) => {
       term.tabIndex = enabled ? 0 : -1;
@@ -518,6 +571,7 @@
     initToc();
     initReadingProgress();
     initMiniSimulator();
+    initBrokerChoiceTool();
     initJpyWithdrawalTool();
     initArticleTerms();
   });
