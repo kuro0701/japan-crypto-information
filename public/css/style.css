@@ -9587,8 +9587,10 @@ html.theme-light .market-summary-stat--signal {
   display: grid;
   grid-column: 2;
   grid-row: 1;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-2);
-  align-content: center;
+  align-content: start;
+  min-width: 0;
 }
 
 .exchange-hero-cta__button {
@@ -9843,8 +9845,12 @@ html.theme-light .market-summary-stat--signal {
 }
 
 .exchange-cost-simulator {
+  box-sizing: border-box;
   display: grid;
   gap: var(--sp-4);
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   margin-bottom: var(--sp-5);
   padding: var(--sp-4);
   border: 1px solid rgba(200, 220, 210, 0.12);
@@ -9857,13 +9863,61 @@ html.theme-light .market-summary-stat--signal {
 }
 
 .exchange-cost-simulator--hero {
-  height: 100%;
+  height: auto;
   margin-bottom: 0;
   border: 1px solid rgba(53, 200, 210, 0.2);
   background:
     linear-gradient(145deg, rgba(53, 200, 210, 0.12), rgba(244, 201, 93, 0.06)),
     rgba(8, 12, 14, 0.72);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.exchange-cost-simulator--rail {
+  gap: var(--sp-3);
+  margin-bottom: 0;
+  padding: var(--sp-3);
+  box-shadow: none;
+}
+
+.exchange-cost-simulator--rail .exchange-cost-simulator__header,
+.exchange-cost-simulator--rail .exchange-cost-simulator__controls,
+.exchange-cost-simulator--rail .exchange-cost-results {
+  grid-template-columns: 1fr;
+}
+
+.exchange-cost-simulator--rail .exchange-cost-simulator__state {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.exchange-cost-simulator--rail .exchange-quick-amounts {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.exchange-cost-simulator--rail .exchange-quick-amounts button {
+  flex: 0 0 auto;
+}
+
+.exchange-cost-simulator--rail .exchange-cost-result {
+  padding: 10px;
+}
+
+.exchange-cost-simulator--rail .exchange-cost-result strong {
+  font-size: var(--fs-base);
+  overflow-wrap: anywhere;
+}
+
+.exchange-cost-simulator--rail .exchange-cost-result small,
+.exchange-cost-simulator--rail .exchange-cost-bars__item em,
+.exchange-cost-simulator--rail .exchange-cost-delta-rail strong {
+  overflow-wrap: anywhere;
+}
+
+.exchange-cost-simulator--rail .exchange-cost-bars {
+  display: none;
 }
 
 .exchange-cost-simulator[data-impact-tone="warning"] {
@@ -9886,6 +9940,11 @@ html.theme-light .market-summary-stat--signal {
 
 .exchange-cost-simulator--hero .exchange-cost-simulator__state {
   justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.exchange-cost-simulator--hero .exchange-cost-simulator__controls {
+  grid-template-columns: 1fr;
 }
 
 .exchange-cost-simulator--hero .exchange-cost-results {
@@ -14946,9 +15005,8 @@ html.theme-light .financial-asset-butterfly-row {
     display: block;
     position: sticky;
     top: 94px;
-    max-height: calc(100vh - 110px);
-    overflow: auto;
-    scrollbar-width: thin;
+    max-height: none;
+    overflow: visible;
   }
 
   .exchange-page-body__rail .exchange-cost-simulator {
@@ -14960,8 +15018,8 @@ html.theme-light .financial-asset-butterfly-row {
   }
 
   .exchange-hero-cta {
-    position: sticky;
-    top: 94px;
+    position: static;
+    top: auto;
   }
 }
 
