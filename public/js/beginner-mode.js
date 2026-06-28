@@ -51,6 +51,18 @@
       title: '最良Bid / Ask',
       description: '板の中で一番高い買い注文（買い手最高値）と、一番安い売り注文（売り手最安値）です。この差が小さいほど売買コストは軽くなりやすいです。',
     },
+    'best-ask': {
+      title: '最良売気配',
+      description: '板に並んでいる売り注文のうち、一番安い価格です。買う人にとって最初に当たりやすい価格です。',
+    },
+    'best-bid': {
+      title: '最良買気配',
+      description: '板に並んでいる買い注文のうち、一番高い価格です。売る人にとって最初に当たりやすい価格です。',
+    },
+    'market-order': {
+      title: '成行注文',
+      description: '価格を指定せず、すぐ約定しやすい注文です。板が薄いと想定より不利な価格まで約定することがあります。',
+    },
     spot: {
       title: '現物',
       description: '実際の暗号資産を買う取引です。レバレッジ取引と違い、原則として保有数量以上の損失は発生しません。',
@@ -203,6 +215,26 @@
           { href: '/learn/spread', label: 'スプレッドとは？' },
           { href: '/learn/broker-loss-reasons', label: '販売所で損しやすい理由' },
           { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '10万円買いをシミュレーション' },
+        ],
+      };
+    }
+    if (path === '/learn/spread') {
+      return {
+        eyebrow: '🔰 初心者モード',
+        title: 'スプレッドは「価格のすき間」です',
+        summary: '販売所では買値と売値の差、取引所では板の中央にある売り注文と買い注文の差を見ます。まずは2%なら10万円で約2,000円のコスト、と金額で覚えると判断しやすいです。',
+        metrics: ['販売所スプレッド', '板スプレッド', 'スリッページ'],
+        visuals: [
+          { mark: '1', title: '販売所', body: '買値と売値の差を見ます。' },
+          { mark: '2', title: '取引所', body: '板の中央のすき間を見ます。' },
+          { mark: '3', title: '金額化', body: '注文金額に率を掛けて体感します。' },
+        ],
+        terms: ['sales-spread', 'best-ask', 'best-bid', 'market-order', 'slippage'],
+        warning: 'スプレッドは固定ではありません。急な相場変動時や流動性が低い銘柄では広がることがあります。',
+        links: [
+          { href: '/sales-spread?instrumentId=BTC-JPY', label: 'BTC/JPYのスプレッドを見る' },
+          { href: '/learn/exchange-vs-broker', label: '販売所と取引所の違い' },
+          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '10万円買いを試算' },
         ],
       };
     }

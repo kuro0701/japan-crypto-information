@@ -191,6 +191,23 @@
     });
   }
 
+  function playThemeRipple(event, theme) {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const target = event && event.target && event.target.closest ? event.target.closest('[data-theme-toggle]') : null;
+    const rect = target ? target.getBoundingClientRect() : { left: window.innerWidth / 2, top: 0, width: 0, height: 0 };
+    const eventX = Number(event && event.clientX);
+    const eventY = Number(event && event.clientY);
+    const x = Number.isFinite(eventX) && eventX > 0 ? eventX : rect.left + rect.width / 2;
+    const y = Number.isFinite(eventY) && eventY > 0 ? eventY : rect.top + rect.height / 2;
+    const ripple = document.createElement('span');
+    ripple.className = `theme-ripple theme-ripple--${theme === 'light' ? 'light' : 'dark'}`;
+    ripple.style.setProperty('--theme-ripple-x', `${x}px`);
+    ripple.style.setProperty('--theme-ripple-y', `${y}px`);
+    document.body.appendChild(ripple);
+    window.requestAnimationFrame(() => ripple.classList.add('is-active'));
+    window.setTimeout(() => ripple.remove(), 760);
+  }
+
   function initThemeToggle() {
     let currentTheme = readStoredTheme();
     syncTheme(currentTheme);
@@ -199,7 +216,9 @@
       const button = event.target && event.target.closest ? event.target.closest('[data-theme-toggle]') : null;
       if (!button) return;
       event.preventDefault();
-      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
+      playThemeRipple(event, nextTheme);
+      currentTheme = nextTheme;
       writeStoredTheme(currentTheme);
       syncTheme(currentTheme);
     });
@@ -310,6 +329,22 @@
 
   function formatJpyNumber(value) {
     return `${new Intl.NumberFormat('ja-JP').format(Math.max(0, Math.round(Number(value) || 0)))}円`;
+  }
+
+  function formatPct(value, digits = 2) {
+    const number = Number(value);
+    return Number.isFinite(number) ? `${number.toFixed(digits)}%` : '-';
+  }
+
+  function formatCompactDateTime(value) {
+    const date = new Date(value || '');
+    if (Number.isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat('ja-JP', {
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
   }
 
   function parseJpyAmount(value) {
@@ -497,6 +532,128 @@
     update();
   }
 
+  function initSpreadCostSlider() {
+    $$('[data-spread-cost-slider]').forEach((root) => {
+      const input = $('[data-spread-cost-amount]', root);
+      const amountOutput = $('[data-spread-cost-amount-output]', root);
+      const lossOutput = $('[data-spread-cost-loss]', root);
+      const afterOutput = $('[data-spread-cost-after]', root);
+      const rate = Number(root.dataset.spreadRate) || 0.02;
+      if (!input) return;
+
+      const update = () => {
+        const min = Number(input.min) || 0;
+        const max = Number(input.max) || 1000000;
+        const amount = Math.max(min, Math.min(max, Number(input.value) || min));
+        const progress = max > min ? ((amount - min) / (max - min)) * 100 : 0;
+        const loss = amount * rate;
+        root.style.setProperty('--spread-cost-progress', `${progress}%`);
+        if (amountOutput) amountOutput.textContent = formatJpyNumber(amount);
+        if (lossOutput) lossOutput.textContent = `-${formatJpyNumber(loss)}`;
+        if (afterOutput) {
+          afterOutput.textContent = `${formatPct(rate * 100, 1)}の差なら、同じ場所ですぐ売る前提で約${formatJpyNumber(loss)}分の不利なスタートです。`;
+        }
+      };
+
+      input.addEventListener('input', update);
+      update();
+    });
+  }
+
+  function rowSpreadValue(row) {
+    const latest = row && row.latest ? row.latest : null;
+    const average = row && row.averages && row.averages['1d'] ? row.averages['1d'] : null;
+    const value = latest && latest.spreadPct != null ? latest.spreadPct : average && average.spreadPct;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function rowLatestSpreadValue(row) {
+    const latest = row && row.latest ? row.latest : null;
+    const number = Number(latest && latest.spreadPct);
+    return Number.isFinite(number) && number > 0 ? number : null;
+  }
+
+  function bestTickerRow(rows, instrumentId) {
+    return (rows || [])
+      .filter(row => row && row.instrumentId === instrumentId && rowLatestSpreadValue(row) != null)
+      .sort((a, b) => rowLatestSpreadValue(a) - rowLatestSpreadValue(b))[0] || null;
+  }
+
+  function tickerItemHtml(row, fallback) {
+    if (!row) {
+      return `
+        <span class="article-live-ticker__item is-waiting">
+          <strong>${escapeHtml(fallback.label)}</strong>
+          <span>取得待ち</span>
+          <small>参考値</small>
+        </span>
+      `;
+    }
+    const spread = rowLatestSpreadValue(row);
+    return `
+      <span class="article-live-ticker__item">
+        <strong>${escapeHtml(fallback.label)}</strong>
+        <span>${escapeHtml(formatPct(spread, 2))}</span>
+        <small>${escapeHtml(row.exchangeLabel || row.exchangeId || '販売所')}</small>
+      </span>
+    `;
+  }
+
+  function renderSpreadTicker(root, data) {
+    const items = $('[data-spread-live-ticker-items]', root);
+    const meta = $('[data-spread-live-ticker-meta]', root);
+    const markets = [
+      { id: 'BTC-JPY', label: 'BTC' },
+      { id: 'ETH-JPY', label: 'ETH' },
+      { id: 'SOL-JPY', label: 'SOL' },
+    ];
+    const rows = data && Array.isArray(data.rows) ? data.rows : [];
+    if (items) {
+      items.innerHTML = markets
+        .map(market => tickerItemHtml(bestTickerRow(rows, market.id), market))
+        .join('');
+    }
+    const updatedAt = data && data.meta && (data.meta.latestCapturedAt || data.meta.generatedAt);
+    if (meta) meta.textContent = updatedAt ? `最新取得 ${formatCompactDateTime(updatedAt)} / 参考値` : '参考値';
+    root.hidden = false;
+    root.classList.remove('is-error');
+    root.classList.add('is-fresh');
+    window.setTimeout(() => root.classList.remove('is-fresh'), 520);
+  }
+
+  function initSpreadLiveTicker() {
+    const root = $('[data-spread-live-ticker]');
+    if (!root) return;
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    if (path !== '/learn/spread' && path !== '/learn/spread.html') return;
+
+    const meta = $('[data-spread-live-ticker-meta]', root);
+    let abortController = null;
+
+    const fetchTicker = async () => {
+      if (abortController) abortController.abort();
+      abortController = new AbortController();
+      try {
+        const response = await fetch('/api/sales-spread', {
+          cache: 'no-store',
+          signal: abortController.signal,
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        renderSpreadTicker(root, data);
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        root.hidden = false;
+        root.classList.add('is-error');
+        if (meta) meta.textContent = '取得待ち / 参考値';
+      }
+    };
+
+    fetchTicker();
+    window.setInterval(fetchTicker, 30000);
+  }
+
   function initBrokerChoiceTool() {
     const root = $('[data-broker-choice-tool]');
     if (!root) return;
@@ -571,6 +728,8 @@
     initToc();
     initReadingProgress();
     initMiniSimulator();
+    initSpreadCostSlider();
+    initSpreadLiveTicker();
     initBrokerChoiceTool();
     initJpyWithdrawalTool();
     initArticleTerms();
