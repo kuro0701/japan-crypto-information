@@ -63,6 +63,14 @@
       title: '成行注文',
       description: '価格を指定せず、すぐ約定しやすい注文です。板が薄いと想定より不利な価格まで約定することがあります。',
     },
+    'limit-order': {
+      title: '指値注文',
+      description: '買いたい価格や売りたい価格を指定して、板に注文を置く方法です。希望価格を守りやすい一方、相場が届かなければ約定しません。',
+    },
+    execution: {
+      title: '約定',
+      description: '出した注文が相手の注文と成立し、実際に売買が完了することです。成行注文は約定しやすく、指値注文は条件に届くまで待つ場合があります。',
+    },
     spot: {
       title: '現物',
       description: '実際の暗号資産を買う取引です。レバレッジ取引と違い、原則として保有数量以上の損失は発生しません。',
@@ -548,7 +556,10 @@
   function canOpenTerm(button) {
     if (!button) return false;
     if (button.classList && button.classList.contains('article-term')) {
-      return beginnerMode || Boolean(document.body && document.body.classList.contains('beginner-mode'));
+      return button.dataset.termAlways === 'true'
+        || button.classList.contains('article-term--always')
+        || beginnerMode
+        || Boolean(document.body && document.body.classList.contains('beginner-mode'));
     }
     return true;
   }

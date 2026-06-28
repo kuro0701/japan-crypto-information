@@ -255,7 +255,7 @@
       const baseId = heading.id || slugify(heading.textContent, index);
       let id = baseId;
       let suffix = 2;
-      while (usedIds.has(id) || document.getElementById(id)) {
+      while (usedIds.has(id) || (document.getElementById(id) && document.getElementById(id) !== heading)) {
         id = `${baseId}-${suffix}`;
         suffix += 1;
       }
@@ -329,6 +329,271 @@
 
   function formatJpyNumber(value) {
     return `${new Intl.NumberFormat('ja-JP').format(Math.max(0, Math.round(Number(value) || 0)))}円`;
+  }
+
+  function formatBookPrice(value) {
+    return new Intl.NumberFormat('ja-JP').format(Math.round(Number(value) || 0));
+  }
+
+  function formatBtc(value) {
+    const number = Number(value) || 0;
+    return `${number.toFixed(number >= 0.01 ? 3 : 4)} BTC`;
+  }
+
+  function initOrderbookLiveDemo() {
+    const root = $('[data-orderbook-live-demo]');
+    if (!root) return;
+    const asksRoot = $('[data-orderbook-demo-asks]', root);
+    const bidsRoot = $('[data-orderbook-demo-bids]', root);
+    const spread = $('[data-orderbook-demo-spread]', root);
+    if (!asksRoot || !bidsRoot) return;
+
+    const asks = [
+      { price: 10018000, qty: 0.019, depth: 58 },
+      { price: 10012000, qty: 0.013, depth: 42 },
+      { price: 10005000, qty: 0.008, depth: 28 },
+    ];
+    const bids = [
+      { price: 9994500, qty: 0.011, depth: 35 },
+      { price: 9989000, qty: 0.017, depth: 52 },
+      { price: 9982000, qty: 0.024, depth: 68 },
+    ];
+    let tick = 0;
+
+    const renderSide = (items, side) => items.map((item, index) => {
+      const wave = Math.sin((tick + index + (side === 'ask' ? 0.6 : 1.2)) * 0.72);
+      const qty = Math.max(0.001, item.qty * (1 + wave * 0.16));
+      const depth = Math.max(14, Math.min(92, item.depth + wave * 12));
+      return `
+        <div class="orderbook-learning-row orderbook-learning-row--${side}" style="--depth: ${depth.toFixed(1)}%">
+          <span>${side === 'ask' ? '売' : '買'} ${escapeHtml(formatBookPrice(item.price))}</span>
+          <strong>${escapeHtml(formatBtc(qty))}</strong>
+        </div>
+      `;
+    }).join('');
+
+    const render = () => {
+      asksRoot.innerHTML = renderSide(asks, 'ask');
+      bidsRoot.innerHTML = renderSide(bids, 'bid');
+      const bestAsk = asks[asks.length - 1].price;
+      const bestBid = bids[0].price;
+      if (spread) spread.textContent = formatJpyNumber(bestAsk - bestBid);
+      root.classList.add('is-ticking');
+      window.setTimeout(() => root.classList.remove('is-ticking'), 420);
+      tick += 1;
+    };
+
+    render();
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    window.setInterval(render, 1400);
+  }
+
+  function initOrderbookExecutionSim() {
+    $$('[data-orderbook-execution-sim]').forEach((root) => {
+      const input = $('[data-orderbook-sim-amount]', root);
+      const amountLabel = $('[data-orderbook-sim-amount-label]', root);
+      const note = $('[data-orderbook-sim-note]', root);
+      const levelsRoot = $('[data-orderbook-sim-levels]', root);
+      const result = $('[data-orderbook-sim-result]', root);
+      const detail = $('[data-orderbook-sim-detail]', root);
+      const kicker = $('[data-orderbook-sim-kicker]', root);
+      const buttons = $$('[data-orderbook-sim-mode]', root);
+      if (!input || !levelsRoot) return;
+
+      const levels = [
+        { price: 10000000, qty: 0.006 },
+        { price: 10010000, qty: 0.008 },
+        { price: 10025000, qty: 0.010 },
+        { price: 10050000, qty: 0.014 },
+      ];
+      let mode = buttons.find(button => button.getAttribute('aria-pressed') === 'true')?.dataset.orderbookSimMode || 'market';
+
+      const calculateFill = (amount) => {
+        let remaining = amount;
+        let spent = 0;
+        let acquired = 0;
+        const fills = levels.map((level) => {
+          if (remaining <= 0) return { ...level, consumedQty: 0, consumedJpy: 0 };
+          const levelJpy = level.price * level.qty;
+          const consumedJpy = Math.min(remaining, levelJpy);
+          const consumedQty = consumedJpy / level.price;
+          remaining -= consumedJpy;
+          spent += consumedJpy;
+          acquired += consumedQty;
+          return { ...level, consumedQty, consumedJpy };
+        });
+        const avgPrice = acquired > 0 ? spent / acquired : levels[0].price;
+        return {
+          fills,
+          spent,
+          acquired,
+          avgPrice,
+          slippagePct: ((avgPrice - levels[0].price) / levels[0].price) * 100,
+          levelCount: fills.filter(fill => fill.consumedQty > 0).length,
+        };
+      };
+
+      const renderMarketLevels = (fill) => fill.fills.map((level) => {
+        const consumedPct = level.qty > 0 ? (level.consumedQty / level.qty) * 100 : 0;
+        const rowClass = [
+          'orderbook-execution-level',
+          consumedPct >= 99.5 ? 'is-filled' : '',
+          consumedPct > 0 && consumedPct < 99.5 ? 'is-partial' : '',
+        ].filter(Boolean).join(' ');
+        return `
+          <div class="${rowClass}" style="--fill: ${Math.min(100, consumedPct).toFixed(1)}%; --depth: ${Math.min(92, Math.max(18, level.qty * 3600)).toFixed(1)}%">
+            <span><em>売</em><strong>${escapeHtml(formatBookPrice(level.price))}円</strong></span>
+            <small>${escapeHtml(formatBtc(level.qty))}</small>
+          </div>
+        `;
+      }).join('');
+
+      const renderLimitLevels = (amount) => {
+        const limitPrice = 9995000;
+        const ownQty = amount / limitPrice;
+        return [
+          ...levels.map(level => `
+            <div class="orderbook-execution-level" style="--fill: 0%; --depth: ${Math.min(92, Math.max(18, level.qty * 3600)).toFixed(1)}%">
+              <span><em>売</em><strong>${escapeHtml(formatBookPrice(level.price))}円</strong></span>
+              <small>${escapeHtml(formatBtc(level.qty))}</small>
+            </div>
+          `),
+          `<div class="orderbook-execution-spread-line"><span>最良売気配まで 5,000円</span></div>`,
+          `<div class="orderbook-execution-limit-line" style="--depth: ${Math.min(86, Math.max(24, ownQty * 3000)).toFixed(1)}%">
+            <span><em>自分の指値買い</em><strong>${escapeHtml(formatBookPrice(limitPrice))}円</strong></span>
+            <small>${escapeHtml(formatBtc(ownQty))}</small>
+          </div>`,
+        ].join('');
+      };
+
+      const update = () => {
+        const min = Number(input.min) || 0;
+        const max = Number(input.max) || 300000;
+        const amount = Math.max(min, Math.min(max, Number(input.value) || min));
+        const progress = max > min ? ((amount - min) / (max - min)) * 100 : 0;
+        root.style.setProperty('--orderbook-sim-progress', `${progress}%`);
+        if (amountLabel) amountLabel.textContent = formatJpyNumber(amount);
+
+        if (mode === 'limit') {
+          levelsRoot.innerHTML = renderLimitLevels(amount);
+          if (kicker) kicker.textContent = '指値買いの状態';
+          if (result) result.textContent = '板に置いて待つ';
+          if (detail) detail.textContent = '希望価格を守りやすい一方、すぐ約定しない場合があります。';
+          if (note) note.textContent = '指値買いは、指定した価格に相場が届くまで板の中で待ちます。';
+          return;
+        }
+
+        const fill = calculateFill(amount);
+        levelsRoot.innerHTML = renderMarketLevels(fill);
+        if (kicker) kicker.textContent = '成行買いの平均約定価格';
+        if (result) result.textContent = `${formatBookPrice(fill.avgPrice)}円`;
+        if (detail) {
+          detail.textContent = `最良売気配から +${formatPct(fill.slippagePct, 3)} / ${fill.levelCount}段目まで約定`;
+        }
+        if (note) note.textContent = '成行買いは、安い売り注文から順番に数量を消費します。';
+      };
+
+      buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+          mode = button.dataset.orderbookSimMode === 'limit' ? 'limit' : 'market';
+          buttons.forEach((item) => {
+            const active = item === button;
+            item.classList.toggle('is-active', active);
+            item.setAttribute('aria-pressed', active ? 'true' : 'false');
+          });
+          update();
+        });
+      });
+
+      input.addEventListener('input', update);
+      update();
+    });
+  }
+
+  function initOrderbookMiniQuiz() {
+    $$('[data-orderbook-mini-quiz]').forEach((root) => {
+      const buttons = $$('[data-quiz-answer]', root);
+      const result = $('[data-quiz-result]', root);
+      const cta = $('[data-quiz-cta]', root);
+      if (!buttons.length || !result) return;
+
+      buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const isCorrect = button.dataset.quizAnswer === 'market';
+          buttons.forEach((item) => {
+            item.classList.remove('is-correct', 'is-wrong');
+            item.setAttribute('aria-pressed', item === button ? 'true' : 'false');
+          });
+          button.classList.add(isCorrect ? 'is-correct' : 'is-wrong');
+          result.textContent = isCorrect
+            ? '正解です。すぐ買いたい時は成行注文。ただし、板が薄いとスリッページが出ます。'
+            : '惜しいです。指値注文は価格を指定して待つ注文なので、すぐ約定しないことがあります。';
+          if (cta) cta.hidden = !isCorrect;
+        });
+      });
+    });
+  }
+
+  function initBeginnerSpotlight() {
+    const target = $('[data-beginner-spotlight]');
+    if (!target) return;
+    let timer = null;
+    let overlay = null;
+    let callout = null;
+
+    const remove = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = null;
+      document.body.classList.remove('beginner-spotlight-active');
+      target.classList.remove('is-beginner-spotlight');
+      if (overlay) overlay.remove();
+      if (callout) callout.remove();
+      overlay = null;
+      callout = null;
+    };
+
+    const positionCallout = () => {
+      if (!callout) return;
+      const rect = target.getBoundingClientRect();
+      const margin = 14;
+      const width = Math.min(320, window.innerWidth - margin * 2);
+      const left = Math.max(margin, Math.min(rect.left + 18, window.innerWidth - width - margin));
+      const top = Math.max(84, Math.min(rect.top - 74, window.innerHeight - 132));
+      callout.style.left = `${left}px`;
+      callout.style.top = `${top}px`;
+      callout.style.width = `${width}px`;
+    };
+
+    const show = () => {
+      remove();
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      overlay = document.createElement('div');
+      overlay.className = 'beginner-spotlight-overlay';
+      callout = document.createElement('div');
+      callout.className = 'beginner-spotlight-callout';
+      callout.innerHTML = `
+        <strong>まずはここを動かしてみましょう</strong>
+        <span>成行と指値を切り替え、注文金額を動かすとスリッページの意味がつかみやすくなります。</span>
+      `;
+      document.body.append(overlay, callout);
+      document.body.classList.add('beginner-spotlight-active');
+      target.classList.add('is-beginner-spotlight');
+      window.setTimeout(positionCallout, 260);
+      timer = window.setTimeout(remove, 5600);
+    };
+
+    window.addEventListener('okj:beginner-mode-change', (event) => {
+      if (event.detail && event.detail.enabled) show();
+      else remove();
+    });
+    window.addEventListener('resize', positionCallout);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') remove();
+    });
+
+    if (window.BeginnerMode && window.BeginnerMode.isEnabled && window.BeginnerMode.isEnabled()) {
+      window.setTimeout(show, 650);
+    }
   }
 
   function formatPct(value, digits = 2) {
@@ -709,9 +974,11 @@
 
   function syncArticleTerms(enabled) {
     $$(ARTICLE_TERM_SELECTOR).forEach((term) => {
-      term.tabIndex = enabled ? 0 : -1;
-      term.setAttribute('role', enabled ? 'button' : 'text');
-      term.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+      const alwaysEnabled = term.dataset.termAlways === 'true' || term.classList.contains('article-term--always');
+      const interactive = enabled || alwaysEnabled;
+      term.tabIndex = interactive ? 0 : -1;
+      term.setAttribute('role', interactive ? 'button' : 'text');
+      term.setAttribute('aria-disabled', interactive ? 'false' : 'true');
     });
   }
 
@@ -732,6 +999,10 @@
     initSpreadLiveTicker();
     initBrokerChoiceTool();
     initJpyWithdrawalTool();
+    initOrderbookLiveDemo();
+    initOrderbookExecutionSim();
+    initOrderbookMiniQuiz();
+    initBeginnerSpotlight();
     initArticleTerms();
   });
 })();
