@@ -1313,6 +1313,8 @@
     const enabledPaths = new Set([
       '/learn/spread',
       '/learn/spread.html',
+      '/learn/broker-loss-reasons',
+      '/learn/broker-loss-reasons.html',
       '/learn/buying-100k-points',
       '/learn/buying-100k-points.html',
     ]);

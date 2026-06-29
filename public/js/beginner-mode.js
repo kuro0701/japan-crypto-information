@@ -246,6 +246,27 @@
         ],
       };
     }
+    if (path === '/learn/broker-loss-reasons') {
+      return {
+        eyebrow: '🔰 初心者モード',
+        title: '販売所は「買う前の価格差」から見ます',
+        summary: '販売所は操作が簡単ですが、買値と売値の差が見えにくいコストになります。まずは10万円なら2%で約2,000円、と金額に置き換えると判断しやすいです。',
+        metrics: ['販売所スプレッド', '購入金額', '板取引の参考コスト'],
+        visuals: [
+          { mark: '1', title: '無料表示', body: '取引手数料だけを見ない。' },
+          { mark: '2', title: '価格差', body: '買値と売値のすき間を見る。' },
+          { mark: '3', title: '比較', body: '同じ金額で板も確認する。' },
+        ],
+        terms: ['sales-spread', 'orderbook', 'effective-cost', 'slippage'],
+        warningTitle: '販売所で買う前の注意',
+        warning: '「手数料無料」はスプレッドまで無料という意味ではありません。購入前に販売所スプレッド比較と公式注文画面の最終価格を確認してください。',
+        links: [
+          { href: '/sales-spread?instrumentId=BTC-JPY', label: 'BTC/JPYのスプレッドを見る' },
+          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '10万円買いを試算' },
+          { href: '/learn/exchange-vs-broker', label: '販売所と取引所の違い' },
+        ],
+      };
+    }
     if (path === '/learn/crypto-fees') {
       return {
         eyebrow: '🔰 初心者モード',
@@ -422,7 +443,7 @@
       ${visualsHtml ? `<div class="beginner-guide-visual-grid">${visualsHtml}</div>` : ''}
       ${metricsHtml ? `<div class="beginner-guide-section"><strong>最初に見る指標</strong><div class="beginner-guide-chip-row">${metricsHtml}</div></div>` : ''}
       ${termsHtml ? `<div class="beginner-guide-section"><strong>用語の意味</strong><dl class="beginner-guide-term-grid">${termsHtml}</dl></div>` : ''}
-      ${profile.warning ? `<div class="beginner-guide-warning"><strong>注文サイズの注意</strong><span>${escapeHtml(profile.warning)}</span></div>` : ''}
+      ${profile.warning ? `<div class="beginner-guide-warning"><strong>${escapeHtml(profile.warningTitle || '注文サイズの注意')}</strong><span>${escapeHtml(profile.warning)}</span></div>` : ''}
       ${linksHtml ? `<div class="beginner-guide-section"><strong>次に見るページ</strong><div class="beginner-guide-link-row">${linksHtml}</div></div>` : ''}
     `;
 
