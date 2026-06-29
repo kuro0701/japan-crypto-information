@@ -122,6 +122,23 @@ html.theme-light {
   letter-spacing: 0 !important;
 }
 
+html,
+body,
+.topbar,
+.panel,
+.nav-link,
+.status-cluster,
+.theme-toggle,
+.beginner-toggle,
+.term-tooltip,
+.beginner-guide-panel {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    box-shadow 300ms ease;
+}
+
 body.terminal-body {
   font-family: var(--font-ui);
   color: var(--text-1);

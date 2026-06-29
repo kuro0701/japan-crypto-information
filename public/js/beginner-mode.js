@@ -287,6 +287,27 @@
         ],
       };
     }
+    if (path === '/learn/exchange-checklist' || path === '/learn/exchange-checklist.html') {
+      return {
+        eyebrow: '🔰 初心者モード',
+        title: '取引所選びは7点だけに絞って確認します',
+        summary: 'ONの間は専門用語に注釈を付け、重要な確認ステップを強調します。まず銘柄、注文方法、10万円買いのコストの3つを見ると迷いにくくなります。',
+        metrics: ['銘柄対応', '販売所 / 取引所', '10万円買いの実効コスト'],
+        visuals: [
+          { mark: '1', title: '銘柄', body: '買いたい銘柄を扱うか確認します。' },
+          { mark: '2', title: '注文方法', body: '販売所か取引所かを分けます。' },
+          { mark: '3', title: '実質コスト', body: '板、手数料、スプレッドを金額で見ます。' },
+        ],
+        terms: ['sales-spread', 'maker-fee', 'taker-fee', 'impact', 'effective-cost', 'liquidity'],
+        warningTitle: 'キャンペーンを見る前の注意',
+        warning: '特典条件だけで選ぶと、通常時のスプレッドや出金手数料で不利になることがあります。先に通常コストを確認してください。',
+        links: [
+          { href: '/markets', label: '銘柄ページ一覧を見る' },
+          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '10万円買いを試算' },
+          { href: '/learn/crypto-fees', label: '手数料の見方を読む' },
+        ],
+      };
+    }
     if (path === '/volume-share' || path === '/volume-share.html') {
       return {
         eyebrow: '🔰 初心者モード',

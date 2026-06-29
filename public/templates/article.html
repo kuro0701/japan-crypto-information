@@ -21,7 +21,9 @@
   <script>
     (() => {
       try {
-        if (localStorage.getItem('okj.theme.v1') === 'light') {
+        const storedTheme = localStorage.getItem('okj.theme.v1');
+        const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+        if (storedTheme === 'light' || (!storedTheme && prefersLight)) {
           document.documentElement.classList.add('theme-light');
         }
       } catch (_) {
@@ -30,7 +32,7 @@
     })();
   </script>
   <link rel="stylesheet" href="/css/style.css?v=ui-34">
-  <link rel="stylesheet" href="/css/article.css?v=10">
+  <link rel="stylesheet" href="/css/article.css?v=11">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -124,18 +126,23 @@
           <small>10万円分の成行注文で、手数料・スリッページ込みの実質コストを確認します。</small>
           <span class="article-next-card__action">開く ↗</span>
         </a>
-        <a class="article-next-card" href="/learn/exchange-checklist">
-          <span class="article-next-card__kicker">Guide</span>
-          <strong>自分に合う取引所を選ぶ</strong>
-          <small>手数料、スプレッド、入出金、キャンペーン条件を整理して比較します。</small>
-          <span class="article-next-card__action">読む ↗</span>
+        <a class="article-next-card" href="{{ARTICLE_SECOND_NEXT_HREF}}">
+          <span class="article-next-card__kicker">{{ARTICLE_SECOND_NEXT_KICKER}}</span>
+          <strong>{{ARTICLE_SECOND_NEXT_TITLE}}</strong>
+          <small>{{ARTICLE_SECOND_NEXT_DESCRIPTION}}</small>
+          <span class="article-next-card__action">{{ARTICLE_SECOND_NEXT_ACTION}}</span>
         </a>
       </div>
     </section>
   </main>
 
+  <div class="article-mobile-actions" data-article-mobile-actions aria-label="記事ナビゲーション">
+    <button type="button" data-mobile-toc-button>目次</button>
+    <button type="button" data-mobile-top-button>上へ</button>
+  </div>
+
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 記事</footer>
-  <script src="/js/beginner-mode.js?v=12"></script>
-  <script src="/js/article.js?v=10"></script>
+  <script src="/js/beginner-mode.js?v=13"></script>
+  <script src="/js/article.js?v=11"></script>
 </body>
 </html>

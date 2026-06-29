@@ -1,5 +1,6 @@
 (() => {
   const THEME_STORAGE_KEY = 'okj.theme.v1';
+  const EXCHANGE_CHECKLIST_STORAGE_KEY = 'okj.exchangeChecklist.v1';
   const ARTICLE_TERM_SELECTOR = '.article-term[data-term-key]';
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -161,9 +162,13 @@
 
   function readStoredTheme() {
     try {
-      return localStorage.getItem(THEME_STORAGE_KEY) === 'light' ? 'light' : 'dark';
+      const stored = localStorage.getItem(THEME_STORAGE_KEY);
+      if (stored === 'light' || stored === 'dark') return stored;
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
+      return 'dark';
     } catch (_) {
-      return document.documentElement.classList.contains('theme-light') ? 'light' : 'dark';
+      if (document.documentElement.classList.contains('theme-light')) return 'light';
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     }
   }
 
@@ -801,6 +806,12 @@
       },
     };
 
+    modeButtons.forEach((button) => {
+      const active = button.classList.contains('is-active') || button.dataset.feeSimMode === mode;
+      if (active) mode = button.dataset.feeSimMode || mode;
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+
     const update = () => {
       const amount = Math.max(0, Number(amountInput && amountInput.value) || 0);
       const preset = assumptions[mode] || assumptions.broker;
@@ -822,7 +833,11 @@
     modeButtons.forEach((button) => {
       button.addEventListener('click', () => {
         mode = button.dataset.feeSimMode || 'broker';
-        modeButtons.forEach(item => item.classList.toggle('is-active', item === button));
+        modeButtons.forEach((item) => {
+          const active = item === button;
+          item.classList.toggle('is-active', active);
+          item.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
         update();
       });
     });
@@ -1417,6 +1432,88 @@
     });
   }
 
+  function initExchangeChecklist() {
+    $$('[data-exchange-checklist]').forEach((root) => {
+      const items = $$('[data-checklist-item]', root);
+      const count = $('[data-checklist-count]', root);
+      const progress = $('[data-checklist-progress]', root);
+      const complete = $('[data-checklist-complete]', root);
+      if (!items.length) return;
+
+      const storageKey = `${EXCHANGE_CHECKLIST_STORAGE_KEY}:${window.location.pathname.replace(/\/+$/, '') || '/'}`;
+      const readState = () => {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_) {
+          return [];
+        }
+      };
+      const writeState = () => {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(items.map(item => Boolean(item.checked))));
+        } catch (_) {
+          // noop
+        }
+      };
+
+      const update = () => {
+        const checked = items.filter(item => item.checked).length;
+        const total = items.length;
+        const ratio = total ? checked / total : 0;
+        if (count) count.textContent = `${checked} / ${total}`;
+        if (progress) progress.style.transform = `scaleX(${ratio})`;
+        if (complete) complete.hidden = checked !== total;
+        root.classList.toggle('is-complete', checked === total);
+        items.forEach((item) => {
+          const label = item.closest('label');
+          if (label) label.classList.toggle('is-checked', item.checked);
+        });
+      };
+
+      readState().forEach((checked, index) => {
+        if (items[index]) items[index].checked = Boolean(checked);
+      });
+
+      items.forEach((item) => {
+        item.addEventListener('change', () => {
+          writeState();
+          update();
+        });
+      });
+      update();
+    });
+  }
+
+  function initArticleMobileActions() {
+    const actions = $('[data-article-mobile-actions]');
+    if (!actions) return;
+    const tocButton = $('[data-mobile-toc-button]', actions);
+    const topButton = $('[data-mobile-top-button]', actions);
+    const mobileToc = $('[data-article-mobile-toc]');
+
+    const updateVisibility = () => {
+      actions.classList.toggle('is-visible', window.scrollY > 360);
+    };
+
+    if (tocButton) {
+      tocButton.addEventListener('click', () => {
+        if (!mobileToc) return;
+        mobileToc.open = true;
+        mobileToc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    if (topButton) {
+      topButton.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    updateVisibility();
+    window.addEventListener('scroll', updateVisibility, { passive: true });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
     initToc();
@@ -1433,6 +1530,8 @@
     initOrderbookMiniQuiz();
     initBeginnerSpotlight();
     initArticleTerms();
+    initExchangeChecklist();
+    initArticleMobileActions();
     initArticleCopyToast();
   });
 })();
