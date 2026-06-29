@@ -234,9 +234,36 @@
   }
 
   function buildTocLinks(headings) {
-    return headings.map((heading) => (
-      `<a class="article-toc__link" href="#${heading.id}" data-article-toc-link="${heading.id}">${heading.textContent.trim()}</a>`
-    )).join('');
+    return headings.map((heading, index) => {
+      const className = [
+        'article-toc__link',
+        index >= 4 ? 'article-toc__link--extra' : '',
+      ].filter(Boolean).join(' ');
+      return `<a class="${className}" href="#${heading.id}" data-article-toc-link="${heading.id}">${heading.textContent.trim()}</a>`;
+    }).join('');
+  }
+
+  function buildTocMoreButton(headings) {
+    if (headings.length <= 4) return '';
+    return '<button class="article-toc__more" type="button" data-article-toc-more aria-expanded="false">+ もっと見る</button>';
+  }
+
+  function setTocExpanded(container, expanded) {
+    if (!container) return;
+    container.classList.toggle('is-expanded', expanded);
+    $$('[data-article-toc-more]', container).forEach((button) => {
+      button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      button.textContent = expanded ? '閉じる' : '+ もっと見る';
+    });
+  }
+
+  function wireTocExpansion(container) {
+    if (!container) return;
+    $$('[data-article-toc-more]', container).forEach((button) => {
+      button.addEventListener('click', () => {
+        setTocExpanded(container, !container.classList.contains('is-expanded'));
+      });
+    });
   }
 
   function initToc() {
@@ -264,12 +291,16 @@
       heading.tabIndex = -1;
     });
 
-    const linksHtml = buildTocLinks(headings);
+    const linksHtml = `${buildTocLinks(headings)}${buildTocMoreButton(headings)}`;
     tocList.innerHTML = linksHtml;
     toc.hidden = false;
+    setTocExpanded(toc, false);
+    wireTocExpansion(toc);
     if (mobileToc && mobileTocList) {
       mobileTocList.innerHTML = linksHtml;
       mobileToc.hidden = false;
+      setTocExpanded(mobileToc, false);
+      wireTocExpansion(mobileToc);
     }
 
     const links = $$('[data-article-toc-link]');
@@ -279,6 +310,9 @@
         link.classList.toggle('is-active', active);
         if (active) link.setAttribute('aria-current', 'true');
         else link.removeAttribute('aria-current');
+        if (active && link.classList.contains('article-toc__link--extra')) {
+          setTocExpanded(link.closest('[data-article-toc], [data-article-mobile-toc]'), true);
+        }
       });
     };
 
@@ -797,6 +831,363 @@
     update();
   }
 
+  function formatBaseAmount(value, unit = 'BTC') {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number <= 0) return `- ${unit}`;
+    const digits = number >= 0.01 ? 5 : 7;
+    return `${number.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')} ${unit}`;
+  }
+
+  function finiteNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function buyingRowExchangeLabel(row) {
+    return (row && (row.exchangeLabel || row.exchangeId)) || '取引所';
+  }
+
+  function buyingVenueCost(row) {
+    const result = row && row.result;
+    if (!result || result.error) return null;
+    const filled = finiteNumber(result.totalBTCFilled) || 0;
+    const slippagePerBase = Math.max(0, finiteNumber(result.slippageFromBestJPY) || 0);
+    const fees = Math.max(0, finiteNumber(result.feesJPY) || 0);
+    return slippagePerBase * filled + fees;
+  }
+
+  function buyingSalesCost(row, amount) {
+    const spread = finiteNumber(row && (row.spreadPct ?? (row.result && row.result.spreadPct)));
+    if (spread == null) return null;
+    return Math.max(0, amount * spread / 100);
+  }
+
+  function buyingSalesBase(row) {
+    return finiteNumber(row && row.result && row.result.totalBase);
+  }
+
+  function buyingVenueBase(row) {
+    return finiteNumber(row && row.result && row.result.totalBTCFilled);
+  }
+
+  function buyingReadySalesRows(data, amount) {
+    return (Array.isArray(data && data.rows) ? data.rows : [])
+      .filter(row => row && row.status === 'ready' && row.result)
+      .map(row => ({
+        row,
+        cost: buyingSalesCost(row, amount),
+        base: buyingSalesBase(row),
+      }))
+      .filter(item => item.cost != null || item.base != null)
+      .sort((a, b) => {
+        const costDiff = (a.cost ?? Number.POSITIVE_INFINITY) - (b.cost ?? Number.POSITIVE_INFINITY);
+        if (costDiff !== 0) return costDiff;
+        return String(buyingRowExchangeLabel(a.row)).localeCompare(String(buyingRowExchangeLabel(b.row)), 'ja');
+      });
+  }
+
+  function buyingReadyVenueRows(data) {
+    return (Array.isArray(data && data.rows) ? data.rows : [])
+      .filter(row => row && row.status === 'fresh' && row.result && !row.result.error)
+      .map(row => ({
+        row,
+        cost: buyingVenueCost(row),
+        base: buyingVenueBase(row),
+      }))
+      .filter(item => item.cost != null || item.base != null)
+      .sort((a, b) => {
+        const rankDiff = (a.row.rank ?? Number.POSITIVE_INFINITY) - (b.row.rank ?? Number.POSITIVE_INFINITY);
+        if (rankDiff !== 0) return rankDiff;
+        const costDiff = (a.cost ?? Number.POSITIVE_INFINITY) - (b.cost ?? Number.POSITIVE_INFINITY);
+        if (costDiff !== 0) return costDiff;
+        return String(buyingRowExchangeLabel(a.row)).localeCompare(String(buyingRowExchangeLabel(b.row)), 'ja');
+      });
+  }
+
+  function renderBuyingSimRow(item, kind, amount) {
+    const row = item.row || {};
+    const exchangeLabel = buyingRowExchangeLabel(row);
+    const isSales = kind === 'sales';
+    const spread = finiteNumber(row.spreadPct ?? (row.result && row.result.spreadPct));
+    const impact = finiteNumber(row.result && row.result.marketImpactPct);
+    const cost = item.cost;
+    const base = item.base;
+    const sourceLabel = isSales ? '販売所参考' : '取引所板';
+    const detail = isSales
+      ? `Spread ${spread == null ? '-' : formatPct(spread, 2)} / 取得 ${formatBaseAmount(base)}`
+      : `Impact ${impact == null ? '-' : formatPct(impact, 3)} / 取得 ${formatBaseAmount(base)}`;
+    const href = isSales
+      ? `/sales-spread?instrumentId=BTC-JPY`
+      : `/simulator?market=BTC-JPY&exchange=${encodeURIComponent(row.exchangeId || '')}&side=buy&amountType=jpy&amount=${encodeURIComponent(String(amount))}`;
+    return `
+      <a class="buying-sim-row buying-sim-row--${isSales ? 'sales' : 'venue'}" href="${escapeHtml(href)}">
+        <span>${escapeHtml(sourceLabel)}</span>
+        <strong>${escapeHtml(exchangeLabel)} <em>${cost == null ? '取得待ち' : `約${escapeHtml(formatJpyNumber(cost))}`}</em></strong>
+        <small>${escapeHtml(detail)}</small>
+      </a>
+    `;
+  }
+
+  function renderBuyingWaitingRow(kind) {
+    const isSales = kind === 'sales';
+    return `
+      <article class="buying-sim-row is-waiting buying-sim-row--${isSales ? 'sales' : 'venue'}">
+        <span>${isSales ? '販売所参考' : '取引所板'}</span>
+        <strong>${isSales ? '販売所価格を取得中' : '板データを取得中'}</strong>
+        <small>${isSales ? '販売所スプレッド比較で取得できた価格だけ表示します。' : 'WebSocketの板が新鮮な取引所だけ表示します。'}</small>
+      </article>
+    `;
+  }
+
+  function updateBuyingMeter(root, salesItems, venueItems) {
+    const brokerBar = $('[data-buying-meter-broker]', root);
+    const exchangeBar = $('[data-buying-meter-exchange]', root);
+    const brokerLabel = $('[data-buying-meter-broker-label]', root);
+    const exchangeLabel = $('[data-buying-meter-exchange-label]', root);
+    const note = $('[data-buying-meter-note]', root);
+    const bestSales = salesItems.filter(item => item.base != null).sort((a, b) => b.base - a.base)[0] || null;
+    const bestVenue = venueItems.filter(item => item.base != null).sort((a, b) => b.base - a.base)[0] || null;
+    const maxBase = Math.max(bestSales ? bestSales.base : 0, bestVenue ? bestVenue.base : 0);
+
+    const setBar = (bar, item) => {
+      if (!bar) return;
+      const pct = item && maxBase > 0 ? Math.max(12, Math.min(100, (item.base / maxBase) * 100)) : 8;
+      bar.style.width = `${pct.toFixed(1)}%`;
+    };
+
+    setBar(brokerBar, bestSales);
+    setBar(exchangeBar, bestVenue);
+    if (brokerLabel) brokerLabel.textContent = bestSales ? `${buyingRowExchangeLabel(bestSales.row)} ${formatBaseAmount(bestSales.base)}` : '取得待ち';
+    if (exchangeLabel) exchangeLabel.textContent = bestVenue ? `${buyingRowExchangeLabel(bestVenue.row)} ${formatBaseAmount(bestVenue.base)}` : '取得待ち';
+
+    if (!note) return;
+    if (bestSales && bestVenue) {
+      const delta = bestVenue.base - bestSales.base;
+      note.textContent = Math.abs(delta) < 0.00000001
+        ? '取得数量はほぼ同じです。最終注文前は公式画面の見積もりを確認してください。'
+        : `同じ金額なら、現時点の最良候補では取引所板が ${formatBaseAmount(Math.abs(delta))} ${delta >= 0 ? '多い' : '少ない'} 参考結果です。`;
+    } else {
+      note.textContent = '現在の販売所価格と板データを取得できた取引所だけで比較します。';
+    }
+  }
+
+  function initBuyingAmountSimulator() {
+    $$('[data-buying-amount-sim]').forEach((root) => {
+      const range = $('[data-buying-amount-range]', root);
+      const output = $('[data-buying-amount-output]', root);
+      const rowsHost = $('[data-buying-sim-rows]', root);
+      const meta = $('[data-buying-sim-meta]', root);
+      const link = $('[data-buying-sim-link]', root);
+      const presets = $$('[data-buying-amount-preset]', root);
+      if (!range || !rowsHost) return;
+
+      let abortController = null;
+      let debounceTimer = null;
+
+      const amountValue = () => {
+        const min = Number(range.min) || 0;
+        const max = Number(range.max) || 500000;
+        return Math.max(min, Math.min(max, Number(range.value) || 100000));
+      };
+
+      const syncAmountUi = () => {
+        const amount = amountValue();
+        const min = Number(range.min) || 0;
+        const max = Number(range.max) || 500000;
+        const progress = max > min ? ((amount - min) / (max - min)) * 100 : 0;
+        root.style.setProperty('--buying-amount-progress', `${progress}%`);
+        if (output) output.textContent = formatJpyNumber(amount);
+        if (link) {
+          const params = new URLSearchParams({
+            market: 'BTC-JPY',
+            side: 'buy',
+            amountType: 'jpy',
+            amount: String(Math.round(amount)),
+          });
+          link.href = `/simulator?${params.toString()}`;
+        }
+        presets.forEach((button) => {
+          const active = Number(button.dataset.buyingAmountPreset) === amount;
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+      };
+
+      const fetchJson = async (path, signal) => {
+        const response = await fetch(path, { cache: 'no-store', signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      };
+
+      const render = (salesData, venueData, amount) => {
+        const salesItems = buyingReadySalesRows(salesData, amount);
+        const venueItems = buyingReadyVenueRows(venueData);
+        const visibleRows = [
+          ...salesItems.slice(0, 3).map(item => renderBuyingSimRow(item, 'sales', amount)),
+          ...venueItems.slice(0, 3).map(item => renderBuyingSimRow(item, 'venue', amount)),
+        ];
+
+        if (visibleRows.length === 0) {
+          rowsHost.innerHTML = `${renderBuyingWaitingRow('sales')}${renderBuyingWaitingRow('venue')}`;
+        } else {
+          rowsHost.innerHTML = visibleRows.join('');
+        }
+
+        updateBuyingMeter(root, salesItems, venueItems);
+        const updatedAt = (salesData && salesData.meta && salesData.meta.generatedAt)
+          || (venueData && venueData.meta && venueData.meta.generatedAt)
+          || new Date().toISOString();
+        if (meta) {
+          const salesCount = salesItems.length;
+          const venueCount = venueItems.length;
+          meta.textContent = `${formatCompactDateTime(updatedAt)} 取得 / 販売所 ${salesCount}件・取引所板 ${venueCount}件の参考値`;
+        }
+        root.classList.add('is-fresh');
+        window.setTimeout(() => root.classList.remove('is-fresh'), 560);
+      };
+
+      const load = async () => {
+        const amount = amountValue();
+        syncAmountUi();
+        if (abortController) abortController.abort();
+        abortController = new AbortController();
+        const controller = abortController;
+        const params = new URLSearchParams({
+          instrumentId: 'BTC-JPY',
+          side: 'buy',
+          amountType: 'jpy',
+          amount: String(Math.round(amount)),
+        });
+        try {
+          const [salesResult, venueResult] = await Promise.allSettled([
+            fetchJson(`/api/sales-reference-comparison?${params.toString()}`, controller.signal),
+            fetchJson(`/api/market-impact-comparison?${params.toString()}`, controller.signal),
+          ]);
+          if (abortController !== controller) return;
+          const salesData = salesResult.status === 'fulfilled' ? salesResult.value : null;
+          const venueData = venueResult.status === 'fulfilled' ? venueResult.value : null;
+          render(salesData, venueData, amount);
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          rowsHost.innerHTML = `${renderBuyingWaitingRow('sales')}${renderBuyingWaitingRow('venue')}`;
+          if (meta) meta.textContent = '参考値を取得できませんでした。リンク先の比較ツールで再確認してください。';
+        }
+      };
+
+      const scheduleLoad = () => {
+        syncAmountUi();
+        if (debounceTimer) window.clearTimeout(debounceTimer);
+        debounceTimer = window.setTimeout(load, 180);
+      };
+
+      presets.forEach((button) => {
+        button.addEventListener('click', () => {
+          const amount = Number(button.dataset.buyingAmountPreset);
+          if (Number.isFinite(amount)) {
+            range.value = String(amount);
+            scheduleLoad();
+          }
+        });
+      });
+      range.addEventListener('input', scheduleLoad);
+      window.addEventListener('okj:buying-amount-request', (event) => {
+        const amount = Number(event.detail && event.detail.amount);
+        if (!Number.isFinite(amount)) return;
+        range.value = String(Math.max(Number(range.min) || 0, Math.min(Number(range.max) || amount, amount)));
+        scheduleLoad();
+      });
+
+      syncAmountUi();
+      load();
+      window.setInterval(load, 30000);
+    });
+  }
+
+  function initBuyingIntentFilters() {
+    const triggers = $$('[data-buying-intent]');
+    if (!triggers.length) return;
+    let highlightTimer = null;
+
+    const clearHighlights = () => {
+      $$('[data-buying-highlight]').forEach(node => node.classList.remove('is-highlighted'));
+    };
+
+    triggers.forEach((trigger) => {
+      trigger.addEventListener('click', (event) => {
+        const targetId = trigger.dataset.buyingScrollTarget || String(trigger.getAttribute('href') || '').replace(/^#/, '');
+        const target = targetId ? document.getElementById(targetId) : null;
+        const intent = trigger.dataset.buyingIntent || '';
+        const amount = Number(trigger.dataset.buyingAmount);
+
+        if (target) {
+          event.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        if (Number.isFinite(amount)) {
+          window.dispatchEvent(new CustomEvent('okj:buying-amount-request', {
+            detail: { amount },
+          }));
+        }
+
+        triggers.forEach(item => item.classList.toggle('is-active', item === trigger));
+        clearHighlights();
+        $$('[data-buying-highlight]').filter(node => node.dataset.buyingHighlight === intent).forEach(node => node.classList.add('is-highlighted'));
+        if (highlightTimer) window.clearTimeout(highlightTimer);
+        highlightTimer = window.setTimeout(clearHighlights, 5200);
+      });
+    });
+  }
+
+  function showArticleToast(message) {
+    let toast = $('[data-article-toast]');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'article-toast';
+      toast.dataset.articleToast = 'true';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('is-visible');
+    window.clearTimeout(showArticleToast.timer);
+    showArticleToast.timer = window.setTimeout(() => {
+      toast.classList.remove('is-visible');
+    }, 2200);
+  }
+
+  async function copyTextToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    textarea.remove();
+  }
+
+  function initArticleCopyToast() {
+    document.addEventListener('click', async (event) => {
+      const trigger = event.target && event.target.closest ? event.target.closest('[data-copy-text]') : null;
+      if (!trigger) return;
+      const text = trigger.dataset.copyText || trigger.textContent || '';
+      if (!text.trim()) return;
+      event.preventDefault();
+      try {
+        await copyTextToClipboard(text.trim());
+        showArticleToast(trigger.dataset.copySuccessText || 'コピーしました');
+      } catch (_) {
+        showArticleToast('コピーできませんでした');
+      }
+    });
+  }
+
   function initSpreadCostSlider() {
     $$('[data-spread-cost-slider]').forEach((root) => {
       const input = $('[data-spread-cost-amount]', root);
@@ -845,6 +1236,21 @@
       .sort((a, b) => rowLatestSpreadValue(a) - rowLatestSpreadValue(b))[0] || null;
   }
 
+  function tickerRowForExchange(rows, instrumentId, exchangeId) {
+    return (rows || [])
+      .filter(row => (
+        row
+        && row.instrumentId === instrumentId
+        && row.exchangeId === exchangeId
+        && rowLatestSpreadValue(row) != null
+      ))
+      .sort((a, b) => {
+        const aTime = Date.parse(a.latest && (a.latest.capturedAt || a.latest.priceTimestamp) || a.capturedAt || '');
+        const bTime = Date.parse(b.latest && (b.latest.capturedAt || b.latest.priceTimestamp) || b.capturedAt || '');
+        return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+      })[0] || null;
+  }
+
   function tickerItemHtml(row, fallback) {
     if (!row) {
       return `
@@ -868,16 +1274,29 @@
   function renderSpreadTicker(root, data) {
     const items = $('[data-spread-live-ticker-items]', root);
     const meta = $('[data-spread-live-ticker-meta]', root);
-    const markets = [
-      { id: 'BTC-JPY', label: 'BTC' },
-      { id: 'ETH-JPY', label: 'ETH' },
-      { id: 'SOL-JPY', label: 'SOL' },
-    ];
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
     const rows = data && Array.isArray(data.rows) ? data.rows : [];
     if (items) {
-      items.innerHTML = markets
-        .map(market => tickerItemHtml(bestTickerRow(rows, market.id), market))
-        .join('');
+      if (path === '/learn/buying-100k-points' || path === '/learn/buying-100k-points.html') {
+        const exchanges = [
+          { id: 'bitflyer', label: 'bitFlyer' },
+          { id: 'coincheck', label: 'Coincheck' },
+          { id: 'gmo', label: 'GMO' },
+          { id: 'bittrade', label: 'BitTrade' },
+        ];
+        items.innerHTML = exchanges
+          .map(exchange => tickerItemHtml(tickerRowForExchange(rows, 'BTC-JPY', exchange.id), exchange))
+          .join('');
+      } else {
+        const markets = [
+          { id: 'BTC-JPY', label: 'BTC' },
+          { id: 'ETH-JPY', label: 'ETH' },
+          { id: 'SOL-JPY', label: 'SOL' },
+        ];
+        items.innerHTML = markets
+          .map(market => tickerItemHtml(bestTickerRow(rows, market.id), market))
+          .join('');
+      }
     }
     const updatedAt = data && data.meta && (data.meta.latestCapturedAt || data.meta.generatedAt);
     if (meta) meta.textContent = updatedAt ? `最新取得 ${formatCompactDateTime(updatedAt)} / 参考値` : '参考値';
@@ -891,7 +1310,13 @@
     const root = $('[data-spread-live-ticker]');
     if (!root) return;
     const path = window.location.pathname.replace(/\/+$/, '') || '/';
-    if (path !== '/learn/spread' && path !== '/learn/spread.html') return;
+    const enabledPaths = new Set([
+      '/learn/spread',
+      '/learn/spread.html',
+      '/learn/buying-100k-points',
+      '/learn/buying-100k-points.html',
+    ]);
+    if (!enabledPaths.has(path)) return;
 
     const meta = $('[data-spread-live-ticker-meta]', root);
     let abortController = null;
@@ -995,6 +1420,8 @@
     initToc();
     initReadingProgress();
     initMiniSimulator();
+    initBuyingAmountSimulator();
+    initBuyingIntentFilters();
     initSpreadCostSlider();
     initSpreadLiveTicker();
     initBrokerChoiceTool();
@@ -1004,5 +1431,6 @@
     initOrderbookMiniQuiz();
     initBeginnerSpotlight();
     initArticleTerms();
+    initArticleCopyToast();
   });
 })();
