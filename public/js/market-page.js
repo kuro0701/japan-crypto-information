@@ -1403,14 +1403,23 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.market-section-nav__track').forEach((track) => {
         const trackLinks = Array.from(track.querySelectorAll('[data-market-section-target]'));
         const index = Math.max(0, trackLinks.findIndex(link => decodeURIComponent(link.hash.slice(1)) === id));
+        track.style.setProperty('--market-section-count', String(Math.max(trackLinks.length, 1)));
         track.style.setProperty('--active-index', String(index));
       });
     };
 
     let ticking = false;
+    const sectionActivationOffset = () => {
+      const stickyBottom = Math.max(
+        0,
+        ...Array.from(document.querySelectorAll('header, .market-section-nav'))
+          .map(element => element.getBoundingClientRect().bottom)
+      );
+      return Math.max(stickyBottom + 150, window.innerWidth < 768 ? 230 : 320);
+    };
     const update = () => {
       ticking = false;
-      const offset = window.innerWidth < 768 ? 108 : 118;
+      const offset = sectionActivationOffset();
       let activeId = sections[0].id;
       sections.forEach((section) => {
         const rect = section.getBoundingClientRect();
@@ -1426,10 +1435,30 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     links.forEach((link) => {
-      link.addEventListener('click', () => {
+      link.addEventListener('click', (event) => {
         const id = decodeURIComponent(link.hash.slice(1));
+        const section = id ? document.getElementById(id) : null;
         if (id) {
+          event.preventDefault();
           setActive(id);
+          if (section) {
+            const stickyBottom = Math.max(
+              0,
+              ...Array.from(document.querySelectorAll('header, .market-section-nav'))
+                .map(element => element.getBoundingClientRect().bottom)
+            );
+            const offset = Math.max(stickyBottom + 14, window.innerWidth < 768 ? 118 : 130);
+            const top = section.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({
+              top: Math.max(0, top),
+              behavior: prefersReducedMotion.matches ? 'auto' : 'smooth',
+            });
+            if (window.history && window.history.pushState) {
+              window.history.pushState(null, '', link.hash);
+            } else {
+              window.location.hash = link.hash;
+            }
+          }
           highlightMarketTarget(id);
         }
       });
