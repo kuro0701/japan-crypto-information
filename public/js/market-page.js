@@ -647,6 +647,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function finiteNumber(value) {
+    if (value == null || (typeof value === 'string' && value.trim() === '')) return null;
     const num = Number(value);
     return Number.isFinite(num) ? num : null;
   }
