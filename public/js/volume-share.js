@@ -266,12 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return exchangePageUrl(exchangeId);
   }
 
-  function campaignLastCheckedDisplay(value) {
-    const label = String(value || '').trim();
-    if (!label || label === '公式確認待ち' || label === '後ほど追加') return '';
-    return label;
-  }
-
   function exchangeMetaFor(exchangeId) {
     const key = String(exchangeId || '').trim().toLowerCase();
     return key ? EXCHANGE_META[key] || null : null;
@@ -379,30 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="volume-exchange-entry__reason">${escapeHtml(exchangeReason(exchangeId))}</span>
         </div>
         ${renderAccountCta(exchangeId, exchangeLabel)}
-      </div>
-    `;
-  }
-
-  function renderCampaignCell(exchangeId) {
-    const campaign = campaignForExchange(exchangeId);
-    if (!campaign) {
-      return `
-        <div class="volume-campaign-cell">
-          <a class="volume-campaign-tag volume-campaign-tag--muted" href="${escapeHtml(exchangePageUrl(exchangeId))}">詳細を確認</a>
-          <span class="volume-campaign-cell__note">キャンペーン情報は随時更新中</span>
-        </div>
-      `;
-    }
-
-    const href = campaignDetailHref(campaign, exchangeId);
-    const details = [
-      campaign.referralCode ? `コード ${campaign.referralCode}` : '',
-      campaignLastCheckedDisplay(campaign.lastChecked),
-    ].filter(Boolean).join(' / ');
-    return `
-      <div class="volume-campaign-cell">
-        <a class="volume-campaign-tag" href="${escapeHtml(href)}">${escapeHtml(campaign.tag || '公式キャンペーン確認')}</a>
-        <span class="volume-campaign-cell__note">${escapeHtml(details || '最新条件は公式で確認')}</span>
       </div>
     `;
   }

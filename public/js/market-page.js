@@ -1949,15 +1949,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const label = marketLabel();
     const navLink = $('market-page-nav-link');
     document.title = `${label} 結論・国内取引所比較・銘柄特徴｜国内暗号資産取引所ナビ`;
-    setText('market-page-title', `${label} 銘柄ページ`);
+    setText('market-page-title', `${label} 銘柄深掘り`);
     setText('market-page-subtitle', '結論・国内取引所比較・銘柄特徴');
-    setText('market-mega-summary-title', `${label} 銘柄ページ`);
+    setText('market-mega-summary-title', `${label} 銘柄深掘り`);
     setText('market-hero-title', `${label} 国内取引所データ`);
-    setText('market-footer-label', `${label} 銘柄ページ`);
+    setText('market-footer-label', `${label} 銘柄深掘り`);
     setText('market-summary-title', `${label} 比較サマリー`);
     if (navLink) {
       navLink.href = marketPageUrl(instrumentId);
-      navLink.title = `${label} 銘柄ページ`;
+      navLink.title = `${label} 銘柄深掘り`;
     }
   }
 

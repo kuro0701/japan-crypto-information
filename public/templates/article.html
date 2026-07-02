@@ -32,7 +32,7 @@
     })();
   </script>
   <link rel="stylesheet" href="/css/style.css?v=ui-34">
-  <link rel="stylesheet" href="/css/article.css?v=11">
+  <link rel="stylesheet" href="/css/article.css?v=12">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -58,10 +58,9 @@
       <a class="nav-link" href="/research">調べる</a>
       <a class="nav-link" href="/learn">初心者ガイド</a>
       <a class="nav-link" href="/simulator">取引コスト計算</a>
-      <a class="nav-link" href="/markets">銘柄ページ</a>
+      <a class="nav-link" href="/markets">銘柄深掘り</a>
       <a class="nav-link" href="/volume-share">出来高シェア</a>
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
-      <a class="nav-link" href="/campaigns">キャンペーン</a>
     </nav>
     <div class="status-cluster status-cluster--compact" aria-label="記事の表示設定">
       <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="ライトモードに切り替え">
@@ -124,6 +123,11 @@
           <span class="article-next-card__kicker">Simulator</span>
           <strong>コストを計算してみる</strong>
           <small>10万円分の成行注文で、手数料・スリッページ込みの実質コストを確認します。</small>
+          <span class="article-next-card__live-preview" data-about-next-preview hidden aria-live="polite">
+            <span>BTC参考レート</span>
+            <strong data-about-next-price>取得中</strong>
+            <small data-about-next-spread>スプレッド確認中</small>
+          </span>
           <span class="article-next-card__action">開く ↗</span>
         </a>
         <a class="article-next-card" href="{{ARTICLE_SECOND_NEXT_HREF}}">
@@ -137,12 +141,16 @@
   </main>
 
   <div class="article-mobile-actions" data-article-mobile-actions aria-label="記事ナビゲーション">
+    <a href="/simulator" data-mobile-nav-link="simulator"><span>計算</span></a>
+    <a href="/sales-spread" data-mobile-nav-link="comparison"><span>比較</span></a>
+    <a href="/learn" data-mobile-nav-link="guide"><span>ガイド</span></a>
+    <a href="/about" data-mobile-nav-link="about"><span>このサイト</span></a>
     <button type="button" data-mobile-toc-button>目次</button>
     <button type="button" data-mobile-top-button>上へ</button>
   </div>
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 記事</footer>
-  <script src="/js/beginner-mode.js?v=13"></script>
-  <script src="/js/article.js?v=11"></script>
+  <script src="/js/beginner-mode.js?v=14"></script>
+  <script src="/js/article.js?v=12"></script>
 </body>
 </html>

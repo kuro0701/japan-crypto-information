@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const exchangeId = exchange && exchange.id ? exchange.id : exchanges[0].id;
 
     if (simulatorNextMarketLink) simulatorNextMarketLink.href = marketPageUrl(instrumentId);
-    setElementText(simulatorNextMarketTitle, `${marketLabel} 銘柄ページ`);
+    setElementText(simulatorNextMarketTitle, `${marketLabel} 銘柄深掘り`);
     setElementText(simulatorNextMarketDescription, `${marketLabel} の対応取引所、板、出来高、販売所スプレッドをまとめて確認します。`);
 
     if (simulatorNextExchangeLink) simulatorNextExchangeLink.href = exchangePageUrl(exchangeId);
@@ -1952,7 +1952,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (marketPageNavLink) {
       const label = market.label || market.instrumentId || defaultMarket.label;
       marketPageNavLink.href = marketPageUrl(market.instrumentId);
-      marketPageNavLink.title = `${label} 銘柄ページ`;
+      marketPageNavLink.title = `${label} 銘柄深掘り`;
     }
     updateSimulatorNextLinks(exchange, market);
     if (typeof setChartBaseCurrency === 'function') {
@@ -2184,7 +2184,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td headers="venue-col-exchange" class="text-left" data-label="取引所">
             <div class="font-bold text-gray-200">${escapeHtml(row.exchangeLabel || row.exchangeId)}</div>
             <div class="text-[10px] text-gray-500">${escapeHtml(row.instrumentLabel || row.instrumentId)} / ${escapeHtml(sourceLabel)}</div>
-            <div class="text-[10px] mt-1"><a class="comparison-row-link" href="${escapeHtml(exchangeDetailLink)}">手数料・銘柄・キャンペーン</a></div>
+            <div class="text-[10px] mt-1"><a class="comparison-row-link" href="${escapeHtml(exchangeDetailLink)}">手数料・銘柄・公式条件</a></div>
           </td>
           <td headers="venue-col-effective" class="is-num text-right font-mono ${ready ? valueClass : 'text-gray-500'}" data-label="${fixedQuoteAmount ? (isSell ? '必要数量' : '取得数量') : (isSell ? '実効受取' : '実効コスト')}">
             <div>${effectiveValue}</div>

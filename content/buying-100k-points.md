@@ -186,7 +186,7 @@ path: /learn/buying-100k-points
   <div class="buying-step-timeline__item" role="listitem" data-buying-highlight="cheap">
     <span>1</span>
     <div>
-      <strong>買いたい銘柄の <a href="/markets/BTC-JPY">銘柄ページ</a> を開く</strong>
+      <strong>買いたい銘柄の <a href="/markets/BTC-JPY">銘柄深掘り</a> を開く</strong>
       <small>板、販売所、出来高、対応取引所を同じ銘柄で確認します。</small>
     </div>
   </div>

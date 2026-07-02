@@ -33,7 +33,7 @@ path: /learn/exchange-checklist
 
 まず、買いたい銘柄がその取引所で扱われているかを確認します。同じ BTC や ETH でも、販売所だけで扱う場合、取引所の板でも扱う場合、入出庫に対応している場合で使い勝手が変わります。
 
-[銘柄ページ一覧](/markets) では、銘柄ごとに対応取引所、板、出来高、販売所スプレッドを確認できます。
+[銘柄深掘り一覧](/markets) では、銘柄ごとに対応取引所、板、出来高、販売所スプレッドを確認できます。
 
 <aside class="checklist-callout checklist-callout--important" data-beginner-focus="true">
   <span aria-hidden="true">💡</span>
@@ -176,7 +176,7 @@ path: /learn/exchange-checklist
 
 キャンペーンは魅力的ですが、対象者、条件、期間、付与時期、除外条件があります。通常時のスプレッドや手数料が高い場合、特典だけで有利とは限りません。
 
-先に通常時のコストを見てから、最後に [キャンペーン一覧](/campaigns) で条件を確認すると判断しやすくなります。
+先に通常時のコストを見てから、[銘柄深掘り一覧](/markets) で買いたい銘柄の板、出来高、販売所スプレッドを確認し、最後に各取引所の公式サイトで最新条件を確認すると判断しやすくなります。
 
 ## チェックリストまとめ
 
@@ -201,7 +201,7 @@ path: /learn/exchange-checklist
   <div class="interactive-checklist__complete" data-checklist-complete hidden>
     <strong>準備完了です。</strong>
     <span>次は買いたい銘柄から、対応取引所とコストを絞り込みます。</span>
-    <a href="/markets">銘柄ページで候補を絞る ↗</a>
+    <a href="/markets">銘柄深掘りで候補を絞る ↗</a>
   </div>
 </section>
 

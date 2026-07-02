@@ -35,6 +35,14 @@
     '注意事項',
   ]);
   const TERMS = {
+    api: {
+      title: 'API',
+      description: 'サービス同士がデータを受け渡しするための窓口です。このサイトでは、取引所が公開している価格や出来高などを取得する入口として使います。',
+    },
+    websocket: {
+      title: 'WebSocket',
+      description: '画面を開いたまま、価格や板の変化を継続的に受け取る通信方法です。リアルタイム性が必要なデータで使われます。',
+    },
     orderbook: {
       title: '板',
       description: '取引所に並んでいる買い注文と売り注文の一覧です。板が厚いほど、大きめの注文でも価格が動きにくくなります。',
@@ -211,6 +219,22 @@
         ],
       };
     }
+    if (path === '/about' || path === '/about.html') {
+      return {
+        eyebrow: '🔰 初心者モード',
+        title: 'このサイトの読み方を短くします',
+        summary: 'ONの間は、データ取得元・PR表記・免責事項を「要するに」の箇条書きに切り替えます。専門用語は下線付きになり、タップすると意味を確認できます。',
+        metrics: ['データ取得元', 'PR表記', '免責事項'],
+        terms: ['api', 'websocket', 'sales-spread', 'execution', 'orderbook'],
+        warningTitle: '公式情報を優先してください',
+        warning: '価格、スプレッド、手数料、本人確認などの条件は変わることがあります。実際に取引や申込をする前は、各取引所の公式画面で最終確認してください。',
+        links: [
+          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: 'BTCの取引コストを試算' },
+          { href: '/sales-spread?instrumentId=BTC-JPY', label: '販売所スプレッドを見る' },
+          { href: '/learn/exchange-checklist', label: '取引所選びの手順を読む' },
+        ],
+      };
+    }
     if (path === '/sales-spread' || path === '/sales-spread.html') {
       return {
         eyebrow: '🔰 初心者モード',
@@ -299,10 +323,10 @@
           { mark: '3', title: '実質コスト', body: '板、手数料、スプレッドを金額で見ます。' },
         ],
         terms: ['sales-spread', 'maker-fee', 'taker-fee', 'impact', 'effective-cost', 'liquidity'],
-        warningTitle: 'キャンペーンを見る前の注意',
-        warning: '特典条件だけで選ぶと、通常時のスプレッドや出金手数料で不利になることがあります。先に通常コストを確認してください。',
+        warningTitle: '公式条件を見る前の注意',
+        warning: '特典や知名度だけで選ぶと、通常時のスプレッドや出金手数料で不利になることがあります。先に通常コストを確認してください。',
         links: [
-          { href: '/markets', label: '銘柄ページ一覧を見る' },
+          { href: '/markets', label: '銘柄深掘り一覧を見る' },
           { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '10万円買いを試算' },
           { href: '/learn/crypto-fees', label: '手数料の見方を読む' },
         ],
@@ -319,7 +343,7 @@
         links: [
           { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: 'BTC/JPY の取引コストを最安にする' },
           { href: '/sales-spread?instrumentId=BTC-JPY', label: '販売所スプレッドを見る' },
-          { href: '/markets/BTC-JPY', label: '銘柄ページへ' },
+          { href: '/markets/BTC-JPY', label: '銘柄深掘りへ' },
         ],
       };
     }
@@ -368,21 +392,6 @@
         ],
       };
     }
-    if (path === '/campaigns' || path.startsWith('/campaigns/')) {
-      return {
-        eyebrow: '🔰 初心者モード',
-        title: 'キャンペーンは条件とコストを分けて見ます',
-        summary: '特典だけで判断せず、「条件」「期間」「手数料・スプレッド」を順番に確認してください。申込前は公式ページの最新条件を優先します。',
-        metrics: ['特典', '条件', '手数料・スプレッド'],
-        terms: ['taker-fee', 'sales-spread', 'effective-cost'],
-        warning: '特典額より、通常取引時のスプレッドや手数料が大きくなるケースがあります。',
-        links: [
-          { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: 'コストをシミュレーション' },
-          { href: '/sales-spread?instrumentId=BTC-JPY', label: '販売所スプレッドを見る' },
-          { href: '/learn/crypto-fees', label: '手数料の見方を読む' },
-        ],
-      };
-    }
     if (path.startsWith('/exchanges/')) {
       return {
         eyebrow: '🔰 初心者モード',
@@ -398,8 +407,8 @@
         warning: '手数料が低くても、板が薄い銘柄ではImpactで不利になることがあります。',
         links: [
           { href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000', label: '取引コスト計算へ' },
-          { href: '/markets', label: '銘柄一覧へ' },
-          { href: '/campaigns', label: 'キャンペーン一覧へ' },
+          { href: '/markets', label: '銘柄深掘り一覧へ' },
+          { href: '/learn/exchange-checklist', label: '取引所選びの手順へ' },
         ],
       };
     }

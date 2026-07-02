@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     '/volume-share': '出来高シェア',
     '/derivatives': 'デリバティブ',
     '/sales-spread': '販売所スプレッド',
-    '/markets': '銘柄ページ一覧',
+    '/markets': '銘柄深掘り一覧',
   };
   const DEVICE_LABELS = {
     desktop: 'デスクトップ',

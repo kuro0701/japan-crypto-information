@@ -45,20 +45,19 @@
       <a class="nav-link" href="/">ホーム</a>
       <a class="nav-link" href="/research">調べる</a>
       <a class="nav-link" href="/simulator">取引コスト計算</a>
-      <a class="nav-link is-active" href="/markets" aria-current="page">銘柄ページ</a>
+      <a class="nav-link is-active" href="/markets" aria-current="page">銘柄深掘り</a>
       <a class="nav-link" href="/volume-share">出来高シェア</a>
       <a class="nav-link" href="/sales-spread">販売所スプレッド</a>
-      <a class="nav-link" href="/campaigns">キャンペーン</a>
     </nav>
-    <div class="status-cluster market-control-bar" aria-label="銘柄ページの更新状態と表示設定"><span class="status-cluster__live" role="status" aria-live="polite" aria-atomic="true"><span class="badge badge--live"><span class="market-live-pulse" aria-hidden="true"></span>LIVE</span><span id="market-status" class="status-text">読み込み中</span><span class="market-freshness-status text-xs text-gray-600 ml-2"><span id="market-refresh-progress" class="market-refresh-progress" aria-hidden="true"><span></span></span><span id="market-updated-at" class="text-gray-400">最終更新 -</span></span></span><span class="market-control-bar__divider" aria-hidden="true"></span><button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="ライトモードに切り替え"><span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__icon theme-toggle__icon--sun">☀</span><span class="theme-toggle__icon theme-toggle__icon--moon">☾</span><span class="theme-toggle__knob" data-theme-toggle-icon>☀</span></span><span class="sr-only" data-theme-toggle-label>ライト</span></button><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
+    <div class="status-cluster market-control-bar" aria-label="銘柄深掘りの更新状態と表示設定"><span class="status-cluster__live" role="status" aria-live="polite" aria-atomic="true"><span class="badge badge--live"><span class="market-live-pulse" aria-hidden="true"></span>LIVE</span><span id="market-status" class="status-text">読み込み中</span><span class="market-freshness-status text-xs text-gray-600 ml-2"><span id="market-refresh-progress" class="market-refresh-progress" aria-hidden="true"><span></span></span><span id="market-updated-at" class="text-gray-400">最終更新 -</span></span></span><span class="market-control-bar__divider" aria-hidden="true"></span><button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="ライトモードに切り替え"><span class="theme-toggle__track" aria-hidden="true"><span class="theme-toggle__icon theme-toggle__icon--sun">☀</span><span class="theme-toggle__icon theme-toggle__icon--moon">☾</span><span class="theme-toggle__knob" data-theme-toggle-icon>☀</span></span><span class="sr-only" data-theme-toggle-label>ライト</span></button><button class="beginner-toggle" type="button" data-beginner-toggle aria-pressed="false">初心者モード OFF</button></div>
   </header>
 
-  <nav class="market-section-nav" data-market-section-nav aria-label="銘柄ページ内ナビゲーション">
+  <nav class="market-section-nav" data-market-section-nav aria-label="銘柄深掘り内ナビゲーション">
     <div class="market-section-nav__track">
       <a class="is-active" href="#market-conclusion" data-market-section-target>結論</a>
       <a href="#market-exchange-comparison" data-market-section-target>比較</a>
       <a href="#market-board-cost" data-market-section-target>板・コスト</a>
-      <a href="#market-research" data-market-section-target>銘柄特徴</a>
+      <a href="#market-research" data-market-section-target>深掘り</a>
       <a href="#market-pretrade-check" data-market-section-target>チェック</a>
     </div>
   </nav>
@@ -392,8 +391,8 @@
     <section id="market-research" class="panel panel--dense info-layer info-layer--bottom beginner-focus market-readmore" data-info-layer="bottom" data-beginner-focus="true" data-market-readmore>
       <div class="panel-title-row mb-4">
         <div>
-          <h2 class="panel-title">3. この銘柄について</h2>
-          <p class="text-xs text-gray-500 mt-1">何のための銘柄か、主な用途、仕組み、国内取引所での扱われ方を確認します</p>
+          <h2 class="panel-title">3. 銘柄深掘り</h2>
+          <p class="text-xs text-gray-500 mt-1">何のための銘柄か、仕組み、国内で買う時の見る順番、関連銘柄をまとめて確認します</p>
         </div>
         <div class="market-panel-actions">
           <span class="panel-kicker">Profile</span>
@@ -401,6 +400,9 @@
         </div>
       </div>
       <div id="market-research-body" class="market-readmore__body">
+        <div class="market-deep-dive-stack">
+        <!-- MARKET_DEEP_DIVE_CARDS -->
+        </div>
         <div class="market-insight-grid">
         <!-- MARKET_PROFILE_CARDS -->
         </div>
@@ -470,11 +472,11 @@
     </div>
   </div>
 
-  <nav class="market-mobile-quick-nav" aria-label="銘柄ページのクイックナビ">
+  <nav class="market-mobile-quick-nav" aria-label="銘柄深掘りのクイックナビ">
     <a class="is-active" href="#market-conclusion" data-market-section-target>結論</a>
     <a href="#market-exchange-comparison" data-market-section-target>比較</a>
     <a href="#market-board-cost" data-market-section-target>板・コスト</a>
-    <a href="#market-research" data-market-section-target>特徴</a>
+    <a href="#market-research" data-market-section-target>深掘り</a>
     <a href="#market-pretrade-check" data-market-section-target>チェック</a>
   </nav>
 

@@ -184,11 +184,6 @@ const SITEMAP_PAGES = [
     priority: '0.8',
   },
   {
-    path: '/campaigns',
-    lastmod: fileLastmod(path.join(PUBLIC_DIR, 'campaigns.html')),
-    priority: '0.8',
-  },
-  {
     path: '/markets',
     lastmod: fileLastmod(path.join(PUBLIC_DIR, 'markets.html')),
     priority: '0.8',
@@ -244,10 +239,8 @@ function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/derivatives' || reqPath === '/derivatives.html') return '/derivatives';
   if (reqPath === '/sales-spread' || reqPath === '/sales-spread.html') return '/sales-spread';
   if (reqPath === '/financial-comparison' || reqPath === '/financial-comparison.html') return '/financial-comparison';
-  if (reqPath === '/campaigns' || reqPath === '/campaigns.html') return '/campaigns';
   if (reqPath === '/learn' || reqPath === '/learn/') return '/learn';
   if (/^\/learn\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
-  if (/^\/campaigns\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
   if (reqPath === '/markets' || reqPath === '/markets.html') return '/markets';
   if (/^\/markets\/[A-Z0-9]+(?:-[A-Z0-9]+)+$/i.test(reqPath)) return reqPath.toUpperCase();
   if (/^\/exchanges\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
