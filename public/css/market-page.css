@@ -1316,6 +1316,561 @@ html:has([data-market-page]) {
   white-space: normal;
 }
 
+[data-market-page] .market-coin-article {
+  display: grid;
+  gap: var(--sp-4);
+  min-width: 0;
+  color: var(--text-2);
+}
+
+[data-market-page] .market-coin-article__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.34fr);
+  gap: var(--sp-4);
+  align-items: start;
+  padding: var(--sp-5);
+  border: 1px solid rgba(53, 200, 210, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(53, 200, 210, 0.12), rgba(8, 12, 14, 0.76) 48%, rgba(244, 201, 93, 0.09)),
+    rgba(8, 12, 14, 0.72);
+  box-shadow: var(--market-page-card-shadow-soft);
+}
+
+[data-market-page] .market-coin-article__hero-copy {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+
+[data-market-page] .market-coin-article__eyebrow,
+[data-market-page] .market-coin-article__block-head span,
+[data-market-page] .market-coin-article__section-head span,
+[data-market-page] .market-coin-article__audience span {
+  margin: 0;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+[data-market-page] .market-coin-article__hero h3 {
+  max-width: 860px;
+  margin: 0;
+  color: var(--text-1);
+  font-size: 34px;
+  font-weight: 950;
+  line-height: 1.18;
+}
+
+[data-market-page] .market-coin-article__hero-copy > p:not(.market-coin-article__eyebrow) {
+  max-width: 76ch;
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  font-weight: 750;
+  line-height: 1.85;
+}
+
+[data-market-page] .market-coin-article__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+[data-market-page] .market-coin-article__meta span,
+[data-market-page] .market-coin-article__meta strong {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid rgba(143, 154, 140, 0.2);
+  border-radius: 999px;
+  background: rgba(8, 12, 14, 0.44);
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+[data-market-page] .market-coin-article__meta strong {
+  border-color: rgba(53, 224, 165, 0.26);
+  color: var(--bid);
+  font-family: var(--font-mono);
+}
+
+[data-market-page] .market-coin-article__audience {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: var(--sp-4);
+  border: 1px solid rgba(244, 201, 93, 0.2);
+  border-radius: 8px;
+  background: rgba(22, 18, 10, 0.34);
+}
+
+[data-market-page] .market-coin-article__audience span {
+  color: var(--warn);
+}
+
+[data-market-page] .market-coin-article__audience p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  line-height: 1.75;
+}
+
+[data-market-page] .market-coin-article__summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  grid-template-areas:
+    "takeaways facts"
+    "takeaways toc";
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+[data-market-page] .market-coin-article__takeaways,
+[data-market-page] .market-coin-article__facts,
+[data-market-page] .market-coin-article__toc,
+[data-market-page] .market-coin-article__table-block,
+[data-market-page] .market-coin-article__timeline-block,
+[data-market-page] .market-coin-article__faq,
+[data-market-page] .market-coin-article__sources,
+[data-market-page] .market-coin-article__cta {
+  min-width: 0;
+  border: 1px solid rgba(53, 200, 210, 0.16);
+  border-radius: 8px;
+  background: var(--market-page-cell-bg) !important;
+  box-shadow: var(--market-page-card-shadow-soft);
+}
+
+[data-market-page] .market-coin-article__takeaways {
+  grid-area: takeaways;
+  padding: var(--sp-4);
+}
+
+[data-market-page] .market-coin-article__facts {
+  grid-area: facts;
+  padding: var(--sp-4);
+}
+
+[data-market-page] .market-coin-article__toc {
+  grid-area: toc;
+  display: grid;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+}
+
+[data-market-page] .market-coin-article__block-head,
+[data-market-page] .market-coin-article__section-head {
+  display: grid;
+  gap: 7px;
+}
+
+[data-market-page] .market-coin-article__block-head h4,
+[data-market-page] .market-coin-article__section-head h4,
+[data-market-page] .market-coin-article__sources h4 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: var(--fs-lg);
+  font-weight: 950;
+  line-height: 1.35;
+}
+
+[data-market-page] .market-coin-article__block-head p,
+[data-market-page] .market-coin-article__section-head p {
+  max-width: 78ch;
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.8;
+}
+
+[data-market-page] .market-coin-article__takeaways ul,
+[data-market-page] .market-coin-article__sources ul {
+  display: grid;
+  gap: 10px;
+  margin: var(--sp-3) 0 0;
+  padding-left: 20px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.75;
+}
+
+[data-market-page] .market-coin-article__takeaways li::marker,
+[data-market-page] .market-coin-article__sources li::marker {
+  color: var(--bid);
+  font-weight: 950;
+}
+
+[data-market-page] .market-coin-article__facts dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: var(--sp-3) 0 0;
+}
+
+[data-market-page] .market-coin-article__facts dl div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(143, 154, 140, 0.14);
+  border-radius: 8px;
+  background: rgba(8, 12, 14, 0.32);
+}
+
+[data-market-page] .market-coin-article__facts dt {
+  color: var(--text-4);
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1.3;
+}
+
+[data-market-page] .market-coin-article__facts dd {
+  margin: 0;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  font-weight: 950;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+[data-market-page] .market-coin-article__facts p {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.55;
+}
+
+[data-market-page] .market-coin-article__toc strong {
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 950;
+}
+
+[data-market-page] .market-coin-article__toc div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+[data-market-page] .market-coin-article__toc a,
+[data-market-page] .market-coin-article__cta a {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border: 1px solid rgba(53, 200, 210, 0.22);
+  border-radius: 999px;
+  color: var(--accent) !important;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+[data-market-page] .market-coin-article__toc a:hover,
+[data-market-page] .market-coin-article__toc a:focus-visible,
+[data-market-page] .market-coin-article__cta a:hover,
+[data-market-page] .market-coin-article__cta a:focus-visible {
+  background: rgba(53, 200, 210, 0.12);
+}
+
+[data-market-page] .market-coin-article__body {
+  display: grid;
+  gap: var(--sp-4);
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+[data-market-page] .market-coin-article__section {
+  display: grid;
+  gap: var(--sp-3);
+  min-width: 0;
+  padding-top: var(--sp-4);
+  border-top: 1px solid rgba(143, 154, 140, 0.16);
+}
+
+[data-market-page] .market-coin-article__section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+[data-market-page] .market-coin-article__section-head h4 {
+  font-size: 24px;
+}
+
+[data-market-page] .market-coin-article__section-head p {
+  color: var(--text-1);
+  font-size: var(--fs-md);
+  font-weight: 800;
+}
+
+[data-market-page] .market-coin-article__paragraphs {
+  display: grid;
+  gap: 12px;
+  max-width: 78ch;
+}
+
+[data-market-page] .market-coin-article__paragraphs p,
+[data-market-page] .market-coin-article__subsections p,
+[data-market-page] .market-coin-article__note,
+[data-market-page] .market-coin-article__faq p,
+[data-market-page] .market-coin-article__timeline p,
+[data-market-page] .market-coin-article__cta p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.85;
+}
+
+[data-market-page] .market-coin-article__subsections {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+[data-market-page] .market-coin-article__subsections section {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: var(--sp-3);
+  border: 1px solid rgba(53, 224, 165, 0.18);
+  border-radius: 8px;
+  background: rgba(53, 224, 165, 0.06);
+}
+
+[data-market-page] .market-coin-article__subsections h5 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 950;
+  line-height: 1.4;
+}
+
+[data-market-page] .market-coin-article__note {
+  max-width: 78ch;
+  padding: 12px 14px;
+  border-left: 3px solid var(--warn);
+  border-radius: 8px;
+  background: rgba(244, 201, 93, 0.08);
+  color: var(--text-2);
+}
+
+[data-market-page] .market-coin-article__table-block,
+[data-market-page] .market-coin-article__timeline-block,
+[data-market-page] .market-coin-article__faq,
+[data-market-page] .market-coin-article__sources,
+[data-market-page] .market-coin-article__cta {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+}
+
+[data-market-page] .market-coin-article__table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid rgba(143, 154, 140, 0.14);
+  border-radius: 8px;
+}
+
+[data-market-page] .market-coin-article__table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+[data-market-page] .market-coin-article__table th,
+[data-market-page] .market-coin-article__table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(143, 154, 140, 0.12);
+  text-align: left;
+  vertical-align: top;
+}
+
+[data-market-page] .market-coin-article__table th {
+  background: rgba(53, 200, 210, 0.08);
+  color: var(--text-1);
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1.4;
+}
+
+[data-market-page] .market-coin-article__table td {
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  line-height: 1.65;
+}
+
+[data-market-page] .market-coin-article__table td:first-child {
+  color: var(--text-1);
+  font-weight: 900;
+}
+
+[data-market-page] .market-coin-article__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+[data-market-page] .market-coin-article__timeline {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+[data-market-page] .market-coin-article__timeline li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: var(--sp-3);
+  padding: 0 0 var(--sp-3);
+}
+
+[data-market-page] .market-coin-article__timeline li::before {
+  content: "";
+  position: absolute;
+  top: 30px;
+  bottom: 0;
+  left: 55px;
+  width: 1px;
+  background: rgba(53, 200, 210, 0.22);
+}
+
+[data-market-page] .market-coin-article__timeline li:last-child {
+  padding-bottom: 0;
+}
+
+[data-market-page] .market-coin-article__timeline li:last-child::before {
+  display: none;
+}
+
+[data-market-page] .market-coin-article__timeline time {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: 1px solid rgba(53, 224, 165, 0.28);
+  border-radius: 999px;
+  background: rgba(53, 224, 165, 0.1);
+  color: var(--bid);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1.2;
+}
+
+[data-market-page] .market-coin-article__timeline strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 950;
+  line-height: 1.35;
+}
+
+[data-market-page] .market-coin-article__faq-list {
+  display: grid;
+  gap: 10px;
+}
+
+[data-market-page] .market-coin-article__faq details {
+  min-width: 0;
+  border: 1px solid rgba(143, 154, 140, 0.14);
+  border-radius: 8px;
+  background: rgba(8, 12, 14, 0.32);
+}
+
+[data-market-page] .market-coin-article__faq summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-weight: 950;
+  line-height: 1.45;
+}
+
+[data-market-page] .market-coin-article__faq details p {
+  padding: 0 14px 14px;
+}
+
+[data-market-page] .market-coin-article__cta {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  border-color: rgba(53, 224, 165, 0.22);
+  background:
+    linear-gradient(135deg, rgba(53, 224, 165, 0.08), rgba(8, 12, 14, 0.56)),
+    var(--market-page-cell-bg) !important;
+}
+
+[data-market-page] .market-coin-article__cta p {
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  [data-market-page] .market-coin-article__hero,
+  [data-market-page] .market-coin-article__summary-grid,
+  [data-market-page] .market-coin-article__subsections,
+  [data-market-page] .market-coin-article__cta {
+    grid-template-columns: 1fr;
+  }
+
+  [data-market-page] .market-coin-article__summary-grid {
+    grid-template-areas:
+      "takeaways"
+      "facts"
+      "toc";
+  }
+}
+
+@media (max-width: 640px) {
+  [data-market-page] .market-coin-article__hero,
+  [data-market-page] .market-coin-article__takeaways,
+  [data-market-page] .market-coin-article__facts,
+  [data-market-page] .market-coin-article__toc,
+  [data-market-page] .market-coin-article__table-block,
+  [data-market-page] .market-coin-article__timeline-block,
+  [data-market-page] .market-coin-article__faq,
+  [data-market-page] .market-coin-article__sources,
+  [data-market-page] .market-coin-article__cta {
+    padding: var(--sp-3);
+  }
+
+  [data-market-page] .market-coin-article__hero h3 {
+    font-size: 26px;
+  }
+
+  [data-market-page] .market-coin-article__facts dl {
+    grid-template-columns: 1fr;
+  }
+
+  [data-market-page] .market-coin-article__timeline li {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  [data-market-page] .market-coin-article__timeline li::before {
+    display: none;
+  }
+
+  [data-market-page] .market-coin-article__table {
+    min-width: 600px;
+  }
+}
+
 [data-market-page] .market-conclusion-facts {
   grid-template-columns: minmax(0, 1.42fr) repeat(2, minmax(0, 0.92fr));
   gap: var(--sp-3);
