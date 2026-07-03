@@ -1195,7 +1195,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const active = activeQuickAmount();
     document.querySelectorAll('[data-market-quick-amount]').forEach((button) => {
       const value = Number(button.dataset.marketQuickAmount);
-      button.classList.toggle('is-active', active != null && value === active);
+      const isActive = active != null && value === active;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-market-sticky-amount]').forEach((button) => {
+      const value = Number(button.dataset.marketStickyAmount);
+      const isActive = active != null && value === active;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
     syncAmountRange();
     syncAmountTypeToggle();
@@ -1461,6 +1469,70 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           highlightMarketTarget(id);
         }
+      });
+    });
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    update();
+  }
+
+  function initCoinArticleNavigation() {
+    const links = Array.from(document.querySelectorAll('[data-market-coin-article-target]'))
+      .filter(link => link.hash);
+    if (links.length === 0) return;
+    const sections = [...new Set(links.map(link => decodeURIComponent(link.hash.slice(1))).filter(Boolean))]
+      .map(id => document.getElementById(id))
+      .filter(Boolean);
+    if (sections.length === 0) return;
+
+    const activationOffset = () => {
+      const stickyBottom = Math.max(
+        0,
+        ...Array.from(document.querySelectorAll('header, .market-section-nav'))
+          .map(element => element.getBoundingClientRect().bottom)
+      );
+      return Math.max(stickyBottom + 110, window.innerWidth < 768 ? 190 : 260);
+    };
+    const setActive = (id) => {
+      links.forEach((link) => {
+        const active = decodeURIComponent(link.hash.slice(1)) === id;
+        link.classList.toggle('is-active', active);
+        if (active) link.setAttribute('aria-current', 'true');
+        else link.removeAttribute('aria-current');
+      });
+    };
+
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const offset = activationOffset();
+      let activeId = sections[0].id;
+      sections.forEach((section) => {
+        if (section.getBoundingClientRect().top - offset <= 0) activeId = section.id;
+      });
+      setActive(activeId);
+    };
+    const schedule = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(update);
+    };
+
+    links.forEach((link) => {
+      link.addEventListener('click', (event) => {
+        const id = decodeURIComponent(link.hash.slice(1));
+        const section = id ? document.getElementById(id) : null;
+        if (!section) return;
+        event.preventDefault();
+        setActive(id);
+        const offset = Math.max(activationOffset() - 70, window.innerWidth < 768 ? 118 : 132);
+        window.scrollTo({
+          top: Math.max(0, section.getBoundingClientRect().top + window.scrollY - offset),
+          behavior: prefersReducedMotion.matches ? 'auto' : 'smooth',
+        });
+        if (window.history && window.history.pushState) window.history.pushState(null, '', link.hash);
+        else window.location.hash = link.hash;
+        highlightMarketTarget(id);
       });
     });
     window.addEventListener('scroll', schedule, { passive: true });
@@ -1810,6 +1882,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!host) return;
     const amount = $('market-sticky-amount');
     const best = $('market-sticky-best');
+    const metaNode = $('market-sticky-meta');
     const action = $('market-sticky-action');
     const bestComparison = comparisonBestRow(lastComparisonData);
     const bestDomestic = domesticBestCostRow();
@@ -1847,6 +1920,7 @@ document.addEventListener('DOMContentLoaded', () => {
       best.textContent = label;
       best.title = meta;
     }
+    if (metaNode) metaNode.textContent = meta;
     if (action) {
       action.href = actionHref;
       action.textContent = actionLabel;
@@ -1862,6 +1936,74 @@ document.addEventListener('DOMContentLoaded', () => {
     host.hidden = false;
     host.classList.toggle('is-ready', label !== 'データ待ち');
     syncStickySimulatorVisibility();
+    renderCoinArticleLiveContext();
+  }
+
+  function renderCoinArticleLiveContext() {
+    const host = $('coin-article-live-context');
+    if (!host) return;
+    const boardNode = $('market-live-context-board');
+    const boardMetaNode = $('market-live-context-board-meta');
+    const salesNode = $('market-live-context-sales');
+    const salesMetaNode = $('market-live-context-sales-meta');
+    const deltaNode = $('market-live-context-delta');
+    const deltaMetaNode = $('market-live-context-delta-meta');
+    const bestComparison = comparisonBestRow(lastComparisonData);
+    const bestDomestic = domesticBestCostRow();
+    const snapshotBest = summary && summary.snapshot && summary.snapshot.cheapestBuy;
+    const salesBest = bestSalesFromSummary();
+    const snapshotSales = summary && summary.snapshot && summary.snapshot.tightestSalesSpread;
+
+    let boardLabel = '板データを取得中';
+    let boardMeta = '10万円買いの実効価格を確認しています。';
+    let boardPrice = null;
+    if (bestComparison && bestComparison.result) {
+      boardLabel = bestComparison.exchangeLabel || bestComparison.exchangeId || '最安候補';
+      boardPrice = finiteNumber(bestComparison.result.effectiveVWAP);
+      boardMeta = `${comparisonAmountLabel(lastComparisonData && lastComparisonData.meta)} / 実効VWAP ${fmtJpyPrice(boardPrice)}`;
+    } else if (bestDomestic && bestDomestic.cost100k) {
+      boardLabel = bestDomestic.exchangeLabel || bestDomestic.exchangeId || '最安候補';
+      boardPrice = finiteNumber(bestDomestic.cost100k.effectiveVWAP);
+      boardMeta = `10万円買い / 実効VWAP ${fmtJpyPrice(boardPrice)}`;
+    } else if (snapshotBest) {
+      boardLabel = snapshotBest.exchangeLabel || snapshotBest.exchangeId || '最安候補';
+      boardPrice = finiteNumber(snapshotBest.effectiveVWAP);
+      boardMeta = `10万円買い / 実効VWAP ${fmtJpyPrice(boardPrice)}`;
+    }
+
+    const sales = salesBest && salesBest.salesSpread ? salesBest.salesSpread : null;
+    const salesLabel = salesBest
+      ? (salesBest.exchangeLabel || salesBest.exchangeId || '販売所候補')
+      : (snapshotSales ? (snapshotSales.exchangeLabel || snapshotSales.exchangeId || '販売所候補') : '販売所価格を取得中');
+    const salesSpread = finiteNumber(sales && sales.spreadPct) ?? finiteNumber(snapshotSales && snapshotSales.spreadPct);
+    const salesBuyPrice = finiteNumber(sales && sales.buyPrice);
+    const salesSellPrice = finiteNumber(sales && sales.sellPrice);
+    const salesMeta = salesBuyPrice != null || salesSellPrice != null
+      ? `買 ${fmtJpyPrice(salesBuyPrice)} / 売 ${fmtJpyPrice(salesSellPrice)}`
+      : (salesSpread != null ? `販売所スプレッド ${fmtPct(salesSpread)}` : '買値と売値の差を確認しています。');
+
+    let deltaValue = '計算中';
+    let deltaMeta = 'データがそろうと価格差の目安を表示します。';
+    if (boardPrice != null && boardPrice > 0 && salesBuyPrice != null) {
+      const premiumPct = ((salesBuyPrice - boardPrice) / boardPrice) * 100;
+      const premiumJpy = (salesBuyPrice / boardPrice - 1) * 100000;
+      deltaValue = `${premiumPct >= 0 ? '+' : ''}${fmtPct(premiumPct)}`;
+      deltaMeta = `10万円買いなら価格差の目安は約${Fmt.jpy(Math.abs(premiumJpy))}です。`;
+    } else if (salesSpread != null) {
+      deltaValue = fmtPct(salesSpread);
+      deltaMeta = '販売所の買値・売値差を実質コストとして確認してください。';
+    } else if (boardPrice != null) {
+      deltaValue = fmtJpyPrice(boardPrice);
+      deltaMeta = '板取引側の実効価格のみ取得できています。';
+    }
+
+    if (boardNode) boardNode.textContent = boardLabel;
+    if (boardMetaNode) boardMetaNode.textContent = boardMeta;
+    if (salesNode) salesNode.textContent = salesLabel;
+    if (salesMetaNode) salesMetaNode.textContent = salesMeta;
+    if (deltaNode) deltaNode.textContent = deltaValue;
+    if (deltaMetaNode) deltaMetaNode.textContent = deltaMeta;
+    host.classList.toggle('is-ready', boardPrice != null || salesSpread != null);
   }
 
   function syncStickySimulatorVisibility() {
@@ -2871,10 +3013,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setText('market-comparison-meta', `${marketLabel()} | ${meta.side === 'sell' ? '売り' : '買い'} | ${comparisonAmountLabel(meta)} | ${termText('手数料', '成行手数料')} ${meta.feeRate == null ? termText('各取引所既定', '各社の既定値') : fmtPct(meta.feeRate * 100)}${showOnlyMyExchanges && myExchangeIds.size > 0 ? ` | マイ取引所 ${rows.length}件表示` : ''} | 新鮮 ${counts.fresh || 0}件 / stale ${counts.stale || 0}件 / 待機 ${counts.waiting || 0}件${counts.waiting > 0 ? ` | ${PARTIAL_DATA_FAILURE_MESSAGE}` : ''}`);
     if (rawRows.length === 0) {
       setEmpty('market-comparison-tbody', 7, '比較できる取引所がありません。別の銘柄または条件で確認してください。');
+      renderStickySimulator();
       return;
     }
     if (rows.length === 0) {
       setEmpty('market-comparison-tbody', 7, 'マイ取引所に一致する比較行がありません。選択だけ表示を解除してください。');
+      renderStickySimulator();
       return;
     }
 
@@ -3049,6 +3193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderBeginnerSimpleCard();
       }
       updateFreshnessProgress();
+      renderCoinArticleLiveContext();
       if (lastComparisonData) renderComparison(lastComparisonData);
     },
   });
@@ -3303,11 +3448,13 @@ document.addEventListener('DOMContentLoaded', () => {
       renderOrderbookRows();
       renderBeginnerSimpleCard();
     }
+    renderStickySimulator();
   });
 
   initThemeToggle();
   initPairSwitcher();
   initSectionNavigation();
+  initCoinArticleNavigation();
   initIntentNavigation();
   initReadmoreSections();
   initBeginnerCollapses();
