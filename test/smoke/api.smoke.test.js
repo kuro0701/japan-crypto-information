@@ -416,6 +416,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const btcArticle = await fetchText(baseUrl, '/articles/btc');
   assert.equal(btcArticle.status, 200);
   assert.ok(btcArticle.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
+  assert.ok(btcArticle.body.includes('調査前提とデータの見方'));
+  assert.ok(btcArticle.body.includes('鍵・ウォレット・保管方法'));
+  assert.ok(btcArticle.body.includes('環境負荷の論点'));
+  assert.ok(btcArticle.body.includes('主要法域の比較'));
   assert.ok(btcArticle.body.includes('/markets/BTC-JPY'));
   assert.ok(btcArticle.body.includes('/articles">記事</a>'));
   assertCommonDisclosure(btcArticle.body);
