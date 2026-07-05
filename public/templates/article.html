@@ -119,16 +119,16 @@
         <span class="panel-kicker">Next</span>
       </div>
       <div class="article-next-grid">
-        <a class="article-next-card article-next-card--primary" href="/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000">
-          <span class="article-next-card__kicker">Simulator</span>
-          <strong>コストを計算してみる</strong>
-          <small>10万円分の成行注文で、手数料・スリッページ込みの実質コストを確認します。</small>
+        <a class="article-next-card article-next-card--primary" href="{{ARTICLE_PRIMARY_NEXT_HREF}}">
+          <span class="article-next-card__kicker">{{ARTICLE_PRIMARY_NEXT_KICKER}}</span>
+          <strong>{{ARTICLE_PRIMARY_NEXT_TITLE}}</strong>
+          <small>{{ARTICLE_PRIMARY_NEXT_DESCRIPTION}}</small>
           <span class="article-next-card__live-preview" data-about-next-preview hidden aria-live="polite">
             <span>BTC参考レート</span>
             <strong data-about-next-price>取得中</strong>
             <small data-about-next-spread>スプレッド確認中</small>
           </span>
-          <span class="article-next-card__action">開く ↗</span>
+          <span class="article-next-card__action">{{ARTICLE_PRIMARY_NEXT_ACTION}}</span>
         </a>
         <a class="article-next-card" href="{{ARTICLE_SECOND_NEXT_HREF}}">
           <span class="article-next-card__kicker">{{ARTICLE_SECOND_NEXT_KICKER}}</span>
@@ -141,10 +141,10 @@
   </main>
 
   <div class="article-mobile-actions" data-article-mobile-actions aria-label="記事ナビゲーション">
-    <a href="/simulator" data-mobile-nav-link="simulator"><span>計算</span></a>
-    <a href="/sales-spread" data-mobile-nav-link="comparison"><span>比較</span></a>
-    <a href="/learn" data-mobile-nav-link="guide"><span>ガイド</span></a>
-    <a href="/about" data-mobile-nav-link="about"><span>このサイト</span></a>
+    <a href="{{ARTICLE_MOBILE_PRIMARY_HREF}}" data-mobile-nav-link="simulator"><span>{{ARTICLE_MOBILE_PRIMARY_LABEL}}</span></a>
+    <a href="{{ARTICLE_MOBILE_SECOND_HREF}}" data-mobile-nav-link="comparison"><span>{{ARTICLE_MOBILE_SECOND_LABEL}}</span></a>
+    <a href="{{ARTICLE_MOBILE_THIRD_HREF}}" data-mobile-nav-link="guide"><span>{{ARTICLE_MOBILE_THIRD_LABEL}}</span></a>
+    <a href="{{ARTICLE_MOBILE_FOURTH_HREF}}" data-mobile-nav-link="about"><span>{{ARTICLE_MOBILE_FOURTH_LABEL}}</span></a>
     <button type="button" data-mobile-toc-button>目次</button>
     <button type="button" data-mobile-top-button>上へ</button>
   </div>

@@ -406,6 +406,20 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(learnLegacy.status, 301);
   assert.equal(learnLegacy.headers.get('location'), '/learn/slippage');
 
+  const articleIndex = await fetchText(baseUrl, '/articles');
+  assert.equal(articleIndex.status, 200);
+  assert.ok(articleIndex.body.includes('銘柄記事ライブラリ'));
+  assert.ok(articleIndex.body.includes('/articles/btc'));
+  assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
+  assertCommonDisclosure(articleIndex.body);
+
+  const btcArticle = await fetchText(baseUrl, '/articles/btc');
+  assert.equal(btcArticle.status, 200);
+  assert.ok(btcArticle.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
+  assert.ok(btcArticle.body.includes('/markets/BTC-JPY'));
+  assert.ok(btcArticle.body.includes('/articles">記事</a>'));
+  assertCommonDisclosure(btcArticle.body);
+
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
   assert.ok(simulatorPage.body.includes('取引コスト計算（板シミュレーター）'));
@@ -449,14 +463,10 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketHtml.body.includes('BTCの要点'));
   assert.ok(marketHtml.body.includes('BTCは国内取引所で流動性が高い一方、販売所で購入する場合はスプレッドに注意が必要です。'));
   assert.ok(marketHtml.body.includes('2. 国内取引所での比較'));
-  assert.ok(marketHtml.body.includes('3. 銘柄記事'));
+  assert.ok(marketHtml.body.includes('3. 銘柄記事への導線'));
   assert.ok(marketHtml.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
-  assert.ok(marketHtml.body.includes('この記事でわかること'));
-  assert.ok(marketHtml.body.includes('ビットコインとは何か'));
-  assert.ok(marketHtml.body.includes('日本の規制と税金'));
-  assert.ok(marketHtml.body.includes('国内取引所で見るポイント'));
-  assert.ok(marketHtml.body.includes('ビットコインFAQ'));
-  assert.ok(marketHtml.body.includes('pasted-text.txt'));
+  assert.ok(marketHtml.body.includes('/articles/btc'));
+  assert.ok(marketHtml.body.includes('このページでは国内取引所比較に集中し、銘柄の仕組み・歴史・税金・リスクは記事タブへ分けています。'));
   assert.ok(marketHtml.body.includes('4. 銘柄深掘り'));
   assert.ok(marketHtml.body.includes('BTCを深掘りする'));
   assert.ok(marketHtml.body.includes('調べる観点'));
@@ -489,6 +499,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(marketHtml.body.includes('/simulator?market=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/volume-share?instrumentId=BTC-JPY'));
   assert.ok(marketHtml.body.includes('/sales-spread?instrumentId=BTC-JPY'));
+  assert.ok(marketHtml.body.includes('/articles/btc'));
   assert.ok(marketHtml.body.includes('#market-exchange-comparison'));
   assert.ok(marketHtml.body.includes('/learn/exchange-vs-broker'));
   assert.ok(marketHtml.body.includes('/learn/buying-100k-points'));
