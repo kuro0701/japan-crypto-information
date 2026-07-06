@@ -675,6 +675,42 @@ html.theme-light .theme-toggle__track {
   color: var(--warn) !important;
 }
 
+.beginner-toggle--header.beginner-toggle--switch {
+  gap: 7px;
+  min-height: 32px;
+  max-width: none;
+  padding: 3px 6px !important;
+  border-radius: 999px !important;
+}
+
+.beginner-toggle--header .beginner-toggle-switch__track {
+  width: 42px;
+  height: 22px;
+}
+
+.beginner-toggle--header .beginner-toggle-switch__knob {
+  top: 3px;
+  left: 22px;
+  width: 16px;
+  height: 16px;
+}
+
+.beginner-toggle--header.beginner-toggle--switch.is-active .beginner-toggle-switch__knob {
+  left: 4px;
+}
+
+.beginner-toggle--header .beginner-toggle-switch__option {
+  gap: 0;
+}
+
+.beginner-toggle--header .beginner-toggle-switch__option strong {
+  font-size: 10px;
+}
+
+.beginner-toggle--header .beginner-toggle-switch__option small {
+  display: none;
+}
+
 .beginner-toggle--feature {
   min-height: 42px;
   padding: 0 var(--sp-4);
