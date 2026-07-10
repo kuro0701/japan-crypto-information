@@ -20,6 +20,7 @@
 - [販売所スプレッド](https://get-crypto.org/sales-spread): 国内販売所の買値・売値スプレッドを比較し、販売所と取引所の実効コスト差を確認できます。
 - [財務比較](https://get-crypto.org/financial-comparison): 国内暗号資産取引所の運営会社について、公開財務諸表をもとに営業収益、営業利益、純利益、純資産、総資産、自己資本比率を比較できます。
 - [銘柄深掘り一覧](https://get-crypto.org/markets): 銘柄別に、用途、仕組み、国内取引所比較、板、出来高、販売所スプレッド、関連銘柄を確認できます。
+- [イーサリアム（ETH）総合分析](https://get-crypto.org/articles/eth): イーサリアムの歴史、EVM、PoS、L2、供給・バーン、ステーキング、DeFi・RWA、ETF、主要チェーン比較、投資シナリオとリスクを総合分析します。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧
