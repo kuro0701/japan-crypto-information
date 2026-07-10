@@ -1302,6 +1302,57 @@
     });
   }
 
+  function initMermaidDiagrams() {
+    const nodes = $$('.article-body .mermaid');
+    if (!nodes.length) return;
+
+    const wrappers = nodes.map(node => node.closest('.article-mermaid')).filter(Boolean);
+    wrappers.forEach(wrapper => wrapper.classList.add('is-loading'));
+
+    const render = async () => {
+      if (!window.mermaid) return;
+      window.mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: readStoredTheme() === 'light' ? 'neutral' : 'dark',
+        fontFamily: 'Inter, "Noto Sans JP", sans-serif',
+      });
+      try {
+        await window.mermaid.run({ nodes, suppressErrors: true });
+        wrappers.forEach(wrapper => wrapper.classList.add('is-rendered'));
+      } catch (error) {
+        console.warn('[article] Mermaid diagram rendering failed', error);
+        wrappers.forEach(wrapper => wrapper.classList.add('is-error'));
+      } finally {
+        wrappers.forEach(wrapper => wrapper.classList.remove('is-loading'));
+      }
+    };
+
+    if (window.mermaid) {
+      render();
+      return;
+    }
+
+    const existingScript = document.querySelector('script[data-mermaid-runtime]');
+    if (existingScript) {
+      existingScript.addEventListener('load', render, { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
+    script.async = true;
+    script.dataset.mermaidRuntime = 'true';
+    script.addEventListener('load', render, { once: true });
+    script.addEventListener('error', () => {
+      wrappers.forEach((wrapper) => {
+        wrapper.classList.remove('is-loading');
+        wrapper.classList.add('is-error');
+      });
+    }, { once: true });
+    document.head.appendChild(script);
+  }
+
   function articleInstrumentId() {
     const article = $('.article-main');
     const id = article && article.dataset ? article.dataset.articleInstrumentId : '';
@@ -1859,6 +1910,7 @@
     initToc();
     initReadingProgress();
     initArticleTables();
+    initMermaidDiagrams();
     initArticleLiveMarketCard();
     initBeginnerModeToast();
     initMiniSimulator();

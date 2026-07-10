@@ -3987,6 +3987,67 @@
   pointer-events: none;
 }
 
+.article-mermaid {
+  position: relative;
+  min-height: 220px;
+  margin: var(--sp-5) 0;
+  padding: var(--sp-4);
+  overflow-x: auto;
+  border: 1px solid rgba(53, 200, 210, 0.24);
+  border-radius: var(--r);
+  background:
+    radial-gradient(circle at top right, rgba(53, 200, 210, 0.1), transparent 42%),
+    rgba(8, 12, 14, 0.82);
+}
+
+.article-mermaid.is-loading::after {
+  content: "図表を描画中";
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: var(--text-4);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.article-mermaid .mermaid {
+  min-width: 620px;
+  margin: 0;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre;
+}
+
+.article-mermaid.is-rendered .mermaid {
+  min-width: 0;
+  white-space: normal;
+}
+
+.article-mermaid svg {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.article-mermaid.is-error::before {
+  content: "図表を読み込めなかったため、元データを表示しています。";
+  display: block;
+  margin-bottom: var(--sp-2);
+  color: var(--warn);
+  font-size: var(--fs-xs);
+  font-weight: 800;
+}
+
+html.theme-light .article-mermaid {
+  border-color: rgba(23, 124, 132, 0.22);
+  background:
+    radial-gradient(circle at top right, rgba(23, 124, 132, 0.08), transparent 42%),
+    rgba(248, 251, 250, 0.94);
+}
+
 .common-disclosure {
   border-color: rgba(244, 201, 93, 0.16);
   background:

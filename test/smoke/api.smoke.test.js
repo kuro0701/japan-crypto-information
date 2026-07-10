@@ -410,6 +410,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(articleIndex.status, 200);
   assert.ok(articleIndex.body.includes('銘柄記事ライブラリ'));
   assert.ok(articleIndex.body.includes('/articles/btc'));
+  assert.ok(articleIndex.body.includes('/articles/eth'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -423,6 +424,19 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(btcArticle.body.includes('/markets/BTC-JPY'));
   assert.ok(btcArticle.body.includes('/articles">記事</a>'));
   assertCommonDisclosure(btcArticle.body);
+
+  const ethArticle = await fetchText(baseUrl, '/articles/eth');
+  assert.equal(ethArticle.status, 200);
+  assert.ok(ethArticle.body.includes('イーサリアム（ETH）総合分析'));
+  assert.ok(ethArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(ethArticle.body.includes('技術的基盤'));
+  assert.ok(ethArticle.body.includes('経済設計'));
+  assert.ok(ethArticle.body.includes('投資・運用上の示唆'));
+  assert.ok(ethArticle.body.includes('class="article-mermaid"'));
+  assert.ok(ethArticle.body.includes('https://ethereum.org/en/roadmap/'));
+  assert.ok(ethArticle.body.includes('/markets/ETH-JPY'));
+  assert.ok(!ethArticle.body.includes('cite'));
+  assertCommonDisclosure(ethArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -865,6 +879,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/research'));
   assert.ok(sitemap.body.includes('/derivatives'));
   assert.ok(sitemap.body.includes('/markets/BTC-JPY'));
+  assert.ok(sitemap.body.includes('/articles/eth'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
