@@ -621,4 +621,344 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(exchangeHtml.body.includes('純資産 2,145百万円'));
   assert.ok(exchangeHtml.body.includes('自己資本比率は約5.46%'));
   assert.ok(exchangeHtml.body.includes('公式開示資料で第4期（2020年3月期）から第9期（2025年3月期）までの決算公告'));
-  assert.ok(exchangeHtml.body.includes('https://www.okcoin.jp/pages/company/documents.html
+  assert.ok(exchangeHtml.body.includes('https://www.okcoin.jp/pages/company/documents.html'));
+  assert.ok(exchangeHtml.body.includes('https://cdn.okcoin.jp/cdn/assets/pdf/common/2025_kessan_koukoku.pdf'));
+  assert.ok(exchangeHtml.body.includes('https://cdn.okcoin.jp/cdn/assets/pdf/common/2025_balance_sheet.pdf'));
+	  assert.ok(exchangeHtml.body.includes('行政処分歴'));
+	  assert.ok(exchangeHtml.body.includes('この情報は公開資料をもとにした参考情報'));
+	  assert.ok(exchangeHtml.body.includes('板取引対応銘柄'));
+	  assert.ok(exchangeHtml.body.includes('銘柄検索・対応形式フィルタ'));
+	  assert.ok(exchangeHtml.body.includes('次に見るべきページ'));
+	  assert.ok(exchangeHtml.body.includes('詳しく知る'));
+	  assert.ok(exchangeHtml.body.includes('申込前に確認'));
+	  assert.ok(exchangeHtml.body.includes('/simulator?exchange=okj&amp;market=BTC-JPY'));
+  assert.ok(exchangeHtml.body.includes('公式サイトの最新条件'));
+  assert.ok(exchangeHtml.body.includes('https://www.okcoin.jp/account/join?invitation=C250678&amp;type=0'));
+  assert.ok(exchangeHtml.body.includes('招待コードはリンクに適用済みです。紹介特典や適用条件を確認できます。'));
+  assertExchangeDetailReferralCtas(exchangeHtml.body, OKJ_REFERRAL_URL_ESCAPED);
+  assertCommonDisclosure(exchangeHtml.body);
+
+  const coincheckHtml = await fetchText(baseUrl, '/exchanges/coincheck');
+  assert.equal(coincheckHtml.status, 200);
+  assert.ok(coincheckHtml.body.includes('Coincheckの特徴まとめ'));
+  assert.ok(coincheckHtml.body.includes(COINCHECK_AFFILIATE_URL));
+  assert.ok(coincheckHtml.body.includes(COINCHECK_TRACKING_PIXEL_URL));
+  assert.ok(coincheckHtml.body.includes('rel="nofollow"'));
+  assert.ok(coincheckHtml.body.includes('referrerpolicy="no-referrer-when-downgrade"'));
+  assert.ok(coincheckHtml.body.includes('紹介条件を見る'));
+  assertExchangeDetailReferralCtas(coincheckHtml.body, COINCHECK_AFFILIATE_URL);
+  assertCommonDisclosure(coincheckHtml.body);
+
+  const bitflyerHtml = await fetchText(baseUrl, '/exchanges/bitflyer');
+	  assert.equal(bitflyerHtml.status, 200);
+	  assert.ok(bitflyerHtml.body.includes('bitFlyerの特徴まとめ'));
+	  assert.ok(bitflyerHtml.body.includes('BTC・ETH・XRPなど主要銘柄を板取引で比較したい人'));
+		  assert.ok(bitflyerHtml.body.includes('買う金額で概算コストを見る'));
+		  assert.ok(bitflyerHtml.body.includes('data-exchange-cost-simulator'));
+	  assert.ok(bitflyerHtml.body.includes('銘柄検索・対応形式フィルタ'));
+	  assert.ok(bitflyerHtml.body.includes('全銘柄を表示'));
+	  assert.ok(bitflyerHtml.body.includes('入出金・送金条件'));
+  assert.ok(bitflyerHtml.body.includes('営業収益は2022年度'));
+  assert.ok(bitflyerHtml.body.includes('2025年度 13,567百万円'));
+  assert.ok(bitflyerHtml.body.includes('あり（bitFlyer Crypto CFD）'));
+  assert.ok(bitflyerHtml.body.includes('純資産 29,750百万円'));
+  assert.ok(bitflyerHtml.body.includes('株式会社 bitFlyer Holdings が議決権比率100%を保有'));
+  assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/financial-statement-12th.pdf'));
+  assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/pub/business-report-12th.pdf'));
+  assert.ok(bitflyerHtml.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl&amp;lang=ja-JP'));
+  assert.ok(bitflyerHtml.body.includes('招待コードはリンクに適用済みです。公式の招待ページで'));
+  assert.ok(!bitflyerHtml.body.includes('data-exchange-copy-value'));
+  assertExchangeDetailReferralCtas(bitflyerHtml.body, BITFLYER_REFERRAL_URL_ESCAPED);
+  assert.ok(bitflyerHtml.body.includes('rel="sponsored noopener noreferrer"'));
+  assert.ok(bitflyerHtml.body.includes('紹介条件を見る'));
+
+  const bitbankHtml = await fetchText(baseUrl, '/exchanges/bitbank');
+  assert.equal(bitbankHtml.status, 200);
+  assert.ok(bitbankHtml.body.includes('bitbankの特徴まとめ'));
+  assert.ok(!bitbankHtml.body.includes('class="exchange-hero-referral"'));
+  assert.ok(!bitbankHtml.body.includes('exchange-check-order__link--pr'));
+
+  const binanceHtml = await fetchText(baseUrl, '/exchanges/binance-japan');
+  assert.equal(binanceHtml.status, 200);
+  assert.ok(binanceHtml.body.includes('Binance Japanの特徴まとめ'));
+  assert.ok(binanceHtml.body.includes('PayPay が40%出資'));
+  assert.ok(binanceHtml.body.includes('PayPayマネー事前入金は110円'));
+  assert.ok(binanceHtml.body.includes('販売所ではBinance Japanが取引の相手方となり'));
+  assert.ok(binanceHtml.body.includes('営業収益は2022年12月期'));
+  assert.ok(binanceHtml.body.includes('2025年12月期 1,862百万円'));
+  assert.ok(binanceHtml.body.includes('純資産 17,321百万円'));
+  assert.ok(binanceHtml.body.includes('自己資本比率は約13.40%'));
+  assert.ok(binanceHtml.body.includes('公式サイトで第6期（2022年12月期）から第9期（2025年12月期）までの財務諸表を公開'));
+  assert.ok(binanceHtml.body.includes('https://www.binance.com/ja/about-legal/financial-statements-JP'));
+  assert.ok(binanceHtml.body.includes('https://www.binance.com/ja/about-legal/financial-statement-9-2025-jp'));
+  assert.ok(binanceHtml.body.includes('https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf'));
+  assert.ok(binanceHtml.body.includes('https://about.paypay.ne.jp/pr/20251009/01/'));
+  assert.ok(binanceHtml.body.includes('https://public.bnbstatic.com/static/terms_doc/Announcement_Capital_Reduction_Nov_14_ja.pdf'));
+  assert.ok(binanceHtml.body.includes('https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH'));
+  assert.ok(binanceHtml.body.includes('招待コードはリンクに適用済みです。紹介特典や適用条件を確認できます。'));
+  assertExchangeDetailReferralCtas(binanceHtml.body, BINANCE_JAPAN_REFERRAL_URL);
+
+  const gmoLegacy = await fetch(new URL('/exchanges/gmo', baseUrl), { redirect: 'manual' });
+  assert.equal(gmoLegacy.status, 301);
+  assert.equal(gmoLegacy.headers.get('location'), '/exchanges/gmo-coin');
+
+  const gmoHtml = await fetchText(baseUrl, '/exchanges/gmo-coin');
+  assert.equal(gmoHtml.status, 200);
+  assert.ok(gmoHtml.body.includes('GMO Coin'));
+  assert.ok(gmoHtml.body.includes('GMOコインの特徴まとめ'));
+  assert.ok(gmoHtml.body.includes('公式プログラム一覧で最新条件を確認'));
+  assert.ok(gmoHtml.body.includes('営業収益は2021年12月期'));
+  assert.ok(gmoHtml.body.includes('2025年12月期 7,398百万円'));
+  assert.ok(gmoHtml.body.includes('純資産 12,354百万円'));
+  assert.ok(gmoHtml.body.includes('自己資本比率は約2.64%'));
+  assert.ok(gmoHtml.body.includes('GMOフィナンシャルホールディングス株式会社が直接100%を保有'));
+  assert.ok(gmoHtml.body.includes('公式開示情報で第6期（2021年12月期）から第10期（2025年12月期）までの決算公告・事業報告を公開'));
+  assert.ok(gmoHtml.body.includes('https://coin.z.com/jp/corp/about/kaiji/'));
+  assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/kessan_koukoku_2026_03.pdf'));
+  assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/jigyou_houkoku_2026_03.pdf'));
+  assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/capital_ratio_2026_03.pdf?ver=202603'));
+  assert.ok(gmoHtml.body.includes('https://coin.z.com/corp_imgs/about/kaiji/disclosure_2025_12.pdf?ver=202512'));
+  assert.ok(gmoHtml.body.includes('https://www.gmofh.com/ir/stock/memo.html'));
+  assert.ok(gmoHtml.body.includes(GMO_COIN_AFFILIATE_URL));
+  assert.ok(gmoHtml.body.includes(GMO_COIN_TRACKING_PIXEL_URL));
+  assertExchangeDetailReferralCtas(gmoHtml.body, GMO_COIN_AFFILIATE_URL);
+
+  const bittradeHtml = await fetchText(baseUrl, '/exchanges/bittrade');
+  assert.equal(bittradeHtml.status, 200);
+  assert.ok(bittradeHtml.body.includes('BitTrade'));
+  assert.ok(bittradeHtml.body.includes('売上高は2022年3月期'));
+  assert.ok(bittradeHtml.body.includes('2025年3月期 2,187百万円'));
+  assert.ok(bittradeHtml.body.includes('純資産 3,094百万円'));
+  assert.ok(bittradeHtml.body.includes('自己資本比率は約12.96%'));
+  assert.ok(bittradeHtml.body.includes('SINOHOPE SG PTE. LTD.'));
+  assert.ok(bittradeHtml.body.includes('公式開示資料で第6期（2022年3月期）から第9期（2025年3月期）までの決算公告を公開'));
+  assert.ok(bittradeHtml.body.includes('https://www.bittrade.co.jp/ja-jp/disclosure/'));
+  assert.ok(bittradeHtml.body.includes('https://static.bittrade.co.jp/pdf/2024%E5%B9%B4%E5%BA%A6%E6%B1%BA%E7%AE%97%E5%85%AC%E5%91%8A%28%E7%AC%AC9%E6%9C%9F%29_01.pdf'));
+  assert.ok(bittradeHtml.body.includes('https://static.bittrade.co.jp/pdf/20241231Capital-Adequacy-Ratio.pdf'));
+  assert.ok(bittradeHtml.body.includes('https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf'));
+  assert.ok(bittradeHtml.body.includes('https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p'));
+  assert.ok(bittradeHtml.body.includes('招待コードはリンクに適用済みです。紹介特典や適用条件を確認できます。'));
+  assertExchangeDetailReferralCtas(bittradeHtml.body, BITTRADE_REFERRAL_URL);
+
+  const aboutHtml = await fetchText(baseUrl, '/about');
+  assert.equal(aboutHtml.status, 200);
+  assert.ok(aboutHtml.body.includes('id="data-sources"'));
+  assert.ok(aboutHtml.body.includes('id="pr-disclosure"'));
+  assert.ok(aboutHtml.body.includes('id="disclaimer"'));
+  assertCommonDisclosure(aboutHtml.body);
+
+  const orderBookGuide = await fetchText(baseUrl, '/learn/order-book-trading');
+  assert.equal(orderBookGuide.status, 200);
+  assert.ok(orderBookGuide.body.includes('板取引とは？'));
+  assert.ok(orderBookGuide.body.includes('注文板'));
+  assert.ok(orderBookGuide.body.includes('/simulator?market=BTC-JPY'));
+  assert.ok(orderBookGuide.body.includes('/learn/buying-100k-points'));
+  assertCommonDisclosure(orderBookGuide.body);
+
+  const cryptoFeesGuide = await fetchText(baseUrl, '/learn/crypto-fees');
+  assert.equal(cryptoFeesGuide.status, 200);
+  assert.ok(cryptoFeesGuide.body.includes('暗号資産の手数料の見方'));
+  assert.ok(cryptoFeesGuide.body.includes('/learn/jpy-withdrawal-fees'));
+  assert.ok(cryptoFeesGuide.body.includes('/learn/crypto-withdrawal-fees'));
+  assertCommonDisclosure(cryptoFeesGuide.body);
+
+  const cryptoWithdrawalGuide = await fetchText(baseUrl, '/learn/crypto-withdrawal-fees');
+  assert.equal(cryptoWithdrawalGuide.status, 200);
+  assert.ok(cryptoWithdrawalGuide.body.includes('暗号資産出金手数料の比較'));
+  assert.ok(cryptoWithdrawalGuide.body.includes('全銘柄・ネットワーク別'));
+  assert.ok(cryptoWithdrawalGuide.body.includes('/js/crypto-withdrawal-fees.js'));
+  assert.ok(cryptoWithdrawalGuide.body.includes('Binance Japan'));
+  assert.ok(cryptoWithdrawalGuide.body.includes('GMOコイン'));
+  assert.ok(cryptoWithdrawalGuide.body.includes('/learn/jpy-withdrawal-fees'));
+  assertCommonDisclosure(cryptoWithdrawalGuide.body);
+
+  const cryptoWithdrawalData = await fetchJson(baseUrl, '/data/crypto-withdrawal-fees.json');
+  assert.equal(cryptoWithdrawalData.status, 200);
+  assert.equal(cryptoWithdrawalData.headers.get('cache-control'), 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400');
+  assert.ok(cryptoWithdrawalData.body.assets.includes('BTC'));
+  assert.ok(cryptoWithdrawalData.body.assets.includes('ETH'));
+  assert.ok(cryptoWithdrawalData.body.rows.some(row => row.exchangeId === 'binance-japan' && row.asset === 'BTC'));
+  assert.ok(cryptoWithdrawalData.body.rows.some(row => row.exchangeId === 'gmo' && row.fee === '無料'));
+
+  const chartAsset = await fetch(new URL('/vendor/chart.umd.min.js', baseUrl), { method: 'HEAD' });
+  assert.equal(chartAsset.status, 200);
+  assert.equal(chartAsset.headers.get('cache-control'), 'public, max-age=31536000, immutable');
+
+  const buying100kGuide = await fetchText(baseUrl, '/learn/buying-100k-points');
+  assert.equal(buying100kGuide.status, 200);
+  assert.ok(buying100kGuide.body.includes('10万円分買うときに見るべきポイント'));
+  assert.ok(buying100kGuide.body.includes('/simulator?market=BTC-JPY'));
+  assert.ok(buying100kGuide.body.includes('/sales-spread?instrumentId=BTC-JPY'));
+  assertCommonDisclosure(buying100kGuide.body);
+
+  const brokerLossGuide = await fetchText(baseUrl, '/learn/broker-loss-reasons');
+  assert.equal(brokerLossGuide.status, 200);
+  assert.ok(brokerLossGuide.body.includes('初心者が販売所で損しやすい理由'));
+  assert.ok(brokerLossGuide.body.includes('/learn/spread'));
+  assert.ok(brokerLossGuide.body.includes('/sales-spread?instrumentId=BTC-JPY'));
+  assertCommonDisclosure(brokerLossGuide.body);
+
+  const exchangeChecklistGuide = await fetchText(baseUrl, '/learn/exchange-checklist');
+  assert.equal(exchangeChecklistGuide.status, 200);
+  assert.ok(exchangeChecklistGuide.body.includes('失敗しない取引所の選び方と口座開設ガイド'));
+  assert.ok(exchangeChecklistGuide.body.includes('/markets'));
+  assert.ok(exchangeChecklistGuide.body.includes('/learn/crypto-fees'));
+  assert.ok(exchangeChecklistGuide.body.includes('/learn/crypto-withdrawal-fees'));
+  assertCommonDisclosure(exchangeChecklistGuide.body);
+
+  const volumeSharePage = await fetchText(baseUrl, '/volume-share?instrumentId=BTC-JPY');
+  assert.equal(volumeSharePage.status, 200);
+  assert.ok(volumeSharePage.body.includes('流動性サマリー'));
+  assert.ok(volumeSharePage.body.includes('目的別取引所マップ'));
+  assert.ok(volumeSharePage.body.includes('取引所（口座開設）'));
+  assert.ok(volumeSharePage.body.includes('市場のトレンド速報'));
+  assert.ok(volumeSharePage.body.includes(COINCHECK_AFFILIATE_URL));
+  assert.ok(volumeSharePage.body.includes(COINCHECK_TRACKING_PIXEL_URL));
+  assert.ok(volumeSharePage.body.includes('https://h.accesstrade.net/sp/cc?rk=0100mtgp00osx0'));
+  assert.ok(volumeSharePage.body.includes('https://www.okcoin.jp/account/join?invitation=C250678\\u0026type=0'));
+  assert.ok(volumeSharePage.body.includes('https://bitflyer.com/invitation?id=ml1wjtkl\\u0026lang=ja-JP'));
+  assert.ok(volumeSharePage.body.includes('https://s.binance.com/OKkHnAGC?ref=GRO_55250_0VBAH'));
+  assert.ok(volumeSharePage.body.includes('https://www.bittrade.co.jp/ja-jp/register/?invite_code=tHc3p'));
+  assert.ok(volumeSharePage.body.includes('data-info-layer="top"'));
+  assert.ok(volumeSharePage.body.includes('data-info-layer="middle"'));
+  assert.ok(volumeSharePage.body.includes('data-info-layer="bottom"'));
+  assertCommonDisclosure(volumeSharePage.body);
+
+  const derivativesPage = await fetchText(baseUrl, '/derivatives');
+  assert.equal(derivativesPage.status, 200);
+  assert.ok(derivativesPage.body.includes('デリバティブ流動性サマリー'));
+  assert.ok(derivativesPage.body.includes('data-volume-api-base="/api/derivatives/volume-share"'));
+  assert.ok(derivativesPage.body.includes('自動インサイト'));
+  assert.ok(derivativesPage.body.includes('nav-menu--grouped'));
+  assert.ok(derivativesPage.body.includes('/derivatives'));
+  assertCommonDisclosure(derivativesPage.body);
+
+  const salesSpreadPage = await fetchText(baseUrl, '/sales-spread?instrumentId=BTC-JPY');
+  assert.equal(salesSpreadPage.status, 200);
+  assert.ok(salesSpreadPage.body.includes('今のスプレッド状況（実質コストの目安）'));
+  assert.ok(salesSpreadPage.body.includes('data-info-layer="top"'));
+  assert.ok(salesSpreadPage.body.includes('data-info-layer="middle"'));
+  assert.ok(salesSpreadPage.body.includes('data-info-layer="bottom"'));
+  assert.ok(salesSpreadPage.body.includes('販売所スプレッドとは？'));
+  assert.ok(salesSpreadPage.body.includes('/learn/spread'));
+  assert.ok(salesSpreadPage.body.includes('/learn/broker-loss-reasons'));
+  assert.ok(salesSpreadPage.body.includes('スプレッドが狭い（コストを抑えやすい）銘柄 TOP10'));
+  assert.ok(salesSpreadPage.body.includes('BTC/JPYの板取引価格を見る'));
+  assert.ok(salesSpreadPage.body.includes('現在のスプレッド'));
+  assert.ok(salesSpreadPage.body.includes('システム稼働状況（データの正確性）'));
+  assert.ok(salesSpreadPage.body.includes('コストが高い銘柄は、「取引所（ユーザー間取引）」も検討する'));
+  assertCommonDisclosure(salesSpreadPage.body);
+
+  const removedCampaignRoutes = [
+    '/campaigns',
+    '/campaigns.html',
+    '/campaigns/referrals',
+    '/referral-benefits',
+    '/referral-benefits.html',
+    '/campaigns/gmo',
+    '/campaigns/gmo-coin',
+    '/campaigns/coincheck',
+    '/campaigns/bitflyer',
+    '/campaigns/okj',
+    '/campaigns/binance-japan',
+    '/campaigns/bittrade',
+  ];
+  for (const route of removedCampaignRoutes) {
+    const response = await fetch(new URL(route, baseUrl), { redirect: 'manual' });
+    assert.equal(response.status, 404, `${route} should be removed`);
+  }
+
+  const adminAnalyticsPage = await fetchText(baseUrl, '/admin-analytics.html');
+  assert.equal(adminAnalyticsPage.status, 200);
+  assert.ok(adminAnalyticsPage.body.includes('アクセス解析'));
+  assertCommonDisclosure(adminAnalyticsPage.body);
+
+  const sitemap = await fetchText(baseUrl, '/sitemap.xml');
+  assert.equal(sitemap.status, 200);
+  assert.equal(sitemap.headers.get('cache-control'), 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400');
+  assert.ok(sitemap.body.includes('/research'));
+  assert.ok(sitemap.body.includes('/derivatives'));
+  assert.ok(sitemap.body.includes('/markets/BTC-JPY'));
+  assert.ok(sitemap.body.includes('/articles/eth'));
+  assert.ok(!sitemap.body.includes('/campaigns'));
+  assert.ok(!sitemap.body.includes('/campaigns/referrals'));
+  assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
+  assert.ok(sitemap.body.includes('/learn/exchange-checklist'));
+  assert.ok(sitemap.body.includes('/learn/crypto-withdrawal-fees'));
+
+  const cloudflareSitemap = await fetchText(baseUrl, '/sitemap.xml', {
+    headers: {
+      'x-forwarded-host': 'get-crypto.org',
+      'x-forwarded-proto': 'https',
+    },
+  });
+  assert.ok(cloudflareSitemap.body.includes('<loc>https://get-crypto.org/research</loc>'));
+
+  const rss = await fetchText(baseUrl, '/rss.xml');
+  assert.equal(rss.status, 200);
+  assert.ok(rss.body.includes('/learn/crypto-fees'));
+  assert.ok(rss.body.includes('/learn/crypto-withdrawal-fees'));
+  assert.ok(rss.body.includes('/learn/buying-100k-points'));
+
+  const volumeShare = await fetchJson(baseUrl, '/api/volume-share?window=7d');
+  assert.equal(volumeShare.status, 200);
+  assert.equal(volumeShare.headers.get('cache-control'), 'no-store');
+  assert.equal(volumeShare.body.meta.source, 'daily-snapshots');
+  assert.equal(volumeShare.body.rows.length, 2);
+
+  runtime.stores.volumeShareStore.replaceLatest(latestVolumeRecords, 'test', {
+    capturedAt,
+  });
+  const spotVolumeShareLatest = await fetchJson(baseUrl, '/api/volume-share?window=1d');
+  assert.equal(spotVolumeShareLatest.status, 200);
+  assert.equal(spotVolumeShareLatest.body.meta.totalQuoteVolume, 250);
+  assert.ok(spotVolumeShareLatest.body.rows.every(row => !row.instrumentId.includes('-CFD-')));
+
+  const volumeHistory = await fetchJson(baseUrl, '/api/volume-share/history?window=30d');
+  assert.equal(volumeHistory.status, 200);
+  assert.equal(volumeHistory.body.rows.length, 2);
+
+  const volumeInsights = await fetchJson(baseUrl, '/api/volume-share/insights?window=90d&maxInsights=6');
+  assert.equal(volumeInsights.status, 200);
+  assert.ok(Array.isArray(volumeInsights.body.insights));
+  assert.ok(volumeInsights.body.reportJa.includes('・'));
+
+  const derivativeVolumeShare = await fetchJson(baseUrl, '/api/derivatives/volume-share?window=1d');
+  assert.equal(derivativeVolumeShare.status, 200);
+  assert.equal(derivativeVolumeShare.body.meta.totalQuoteVolume, 700);
+  assert.deepEqual(derivativeVolumeShare.body.rows.map(row => row.instrumentId).sort(), ['BTC-CFD-JPY', 'ETH-CFD-JPY']);
+
+  const derivativeVolumeHistory = await fetchJson(baseUrl, '/api/derivatives/volume-share/history?window=30d');
+  assert.equal(derivativeVolumeHistory.status, 200);
+  assert.equal(derivativeVolumeHistory.body.meta.source, 'latest-fallback');
+  assert.equal(derivativeVolumeHistory.body.rows.length, 2);
+
+  const derivativeVolumeInsights = await fetchJson(baseUrl, '/api/derivatives/volume-share/insights?window=90d&maxInsights=6');
+  assert.equal(derivativeVolumeInsights.status, 200);
+  assert.ok(Array.isArray(derivativeVolumeInsights.body.insights));
+
+  const salesSpread = await fetchJson(baseUrl, '/api/sales-spread');
+  assert.equal(salesSpread.status, 200);
+  assert.equal(salesSpread.body.rows.length, 2);
+
+  const salesHistory = await fetchJson(baseUrl, '/api/sales-spread/history?window=30d');
+  assert.equal(salesHistory.status, 200);
+  assert.equal(salesHistory.body.rows.length, 2);
+
+  const impactComparison = await fetchJson(
+    baseUrl,
+    '/api/market-impact-comparison?instrumentId=BTC-JPY&side=buy&amountType=base&amount=0.4'
+  );
+  assert.equal(impactComparison.status, 200);
+  assert.equal(impactComparison.body.rows[0].status, 'fresh');
+  assert.equal(impactComparison.body.rows[0].rank, 1);
+  assert.ok(impactComparison.body.meta.readyCount >= 2);
+
+  const salesReference = await fetchJson(
+    baseUrl,
+    '/api/sales-reference-comparison?instrumentId=BTC-JPY&side=buy&amountType=base&amount=0.4'
+  );
+  assert.equal(salesReference.status, 200);
+  assert.ok(salesReference.body.meta.baselineExchangeId);
+  assert.equal(salesReference.body.rows.length, 2);
+});

@@ -835,4 +835,1098 @@
         mode = button.dataset.feeSimMode || 'broker';
         modeButtons.forEach((item) => {
           const active = item === button;
-          item.classList.toggl
+          item.classList.toggle('is-active', active);
+          item.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        update();
+      });
+    });
+
+    if (amountInput) amountInput.addEventListener('input', update);
+    update();
+  }
+
+  function formatBaseAmount(value, unit = 'BTC') {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number <= 0) return `- ${unit}`;
+    const digits = number >= 0.01 ? 5 : 7;
+    return `${number.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')} ${unit}`;
+  }
+
+  function finiteNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function buyingRowExchangeLabel(row) {
+    return (row && (row.exchangeLabel || row.exchangeId)) || '取引所';
+  }
+
+  function buyingVenueCost(row) {
+    const result = row && row.result;
+    if (!result || result.error) return null;
+    const filled = finiteNumber(result.totalBTCFilled) || 0;
+    const slippagePerBase = Math.max(0, finiteNumber(result.slippageFromBestJPY) || 0);
+    const fees = Math.max(0, finiteNumber(result.feesJPY) || 0);
+    return slippagePerBase * filled + fees;
+  }
+
+  function buyingSalesCost(row, amount) {
+    const spread = finiteNumber(row && (row.spreadPct ?? (row.result && row.result.spreadPct)));
+    if (spread == null) return null;
+    return Math.max(0, amount * spread / 100);
+  }
+
+  function buyingSalesBase(row) {
+    return finiteNumber(row && row.result && row.result.totalBase);
+  }
+
+  function buyingVenueBase(row) {
+    return finiteNumber(row && row.result && row.result.totalBTCFilled);
+  }
+
+  function buyingReadySalesRows(data, amount) {
+    return (Array.isArray(data && data.rows) ? data.rows : [])
+      .filter(row => row && row.status === 'ready' && row.result)
+      .map(row => ({
+        row,
+        cost: buyingSalesCost(row, amount),
+        base: buyingSalesBase(row),
+      }))
+      .filter(item => item.cost != null || item.base != null)
+      .sort((a, b) => {
+        const costDiff = (a.cost ?? Number.POSITIVE_INFINITY) - (b.cost ?? Number.POSITIVE_INFINITY);
+        if (costDiff !== 0) return costDiff;
+        return String(buyingRowExchangeLabel(a.row)).localeCompare(String(buyingRowExchangeLabel(b.row)), 'ja');
+      });
+  }
+
+  function buyingReadyVenueRows(data) {
+    return (Array.isArray(data && data.rows) ? data.rows : [])
+      .filter(row => row && row.status === 'fresh' && row.result && !row.result.error)
+      .map(row => ({
+        row,
+        cost: buyingVenueCost(row),
+        base: buyingVenueBase(row),
+      }))
+      .filter(item => item.cost != null || item.base != null)
+      .sort((a, b) => {
+        const rankDiff = (a.row.rank ?? Number.POSITIVE_INFINITY) - (b.row.rank ?? Number.POSITIVE_INFINITY);
+        if (rankDiff !== 0) return rankDiff;
+        const costDiff = (a.cost ?? Number.POSITIVE_INFINITY) - (b.cost ?? Number.POSITIVE_INFINITY);
+        if (costDiff !== 0) return costDiff;
+        return String(buyingRowExchangeLabel(a.row)).localeCompare(String(buyingRowExchangeLabel(b.row)), 'ja');
+      });
+  }
+
+  function renderBuyingSimRow(item, kind, amount) {
+    const row = item.row || {};
+    const exchangeLabel = buyingRowExchangeLabel(row);
+    const isSales = kind === 'sales';
+    const spread = finiteNumber(row.spreadPct ?? (row.result && row.result.spreadPct));
+    const impact = finiteNumber(row.result && row.result.marketImpactPct);
+    const cost = item.cost;
+    const base = item.base;
+    const sourceLabel = isSales ? '販売所参考' : '取引所板';
+    const detail = isSales
+      ? `Spread ${spread == null ? '-' : formatPct(spread, 2)} / 取得 ${formatBaseAmount(base)}`
+      : `Impact ${impact == null ? '-' : formatPct(impact, 3)} / 取得 ${formatBaseAmount(base)}`;
+    const href = isSales
+      ? `/sales-spread?instrumentId=BTC-JPY`
+      : `/simulator?market=BTC-JPY&exchange=${encodeURIComponent(row.exchangeId || '')}&side=buy&amountType=jpy&amount=${encodeURIComponent(String(amount))}`;
+    return `
+      <a class="buying-sim-row buying-sim-row--${isSales ? 'sales' : 'venue'}" href="${escapeHtml(href)}">
+        <span>${escapeHtml(sourceLabel)}</span>
+        <strong>${escapeHtml(exchangeLabel)} <em>${cost == null ? '取得待ち' : `約${escapeHtml(formatJpyNumber(cost))}`}</em></strong>
+        <small>${escapeHtml(detail)}</small>
+      </a>
+    `;
+  }
+
+  function renderBuyingWaitingRow(kind) {
+    const isSales = kind === 'sales';
+    return `
+      <article class="buying-sim-row is-waiting buying-sim-row--${isSales ? 'sales' : 'venue'}">
+        <span>${isSales ? '販売所参考' : '取引所板'}</span>
+        <strong>${isSales ? '販売所価格を取得中' : '板データを取得中'}</strong>
+        <small>${isSales ? '販売所スプレッド比較で取得できた価格だけ表示します。' : 'WebSocketの板が新鮮な取引所だけ表示します。'}</small>
+      </article>
+    `;
+  }
+
+  function updateBuyingMeter(root, salesItems, venueItems) {
+    const brokerBar = $('[data-buying-meter-broker]', root);
+    const exchangeBar = $('[data-buying-meter-exchange]', root);
+    const brokerLabel = $('[data-buying-meter-broker-label]', root);
+    const exchangeLabel = $('[data-buying-meter-exchange-label]', root);
+    const note = $('[data-buying-meter-note]', root);
+    const bestSales = salesItems.filter(item => item.base != null).sort((a, b) => b.base - a.base)[0] || null;
+    const bestVenue = venueItems.filter(item => item.base != null).sort((a, b) => b.base - a.base)[0] || null;
+    const maxBase = Math.max(bestSales ? bestSales.base : 0, bestVenue ? bestVenue.base : 0);
+
+    const setBar = (bar, item) => {
+      if (!bar) return;
+      const pct = item && maxBase > 0 ? Math.max(12, Math.min(100, (item.base / maxBase) * 100)) : 8;
+      bar.style.width = `${pct.toFixed(1)}%`;
+    };
+
+    setBar(brokerBar, bestSales);
+    setBar(exchangeBar, bestVenue);
+    if (brokerLabel) brokerLabel.textContent = bestSales ? `${buyingRowExchangeLabel(bestSales.row)} ${formatBaseAmount(bestSales.base)}` : '取得待ち';
+    if (exchangeLabel) exchangeLabel.textContent = bestVenue ? `${buyingRowExchangeLabel(bestVenue.row)} ${formatBaseAmount(bestVenue.base)}` : '取得待ち';
+
+    if (!note) return;
+    if (bestSales && bestVenue) {
+      const delta = bestVenue.base - bestSales.base;
+      note.textContent = Math.abs(delta) < 0.00000001
+        ? '取得数量はほぼ同じです。最終注文前は公式画面の見積もりを確認してください。'
+        : `同じ金額なら、現時点の最良候補では取引所板が ${formatBaseAmount(Math.abs(delta))} ${delta >= 0 ? '多い' : '少ない'} 参考結果です。`;
+    } else {
+      note.textContent = '現在の販売所価格と板データを取得できた取引所だけで比較します。';
+    }
+  }
+
+  function initBuyingAmountSimulator() {
+    $$('[data-buying-amount-sim]').forEach((root) => {
+      const range = $('[data-buying-amount-range]', root);
+      const output = $('[data-buying-amount-output]', root);
+      const rowsHost = $('[data-buying-sim-rows]', root);
+      const meta = $('[data-buying-sim-meta]', root);
+      const link = $('[data-buying-sim-link]', root);
+      const presets = $$('[data-buying-amount-preset]', root);
+      if (!range || !rowsHost) return;
+
+      let abortController = null;
+      let debounceTimer = null;
+
+      const amountValue = () => {
+        const min = Number(range.min) || 0;
+        const max = Number(range.max) || 500000;
+        return Math.max(min, Math.min(max, Number(range.value) || 100000));
+      };
+
+      const syncAmountUi = () => {
+        const amount = amountValue();
+        const min = Number(range.min) || 0;
+        const max = Number(range.max) || 500000;
+        const progress = max > min ? ((amount - min) / (max - min)) * 100 : 0;
+        root.style.setProperty('--buying-amount-progress', `${progress}%`);
+        if (output) output.textContent = formatJpyNumber(amount);
+        if (link) {
+          const params = new URLSearchParams({
+            market: 'BTC-JPY',
+            side: 'buy',
+            amountType: 'jpy',
+            amount: String(Math.round(amount)),
+          });
+          link.href = `/simulator?${params.toString()}`;
+        }
+        presets.forEach((button) => {
+          const active = Number(button.dataset.buyingAmountPreset) === amount;
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+      };
+
+      const fetchJson = async (path, signal) => {
+        const response = await fetch(path, { cache: 'no-store', signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      };
+
+      const render = (salesData, venueData, amount) => {
+        const salesItems = buyingReadySalesRows(salesData, amount);
+        const venueItems = buyingReadyVenueRows(venueData);
+        const visibleRows = [
+          ...salesItems.slice(0, 3).map(item => renderBuyingSimRow(item, 'sales', amount)),
+          ...venueItems.slice(0, 3).map(item => renderBuyingSimRow(item, 'venue', amount)),
+        ];
+
+        if (visibleRows.length === 0) {
+          rowsHost.innerHTML = `${renderBuyingWaitingRow('sales')}${renderBuyingWaitingRow('venue')}`;
+        } else {
+          rowsHost.innerHTML = visibleRows.join('');
+        }
+
+        updateBuyingMeter(root, salesItems, venueItems);
+        const updatedAt = (salesData && salesData.meta && salesData.meta.generatedAt)
+          || (venueData && venueData.meta && venueData.meta.generatedAt)
+          || new Date().toISOString();
+        if (meta) {
+          const salesCount = salesItems.length;
+          const venueCount = venueItems.length;
+          meta.textContent = `${formatCompactDateTime(updatedAt)} 取得 / 販売所 ${salesCount}件・取引所板 ${venueCount}件の参考値`;
+        }
+        root.classList.add('is-fresh');
+        window.setTimeout(() => root.classList.remove('is-fresh'), 560);
+      };
+
+      const load = async () => {
+        const amount = amountValue();
+        syncAmountUi();
+        if (abortController) abortController.abort();
+        abortController = new AbortController();
+        const controller = abortController;
+        const params = new URLSearchParams({
+          instrumentId: 'BTC-JPY',
+          side: 'buy',
+          amountType: 'jpy',
+          amount: String(Math.round(amount)),
+        });
+        try {
+          const [salesResult, venueResult] = await Promise.allSettled([
+            fetchJson(`/api/sales-reference-comparison?${params.toString()}`, controller.signal),
+            fetchJson(`/api/market-impact-comparison?${params.toString()}`, controller.signal),
+          ]);
+          if (abortController !== controller) return;
+          const salesData = salesResult.status === 'fulfilled' ? salesResult.value : null;
+          const venueData = venueResult.status === 'fulfilled' ? venueResult.value : null;
+          render(salesData, venueData, amount);
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          rowsHost.innerHTML = `${renderBuyingWaitingRow('sales')}${renderBuyingWaitingRow('venue')}`;
+          if (meta) meta.textContent = '参考値を取得できませんでした。リンク先の比較ツールで再確認してください。';
+        }
+      };
+
+      const scheduleLoad = () => {
+        syncAmountUi();
+        if (debounceTimer) window.clearTimeout(debounceTimer);
+        debounceTimer = window.setTimeout(load, 180);
+      };
+
+      presets.forEach((button) => {
+        button.addEventListener('click', () => {
+          const amount = Number(button.dataset.buyingAmountPreset);
+          if (Number.isFinite(amount)) {
+            range.value = String(amount);
+            scheduleLoad();
+          }
+        });
+      });
+      range.addEventListener('input', scheduleLoad);
+      window.addEventListener('okj:buying-amount-request', (event) => {
+        const amount = Number(event.detail && event.detail.amount);
+        if (!Number.isFinite(amount)) return;
+        range.value = String(Math.max(Number(range.min) || 0, Math.min(Number(range.max) || amount, amount)));
+        scheduleLoad();
+      });
+
+      syncAmountUi();
+      load();
+      window.setInterval(load, 30000);
+    });
+  }
+
+  function initBuyingIntentFilters() {
+    const triggers = $$('[data-buying-intent]');
+    if (!triggers.length) return;
+    let highlightTimer = null;
+
+    const clearHighlights = () => {
+      $$('[data-buying-highlight]').forEach(node => node.classList.remove('is-highlighted'));
+    };
+
+    triggers.forEach((trigger) => {
+      trigger.addEventListener('click', (event) => {
+        const targetId = trigger.dataset.buyingScrollTarget || String(trigger.getAttribute('href') || '').replace(/^#/, '');
+        const target = targetId ? document.getElementById(targetId) : null;
+        const intent = trigger.dataset.buyingIntent || '';
+        const amount = Number(trigger.dataset.buyingAmount);
+
+        if (target) {
+          event.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        if (Number.isFinite(amount)) {
+          window.dispatchEvent(new CustomEvent('okj:buying-amount-request', {
+            detail: { amount },
+          }));
+        }
+
+        triggers.forEach(item => item.classList.toggle('is-active', item === trigger));
+        clearHighlights();
+        $$('[data-buying-highlight]').filter(node => node.dataset.buyingHighlight === intent).forEach(node => node.classList.add('is-highlighted'));
+        if (highlightTimer) window.clearTimeout(highlightTimer);
+        highlightTimer = window.setTimeout(clearHighlights, 5200);
+      });
+    });
+  }
+
+  function showArticleToast(message) {
+    let toast = $('[data-article-toast]');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'article-toast';
+      toast.dataset.articleToast = 'true';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('is-visible');
+    window.clearTimeout(showArticleToast.timer);
+    showArticleToast.timer = window.setTimeout(() => {
+      toast.classList.remove('is-visible');
+    }, 2200);
+  }
+
+  async function copyTextToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    textarea.remove();
+  }
+
+  function initArticleCopyToast() {
+    document.addEventListener('click', async (event) => {
+      const trigger = event.target && event.target.closest ? event.target.closest('[data-copy-text]') : null;
+      if (!trigger) return;
+      const text = trigger.dataset.copyText || trigger.textContent || '';
+      if (!text.trim()) return;
+      event.preventDefault();
+      try {
+        await copyTextToClipboard(text.trim());
+        showArticleToast(trigger.dataset.copySuccessText || 'コピーしました');
+      } catch (_) {
+        showArticleToast('コピーできませんでした');
+      }
+    });
+  }
+
+  function initBeginnerModeToast() {
+    window.addEventListener('okj:beginner-mode-change', (event) => {
+      const enabled = Boolean(event.detail && event.detail.enabled);
+      showArticleToast(enabled
+        ? '初心者モードがONになりました。専門用語に解説が追加されます。'
+        : '初心者モードをOFFにしました。通常表示に戻ります。');
+    });
+  }
+
+  function previousSectionHeading(node) {
+    let cursor = node ? node.previousElementSibling : null;
+    while (cursor) {
+      if (/^H[2-3]$/i.test(cursor.tagName)) return cursor;
+      cursor = cursor.previousElementSibling;
+    }
+    return null;
+  }
+
+  function articleTableHeaderLabels(table) {
+    const headerRow = table && table.tHead && table.tHead.rows ? table.tHead.rows[0] : null;
+    return Array.from(headerRow ? headerRow.cells : [])
+      .map(cell => cell.textContent.trim())
+      .filter(Boolean);
+  }
+
+  function shouldEnhanceArticleTable(table) {
+    if (!table || table.dataset.articleTableReady === 'true') return false;
+    if (table.closest('.jpy-withdrawal-table-shell, [data-jpy-withdrawal-tool], [data-buying-amount-sim], [data-exchange-checklist]')) return false;
+    return Boolean(table.closest('.article-body'));
+  }
+
+  function applyMobileTableLabels(table, labels) {
+    if (!labels.length || !table.tBodies) return;
+    Array.from(table.tBodies).forEach((tbody) => {
+      Array.from(tbody.rows).forEach((row) => {
+        Array.from(row.cells).forEach((cell, index) => {
+          if (!cell.getAttribute('data-label') && labels[index]) {
+            cell.setAttribute('data-label', labels[index]);
+          }
+        });
+      });
+    });
+  }
+
+  function wrapArticleTable(table) {
+    if (!table || table.parentElement.classList.contains('article-table-scroll')) return;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'article-table-scroll';
+    table.parentNode.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  }
+
+  function buildStatCardsFromTable(table, headingText) {
+    if (!table || table.dataset.articleStatCards === 'true') return;
+    const title = String(headingText || '');
+    if (!/基本データ|市場データの現在地/.test(title)) return;
+
+    const rows = Array.from(table.tBodies && table.tBodies[0] ? table.tBodies[0].rows : []);
+    const items = rows.map((row) => {
+      const cells = Array.from(row.cells);
+      if (cells.length < 2) return null;
+      return {
+        label: cells[0].textContent.trim(),
+        valueHtml: cells[1].innerHTML.trim(),
+        noteHtml: cells[2] ? cells[2].innerHTML.trim() : '',
+      };
+    }).filter(item => item && item.label && item.valueHtml);
+
+    if (!items.length) return;
+
+    const grid = document.createElement('div');
+    grid.className = `article-stat-grid ${/市場データの現在地/.test(title) ? 'article-stat-grid--market' : 'article-stat-grid--basic'}`;
+    grid.setAttribute('role', 'list');
+    grid.innerHTML = items.map((item, index) => `
+      <article class="article-stat-card${index < 2 ? ' article-stat-card--featured' : ''}" role="listitem">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${item.valueHtml}</strong>
+        ${item.noteHtml ? `<small>${item.noteHtml}</small>` : ''}
+      </article>
+    `).join('');
+
+    table.dataset.articleStatCards = 'true';
+    table.hidden = true;
+    table.parentNode.insertBefore(grid, table);
+  }
+
+  function initArticleTables() {
+    $$('.article-body table').forEach((table) => {
+      if (!shouldEnhanceArticleTable(table)) return;
+      const labels = articleTableHeaderLabels(table);
+      const heading = previousSectionHeading(table);
+      applyMobileTableLabels(table, labels);
+      table.classList.add('data-table', 'data-table--cards', 'article-data-table');
+      buildStatCardsFromTable(table, heading ? heading.textContent.trim() : '');
+      if (!table.hidden) wrapArticleTable(table);
+      table.dataset.articleTableReady = 'true';
+    });
+  }
+
+  function initMermaidDiagrams() {
+    const nodes = $$('.article-body .mermaid');
+    if (!nodes.length) return;
+
+    const wrappers = nodes.map(node => node.closest('.article-mermaid')).filter(Boolean);
+    wrappers.forEach(wrapper => wrapper.classList.add('is-loading'));
+
+    const render = async () => {
+      if (!window.mermaid) return;
+      window.mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: readStoredTheme() === 'light' ? 'neutral' : 'dark',
+        fontFamily: 'Inter, "Noto Sans JP", sans-serif',
+      });
+      try {
+        await window.mermaid.run({ nodes, suppressErrors: true });
+        wrappers.forEach(wrapper => wrapper.classList.add('is-rendered'));
+      } catch (error) {
+        console.warn('[article] Mermaid diagram rendering failed', error);
+        wrappers.forEach(wrapper => wrapper.classList.add('is-error'));
+      } finally {
+        wrappers.forEach(wrapper => wrapper.classList.remove('is-loading'));
+      }
+    };
+
+    if (window.mermaid) {
+      render();
+      return;
+    }
+
+    const existingScript = document.querySelector('script[data-mermaid-runtime]');
+    if (existingScript) {
+      existingScript.addEventListener('load', render, { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
+    script.async = true;
+    script.dataset.mermaidRuntime = 'true';
+    script.addEventListener('load', render, { once: true });
+    script.addEventListener('error', () => {
+      wrappers.forEach((wrapper) => {
+        wrapper.classList.remove('is-loading');
+        wrapper.classList.add('is-error');
+      });
+    }, { once: true });
+    document.head.appendChild(script);
+  }
+
+  function articleInstrumentId() {
+    const article = $('.article-main');
+    const id = article && article.dataset ? article.dataset.articleInstrumentId : '';
+    return String(id || '').trim().toUpperCase();
+  }
+
+  function articleTicker() {
+    const article = $('.article-main');
+    const ticker = article && article.dataset ? article.dataset.articleTicker : '';
+    return String(ticker || '').trim().toUpperCase();
+  }
+
+  function findArticleHeading(pattern) {
+    return $$('.article-body h2').find(heading => pattern.test(heading.textContent.trim())) || null;
+  }
+
+  function ensureLiveMarketCard(instrumentId, ticker) {
+    let card = $('[data-article-live-market-card]');
+    if (card) return card;
+
+    const body = $('.article-body');
+    if (!body || !instrumentId) return null;
+
+    const anchor = findArticleHeading(/市場データの現在地/) || findArticleHeading(/基本データ/);
+    card = document.createElement('section');
+    card.className = 'article-live-market-card';
+    card.dataset.articleLiveMarketCard = 'true';
+    card.setAttribute('aria-live', 'polite');
+    card.innerHTML = `
+      <div class="article-live-market-card__copy">
+        <span>Live reference</span>
+        <h3>${escapeHtml(ticker || instrumentId)} の現在地</h3>
+        <p>販売所の表示価格から算出した参考仲値です。実際の注文前は取引所の公式画面で最終確認してください。</p>
+      </div>
+      <div class="article-live-market-card__quote">
+        <span data-live-market-venue>取得中</span>
+        <strong data-live-market-price>取得中</strong>
+        <small data-live-market-spread>スプレッド確認中</small>
+      </div>
+      <div class="article-live-market-card__sparkline" data-live-market-sparkline aria-hidden="true"></div>
+      <div class="article-live-market-card__meta">
+        <span data-live-market-trend>履歴を確認中</span>
+        <span data-live-market-updated>最新取得を確認中</span>
+      </div>
+    `;
+
+    if (anchor) {
+      anchor.insertAdjacentElement('afterend', card);
+    } else {
+      body.insertBefore(card, body.firstElementChild);
+    }
+    return card;
+  }
+
+  function latestPriceFromRow(row) {
+    const latest = row && row.latest ? row.latest : row;
+    const mid = Number(latest && latest.midPrice);
+    if (Number.isFinite(mid) && mid > 0) return mid;
+    const buy = Number(latest && latest.buyPrice);
+    const sell = Number(latest && latest.sellPrice);
+    if (Number.isFinite(buy) && Number.isFinite(sell) && buy > 0 && sell > 0) {
+      return (buy + sell) / 2;
+    }
+    return null;
+  }
+
+  function bestLiveMarketRow(rows, instrumentId) {
+    const matches = (rows || []).filter(row => row && row.instrumentId === instrumentId && latestPriceFromRow(row) != null);
+    return matches
+      .sort((a, b) => (rowLatestSpreadValue(a) ?? Number.POSITIVE_INFINITY) - (rowLatestSpreadValue(b) ?? Number.POSITIVE_INFINITY))[0]
+      || null;
+  }
+
+  function historySeriesForInstrument(rows, instrumentId) {
+    const byDate = new Map();
+    (rows || []).forEach((row) => {
+      if (!row || row.instrumentId !== instrumentId) return;
+      const price = latestPriceFromRow(row);
+      if (price == null) return;
+      const date = row.date || row.capturedAt || '';
+      const existing = byDate.get(date);
+      const spread = Number(row.spreadPct);
+      if (!existing || (Number.isFinite(spread) && spread < existing.spreadPct)) {
+        byDate.set(date, {
+          date,
+          price,
+          spreadPct: Number.isFinite(spread) ? spread : Number.POSITIVE_INFINITY,
+        });
+      }
+    });
+    return Array.from(byDate.values())
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+      .slice(-14);
+  }
+
+  function renderSparkline(points) {
+    const prices = points.map(point => point.price).filter(price => Number.isFinite(price) && price > 0);
+    if (prices.length < 2) {
+      return '<div class="article-live-market-card__sparkline-empty">履歴待ち</div>';
+    }
+    const width = 260;
+    const height = 74;
+    const padding = 8;
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const span = max - min || 1;
+    const step = (width - padding * 2) / Math.max(1, prices.length - 1);
+    const path = prices.map((price, index) => {
+      const x = padding + step * index;
+      const y = height - padding - ((price - min) / span) * (height - padding * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const areaPath = `${padding},${height - padding} ${path} ${width - padding},${height - padding}`;
+    return `
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="直近の参考価格推移">
+        <polyline class="article-live-market-card__area" points="${areaPath}"></polyline>
+        <polyline class="article-live-market-card__line" points="${path}"></polyline>
+      </svg>
+    `;
+  }
+
+  function renderLiveMarketCard(card, report, history, instrumentId) {
+    const rows = report && Array.isArray(report.rows) ? report.rows : [];
+    const historyRows = history && Array.isArray(history.rows) ? history.rows : [];
+    const row = bestLiveMarketRow(rows, instrumentId);
+    const price = latestPriceFromRow(row);
+    const latest = row && row.latest ? row.latest : null;
+    const spread = rowLatestSpreadValue(row);
+    const venue = row ? row.exchangeLabel || row.exchangeId || '販売所データ' : '販売所データ';
+    const series = historySeriesForInstrument(historyRows, instrumentId);
+    if (price != null) {
+      const lastPoint = series[series.length - 1];
+      if (!lastPoint || Math.abs(lastPoint.price - price) > 1) {
+        series.push({ date: latest && (latest.priceTimestamp || latest.capturedAt) || new Date().toISOString(), price, spreadPct: spread ?? Number.POSITIVE_INFINITY });
+      }
+    }
+
+    const priceNode = $('[data-live-market-price]', card);
+    const venueNode = $('[data-live-market-venue]', card);
+    const spreadNode = $('[data-live-market-spread]', card);
+    const trendNode = $('[data-live-market-trend]', card);
+    const updatedNode = $('[data-live-market-updated]', card);
+    const sparklineNode = $('[data-live-market-sparkline]', card);
+
+    if (priceNode) priceNode.textContent = price != null ? formatJpy(price) : '取得待ち';
+    if (venueNode) venueNode.textContent = venue;
+    if (spreadNode) spreadNode.textContent = spread != null ? `販売所スプレッド ${formatPct(spread, 2)}` : 'スプレッド確認中';
+    if (sparklineNode) sparklineNode.innerHTML = renderSparkline(series);
+
+    if (trendNode) {
+      const first = series[0] && series[0].price;
+      const last = price || (series[series.length - 1] && series[series.length - 1].price);
+      if (Number.isFinite(first) && Number.isFinite(last) && first > 0 && series.length > 1) {
+        const pct = ((last - first) / first) * 100;
+        trendNode.textContent = `直近履歴 ${pct >= 0 ? '+' : ''}${formatPct(pct, 2)}`;
+        trendNode.dataset.trend = pct >= 0 ? 'up' : 'down';
+      } else {
+        trendNode.textContent = '直近履歴を蓄積中';
+        trendNode.removeAttribute('data-trend');
+      }
+    }
+
+    const updatedAt = (latest && (latest.priceTimestamp || latest.capturedAt))
+      || (report && report.meta && (report.meta.latestCapturedAt || report.meta.generatedAt));
+    if (updatedNode) updatedNode.textContent = updatedAt ? `最新取得 ${formatCompactDateTime(updatedAt)}` : '最新取得を確認中';
+
+    card.classList.add('is-fresh');
+    window.setTimeout(() => card.classList.remove('is-fresh'), 640);
+  }
+
+  function initArticleLiveMarketCard() {
+    const instrumentId = articleInstrumentId();
+    if (!instrumentId) return;
+    const card = ensureLiveMarketCard(instrumentId, articleTicker());
+    if (!card) return;
+
+    let abortController = null;
+    const load = async () => {
+      if (abortController) abortController.abort();
+      abortController = new AbortController();
+      const controller = abortController;
+      try {
+        const [reportResult, historyResult] = await Promise.allSettled([
+          fetch('/api/sales-spread', { cache: 'no-store', signal: controller.signal }).then((response) => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+          }),
+          fetch(`/api/sales-spread/history?window=30d&instrumentId=${encodeURIComponent(instrumentId)}`, { cache: 'no-store', signal: controller.signal }).then((response) => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+          }),
+        ]);
+        if (abortController !== controller) return;
+        const report = reportResult.status === 'fulfilled' ? reportResult.value : null;
+        const history = historyResult.status === 'fulfilled' ? historyResult.value : null;
+        renderLiveMarketCard(card, report, history, instrumentId);
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        const updatedNode = $('[data-live-market-updated]', card);
+        if (updatedNode) updatedNode.textContent = '参考値を取得できませんでした';
+      }
+    };
+
+    load();
+    window.setInterval(load, 30000);
+  }
+
+  function initSpreadCostSlider() {
+    $$('[data-spread-cost-slider]').forEach((root) => {
+      const input = $('[data-spread-cost-amount]', root);
+      const amountOutput = $('[data-spread-cost-amount-output]', root);
+      const lossOutput = $('[data-spread-cost-loss]', root);
+      const afterOutput = $('[data-spread-cost-after]', root);
+      const rate = Number(root.dataset.spreadRate) || 0.02;
+      if (!input) return;
+
+      const update = () => {
+        const min = Number(input.min) || 0;
+        const max = Number(input.max) || 1000000;
+        const amount = Math.max(min, Math.min(max, Number(input.value) || min));
+        const progress = max > min ? ((amount - min) / (max - min)) * 100 : 0;
+        const loss = amount * rate;
+        root.style.setProperty('--spread-cost-progress', `${progress}%`);
+        if (amountOutput) amountOutput.textContent = formatJpyNumber(amount);
+        if (lossOutput) lossOutput.textContent = `-${formatJpyNumber(loss)}`;
+        if (afterOutput) {
+          afterOutput.textContent = `${formatPct(rate * 100, 1)}の差なら、同じ場所ですぐ売る前提で約${formatJpyNumber(loss)}分の不利なスタートです。`;
+        }
+      };
+
+      input.addEventListener('input', update);
+      update();
+    });
+  }
+
+  function rowSpreadValue(row) {
+    const latest = row && row.latest ? row.latest : null;
+    const average = row && row.averages && row.averages['1d'] ? row.averages['1d'] : null;
+    const value = latest && latest.spreadPct != null ? latest.spreadPct : average && average.spreadPct;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function rowLatestSpreadValue(row) {
+    const latest = row && row.latest ? row.latest : null;
+    const number = Number(latest && latest.spreadPct);
+    return Number.isFinite(number) && number > 0 ? number : null;
+  }
+
+  function bestTickerRow(rows, instrumentId) {
+    return (rows || [])
+      .filter(row => row && row.instrumentId === instrumentId && rowLatestSpreadValue(row) != null)
+      .sort((a, b) => rowLatestSpreadValue(a) - rowLatestSpreadValue(b))[0] || null;
+  }
+
+  function tickerRowForExchange(rows, instrumentId, exchangeId) {
+    return (rows || [])
+      .filter(row => (
+        row
+        && row.instrumentId === instrumentId
+        && row.exchangeId === exchangeId
+        && rowLatestSpreadValue(row) != null
+      ))
+      .sort((a, b) => {
+        const aTime = Date.parse(a.latest && (a.latest.capturedAt || a.latest.priceTimestamp) || a.capturedAt || '');
+        const bTime = Date.parse(b.latest && (b.latest.capturedAt || b.latest.priceTimestamp) || b.capturedAt || '');
+        return (Number.isFinite(bTime) ? bTime : 0) - (Number.isFinite(aTime) ? aTime : 0);
+      })[0] || null;
+  }
+
+  function tickerItemHtml(row, fallback) {
+    if (!row) {
+      return `
+        <span class="article-live-ticker__item is-waiting">
+          <strong>${escapeHtml(fallback.label)}</strong>
+          <span>取得待ち</span>
+          <small>参考値</small>
+        </span>
+      `;
+    }
+    const spread = rowLatestSpreadValue(row);
+    return `
+      <span class="article-live-ticker__item">
+        <strong>${escapeHtml(fallback.label)}</strong>
+        <span>${escapeHtml(formatPct(spread, 2))}</span>
+        <small>${escapeHtml(row.exchangeLabel || row.exchangeId || '販売所')}</small>
+      </span>
+    `;
+  }
+
+  function renderSpreadTicker(root, data) {
+    const items = $('[data-spread-live-ticker-items]', root);
+    const meta = $('[data-spread-live-ticker-meta]', root);
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    const rows = data && Array.isArray(data.rows) ? data.rows : [];
+    if (items) {
+      if (path === '/learn/buying-100k-points' || path === '/learn/buying-100k-points.html') {
+        const exchanges = [
+          { id: 'bitflyer', label: 'bitFlyer' },
+          { id: 'coincheck', label: 'Coincheck' },
+          { id: 'gmo', label: 'GMO' },
+          { id: 'bittrade', label: 'BitTrade' },
+        ];
+        items.innerHTML = exchanges
+          .map(exchange => tickerItemHtml(tickerRowForExchange(rows, 'BTC-JPY', exchange.id), exchange))
+          .join('');
+      } else {
+        const markets = [
+          { id: 'BTC-JPY', label: 'BTC' },
+          { id: 'ETH-JPY', label: 'ETH' },
+          { id: 'SOL-JPY', label: 'SOL' },
+        ];
+        items.innerHTML = markets
+          .map(market => tickerItemHtml(bestTickerRow(rows, market.id), market))
+          .join('');
+      }
+    }
+    const updatedAt = data && data.meta && (data.meta.latestCapturedAt || data.meta.generatedAt);
+    if (meta) meta.textContent = updatedAt ? `最新取得 ${formatCompactDateTime(updatedAt)} / 参考値` : '参考値';
+    root.hidden = false;
+    root.classList.remove('is-error');
+    root.classList.add('is-fresh');
+    window.setTimeout(() => root.classList.remove('is-fresh'), 520);
+  }
+
+  function initSpreadLiveTicker() {
+    const root = $('[data-spread-live-ticker]');
+    if (!root) return;
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    const enabledPaths = new Set([
+      '/learn/spread',
+      '/learn/spread.html',
+      '/learn/broker-loss-reasons',
+      '/learn/broker-loss-reasons.html',
+      '/learn/buying-100k-points',
+      '/learn/buying-100k-points.html',
+    ]);
+    if (!enabledPaths.has(path)) return;
+
+    const meta = $('[data-spread-live-ticker-meta]', root);
+    let abortController = null;
+
+    const fetchTicker = async () => {
+      if (abortController) abortController.abort();
+      abortController = new AbortController();
+      try {
+        const response = await fetch('/api/sales-spread', {
+          cache: 'no-store',
+          signal: abortController.signal,
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        renderSpreadTicker(root, data);
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        root.hidden = false;
+        root.classList.add('is-error');
+        if (meta) meta.textContent = '取得待ち / 参考値';
+      }
+    };
+
+    fetchTicker();
+    window.setInterval(fetchTicker, 30000);
+  }
+
+  function initBrokerChoiceTool() {
+    const root = $('[data-broker-choice-tool]');
+    if (!root) return;
+
+    const buttons = $$('[data-broker-choice]', root);
+    const result = $('[data-broker-choice-result]', root);
+    const link = $('[data-broker-choice-link]', root);
+    const choices = {
+      easy: {
+        eyebrow: '販売所寄り',
+        title: '少額でまず慣れたいなら、販売所から確認しやすいです。',
+        body: 'ただし、買う前にスプレッドを見て、同じ金額を取引所形式で買った場合のコストも比べてください。',
+        href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000',
+        linkText: '10万円買いで板コストも計算する',
+      },
+      cost: {
+        eyebrow: '取引所寄り',
+        title: '実質コストを抑えたいなら、取引所形式を候補にします。',
+        body: '板が薄いとスリッページが出るため、希望金額でどの価格帯まで約定しそうかを先に見ておくと判断しやすくなります。',
+        href: '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000',
+        linkText: '成行コストを計算してみる',
+      },
+    };
+
+    const setChoice = (choiceKey) => {
+      const choice = choices[choiceKey] || choices.easy;
+      buttons.forEach((button) => {
+        const active = button.dataset.brokerChoice === choiceKey;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+
+      if (result) {
+        result.innerHTML = `
+          <span>${escapeHtml(choice.eyebrow)}</span>
+          <strong>${escapeHtml(choice.title)}</strong>
+          <small>${escapeHtml(choice.body)}</small>
+        `;
+      }
+
+      if (link) {
+        link.href = choice.href;
+        link.textContent = choice.linkText;
+      }
+    };
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        setChoice(button.dataset.brokerChoice || 'easy');
+      });
+    });
+  }
+
+  function syncArticleTerms(enabled) {
+    $$(ARTICLE_TERM_SELECTOR).forEach((term) => {
+      const alwaysEnabled = term.dataset.termAlways === 'true' || term.classList.contains('article-term--always');
+      const interactive = enabled || alwaysEnabled;
+      term.tabIndex = interactive ? 0 : -1;
+      term.setAttribute('role', interactive ? 'button' : 'text');
+      term.setAttribute('aria-disabled', interactive ? 'false' : 'true');
+    });
+  }
+
+  function initArticleTerms() {
+    const enabled = Boolean(window.BeginnerMode && window.BeginnerMode.isEnabled && window.BeginnerMode.isEnabled());
+    syncArticleTerms(enabled);
+    window.addEventListener('okj:beginner-mode-change', (event) => {
+      syncArticleTerms(Boolean(event.detail && event.detail.enabled));
+    });
+  }
+
+  function initExchangeChecklist() {
+    $$('[data-exchange-checklist]').forEach((root) => {
+      const items = $$('[data-checklist-item]', root);
+      const count = $('[data-checklist-count]', root);
+      const progress = $('[data-checklist-progress]', root);
+      const complete = $('[data-checklist-complete]', root);
+      if (!items.length) return;
+
+      const storageKey = `${EXCHANGE_CHECKLIST_STORAGE_KEY}:${window.location.pathname.replace(/\/+$/, '') || '/'}`;
+      const readState = () => {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (_) {
+          return [];
+        }
+      };
+      const writeState = () => {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(items.map(item => Boolean(item.checked))));
+        } catch (_) {
+          // noop
+        }
+      };
+
+      const update = () => {
+        const checked = items.filter(item => item.checked).length;
+        const total = items.length;
+        const ratio = total ? checked / total : 0;
+        if (count) count.textContent = `${checked} / ${total}`;
+        if (progress) progress.style.transform = `scaleX(${ratio})`;
+        if (complete) complete.hidden = checked !== total;
+        root.classList.toggle('is-complete', checked === total);
+        items.forEach((item) => {
+          const label = item.closest('label');
+          if (label) label.classList.toggle('is-checked', item.checked);
+        });
+      };
+
+      readState().forEach((checked, index) => {
+        if (items[index]) items[index].checked = Boolean(checked);
+      });
+
+      items.forEach((item) => {
+        item.addEventListener('change', () => {
+          writeState();
+          update();
+        });
+      });
+      update();
+    });
+  }
+
+  function initArticleMobileActions() {
+    const actions = $('[data-article-mobile-actions]');
+    if (!actions) return;
+    const tocButton = $('[data-mobile-toc-button]', actions);
+    const topButton = $('[data-mobile-top-button]', actions);
+    const mobileToc = $('[data-article-mobile-toc]');
+    const navLinks = $$('[data-mobile-nav-link]', actions);
+
+    const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
+    navLinks.forEach((link) => {
+      const href = String(link.getAttribute('href') || '').replace(/\/+$/, '') || '/';
+      const active = href === '/about'
+        ? (normalizedPath === '/about' || normalizedPath === '/about.html')
+        : (normalizedPath === href || normalizedPath.startsWith(`${href}/`));
+      link.classList.toggle('is-active', active);
+      if (active) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+
+    const updateVisibility = () => {
+      const alwaysVisible = navLinks.length > 0 && window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+      actions.classList.toggle('is-visible', alwaysVisible || window.scrollY > 360);
+    };
+
+    if (tocButton) {
+      tocButton.setAttribute('aria-expanded', mobileToc && mobileToc.open ? 'true' : 'false');
+      tocButton.addEventListener('click', () => {
+        if (!mobileToc) return;
+        mobileToc.open = true;
+        tocButton.setAttribute('aria-expanded', 'true');
+        const summary = $('summary', mobileToc);
+        if (summary) summary.focus({ preventScroll: true });
+      });
+    }
+
+    if (mobileToc) {
+      mobileToc.addEventListener('toggle', () => {
+        if (tocButton) tocButton.setAttribute('aria-expanded', mobileToc.open ? 'true' : 'false');
+      });
+      $$('[data-article-mobile-toc-list] a', mobileToc).forEach((link) => {
+        link.addEventListener('click', () => {
+          mobileToc.open = false;
+        });
+      });
+      document.addEventListener('click', (event) => {
+        if (!mobileToc.open) return;
+        const target = event.target;
+        if (mobileToc.contains(target) || actions.contains(target)) return;
+        mobileToc.open = false;
+      });
+    }
+
+    if (topButton) {
+      topButton.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    updateVisibility();
+    window.addEventListener('scroll', updateVisibility, { passive: true });
+    window.addEventListener('resize', updateVisibility);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initThemeToggle();
+    initToc();
+    initReadingProgress();
+    initArticleTables();
+    initMermaidDiagrams();
+    initArticleLiveMarketCard();
+    initBeginnerModeToast();
+    initMiniSimulator();
+    initBuyingAmountSimulator();
+    initBuyingIntentFilters();
+    initSpreadCostSlider();
+    initSpreadLiveTicker();
+    initBrokerChoiceTool();
+    initJpyWithdrawalTool();
+    initOrderbookLiveDemo();
+    initOrderbookExecutionSim();
+    initOrderbookMiniQuiz();
+    initBeginnerSpotlight();
+    initArticleTerms();
+    initExchangeChecklist();
+    initArticleMobileActions();
+    initArticleCopyToast();
+  });
+})();
