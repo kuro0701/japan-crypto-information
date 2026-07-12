@@ -411,6 +411,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('銘柄記事ライブラリ'));
   assert.ok(articleIndex.body.includes('/articles/btc'));
   assert.ok(articleIndex.body.includes('/articles/eth'));
+  assert.ok(articleIndex.body.includes('/articles/usdt'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -437,6 +438,20 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(ethArticle.body.includes('/markets/ETH-JPY'));
   assert.ok(!ethArticle.body.includes('cite'));
   assertCommonDisclosure(ethArticle.body);
+
+  const usdtArticle = await fetchText(baseUrl, '/articles/usdt');
+  assert.equal(usdtArticle.status, 200);
+  assert.ok(usdtArticle.body.includes('USDT（テザー）総合分析'));
+  assert.ok(usdtArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(usdtArticle.body.includes('仕組みと準備金'));
+  assert.ok(usdtArticle.body.includes('競争環境と過去の事件・論争'));
+  assert.ok(usdtArticle.body.includes('将来展望と投資家・機関向け提言'));
+  assert.ok(usdtArticle.body.includes('class="article-mermaid"'));
+  assert.ok(usdtArticle.body.includes('https://tether.io/news/tether-posts-1-04b-q1-2026-profit'));
+  assert.ok(usdtArticle.body.includes('国内取扱い銘柄の比較を見る'));
+  assert.ok(!usdtArticle.body.includes('/markets/USDT-JPY'));
+  assert.ok(!usdtArticle.body.includes('cite'));
+  assertCommonDisclosure(usdtArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -880,6 +895,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/derivatives'));
   assert.ok(sitemap.body.includes('/markets/BTC-JPY'));
   assert.ok(sitemap.body.includes('/articles/eth'));
+  assert.ok(sitemap.body.includes('/articles/usdt'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
