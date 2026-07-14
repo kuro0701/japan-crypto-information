@@ -22,6 +22,7 @@
 - [銘柄深掘り一覧](https://get-crypto.org/markets): 銘柄別に、用途、仕組み、国内取引所比較、板、出来高、販売所スプレッド、関連銘柄を確認できます。
 - [イーサリアム（ETH）総合分析](https://get-crypto.org/articles/eth): イーサリアムの歴史、EVM、PoS、L2、供給・バーン、ステーキング、DeFi・RWA、ETF、主要チェーン比較、投資シナリオとリスクを総合分析します。
 - [USDT（テザー）総合分析](https://get-crypto.org/articles/usdt): USDTの発行体、準備金構成、監査・保証、市場規模、ユースケース、各国規制、USDC・BUSD比較、リスクと機関投資家向け運用提言を総合分析します。
+- [BNB総合分析](https://get-crypto.org/articles/bnb): BNBの歴史、バーンとステーキング、BNB Chainの技術基盤、エコシステム、市場・オンチェーン動向、規制・セキュリティ、競争環境と機関投資家向け示唆を総合分析します。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧
