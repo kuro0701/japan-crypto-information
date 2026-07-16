@@ -413,6 +413,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/eth'));
   assert.ok(articleIndex.body.includes('/articles/usdt'));
   assert.ok(articleIndex.body.includes('/articles/bnb'));
+  assert.ok(articleIndex.body.includes('/articles/usdc'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -468,6 +469,21 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!bnbArticle.body.includes('cite'));
   assert.ok(!bnbArticle.body.includes('finance'));
   assertCommonDisclosure(bnbArticle.body);
+
+  const usdcArticle = await fetchText(baseUrl, '/articles/usdc');
+  assert.equal(usdcArticle.status, 200);
+  assert.ok(usdcArticle.body.includes('USDC総合分析'));
+  assert.ok(usdcArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(usdcArticle.body.includes('準備資産・カストディ・アテステーション分析'));
+  assert.ok(usdcArticle.body.includes('規制・法的リスク・オペレーショナルリスク'));
+  assert.ok(usdcArticle.body.includes('推奨デューデリジェンス・チェックリスト'));
+  assert.ok(usdcArticle.body.includes('class="article-mermaid"'));
+  assert.ok(usdcArticle.body.includes('https://www.circle.com/usdc'));
+  assert.ok(usdcArticle.body.includes('国内取扱い銘柄の比較を見る'));
+  assert.ok(!usdcArticle.body.includes('/markets/USDC-JPY'));
+  assert.ok(!usdcArticle.body.includes('cite'));
+  assert.ok(!usdcArticle.body.includes('finance'));
+  assertCommonDisclosure(usdcArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -913,6 +929,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/eth'));
   assert.ok(sitemap.body.includes('/articles/usdt'));
   assert.ok(sitemap.body.includes('/articles/bnb'));
+  assert.ok(sitemap.body.includes('/articles/usdc'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
