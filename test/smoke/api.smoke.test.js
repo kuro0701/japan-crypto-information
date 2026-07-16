@@ -414,6 +414,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/usdt'));
   assert.ok(articleIndex.body.includes('/articles/bnb'));
   assert.ok(articleIndex.body.includes('/articles/usdc'));
+  assert.ok(articleIndex.body.includes('/articles/xrp'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -484,6 +485,22 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!usdcArticle.body.includes('cite'));
   assert.ok(!usdcArticle.body.includes('finance'));
   assertCommonDisclosure(usdcArticle.body);
+
+  const xrpArticle = await fetchText(baseUrl, '/articles/xrp');
+  assert.equal(xrpArticle.status, 200);
+  assert.ok(xrpArticle.body.includes('XRP総合分析'));
+  assert.ok(xrpArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(xrpArticle.body.includes('アセット概要と技術基盤'));
+  assert.ok(xrpArticle.body.includes('規制と法務情勢'));
+  assert.ok(xrpArticle.body.includes('バリュエーションと投資判断'));
+  assert.ok(xrpArticle.body.includes('class="article-mermaid"'));
+  assert.ok(xrpArticle.body.includes('https://xrpl.org/'));
+  assert.ok(xrpArticle.body.includes('XRP の比較を見る'));
+  assert.ok(xrpArticle.body.includes('/markets/XRP-JPY'));
+  assert.ok(!xrpArticle.body.includes('cite'));
+  assert.ok(!xrpArticle.body.includes('finance'));
+  assert.ok(!xrpArticle.body.includes('navlist'));
+  assertCommonDisclosure(xrpArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -930,6 +947,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/usdt'));
   assert.ok(sitemap.body.includes('/articles/bnb'));
   assert.ok(sitemap.body.includes('/articles/usdc'));
+  assert.ok(sitemap.body.includes('/articles/xrp'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
