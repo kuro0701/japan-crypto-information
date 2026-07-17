@@ -124,6 +124,42 @@ test('Binance Japan batches multiple JPY tickers into one request', async () => 
   }
 });
 
+test('Binance Japan uses the official web product feed when API hosts return HTTP 418', async () => {
+  const requestedUrls = [];
+  const restoreFetch = mockFetch((url) => {
+    requestedUrls.push(url);
+    if (url.includes('/bapi/asset/')) {
+      return jsonResponse({
+        data: [{
+          s: 'BTCJPY',
+          o: '90',
+          h: '110',
+          l: '80',
+          c: '100',
+          v: '2',
+          qv: '200',
+        }],
+      });
+    }
+    return jsonResponse({}, 418);
+  });
+
+  try {
+    const client = new BinanceJapanClient(500, {
+      baseUrls: ['https://blocked.example/api/v3'],
+    });
+    const tickers = await client.fetchTickers(['BTC-JPY']);
+
+    assert.equal(requestedUrls.length, 2);
+    assert.ok(requestedUrls[1].includes('/bapi/asset/'));
+    assert.equal(tickers.length, 1);
+    assert.equal(tickers[0].quoteVolume24h, '200');
+    assert.equal(client.getLastMarketDataError(), null);
+  } finally {
+    restoreFetch();
+  }
+});
+
 test('Binance Japan retains endpoint failure detail when every fallback fails', async () => {
   let requestCount = 0;
   const restoreFetch = mockFetch((url) => {
