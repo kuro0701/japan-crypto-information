@@ -162,6 +162,12 @@ function assertCommonDisclosure(body) {
   assert.ok(body.includes('各取引所の公式サイトで最新の手数料、本人確認、対象サービス、注意事項を確認してください'));
 }
 
+function assertMarketArticleInvestmentDisclaimer(body) {
+  assert.ok(body.includes('本記事は情報提供のみを目的としており'));
+  assert.ok(body.includes('特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。'));
+  assert.ok(body.includes('将来の成果を保証しません。'));
+}
+
 function assertExchangeDetailReferralCtas(body, href) {
   assert.ok(body.includes('class="exchange-hero-referral"'));
   assert.ok(body.includes(`class="exchange-hero-referral__button" href="${href}"`));
@@ -427,6 +433,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(btcArticle.body.includes('主要法域の比較'));
   assert.ok(btcArticle.body.includes('/markets/BTC-JPY'));
   assert.ok(btcArticle.body.includes('/articles">記事</a>'));
+  assertMarketArticleInvestmentDisclaimer(btcArticle.body);
   assertCommonDisclosure(btcArticle.body);
 
   const ethArticle = await fetchText(baseUrl, '/articles/eth');
@@ -435,11 +442,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(ethArticle.body.includes('エグゼクティブサマリー'));
   assert.ok(ethArticle.body.includes('技術的基盤'));
   assert.ok(ethArticle.body.includes('経済設計'));
-  assert.ok(ethArticle.body.includes('投資・運用上の示唆'));
+  assert.ok(ethArticle.body.includes('評価シナリオとリスク論点'));
   assert.ok(ethArticle.body.includes('class="article-mermaid"'));
   assert.ok(ethArticle.body.includes('https://ethereum.org/en/roadmap/'));
   assert.ok(ethArticle.body.includes('/markets/ETH-JPY'));
   assert.ok(!ethArticle.body.includes('cite'));
+  assert.ok(!ethArticle.body.includes('最終推奨'));
+  assert.ok(!ethArticle.body.includes('コア・アロケーション候補'));
+  assertMarketArticleInvestmentDisclaimer(ethArticle.body);
   assertCommonDisclosure(ethArticle.body);
 
   const usdtArticle = await fetchText(baseUrl, '/articles/usdt');
@@ -448,12 +458,15 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(usdtArticle.body.includes('エグゼクティブサマリー'));
   assert.ok(usdtArticle.body.includes('仕組みと準備金'));
   assert.ok(usdtArticle.body.includes('競争環境と過去の事件・論争'));
-  assert.ok(usdtArticle.body.includes('将来展望と投資家・機関向け提言'));
+  assert.ok(usdtArticle.body.includes('将来展望と投資家・機関向け検討事項'));
   assert.ok(usdtArticle.body.includes('class="article-mermaid"'));
   assert.ok(usdtArticle.body.includes('https://tether.io/news/tether-posts-1-04b-q1-2026-profit'));
   assert.ok(usdtArticle.body.includes('国内取扱い銘柄の比較を見る'));
   assert.ok(!usdtArticle.body.includes('/markets/USDT-JPY'));
   assert.ok(!usdtArticle.body.includes('cite'));
+  assert.ok(!usdtArticle.body.includes('常時保有を避けるべき'));
+  assert.ok(!usdtArticle.body.includes('実務提言'));
+  assertMarketArticleInvestmentDisclaimer(usdtArticle.body);
   assertCommonDisclosure(usdtArticle.body);
 
   const bnbArticle = await fetchText(baseUrl, '/articles/bnb');
@@ -462,13 +475,16 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bnbArticle.body.includes('エグゼクティブサマリー'));
   assert.ok(bnbArticle.body.includes('トークノミクス'));
   assert.ok(bnbArticle.body.includes('規制・法務・セキュリティ・競争'));
-  assert.ok(bnbArticle.body.includes('機関投資家向け評価と投資示唆'));
+  assert.ok(bnbArticle.body.includes('機関投資家向け評価とリスク論点'));
   assert.ok(bnbArticle.body.includes('class="article-mermaid"'));
   assert.ok(bnbArticle.body.includes('https://www.justice.gov/opa/pr/binance-and-ceo-plead-guilty'));
   assert.ok(bnbArticle.body.includes('BNB の比較を見る'));
   assert.ok(bnbArticle.body.includes('/markets/BNB-JPY'));
   assert.ok(!bnbArticle.body.includes('cite'));
   assert.ok(!bnbArticle.body.includes('finance'));
+  assert.ok(!bnbArticle.body.includes('投資判断の要旨'));
+  assert.ok(!bnbArticle.body.includes('現物長期保有よりも'));
+  assertMarketArticleInvestmentDisclaimer(bnbArticle.body);
   assertCommonDisclosure(bnbArticle.body);
 
   const usdcArticle = await fetchText(baseUrl, '/articles/usdc');
@@ -477,13 +493,16 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(usdcArticle.body.includes('エグゼクティブサマリー'));
   assert.ok(usdcArticle.body.includes('準備資産・カストディ・アテステーション分析'));
   assert.ok(usdcArticle.body.includes('規制・法的リスク・オペレーショナルリスク'));
-  assert.ok(usdcArticle.body.includes('推奨デューデリジェンス・チェックリスト'));
+  assert.ok(usdcArticle.body.includes('デューデリジェンス・チェックリスト'));
   assert.ok(usdcArticle.body.includes('class="article-mermaid"'));
   assert.ok(usdcArticle.body.includes('https://www.circle.com/usdc'));
   assert.ok(usdcArticle.body.includes('国内取扱い銘柄の比較を見る'));
   assert.ok(!usdcArticle.body.includes('/markets/USDC-JPY'));
   assert.ok(!usdcArticle.body.includes('cite'));
   assert.ok(!usdcArticle.body.includes('finance'));
+  assert.ok(!usdcArticle.body.includes('推奨デューデリジェンス'));
+  assert.ok(!usdcArticle.body.includes('機関投資家・財務部門・決済事業者にとっての最適解'));
+  assertMarketArticleInvestmentDisclaimer(usdcArticle.body);
   assertCommonDisclosure(usdcArticle.body);
 
   const xrpArticle = await fetchText(baseUrl, '/articles/xrp');
@@ -492,7 +511,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(xrpArticle.body.includes('エグゼクティブサマリー'));
   assert.ok(xrpArticle.body.includes('アセット概要と技術基盤'));
   assert.ok(xrpArticle.body.includes('規制と法務情勢'));
-  assert.ok(xrpArticle.body.includes('バリュエーションと投資判断'));
+  assert.ok(xrpArticle.body.includes('バリュエーションと評価'));
   assert.ok(xrpArticle.body.includes('class="article-mermaid"'));
   assert.ok(xrpArticle.body.includes('https://xrpl.org/'));
   assert.ok(xrpArticle.body.includes('XRP の比較を見る'));
@@ -500,6 +519,9 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!xrpArticle.body.includes('cite'));
   assert.ok(!xrpArticle.body.includes('finance'));
   assert.ok(!xrpArticle.body.includes('navlist'));
+  assert.ok(!xrpArticle.body.includes('押し目での選択的な積み増し'));
+  assert.ok(!xrpArticle.body.includes('現時点の投資判断'));
+  assertMarketArticleInvestmentDisclaimer(xrpArticle.body);
   assertCommonDisclosure(xrpArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
