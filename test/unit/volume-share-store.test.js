@@ -495,3 +495,37 @@ test('VolumeShareStore keeps the best snapshot for a day instead of blindly over
   assert.equal(history.meta.partialDailySnapshotCount, 0);
   assert.deepEqual(history.rows.map(row => row.exchangeId).sort(), ['coincheck', 'okj']);
 });
+
+test('VolumeShareStore replaces an accepted snapshot when Binance Japan records are repaired', (t) => {
+  const tempDir = createTempDir('okj-volume-store-binance-repair-');
+  t.after(() => removeTempDir(tempDir));
+
+  const store = new VolumeShareStore({
+    dataFilePath: path.join(tempDir, 'volume-share-history.json'),
+  });
+  const capturedAt = '2026-07-16T15:00:05.000Z';
+
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 100, capturedAt),
+    volumeRecord('coincheck', 'BTC-JPY', 200, capturedAt),
+  ], {
+    capturedAt,
+    volumeDateJst: '2026-07-16',
+    reason: 'jst-midnight',
+    capturedExchangeIds: ['coincheck', 'okj'],
+  });
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 100, capturedAt),
+    volumeRecord('coincheck', 'BTC-JPY', 200, capturedAt),
+    volumeRecord('binance-japan', 'BTC-JPY', 300, capturedAt),
+  ], {
+    capturedAt,
+    volumeDateJst: '2026-07-16',
+    reason: 'jst-midnight',
+    capturedExchangeIds: ['binance-japan', 'coincheck', 'okj'],
+  });
+
+  const snapshot = store.getDailySnapshot('2026-07-16');
+  assert.deepEqual(snapshot.capturedExchangeIds, ['binance-japan', 'coincheck', 'okj']);
+  assert.ok(snapshot.records.some(record => record.exchangeId === 'binance-japan'));
+});
