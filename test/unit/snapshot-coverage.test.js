@@ -23,7 +23,7 @@ test('buildSnapshotCoverage reports missing required exchanges', () => {
   ], CORE_VOLUME_SNAPSHOT_EXCHANGE_IDS);
 
   assert.deepEqual(result.capturedExchangeIds, ['bitflyer', 'coincheck', 'okj']);
-  assert.deepEqual(result.missingRequiredExchangeIds, ['bitbank', 'gmo']);
+  assert.deepEqual(result.missingRequiredExchangeIds, ['bitbank', 'gmo', 'binance-japan']);
   assert.equal(result.isComplete, false);
 });
 
