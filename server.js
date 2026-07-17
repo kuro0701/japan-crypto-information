@@ -786,6 +786,9 @@ async function repairPreviousDayBinanceVolumeSnapshot(result, previousVolumeDate
   const existingSnapshot = volumeShareStore.getDailySnapshot(previousVolumeDateJst);
   if (!existingSnapshot || !Array.isArray(existingSnapshot.records)) return null;
 
+  const currentCoverage = buildSnapshotCoverage(result.records, [BINANCE_JAPAN_EXCHANGE_ID]);
+  if (!currentCoverage.isComplete) return existingSnapshot;
+
   const existingCoverage = buildSnapshotCoverage(existingSnapshot.records, CORE_VOLUME_SNAPSHOT_EXCHANGE_IDS);
   if (existingCoverage.isComplete || !existingCoverage.missingRequiredExchangeIds.includes(BINANCE_JAPAN_EXCHANGE_ID)) {
     return existingSnapshot;

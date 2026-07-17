@@ -125,7 +125,11 @@ test('Binance Japan batches multiple JPY tickers into one request', async () => 
 });
 
 test('Binance Japan retains endpoint failure detail when every fallback fails', async () => {
-  const restoreFetch = mockFetch((url) => jsonResponse({}, url.includes('primary') ? 429 : 503));
+  let requestCount = 0;
+  const restoreFetch = mockFetch((url) => {
+    requestCount += 1;
+    return jsonResponse({}, url.includes('primary') ? 429 : 503);
+  });
 
   try {
     const client = new BinanceJapanClient(500, {
@@ -139,6 +143,11 @@ test('Binance Japan retains endpoint failure detail when every fallback fails', 
     assert.equal(ticker, null);
     assert.match(client.getLastMarketDataError(), /primary\.example: HTTP 429/);
     assert.match(client.getLastMarketDataError(), /fallback\.example: HTTP 503/);
+
+    const blockedTicker = await client.fetchTicker('ETH-JPY');
+    assert.equal(blockedTicker, null);
+    assert.equal(requestCount, 2);
+    assert.match(client.getLastMarketDataError(), /requests are paused/);
   } finally {
     restoreFetch();
   }
