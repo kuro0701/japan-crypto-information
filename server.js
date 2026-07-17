@@ -527,40 +527,65 @@ async function refreshAllVolumeTickers(source = 'scheduled') {
       if (!client || typeof client.fetchTicker !== 'function') continue;
 
       let capturedCountForExchange = 0;
-      for (const market of exchange.markets || []) {
-        if (market.status && market.status !== 'active') continue;
+      const activeMarkets = (exchange.markets || [])
+        .filter(market => !market.status || market.status === 'active');
+      const marketByInstrumentId = new Map(activeMarkets.map(market => [market.instrumentId, market]));
 
+      const captureTicker = (rawTicker, fallbackMarket = null) => {
+        if (!rawTicker) return;
+        const instrumentId = rawTicker.instrument_id || rawTicker.instrumentId || (fallbackMarket && fallbackMarket.instrumentId);
+        const market = marketByInstrumentId.get(instrumentId) || fallbackMarket;
+        if (!market) return;
+        const ticker = wsManager.normalizeTicker({
+          ...rawTicker,
+          dataSource: rawTicker.dataSource || rawTicker.source || 'rest',
+          exchangeId: exchange.id,
+          instrumentId,
+        });
+        const record = volumeShareStore.buildRecord(ticker, exchange, market, capturedAt);
+        if (record) {
+          records.push(record);
+          capturedCountForExchange += 1;
+        }
+      };
+
+      if (typeof client.fetchTickers === 'function') {
         try {
-          const rawTicker = await client.fetchTicker(market.instrumentId);
-          if (rawTicker) {
-            const ticker = wsManager.normalizeTicker({
-              ...rawTicker,
-              dataSource: rawTicker.dataSource || rawTicker.source || 'rest',
-              exchangeId: exchange.id,
-              instrumentId: rawTicker.instrument_id || rawTicker.instrumentId || market.instrumentId,
-            });
-            const record = volumeShareStore.buildRecord(ticker, exchange, market, capturedAt);
-            if (record) {
-              records.push(record);
-              capturedCountForExchange += 1;
-            }
-          }
+          const rawTickers = await client.fetchTickers(activeMarkets.map(market => market.instrumentId));
+          for (const rawTicker of rawTickers) captureTicker(rawTicker);
         } catch (err) {
           errors.push({
             exchangeId: exchange.id,
-            instrumentId: market.instrumentId,
             message: err.message,
           });
         }
+      } else {
+        for (const market of activeMarkets) {
+          try {
+            const rawTicker = await client.fetchTicker(market.instrumentId);
+            captureTicker(rawTicker, market);
+          } catch (err) {
+            errors.push({
+              exchangeId: exchange.id,
+              instrumentId: market.instrumentId,
+              message: err.message,
+            });
+          }
 
-        await sleep(TICKER_FETCH_DELAY_MS);
+          await sleep(TICKER_FETCH_DELAY_MS);
+        }
       }
 
       exchangeRecordCounts.set(exchange.id, capturedCountForExchange);
       if (capturedCountForExchange === 0) {
+        const lastMarketDataError = typeof client.getLastMarketDataError === 'function'
+          ? client.getLastMarketDataError()
+          : null;
         errors.push({
           exchangeId: exchange.id,
-          message: 'No ticker records captured for this refresh window.',
+          message: lastMarketDataError
+            ? `No ticker records captured for this refresh window. ${lastMarketDataError}`
+            : 'No ticker records captured for this refresh window.',
         });
       }
     }
@@ -757,14 +782,78 @@ function captureSalesSpreadSnapshotFromResult(result, reason, options = {}) {
   });
 }
 
-function captureRollingVolumeSnapshot(result, reason = 'refresh-snapshot') {
+async function repairPreviousDayBinanceVolumeSnapshot(result, previousVolumeDateJst) {
+  const existingSnapshot = volumeShareStore.getDailySnapshot(previousVolumeDateJst);
+  if (!existingSnapshot || !Array.isArray(existingSnapshot.records)) return null;
+
+  const existingCoverage = buildSnapshotCoverage(existingSnapshot.records, CORE_VOLUME_SNAPSHOT_EXCHANGE_IDS);
+  if (existingCoverage.isComplete || !existingCoverage.missingRequiredExchangeIds.includes(BINANCE_JAPAN_EXCHANGE_ID)) {
+    return existingSnapshot;
+  }
+
+  const binanceExchange = getPublicExchanges().find(exchange => exchange.id === BINANCE_JAPAN_EXCHANGE_ID);
+  if (!binanceExchange || typeof binanceJapanClient.fetchDailyTicker !== 'function') return existingSnapshot;
+
+  const capturedAt = new Date(existingSnapshot.capturedAt || result.capturedAt);
+  const supplementalRecords = [];
+  const activeMarkets = (binanceExchange.markets || [])
+    .filter(market => !market.status || market.status === 'active');
+  const historicalTickers = await Promise.all(activeMarkets.map(async market => ({
+    market,
+    rawTicker: await binanceJapanClient.fetchDailyTicker(market.instrumentId, previousVolumeDateJst),
+  })));
+  for (const { market, rawTicker } of historicalTickers) {
+    if (rawTicker) {
+      const ticker = wsManager.normalizeTicker({
+        ...rawTicker,
+        dataSource: rawTicker.dataSource || rawTicker.source || 'rest-historical',
+        exchangeId: BINANCE_JAPAN_EXCHANGE_ID,
+        instrumentId: rawTicker.instrument_id || rawTicker.instrumentId || market.instrumentId,
+      });
+      const record = volumeShareStore.buildRecord(ticker, binanceExchange, market, capturedAt);
+      if (record) supplementalRecords.push(record);
+    }
+  }
+
+  if (supplementalRecords.length === 0) {
+    console.warn(`[Volume Share] Binance Japan historical repair failed for ${previousVolumeDateJst}.`);
+    return existingSnapshot;
+  }
+
+  const recordsByMarket = new Map();
+  for (const record of existingSnapshot.records) {
+    recordsByMarket.set(`${record.exchangeId}:${record.instrumentId}`, record);
+  }
+  for (const record of supplementalRecords) {
+    recordsByMarket.set(`${record.exchangeId}:${record.instrumentId}`, record);
+  }
+
+  const repairedRecords = Array.from(recordsByMarket.values());
+  const repairedCoverage = buildSnapshotCoverage(repairedRecords, CORE_VOLUME_SNAPSHOT_EXCHANGE_IDS);
+  console.log(
+    `[Volume Share] Repaired Binance Japan records for ${previousVolumeDateJst}: ${supplementalRecords.length} markets.`
+  );
+  return volumeShareStore.captureDaily(repairedRecords, {
+    capturedAt: existingSnapshot.capturedAt || result.capturedAt,
+    reason: existingSnapshot.reason || 'late-catchup',
+    volumeDateJst: previousVolumeDateJst,
+    capturedExchangeIds: repairedCoverage.capturedExchangeIds,
+    missingRequiredExchangeIds: repairedCoverage.missingRequiredExchangeIds,
+  });
+}
+
+async function captureRollingVolumeSnapshot(result, reason = 'refresh-snapshot') {
   if (!result || result.records.length === 0) return;
   const capturedAt = new Date(result.capturedAt);
   const parts = VolumeShareStore.getJstParts(capturedAt);
+  const previousVolumeDateJst = VolumeShareStore.getPreviousJstDate(capturedAt);
   // Before 02:00 JST, keep treating the first wake-up as a catch-up for yesterday.
   const isEarlyMorning = parts.hour <= 1;
+  if (!isEarlyMorning) {
+    await repairPreviousDayBinanceVolumeSnapshot(result, previousVolumeDateJst);
+  }
   const volumeDateJst = isEarlyMorning
-    ? VolumeShareStore.getPreviousJstDate(capturedAt)
+    ? previousVolumeDateJst
     : parts.date;
 
   return captureVolumeSnapshotFromResult(result, isEarlyMorning ? 'early-morning-catchup' : reason, {
@@ -821,7 +910,7 @@ function scheduleVolumeShareJobs() {
   setTimeout(async () => {
     try {
       const result = await refreshAllVolumeTickers('startup');
-      captureRollingVolumeSnapshot(result, 'startup-snapshot');
+      await captureRollingVolumeSnapshot(result, 'startup-snapshot');
     } catch (err) {
       console.warn('[Volume Share] Startup refresh failed:', err.message);
     }
@@ -830,7 +919,7 @@ function scheduleVolumeShareJobs() {
   setInterval(async () => {
     try {
       const result = await refreshAllVolumeTickers('hourly');
-      captureRollingVolumeSnapshot(result, 'hourly-snapshot');
+      await captureRollingVolumeSnapshot(result, 'hourly-snapshot');
     } catch (err) {
       console.warn('[Volume Share] Hourly refresh failed:', err.message);
     }
