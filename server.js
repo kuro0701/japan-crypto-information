@@ -350,6 +350,7 @@ const wsManager = new WSManager(server, {
   exchanges: getPublicExchanges(),
   defaultExchangeId: DEFAULT_EXCHANGE_ID,
   onMarketSelected: ({ exchangeId, instrumentId }) => {
+    if (!exchangeClientsStarted) return;
     const exchangeClient = clientsByExchange.get(exchangeId);
     if (exchangeClient) exchangeClient.activateInstrument(instrumentId);
   },
