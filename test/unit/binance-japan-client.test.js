@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const zlib = require('zlib');
 
 const BinanceJapanClient = require('../../lib/binance-japan-client');
 
@@ -9,6 +10,29 @@ function jsonResponse(body, status = 200) {
     status,
     async json() {
       return body;
+    },
+  };
+}
+
+function zipCsv(csv) {
+  const fileName = Buffer.from('data.csv');
+  const compressed = zlib.deflateRawSync(Buffer.from(csv));
+  const header = Buffer.alloc(30);
+  header.writeUInt32LE(0x04034b50, 0);
+  header.writeUInt16LE(20, 4);
+  header.writeUInt16LE(8, 8);
+  header.writeUInt32LE(compressed.length, 18);
+  header.writeUInt32LE(Buffer.byteLength(csv), 22);
+  header.writeUInt16LE(fileName.length, 26);
+  return Buffer.concat([header, fileName, compressed]);
+}
+
+function binaryResponse(buffer, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    async arrayBuffer() {
+      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     },
   };
 }
@@ -155,6 +179,44 @@ test('Binance Japan uses the official web product feed when API hosts return HTT
     assert.equal(tickers.length, 1);
     assert.equal(tickers[0].quoteVolume24h, '200');
     assert.equal(client.getLastMarketDataError(), null);
+  } finally {
+    restoreFetch();
+  }
+});
+
+test('Binance Japan reconstructs a JST day from official hourly archives while API access is blocked', async () => {
+  const micros = value => String(Date.parse(value) * 1000);
+  const previousUtcCsv = [
+    `${micros('2026-07-15T14:00:00Z')},80,90,70,85,1,${micros('2026-07-15T14:59:59.999Z')},85,1,0,0,0`,
+    `${micros('2026-07-15T15:00:00Z')},100,110,90,105,2,${micros('2026-07-15T15:59:59.999Z')},200,1,0,0,0`,
+  ].join('\n');
+  const currentUtcCsv = [
+    `${micros('2026-07-16T14:00:00Z')},105,120,95,115,3,${micros('2026-07-16T14:59:59.999Z')},345,1,0,0,0`,
+    `${micros('2026-07-16T15:00:00Z')},115,125,100,120,4,${micros('2026-07-16T15:59:59.999Z')},480,1,0,0,0`,
+  ].join('\n');
+  const restoreFetch = mockFetch((url) => {
+    if (url.includes('data.binance.vision') && url.includes('2026-07-15')) {
+      return binaryResponse(zipCsv(previousUtcCsv));
+    }
+    if (url.includes('data.binance.vision') && url.includes('2026-07-16')) {
+      return binaryResponse(zipCsv(currentUtcCsv));
+    }
+    return jsonResponse({}, 418);
+  });
+
+  try {
+    const client = new BinanceJapanClient(500, {
+      baseUrls: ['https://blocked.example/api/v3'],
+    });
+    const ticker = await client.fetchDailyTicker('BTC-JPY', '2026-07-16');
+
+    assert.equal(ticker.open24h, '100');
+    assert.equal(ticker.high24h, 120);
+    assert.equal(ticker.low24h, 90);
+    assert.equal(ticker.last, '115');
+    assert.equal(ticker.baseVolume24h, 5);
+    assert.equal(ticker.quoteVolume24h, 545);
+    assert.equal(ticker.timestamp, '2026-07-16T14:59:59.999Z');
   } finally {
     restoreFetch();
   }
