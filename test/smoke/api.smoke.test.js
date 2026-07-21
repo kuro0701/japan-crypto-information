@@ -421,6 +421,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/bnb'));
   assert.ok(articleIndex.body.includes('/articles/usdc'));
   assert.ok(articleIndex.body.includes('/articles/xrp'));
+  assert.ok(articleIndex.body.includes('/articles/sol'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -523,6 +524,26 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!xrpArticle.body.includes('現時点の投資判断'));
   assertMarketArticleInvestmentDisclaimer(xrpArticle.body);
   assertCommonDisclosure(xrpArticle.body);
+
+  const solArticle = await fetchText(baseUrl, '/articles/sol');
+  assert.equal(solArticle.status, 200);
+  assert.ok(solArticle.body.includes('Solana（SOL）総合分析'));
+  assert.ok(solArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(solArticle.body.includes('プロトコル概要'));
+  assert.ok(solArticle.body.includes('トークノミクスと市場データ'));
+  assert.ok(solArticle.body.includes('パフォーマンス・セキュリティ・ガバナンス'));
+  assert.ok(solArticle.body.includes('競争環境・規制・リスク'));
+  assert.ok(solArticle.body.includes('class="article-mermaid"'));
+  assert.ok(solArticle.body.includes('https://solana.com/docs'));
+  assert.ok(solArticle.body.includes('SOL の比較を見る'));
+  assert.ok(solArticle.body.includes('/markets/SOL-JPY'));
+  assert.ok(!solArticle.body.includes('cite'));
+  assert.ok(!solArticle.body.includes('finance'));
+  assert.ok(!solArticle.body.includes('navlist'));
+  assert.ok(!solArticle.body.includes('買うべき'));
+  assert.ok(!solArticle.body.includes('投資判断の要旨'));
+  assertMarketArticleInvestmentDisclaimer(solArticle.body);
+  assertCommonDisclosure(solArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -970,6 +991,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/bnb'));
   assert.ok(sitemap.body.includes('/articles/usdc'));
   assert.ok(sitemap.body.includes('/articles/xrp'));
+  assert.ok(sitemap.body.includes('/articles/sol'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
