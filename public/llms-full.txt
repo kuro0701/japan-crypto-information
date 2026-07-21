@@ -127,6 +127,12 @@ URL: https://get-crypto.org/articles/trx
 
 TRONの3層アーキテクチャ、DPoSと27のSuper Representatives、TVM、BandwidthとEnergy、TRCトークン規格、供給・ステーキング、USDT決済、オンチェーン実績、エコシステム、競争環境、ガバナンス集中、規制・セキュリティリスクをまとめた総合分析記事です。TRON公式資料、TRONSCAN、規制当局、市場・オンチェーンデータの参照先を併記しています。
 
+## Hyperliquid（HYPE）総合分析｜技術・トークノミクス・市場構造・リスク
+
+URL: https://get-crypto.org/articles/hype
+
+HyperliquidのHyperCore、HyperEVM、HyperBFT、オンチェーンCLOB、パーペチュアルとファンディング、手数料配分、HYPEの用途・初期配分・流通供給、HIP-3・HIP-4、チームと機関向けアクセス、競争環境、ガバナンス、規制・清算・オラクル・ブリッジ・供給リスクをまとめた総合分析記事です。Hyperliquid公式資料、Hyper Foundation、監査情報、市場データの参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。

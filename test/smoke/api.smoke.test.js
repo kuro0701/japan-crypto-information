@@ -423,6 +423,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/xrp'));
   assert.ok(articleIndex.body.includes('/articles/sol'));
   assert.ok(articleIndex.body.includes('/articles/trx'));
+  assert.ok(articleIndex.body.includes('/articles/hype'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -565,6 +566,27 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!trxArticle.body.includes('投資判断の要旨'));
   assertMarketArticleInvestmentDisclaimer(trxArticle.body);
   assertCommonDisclosure(trxArticle.body);
+
+  const hypeArticle = await fetchText(baseUrl, '/articles/hype');
+  assert.equal(hypeArticle.status, 200);
+  assert.ok(hypeArticle.body.includes('Hyperliquid（HYPE）総合分析'));
+  assert.ok(hypeArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(hypeArticle.body.includes('プロジェクト概要と技術基盤'));
+  assert.ok(hypeArticle.body.includes('HYPEの用途とトークノミクス'));
+  assert.ok(hypeArticle.body.includes('HIP-3、HIP-4とエコシステム拡張'));
+  assert.ok(hypeArticle.body.includes('技術・金融・市場リスク'));
+  assert.ok(hypeArticle.body.includes('class="article-mermaid"'));
+  assert.ok(hypeArticle.body.includes('https://hyperliquid.gitbook.io/hyperliquid-docs'));
+  assert.ok(hypeArticle.body.includes('国内取扱い銘柄の比較を見る'));
+  assert.ok(!hypeArticle.body.includes('/markets/HYPE-JPY'));
+  assert.ok(!hypeArticle.body.includes('cite'));
+  assert.ok(!hypeArticle.body.includes('finance'));
+  assert.ok(!hypeArticle.body.includes('navlist'));
+  assert.ok(!hypeArticle.body.includes('10倍'));
+  assert.ok(!hypeArticle.body.includes('現時点の投資判断'));
+  assert.ok(!hypeArticle.body.includes('買うべき'));
+  assertMarketArticleInvestmentDisclaimer(hypeArticle.body);
+  assertCommonDisclosure(hypeArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1014,6 +1036,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/xrp'));
   assert.ok(sitemap.body.includes('/articles/sol'));
   assert.ok(sitemap.body.includes('/articles/trx'));
+  assert.ok(sitemap.body.includes('/articles/hype'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
