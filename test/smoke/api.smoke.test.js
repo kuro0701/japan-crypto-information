@@ -422,6 +422,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/usdc'));
   assert.ok(articleIndex.body.includes('/articles/xrp'));
   assert.ok(articleIndex.body.includes('/articles/sol'));
+  assert.ok(articleIndex.body.includes('/articles/trx'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -544,6 +545,26 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!solArticle.body.includes('投資判断の要旨'));
   assertMarketArticleInvestmentDisclaimer(solArticle.body);
   assertCommonDisclosure(solArticle.body);
+
+  const trxArticle = await fetchText(baseUrl, '/articles/trx');
+  assert.equal(trxArticle.status, 200);
+  assert.ok(trxArticle.body.includes('TRON（TRX）総合分析'));
+  assert.ok(trxArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(trxArticle.body.includes('プロトコルと技術基盤'));
+  assert.ok(trxArticle.body.includes('市場データとオンチェーン実績'));
+  assert.ok(trxArticle.body.includes('採用ドライバーと主要リスク'));
+  assert.ok(trxArticle.body.includes('主要イベント年表'));
+  assert.ok(trxArticle.body.includes('class="article-mermaid"'));
+  assert.ok(trxArticle.body.includes('https://developers.tron.network/'));
+  assert.ok(trxArticle.body.includes('TRX の比較を見る'));
+  assert.ok(trxArticle.body.includes('/markets/TRX-JPY'));
+  assert.ok(!trxArticle.body.includes('cite'));
+  assert.ok(!trxArticle.body.includes('finance'));
+  assert.ok(!trxArticle.body.includes('navlist'));
+  assert.ok(!trxArticle.body.includes('買うべき'));
+  assert.ok(!trxArticle.body.includes('投資判断の要旨'));
+  assertMarketArticleInvestmentDisclaimer(trxArticle.body);
+  assertCommonDisclosure(trxArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -992,6 +1013,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/usdc'));
   assert.ok(sitemap.body.includes('/articles/xrp'));
   assert.ok(sitemap.body.includes('/articles/sol'));
+  assert.ok(sitemap.body.includes('/articles/trx'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));

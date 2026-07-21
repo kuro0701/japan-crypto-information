@@ -28,6 +28,7 @@
 - [USDC総合分析](https://get-crypto.org/articles/usdc): USDCの発行体、準備資産、月次アテステーション、市場流動性、各国規制、競争環境、リスクと機関投資家向けデューデリジェンスを総合分析します。
 - [XRP総合分析](https://get-crypto.org/articles/xrp): XRPとXRP Ledgerの技術、供給・エスクロー、市場流動性、SEC訴訟、各国規制、競争環境、シナリオ別価格レンジと機関投資家向けリスク管理論点を総合分析します。
 - [Solana（SOL）総合分析](https://get-crypto.org/articles/sol): Solanaのプロトコル設計、PoHとPoS、Alpenglow、供給・インフレ・ステーキング、DeFi・決済・DePIN、性能、障害史、分散性、規制と主要リスクを総合分析します。
+- [TRON（TRX）総合分析](https://get-crypto.org/articles/trx): TRONのDPoS、TVM、BandwidthとEnergy、供給・ステーキング、USDT決済、オンチェーン実績、エコシステム、ガバナンス集中、規制・セキュリティリスクを総合分析します。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧
