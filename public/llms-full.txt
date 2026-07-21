@@ -121,6 +121,12 @@ URL: https://get-crypto.org/articles/sol
 
 Solanaのアカウントモデル、PoHとPoS、Alpenglow、手数料と供給設計、インフレ・ステーキング、DeFi・決済・DePIN、開発者動向、性能、障害史、クライアント多様性、ガバナンス、競争環境、規制と主要リスクをまとめた総合分析記事です。Solana公式資料、ネットワーク状態、監査、市場・オンチェーンデータの参照先を併記しています。
 
+## TRON（TRX）総合分析｜技術・USDT決済・市場データ・規制リスク
+
+URL: https://get-crypto.org/articles/trx
+
+TRONの3層アーキテクチャ、DPoSと27のSuper Representatives、TVM、BandwidthとEnergy、TRCトークン規格、供給・ステーキング、USDT決済、オンチェーン実績、エコシステム、競争環境、ガバナンス集中、規制・セキュリティリスクをまとめた総合分析記事です。TRON公式資料、TRONSCAN、規制当局、市場・オンチェーンデータの参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
