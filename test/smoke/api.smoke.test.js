@@ -424,6 +424,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/sol'));
   assert.ok(articleIndex.body.includes('/articles/trx'));
   assert.ok(articleIndex.body.includes('/articles/hype'));
+  assert.ok(articleIndex.body.includes('/articles/doge'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -587,6 +588,28 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!hypeArticle.body.includes('買うべき'));
   assertMarketArticleInvestmentDisclaimer(hypeArticle.body);
   assertCommonDisclosure(hypeArticle.body);
+
+  const dogeArticle = await fetchText(baseUrl, '/articles/doge');
+  assert.equal(dogeArticle.status, 200);
+  assert.ok(dogeArticle.body.includes('Dogecoin（DOGE）総合分析'));
+  assert.ok(dogeArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(dogeArticle.body.includes('技術アーキテクチャ'));
+  assert.ok(dogeArticle.body.includes('供給設計とマイナー経済'));
+  assert.ok(dogeArticle.body.includes('米国上場商品と制度上の位置付け'));
+  assert.ok(dogeArticle.body.includes('日本の規制・税制'));
+  assert.ok(dogeArticle.body.includes('class="article-mermaid"'));
+  assert.ok(dogeArticle.body.includes('https://dogecoin.com/'));
+  assert.ok(dogeArticle.body.includes('DOGE の比較を見る'));
+  assert.ok(dogeArticle.body.includes('/markets/DOGE-JPY'));
+  assert.ok(!dogeArticle.body.includes('cite'));
+  assert.ok(!dogeArticle.body.includes('finance'));
+  assert.ok(!dogeArticle.body.includes('navlist'));
+  assert.ok(!dogeArticle.body.includes('0.20–0.25'));
+  assert.ok(!dogeArticle.body.includes('強気シナリオ'));
+  assert.ok(!dogeArticle.body.includes('現時点の投資判断'));
+  assert.ok(!dogeArticle.body.includes('買うべき'));
+  assertMarketArticleInvestmentDisclaimer(dogeArticle.body);
+  assertCommonDisclosure(dogeArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1037,6 +1060,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/sol'));
   assert.ok(sitemap.body.includes('/articles/trx'));
   assert.ok(sitemap.body.includes('/articles/hype'));
+  assert.ok(sitemap.body.includes('/articles/doge'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
