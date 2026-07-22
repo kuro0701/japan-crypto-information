@@ -139,6 +139,12 @@ URL: https://get-crypto.org/articles/doge
 
 Dogecoinの歴史とコミュニティ、UTXO、Scrypt PoW、LitecoinとのAuxPoWマージマイニング、DigiShield、年間約52.56億DOGEの供給設計、マイナー経済、手数料・決済、Dogecoin CoreとFoundationの周辺プロジェクト、市場データ、米国上場商品、日本の規制・税制、競争環境、技術・市場・供給リスクをまとめた総合分析記事です。Dogecoin公式資料、GitHub、SEC、金融庁、国税庁、市場データの参照先を併記しています。
 
+## Zcash（ZEC）総合分析｜プライバシー技術・供給・ガバナンス・規制リスク
+
+URL: https://get-crypto.org/articles/zec
+
+Zcashの透明・シールド取引、zk-SNARKs、Sapling、Orchard、Halo 2、Unified Address、Equihash PoW、最大供給と半減、開発資金、ガバナンス、Zebra移行、市場データ、2026年Orchard脆弱性、日本・EUの規制、Monero比較、技術・市場・流動性リスクをまとめた総合分析記事です。Zcash公式資料、ZIP、Zcash Foundation、金融庁、国税庁、EUR-Lex、市場データの参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
