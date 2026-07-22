@@ -426,6 +426,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/hype'));
   assert.ok(articleIndex.body.includes('/articles/doge'));
   assert.ok(articleIndex.body.includes('/articles/zec'));
+  assert.ok(articleIndex.body.includes('/articles/leo'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -632,6 +633,27 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!zecArticle.body.includes('買うべき'));
   assertMarketArticleInvestmentDisclaimer(zecArticle.body);
   assertCommonDisclosure(zecArticle.body);
+
+  const leoArticle = await fetchText(baseUrl, '/articles/leo');
+  assert.equal(leoArticle.status, 200);
+  assert.ok(leoArticle.body.includes('UNUS SED LEO（LEO）総合分析'));
+  assert.ok(leoArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(leoArticle.body.includes('トークノミクス'));
+  assert.ok(leoArticle.body.includes('現行ユーティリティ'));
+  assert.ok(leoArticle.body.includes('スマートコントラクトとセキュリティ'));
+  assert.ok(leoArticle.body.includes('規制・法務'));
+  assert.ok(leoArticle.body.includes('class="article-mermaid"'));
+  assert.ok(leoArticle.body.includes('https://www.bitfinex.com/wp-2019-05.pdf'));
+  assert.ok(leoArticle.body.includes('国内取扱い銘柄の比較を見る'));
+  assert.ok(!leoArticle.body.includes('/markets/LEO-JPY'));
+  assert.ok(!leoArticle.body.includes('cite'));
+  assert.ok(!leoArticle.body.includes('finance'));
+  assert.ok(!leoArticle.body.includes('navlist'));
+  assert.ok(!leoArticle.body.includes('強気シナリオ'));
+  assert.ok(!leoArticle.body.includes('現時点の投資判断'));
+  assert.ok(!leoArticle.body.includes('買うべき'));
+  assertMarketArticleInvestmentDisclaimer(leoArticle.body);
+  assertCommonDisclosure(leoArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1084,6 +1106,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/hype'));
   assert.ok(sitemap.body.includes('/articles/doge'));
   assert.ok(sitemap.body.includes('/articles/zec'));
+  assert.ok(sitemap.body.includes('/articles/leo'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
