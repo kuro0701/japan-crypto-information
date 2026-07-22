@@ -145,6 +145,12 @@ URL: https://get-crypto.org/articles/zec
 
 Zcashの透明・シールド取引、zk-SNARKs、Sapling、Orchard、Halo 2、Unified Address、Equihash PoW、最大供給と半減、開発資金、ガバナンス、Zebra移行、市場データ、2026年Orchard脆弱性、日本・EUの規制、Monero比較、技術・市場・流動性リスクをまとめた総合分析記事です。Zcash公式資料、ZIP、Zcash Foundation、金融庁、国税庁、EUR-Lex、市場データの参照先を併記しています。
 
+## UNUS SED LEO（LEO）総合分析｜買い戻し・供給・Bitfinex依存リスク
+
+URL: https://get-crypto.org/articles/leo
+
+UNUS SED LEOの発行背景、10億USDt相当の私募、iFinex連結総収益の最低27%に連動する買い戻し・バーン、Ethereum・Vaultaのデュアルチェーン、2025年12月のBitfinex取引手数料ゼロ化後の現行特典、スマートコントラクト管理権限、市場データと薄い流動性、米国当局の措置、日本の取扱い、発行体・規制・カストディリスクをまとめた総合分析記事です。Bitfinex公式資料、Etherscan、CFTC、NYAG、米司法省、金融庁、国税庁、市場データの参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
