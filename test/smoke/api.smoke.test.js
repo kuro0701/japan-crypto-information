@@ -425,6 +425,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/trx'));
   assert.ok(articleIndex.body.includes('/articles/hype'));
   assert.ok(articleIndex.body.includes('/articles/doge'));
+  assert.ok(articleIndex.body.includes('/articles/zec'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -610,6 +611,27 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!dogeArticle.body.includes('買うべき'));
   assertMarketArticleInvestmentDisclaimer(dogeArticle.body);
   assertCommonDisclosure(dogeArticle.body);
+
+  const zecArticle = await fetchText(baseUrl, '/articles/zec');
+  assert.equal(zecArticle.status, 200);
+  assert.ok(zecArticle.body.includes('Zcash（ZEC）総合分析'));
+  assert.ok(zecArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(zecArticle.body.includes('技術アーキテクチャ'));
+  assert.ok(zecArticle.body.includes('供給設計と開発資金'));
+  assert.ok(zecArticle.body.includes('2026年Orchard脆弱性とセキュリティ'));
+  assert.ok(zecArticle.body.includes('規制・法務・税務'));
+  assert.ok(zecArticle.body.includes('class="article-mermaid"'));
+  assert.ok(zecArticle.body.includes('https://z.cash/'));
+  assert.ok(zecArticle.body.includes('国内取扱い銘柄の比較を見る'));
+  assert.ok(!zecArticle.body.includes('/markets/ZEC-JPY'));
+  assert.ok(!zecArticle.body.includes('cite'));
+  assert.ok(!zecArticle.body.includes('finance'));
+  assert.ok(!zecArticle.body.includes('navlist'));
+  assert.ok(!zecArticle.body.includes('強気シナリオ'));
+  assert.ok(!zecArticle.body.includes('現時点の投資判断'));
+  assert.ok(!zecArticle.body.includes('買うべき'));
+  assertMarketArticleInvestmentDisclaimer(zecArticle.body);
+  assertCommonDisclosure(zecArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1061,6 +1083,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/trx'));
   assert.ok(sitemap.body.includes('/articles/hype'));
   assert.ok(sitemap.body.includes('/articles/doge'));
+  assert.ok(sitemap.body.includes('/articles/zec'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
