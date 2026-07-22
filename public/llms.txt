@@ -31,6 +31,7 @@
 - [TRON（TRX）総合分析](https://get-crypto.org/articles/trx): TRONのDPoS、TVM、BandwidthとEnergy、供給・ステーキング、USDT決済、オンチェーン実績、エコシステム、ガバナンス集中、規制・セキュリティリスクを総合分析します。
 - [Hyperliquid（HYPE）総合分析](https://get-crypto.org/articles/hype): HyperliquidのHyperCore、HyperEVM、HyperBFT、オンチェーン注文板、手数料、HYPEのトークノミクス、HIP-3・HIP-4、競争環境、規制・技術・市場リスクを総合分析します。
 - [Dogecoin（DOGE）総合分析](https://get-crypto.org/articles/doge): Dogecoinの歴史、Scrypt PoW、Litecoinとのマージマイニング、供給・マイナー経済、決済・コミュニティ、米国上場商品、市場データ、規制・税制・技術リスクを総合分析します。
+- [Zcash（ZEC）総合分析](https://get-crypto.org/articles/zec): Zcashの透明・シールド取引、zk-SNARKs、Sapling、Orchard、Halo 2、PoW・供給・開発資金、ガバナンス、市場データ、規制・セキュリティリスクを総合分析します。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧
