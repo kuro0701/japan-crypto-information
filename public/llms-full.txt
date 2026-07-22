@@ -133,6 +133,12 @@ URL: https://get-crypto.org/articles/hype
 
 HyperliquidのHyperCore、HyperEVM、HyperBFT、オンチェーンCLOB、パーペチュアルとファンディング、手数料配分、HYPEの用途・初期配分・流通供給、HIP-3・HIP-4、チームと機関向けアクセス、競争環境、ガバナンス、規制・清算・オラクル・ブリッジ・供給リスクをまとめた総合分析記事です。Hyperliquid公式資料、Hyper Foundation、監査情報、市場データの参照先を併記しています。
 
+## Dogecoin（DOGE）総合分析｜歴史・PoW・供給・決済・市場リスク
+
+URL: https://get-crypto.org/articles/doge
+
+Dogecoinの歴史とコミュニティ、UTXO、Scrypt PoW、LitecoinとのAuxPoWマージマイニング、DigiShield、年間約52.56億DOGEの供給設計、マイナー経済、手数料・決済、Dogecoin CoreとFoundationの周辺プロジェクト、市場データ、米国上場商品、日本の規制・税制、競争環境、技術・市場・供給リスクをまとめた総合分析記事です。Dogecoin公式資料、GitHub、SEC、金融庁、国税庁、市場データの参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
