@@ -33,6 +33,7 @@
 - [Dogecoin（DOGE）総合分析](https://get-crypto.org/articles/doge): Dogecoinの歴史、Scrypt PoW、Litecoinとのマージマイニング、供給・マイナー経済、決済・コミュニティ、米国上場商品、市場データ、規制・税制・技術リスクを総合分析します。
 - [Zcash（ZEC）総合分析](https://get-crypto.org/articles/zec): Zcashの透明・シールド取引、zk-SNARKs、Sapling、Orchard、Halo 2、PoW・供給・開発資金、ガバナンス、市場データ、規制・セキュリティリスクを総合分析します。
 - [UNUS SED LEO（LEO）総合分析](https://get-crypto.org/articles/leo): LEOの発行背景、Bitfinexでの現行用途、買い戻し・バーン、デュアルチェーン、管理権限、市場流動性、発行体・規制リスクを総合分析します。
+- [Monero（XMR）総合分析](https://get-crypto.org/articles/xmr): Moneroのリング署名、ステルスアドレス、RingCT、RandomX、尾部排出、供給監査、市場流動性、取引所上場廃止、規制・セキュリティリスクを総合分析します。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧

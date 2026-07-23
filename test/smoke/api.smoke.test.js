@@ -427,6 +427,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/doge'));
   assert.ok(articleIndex.body.includes('/articles/zec'));
   assert.ok(articleIndex.body.includes('/articles/leo'));
+  assert.ok(articleIndex.body.includes('/articles/xmr'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -654,6 +655,27 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!leoArticle.body.includes('買うべき'));
   assertMarketArticleInvestmentDisclaimer(leoArticle.body);
   assertCommonDisclosure(leoArticle.body);
+
+  const xmrArticle = await fetchText(baseUrl, '/articles/xmr');
+  assert.equal(xmrArticle.status, 200);
+  assert.ok(xmrArticle.body.includes('Monero（XMR）総合分析'));
+  assert.ok(xmrArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(xmrArticle.body.includes('プライバシー技術'));
+  assert.ok(xmrArticle.body.includes('供給設計と尾部排出'));
+  assert.ok(xmrArticle.body.includes('2025年Qubic'));
+  assert.ok(xmrArticle.body.includes('規制・法務・税務'));
+  assert.ok(xmrArticle.body.includes('class="article-mermaid"'));
+  assert.ok(xmrArticle.body.includes('https://www.getmonero.org/'));
+  assert.ok(xmrArticle.body.includes('国内取扱い銘柄の比較を見る'));
+  assert.ok(!xmrArticle.body.includes('/markets/XMR-JPY'));
+  assert.ok(!xmrArticle.body.includes('cite'));
+  assert.ok(!xmrArticle.body.includes('finance'));
+  assert.ok(!xmrArticle.body.includes('navlist'));
+  assert.ok(!xmrArticle.body.includes('強気シナリオ'));
+  assert.ok(!xmrArticle.body.includes('現時点の投資判断'));
+  assert.ok(!xmrArticle.body.includes('買うべき'));
+  assertMarketArticleInvestmentDisclaimer(xmrArticle.body);
+  assertCommonDisclosure(xmrArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1107,6 +1129,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/doge'));
   assert.ok(sitemap.body.includes('/articles/zec'));
   assert.ok(sitemap.body.includes('/articles/leo'));
+  assert.ok(sitemap.body.includes('/articles/xmr'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
