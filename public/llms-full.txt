@@ -151,6 +151,12 @@ URL: https://get-crypto.org/articles/leo
 
 UNUS SED LEOの発行背景、10億USDt相当の私募、iFinex連結総収益の最低27%に連動する買い戻し・バーン、Ethereum・Vaultaのデュアルチェーン、2025年12月のBitfinex取引手数料ゼロ化後の現行特典、スマートコントラクト管理権限、市場データと薄い流動性、米国当局の措置、日本の取扱い、発行体・規制・カストディリスクをまとめた総合分析記事です。Bitfinex公式資料、Etherscan、CFTC、NYAG、米司法省、金融庁、国税庁、市場データの参照先を併記しています。
 
+## Monero（XMR）総合分析｜プライバシー技術・尾部排出・規制・PoWリスク
+
+URL: https://get-crypto.org/articles/xmr
+
+Moneroのリング署名、ステルスアドレス、RingCT、CLSAG、Bulletproofs+、RandomX、尾部排出、供給監査、鍵とview-only wallet、市場流動性、取引所上場廃止、日本・EUの規制、税務、2025年Qubic事象を含むセキュリティ・PoWリスクをまとめた総合分析記事です。Monero公式資料、独立研究、金融庁、国税庁、EUR-Lex、市場データの参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
