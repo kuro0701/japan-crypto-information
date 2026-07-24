@@ -157,6 +157,12 @@ URL: https://get-crypto.org/articles/xmr
 
 Moneroのリング署名、ステルスアドレス、RingCT、CLSAG、Bulletproofs+、RandomX、尾部排出、供給監査、鍵とview-only wallet、市場流動性、取引所上場廃止、日本・EUの規制、税務、2025年Qubic事象を含むセキュリティ・PoWリスクをまとめた総合分析記事です。Monero公式資料、独立研究、金融庁、国税庁、EUR-Lex、市場データの参照先を併記しています。
 
+## Chainlink（LINK）総合分析｜オラクル・CCIP・ステーキング・供給リスク
+
+URL: https://get-crypto.org/articles/link
+
+ChainlinkのData Feeds、Data Streams、OCR、VRF、Automation、Functions、Proof of Reserve、CCIP、CRE、ACE、LINKの固定供給・未流通分・Payment Abstraction・Reserve、Staking v0.2の対象とスラッシュ範囲、DeFi・金融機関との本番統合と実証の違い、市場データ、米国・日本の規制・税務、競合、技術・市場リスクをまとめた総合分析記事です。Chainlink公式資料、SEC、CFTC、金融庁、国税庁、金融機関、市場データの参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。

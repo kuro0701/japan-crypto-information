@@ -428,6 +428,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/zec'));
   assert.ok(articleIndex.body.includes('/articles/leo'));
   assert.ok(articleIndex.body.includes('/articles/xmr'));
+  assert.ok(articleIndex.body.includes('/articles/link'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -676,6 +677,27 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!xmrArticle.body.includes('買うべき'));
   assertMarketArticleInvestmentDisclaimer(xmrArticle.body);
   assertCommonDisclosure(xmrArticle.body);
+
+  const linkArticle = await fetchText(baseUrl, '/articles/link');
+  assert.equal(linkArticle.status, 200);
+  assert.ok(linkArticle.body.includes('Chainlink（LINK）総合分析'));
+  assert.ok(linkArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(linkArticle.body.includes('オラクルとData Feeds'));
+  assert.ok(linkArticle.body.includes('LINKの供給・用途・価値捕捉'));
+  assert.ok(linkArticle.body.includes('Chainlink Staking v0.2'));
+  assert.ok(linkArticle.body.includes('規制・法務・税務'));
+  assert.ok(linkArticle.body.includes('class="article-mermaid"'));
+  assert.ok(linkArticle.body.includes('https://docs.chain.link/'));
+  assert.ok(linkArticle.body.includes('LINK の比較を見る'));
+  assert.ok(linkArticle.body.includes('/markets/LINK-JPY'));
+  assert.ok(!linkArticle.body.includes('cite'));
+  assert.ok(!linkArticle.body.includes('finance'));
+  assert.ok(!linkArticle.body.includes('navlist'));
+  assert.ok(!linkArticle.body.includes('強気シナリオ'));
+  assert.ok(!linkArticle.body.includes('現時点の投資判断'));
+  assert.ok(!linkArticle.body.includes('買うべき'));
+  assertMarketArticleInvestmentDisclaimer(linkArticle.body);
+  assertCommonDisclosure(linkArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1130,6 +1152,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/zec'));
   assert.ok(sitemap.body.includes('/articles/leo'));
   assert.ok(sitemap.body.includes('/articles/xmr'));
+  assert.ok(sitemap.body.includes('/articles/link'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
