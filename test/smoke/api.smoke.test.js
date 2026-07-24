@@ -429,6 +429,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/leo'));
   assert.ok(articleIndex.body.includes('/articles/xmr'));
   assert.ok(articleIndex.body.includes('/articles/link'));
+  assert.ok(articleIndex.body.includes('/articles/xlm'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -698,6 +699,27 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!linkArticle.body.includes('買うべき'));
   assertMarketArticleInvestmentDisclaimer(linkArticle.body);
   assertCommonDisclosure(linkArticle.body);
+
+  const xlmArticle = await fetchText(baseUrl, '/articles/xlm');
+  assert.equal(xlmArticle.status, 200);
+  assert.ok(xlmArticle.body.includes('Stellar（XLM）総合分析'));
+  assert.ok(xlmArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(xlmArticle.body.includes('Stellar Consensus Protocol'));
+  assert.ok(xlmArticle.body.includes('XLMの供給・用途・SDF保有'));
+  assert.ok(xlmArticle.body.includes('Sorobanとスマートコントラクト'));
+  assert.ok(xlmArticle.body.includes('規制・法務・税務'));
+  assert.ok(xlmArticle.body.includes('class="article-mermaid"'));
+  assert.ok(xlmArticle.body.includes('https://developers.stellar.org/'));
+  assert.ok(xlmArticle.body.includes('XLM の比較を見る'));
+  assert.ok(xlmArticle.body.includes('/markets/XLM-JPY'));
+  assert.ok(!xlmArticle.body.includes('cite'));
+  assert.ok(!xlmArticle.body.includes('finance'));
+  assert.ok(!xlmArticle.body.includes('navlist'));
+  assert.ok(!xlmArticle.body.includes('強気シナリオ'));
+  assert.ok(!xlmArticle.body.includes('現時点の投資判断'));
+  assert.ok(!xlmArticle.body.includes('買うべき'));
+  assertMarketArticleInvestmentDisclaimer(xlmArticle.body);
+  assertCommonDisclosure(xlmArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1153,6 +1175,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/leo'));
   assert.ok(sitemap.body.includes('/articles/xmr'));
   assert.ok(sitemap.body.includes('/articles/link'));
+  assert.ok(sitemap.body.includes('/articles/xlm'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
