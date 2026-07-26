@@ -430,6 +430,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/xmr'));
   assert.ok(articleIndex.body.includes('/articles/link'));
   assert.ok(articleIndex.body.includes('/articles/xlm'));
+  assert.ok(articleIndex.body.includes('/articles/ada'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -720,6 +721,29 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!xlmArticle.body.includes('買うべき'));
   assertMarketArticleInvestmentDisclaimer(xlmArticle.body);
   assertCommonDisclosure(xlmArticle.body);
+
+  const adaArticle = await fetchText(baseUrl, '/articles/ada');
+  assert.equal(adaArticle.status, 200);
+  assert.ok(adaArticle.body.includes('Cardano（ADA）総合分析'));
+  assert.ok(adaArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(adaArticle.body.includes('OuroborosとProof of Stake'));
+  assert.ok(adaArticle.body.includes('EUTXOとトランザクション'));
+  assert.ok(adaArticle.body.includes('ADAの供給・ステーキング・財務'));
+  assert.ok(adaArticle.body.includes('ガバナンス：DRep、SPO、CC、財務'));
+  assert.ok(adaArticle.body.includes('class="article-mermaid"'));
+  assert.ok(adaArticle.body.includes('https://docs.cardano.org/'));
+  assert.ok(adaArticle.body.includes('ADA の比較を見る'));
+  assert.ok(adaArticle.body.includes('/markets/ADA-JPY'));
+  assert.ok(!adaArticle.body.includes('cite'));
+  assert.ok(!adaArticle.body.includes('finance'));
+  assert.ok(!adaArticle.body.includes('navlist'));
+  assert.ok(!adaArticle.body.includes('強気シナリオ'));
+  assert.ok(!adaArticle.body.includes('現時点の投資判断'));
+  assert.ok(!adaArticle.body.includes('買うべき'));
+  assert.ok(!adaArticle.body.includes('最終推奨'));
+  assert.ok(!adaArticle.body.includes('積み増し'));
+  assertMarketArticleInvestmentDisclaimer(adaArticle.body);
+  assertCommonDisclosure(adaArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1176,6 +1200,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/xmr'));
   assert.ok(sitemap.body.includes('/articles/link'));
   assert.ok(sitemap.body.includes('/articles/xlm'));
+  assert.ok(sitemap.body.includes('/articles/ada'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
