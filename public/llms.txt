@@ -36,6 +36,7 @@
 - [Monero（XMR）総合分析](https://get-crypto.org/articles/xmr): Moneroのリング署名、ステルスアドレス、RingCT、RandomX、尾部排出、供給監査、市場流動性、取引所上場廃止、規制・セキュリティリスクを総合分析します。
 - [Chainlink（LINK）総合分析](https://get-crypto.org/articles/link): ChainlinkのData Feeds、OCR、CCIP、VRF、ステーキングv0.2、固定供給と未流通分、機関連携、市場データ、規制・技術リスクを総合分析します。
 - [Stellar（XLM）総合分析](https://get-crypto.org/articles/xlm): StellarのSCP、資産発行・信頼ライン、SDEX、Soroban、XLM供給とSDF保有、MoneyGram・PYUSD・BENJI、市場データ、規制・技術リスクを総合分析します。
+- [Cardano（ADA）総合分析](https://get-crypto.org/articles/ada): CardanoのOuroboros Praos、EUTXO、ネイティブ資産、Plutus、ADA供給・ステーキング、CIP-1694ガバナンス、Hydra・Mithril・Leios、DeFi、市場・規制・技術リスクを総合分析します。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧
