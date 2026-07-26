@@ -431,6 +431,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/link'));
   assert.ok(articleIndex.body.includes('/articles/xlm'));
   assert.ok(articleIndex.body.includes('/articles/ada'));
+  assert.ok(articleIndex.body.includes('/articles/canton'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -744,6 +745,30 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!adaArticle.body.includes('積み増し'));
   assertMarketArticleInvestmentDisclaimer(adaArticle.body);
   assertCommonDisclosure(adaArticle.body);
+
+  const cantonArticle = await fetchText(baseUrl, '/articles/canton');
+  assert.equal(cantonArticle.status, 200);
+  assert.ok(cantonArticle.body.includes('Canton Network（CC）総合分析'));
+  assert.ok(cantonArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(cantonArticle.body.includes('アーキテクチャ：network of networks'));
+  assert.ok(cantonArticle.body.includes('Damlスマートコントラクト'));
+  assert.ok(cantonArticle.body.includes('Canton Coin（CC）の用途'));
+  assert.ok(cantonArticle.body.includes('Burn-Mint Equilibrium'));
+  assert.ok(cantonArticle.body.includes('日本での取扱いと実務'));
+  assert.ok(cantonArticle.body.includes('class="article-mermaid"'));
+  assert.ok(cantonArticle.body.includes('https://www.canton.network/'));
+  assert.ok(cantonArticle.body.includes('国内取扱い銘柄の比較を見る'));
+  assert.ok(!cantonArticle.body.includes('/markets/CANTON-JPY'));
+  assert.ok(!cantonArticle.body.includes('cite'));
+  assert.ok(!cantonArticle.body.includes('finance'));
+  assert.ok(!cantonArticle.body.includes('navlist'));
+  assert.ok(!cantonArticle.body.includes('強気シナリオ'));
+  assert.ok(!cantonArticle.body.includes('現時点の投資判断'));
+  assert.ok(!cantonArticle.body.includes('買うべき'));
+  assert.ok(!cantonArticle.body.includes('最終推奨'));
+  assert.ok(!cantonArticle.body.includes('積み増し'));
+  assertMarketArticleInvestmentDisclaimer(cantonArticle.body);
+  assertCommonDisclosure(cantonArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1201,6 +1226,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/link'));
   assert.ok(sitemap.body.includes('/articles/xlm'));
   assert.ok(sitemap.body.includes('/articles/ada'));
+  assert.ok(sitemap.body.includes('/articles/canton'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
