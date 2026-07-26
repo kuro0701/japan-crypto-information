@@ -169,6 +169,12 @@ URL: https://get-crypto.org/articles/xlm
 
 StellarのSCPとクォーラム構成、Classic取引、資産発行・信頼ライン・発行体権限、SDEX・AMM・パス支払い、アンカーとSEP、Soroban、Protocol 23〜25とstate archival事象、XLMの供給・SDF Mandate・用途、MoneyGram・MGUSD・PYUSD・BENJI・人道支援、市場データ、米国・日本の規制・税務、競合、技術・市場リスクをまとめた総合分析記事です。Stellar公式資料、SDF、SEC、CFTC、金融庁、国税庁、発行体、市場データの参照先を併記しています。
 
+## Cardano（ADA）総合分析｜Ouroboros・EUTXO・ステーキング・ガバナンス
+
+URL: https://get-crypto.org/articles/ada
+
+CardanoのOuroboros Praos、EUTXO、ネイティブ資産、Plutus・Aiken、取引手数料、ADAの初期配分・供給・準備金・非拘束型ステーキング、DRep・SPO・Constitutional CommitteeによるCIP-1694ガバナンス、財務、Hydra・Mithril・Leios、DeFi・ステーブルコイン・企業事例、2025年のチェーン分岐、市場データ、米国・日本の規制・税務、競合、技術・市場リスクをまとめた総合分析記事です。Cardano公式資料、Intersect、IOG、SEC、金融庁、国税庁、市場データの参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
