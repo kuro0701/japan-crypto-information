@@ -37,6 +37,7 @@
 - [Chainlink（LINK）総合分析](https://get-crypto.org/articles/link): ChainlinkのData Feeds、OCR、CCIP、VRF、ステーキングv0.2、固定供給と未流通分、機関連携、市場データ、規制・技術リスクを総合分析します。
 - [Stellar（XLM）総合分析](https://get-crypto.org/articles/xlm): StellarのSCP、資産発行・信頼ライン、SDEX、Soroban、XLM供給とSDF保有、MoneyGram・PYUSD・BENJI、市場データ、規制・技術リスクを総合分析します。
 - [Cardano（ADA）総合分析](https://get-crypto.org/articles/ada): CardanoのOuroboros Praos、EUTXO、ネイティブ資産、Plutus、ADA供給・ステーキング、CIP-1694ガバナンス、Hydra・Mithril・Leios、DeFi、市場・規制・技術リスクを総合分析します。
+- [Canton Network（CC）総合分析](https://get-crypto.org/articles/canton): CantonのGlobal Synchronizer、Daml、選択的プライバシー、CCのバーン・ミント、Super Validatorガバナンス、DTCC・Tradeweb等の機関採用、日本での取扱い、市場・規制・技術リスクを総合分析します。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧
