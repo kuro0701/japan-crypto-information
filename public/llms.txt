@@ -40,6 +40,7 @@
 - [Canton Network（CC）総合分析](https://get-crypto.org/articles/canton): CantonのGlobal Synchronizer、Daml、選択的プライバシー、CCのバーン・ミント、Super Validatorガバナンス、DTCC・Tradeweb等の機関採用、日本での取扱い、市場・規制・技術リスクを総合分析します。
 - [DAI総合分析](https://get-crypto.org/articles/dai): DAIのVault、担保構成、ペグ安定化、Dutch auction清算、オラクル、DSR、MakerからSkyへの移行、USDSとの関係、市場データ、日本・米国・EUの規制、主要リスクを総合分析します。
 - [Bitcoin Cash（BCH）総合分析](https://get-crypto.org/articles/bch): BCHの分岐史、UTXO、SHA-256 PoW、ASERT、ABLA、CashTokens、2025・2026年VMアップグレード、供給・半減期、ガバナンス、日本での取扱い、市場・規制・技術リスクを総合分析します。
+- [USD1総合分析](https://get-crypto.org/articles/usd1): USD1の発行・償還主体、BitGo、準備資産、月次アテステーション、6ネットワークの供給、管理・凍結権限、MGX・Binance事例、米国・EU・日本の規制、主要リスクを総合分析します。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧
