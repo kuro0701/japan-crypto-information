@@ -193,6 +193,12 @@ URL: https://get-crypto.org/articles/bch
 
 Bitcoin Cashの誕生と分岐史、UTXO、SHA-256 Proof of Work、ASERT難易度調整、ABLAによる適応的ブロック上限、CashTokens、2025年のVM Limits・BigInt、2026年のP2S・bounded loops・functions・bitwise、供給・半減期・マイナー経済、ノード実装とCHIPガバナンス、アドレス・ウォレット、市場・オンチェーン指標、日本での取扱い、米国・EU・香港の規制、競合、セキュリティ・流動性・分岐リスクをまとめた総合分析記事です。Bitcoin Cash仕様、BCHN、CashTokens、CoinGecko、金融庁、国税庁、EUR-Lex、香港SFC等の参照先を併記しています。
 
+## USD1総合分析｜発行体・準備金・償還・マルチチェーン・規制リスク
+
+URL: https://get-crypto.org/articles/usd1
+
+World Liberty Financial USD（USD1）のBitGoとWLFの役割分担、発行・償還条件、2026年5月末の準備資産実額、Croweによる月次アテステーションの範囲、Ethereum・BNB Smart Chain・Tron・Solana・Aptos・Tempoの供給、コントラクト管理・凍結権限、供給推移、MGX・Binance事例、GENIUS ActとOCC申請、日本の電子決済手段、EU MiCA、USDC・USDT比較、準備・流動性・技術・規制・政治リスクをまとめた総合分析記事です。BitGo、World Liberty Financial、Crowe、OCC、金融庁、国税庁、EU、ESMA等の参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
