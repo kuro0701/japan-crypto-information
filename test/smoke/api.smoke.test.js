@@ -435,6 +435,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/dai'));
   assert.ok(articleIndex.body.includes('/articles/bch'));
   assert.ok(articleIndex.body.includes('/articles/usd1'));
+  assert.ok(articleIndex.body.includes('国内市場データ対象外'));
+  assert.ok(!articleIndex.body.includes('USD1-JPY'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
