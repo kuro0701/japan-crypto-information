@@ -38,6 +38,7 @@
 - [Stellar（XLM）総合分析](https://get-crypto.org/articles/xlm): StellarのSCP、資産発行・信頼ライン、SDEX、Soroban、XLM供給とSDF保有、MoneyGram・PYUSD・BENJI、市場データ、規制・技術リスクを総合分析します。
 - [Cardano（ADA）総合分析](https://get-crypto.org/articles/ada): CardanoのOuroboros Praos、EUTXO、ネイティブ資産、Plutus、ADA供給・ステーキング、CIP-1694ガバナンス、Hydra・Mithril・Leios、DeFi、市場・規制・技術リスクを総合分析します。
 - [Canton Network（CC）総合分析](https://get-crypto.org/articles/canton): CantonのGlobal Synchronizer、Daml、選択的プライバシー、CCのバーン・ミント、Super Validatorガバナンス、DTCC・Tradeweb等の機関採用、日本での取扱い、市場・規制・技術リスクを総合分析します。
+- [DAI総合分析](https://get-crypto.org/articles/dai): DAIのVault、担保構成、ペグ安定化、Dutch auction清算、オラクル、DSR、MakerからSkyへの移行、USDSとの関係、市場データ、日本・米国・EUの規制、主要リスクを総合分析します。
 
 ## Data endpoints
 - `/api/exchanges`: 対応取引所・銘柄一覧
