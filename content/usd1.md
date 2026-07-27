@@ -7,6 +7,8 @@ author: 国内暗号資産取引所ナビ
 slug: usd1
 path: /articles/usd1
 articleType: market
+marketTicker: USD1
+marketInstrumentId: NONE
 category: ステーブルコイン・決済
 tags: USD1, World Liberty Financial, WLFI, BitGo, ステーブルコイン, 準備金, アテステーション, GENIUS Act, 電子決済手段
 readMinutes: 27
