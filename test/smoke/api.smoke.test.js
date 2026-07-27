@@ -433,6 +433,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/ada'));
   assert.ok(articleIndex.body.includes('/articles/canton'));
   assert.ok(articleIndex.body.includes('/articles/dai'));
+  assert.ok(articleIndex.body.includes('/articles/bch'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -794,6 +795,30 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!daiArticle.body.includes('積み増し'));
   assertMarketArticleInvestmentDisclaimer(daiArticle.body);
   assertCommonDisclosure(daiArticle.body);
+
+  const bchArticle = await fetchText(baseUrl, '/articles/bch');
+  assert.equal(bchArticle.status, 200);
+  assert.ok(bchArticle.body.includes('Bitcoin Cash（BCH）総合分析'));
+  assert.ok(bchArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(bchArticle.body.includes('技術アーキテクチャ'));
+  assert.ok(bchArticle.body.includes('ブロック容量とABLA'));
+  assert.ok(bchArticle.body.includes('Script、CashTokens、2026年アップグレード'));
+  assert.ok(bchArticle.body.includes('供給・半減期・マイナー経済'));
+  assert.ok(bchArticle.body.includes('日本での取扱いと実務'));
+  assert.ok(bchArticle.body.includes('class="article-mermaid"'));
+  assert.ok(bchArticle.body.includes('https://documentation.cash/'));
+  assert.ok(bchArticle.body.includes('BCH の比較を見る'));
+  assert.ok(bchArticle.body.includes('/markets/BCH-JPY'));
+  assert.ok(!bchArticle.body.includes('cite'));
+  assert.ok(!bchArticle.body.includes('finance'));
+  assert.ok(!bchArticle.body.includes('navlist'));
+  assert.ok(!bchArticle.body.includes('強気シナリオ'));
+  assert.ok(!bchArticle.body.includes('現時点の投資判断'));
+  assert.ok(!bchArticle.body.includes('買うべき'));
+  assert.ok(!bchArticle.body.includes('最終推奨'));
+  assert.ok(!bchArticle.body.includes('積み増し'));
+  assertMarketArticleInvestmentDisclaimer(bchArticle.body);
+  assertCommonDisclosure(bchArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1253,6 +1278,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/ada'));
   assert.ok(sitemap.body.includes('/articles/canton'));
   assert.ok(sitemap.body.includes('/articles/dai'));
+  assert.ok(sitemap.body.includes('/articles/bch'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
