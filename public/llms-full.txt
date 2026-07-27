@@ -187,6 +187,12 @@ URL: https://get-crypto.org/articles/dai
 
 DAIのVaultと担保構成、発行・返済、Stability Fee、DSR、PSM、Liquidations 2.0のDutch auction、オラクル、MakerからSkyへの移行、DAI・USDS・MKR・SKYの関係、供給・市場データ、過去のストレス、日本・米国・EUの規制、主要ステーブルコイン比較、技術・担保・相手方・ガバナンスリスクをまとめた総合分析記事です。Sky、Maker、ガバナンス、CoinGecko、米国議会、EUR-Lex、金融庁、JVCEA、国税庁等の参照先を併記しています。
 
+## Bitcoin Cash（BCH）総合分析｜大容量ブロック・CashTokens・ABLA・リスク
+
+URL: https://get-crypto.org/articles/bch
+
+Bitcoin Cashの誕生と分岐史、UTXO、SHA-256 Proof of Work、ASERT難易度調整、ABLAによる適応的ブロック上限、CashTokens、2025年のVM Limits・BigInt、2026年のP2S・bounded loops・functions・bitwise、供給・半減期・マイナー経済、ノード実装とCHIPガバナンス、アドレス・ウォレット、市場・オンチェーン指標、日本での取扱い、米国・EU・香港の規制、競合、セキュリティ・流動性・分岐リスクをまとめた総合分析記事です。Bitcoin Cash仕様、BCHN、CashTokens、CoinGecko、金融庁、国税庁、EUR-Lex、香港SFC等の参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
