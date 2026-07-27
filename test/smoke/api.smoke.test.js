@@ -432,6 +432,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/xlm'));
   assert.ok(articleIndex.body.includes('/articles/ada'));
   assert.ok(articleIndex.body.includes('/articles/canton'));
+  assert.ok(articleIndex.body.includes('/articles/dai'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
   assertCommonDisclosure(articleIndex.body);
 
@@ -769,6 +770,30 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!cantonArticle.body.includes('積み増し'));
   assertMarketArticleInvestmentDisclaimer(cantonArticle.body);
   assertCommonDisclosure(cantonArticle.body);
+
+  const daiArticle = await fetchText(baseUrl, '/articles/dai');
+  assert.equal(daiArticle.status, 200);
+  assert.ok(daiArticle.body.includes('DAI総合分析'));
+  assert.ok(daiArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(daiArticle.body.includes('MakerからSkyへの移行'));
+  assert.ok(daiArticle.body.includes('DAIの発行とVault'));
+  assert.ok(daiArticle.body.includes('ペグ安定化メカニズム'));
+  assert.ok(daiArticle.body.includes('清算とオラクル'));
+  assert.ok(daiArticle.body.includes('日本での取扱いと実務'));
+  assert.ok(daiArticle.body.includes('class="article-mermaid"'));
+  assert.ok(daiArticle.body.includes('https://sky.money/'));
+  assert.ok(daiArticle.body.includes('DAI の比較を見る'));
+  assert.ok(daiArticle.body.includes('/markets/DAI-JPY'));
+  assert.ok(!daiArticle.body.includes('cite'));
+  assert.ok(!daiArticle.body.includes('finance'));
+  assert.ok(!daiArticle.body.includes('navlist'));
+  assert.ok(!daiArticle.body.includes('強気シナリオ'));
+  assert.ok(!daiArticle.body.includes('現時点の投資判断'));
+  assert.ok(!daiArticle.body.includes('買うべき'));
+  assert.ok(!daiArticle.body.includes('最終推奨'));
+  assert.ok(!daiArticle.body.includes('積み増し'));
+  assertMarketArticleInvestmentDisclaimer(daiArticle.body);
+  assertCommonDisclosure(daiArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1227,6 +1252,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/xlm'));
   assert.ok(sitemap.body.includes('/articles/ada'));
   assert.ok(sitemap.body.includes('/articles/canton'));
+  assert.ok(sitemap.body.includes('/articles/dai'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));

@@ -181,6 +181,12 @@ URL: https://get-crypto.org/articles/canton
 
 Canton Networkの独立台帳を同期するアーキテクチャ、Global Synchronizer、ValidatorとSuper Validator、Damlスマートコントラクト、選択的プライバシー、CCの用途・ミント曲線・Burn-Mint Equilibrium、Canton Foundationのガバナンス、DTCC・Tradeweb・日本国債PoC等の採用事例、市場データ、SBI VCトレードでの国内取扱い、MiCA・日本の規制・税務、競合、セキュリティ・供給・流動性リスクをまとめた総合分析記事です。Canton、Digital Asset、Canton Foundation、DTCC、Tradeweb、SBI VCトレード、EU、金融庁、国税庁、市場データの参照先を併記しています。
 
+## DAI総合分析｜Sky移行・担保・ペグ・清算・規制リスク
+
+URL: https://get-crypto.org/articles/dai
+
+DAIのVaultと担保構成、発行・返済、Stability Fee、DSR、PSM、Liquidations 2.0のDutch auction、オラクル、MakerからSkyへの移行、DAI・USDS・MKR・SKYの関係、供給・市場データ、過去のストレス、日本・米国・EUの規制、主要ステーブルコイン比較、技術・担保・相手方・ガバナンスリスクをまとめた総合分析記事です。Sky、Maker、ガバナンス、CoinGecko、米国議会、EUR-Lex、金融庁、JVCEA、国税庁等の参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
