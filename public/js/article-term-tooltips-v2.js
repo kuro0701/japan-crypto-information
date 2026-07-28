@@ -33,12 +33,6 @@
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-  function termFromEvent(event) {
-    const target = event.target && event.target.closest ? event.target : null;
-    const term = target ? target.closest('.article-term[data-term-key]') : null;
-    return term && DEFINITIONS[term.dataset.termKey] ? term : null;
-  }
-
   function ensureTooltip() {
     if (tooltip) return tooltip;
     tooltip = document.createElement('div');
@@ -89,50 +83,46 @@
     if (tooltip) tooltip.hidden = true;
   }
 
+  document.querySelectorAll('.article-term[data-term-key]').forEach((term) => {
+    if (!DEFINITIONS[term.dataset.termKey]) return;
+    term.dataset.articleTermTooltip = 'ready';
+    term.setAttribute('aria-haspopup', 'true');
+    term.setAttribute('aria-expanded', 'false');
+
+    term.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (activeTerm === term && tooltip && !tooltip.hidden && pinned) {
+        hideTooltip();
+        return;
+      }
+      showTooltip(term, true);
+    });
+    term.addEventListener('mouseenter', () => {
+      if (!pinned || activeTerm !== term) showTooltip(term, false);
+    });
+    term.addEventListener('mouseleave', (event) => {
+      if (pinned) return;
+      const related = event.relatedTarget;
+      if (related && tooltip && tooltip.contains(related)) return;
+      if (activeTerm === term) hideTooltip();
+    });
+    term.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      event.stopPropagation();
+      showTooltip(term, true);
+    });
+  });
+
   document.addEventListener('click', (event) => {
-    const term = termFromEvent(event);
-    if (!term) {
-      if (tooltip && !tooltip.hidden && !event.target.closest('.article-term-tooltip')) hideTooltip();
-      return;
-    }
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    if (activeTerm === term && tooltip && !tooltip.hidden && pinned) {
-      hideTooltip();
-      return;
-    }
-    showTooltip(term, true);
-  }, true);
-
-  document.addEventListener('mouseover', (event) => {
-    const term = termFromEvent(event);
-    if (!term) return;
-    event.stopImmediatePropagation();
-    if (!pinned || activeTerm !== term) showTooltip(term, false);
-  }, true);
-
-  document.addEventListener('mouseout', (event) => {
-    const term = termFromEvent(event);
-    if (!term || pinned) return;
-    const related = event.relatedTarget;
-    if (related && (term.contains(related) || (tooltip && tooltip.contains(related)))) return;
-    event.stopImmediatePropagation();
-    if (activeTerm === term) hideTooltip();
-  }, true);
-
+    const target = event.target && event.target.closest ? event.target : null;
+    if (!target || target.closest('.article-term, .article-term-tooltip')) return;
+    hideTooltip();
+  });
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      hideTooltip();
-      return;
-    }
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    const term = termFromEvent(event);
-    if (!term) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    showTooltip(term, true);
-  }, true);
+    if (event.key === 'Escape') hideTooltip();
+  });
 
   window.addEventListener('scroll', () => {
     if (activeTerm && tooltip && !tooltip.hidden) positionTooltip(activeTerm);
