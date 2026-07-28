@@ -182,11 +182,11 @@
 .article-hero__brand--canton {
   border: 1px solid rgba(243, 255, 151, 0.34);
   background:
-    radial-gradient(circle at top right, rgba(196, 181, 253, 0.2), transparent 52%),
-    #030206;
+    radial-gradient(circle at top right, rgba(196, 181, 253, 0.22), transparent 52%),
+    #f8faf4;
   box-shadow:
     0 16px 40px rgba(3, 2, 6, 0.22),
-    inset 0 1px 0 rgba(243, 255, 151, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .article-hero__brand img {
@@ -206,9 +206,10 @@
   display: inline-flex;
   align-items: center;
   padding: 0 8px;
-  border: 1px solid rgba(243, 255, 151, 0.22);
+  border: 1px solid rgba(91, 86, 27, 0.24);
   border-radius: 999px;
-  color: #f3ff97;
+  background: rgba(243, 255, 151, 0.38);
+  color: #4f4a15;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -222,7 +223,21 @@
 
 .article-main[data-article-slug="canton"] .article-hero {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 224px;
   padding-top: var(--sp-3);
+}
+
+.article-main[data-article-slug="canton"] .article-hero__copy {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.article-main[data-article-slug="canton"] .article-hero__brand {
+  grid-column: 2;
+  grid-row: 1;
+  order: 0;
+  margin-left: 0;
 }
 
 .article-main[data-article-slug="canton"] .article-hero::before {
@@ -5764,6 +5779,16 @@ html.theme-light .article-beginner-guide button {
     width: min(100%, 280px);
     order: 0;
     margin: 0;
+  }
+
+  .article-main[data-article-slug="canton"] .article-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .article-main[data-article-slug="canton"] .article-hero__brand,
+  .article-main[data-article-slug="canton"] .article-hero__copy {
+    grid-column: 1;
+    grid-row: auto;
   }
 
   .article-key-takeaways__header,
