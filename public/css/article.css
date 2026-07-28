@@ -515,8 +515,17 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
 }
 
 .article-term {
+  display: inline;
+  appearance: none;
+  padding: 0 0.06em;
+  border: 0;
   border-bottom: 1px dotted transparent;
   border-radius: 3px;
+  font: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  vertical-align: baseline;
+  background: transparent;
   transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
