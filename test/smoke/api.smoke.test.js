@@ -439,7 +439,40 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('国内市場データ対象外'));
   assert.ok(!articleIndex.body.includes('USD1-JPY'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
+  assert.ok(articleIndex.body.includes('data-article-sort'));
+  assert.ok(articleIndex.body.includes('人気順（30日）'));
+  assert.ok(articleIndex.body.includes('data-article-command'));
+  assert.ok(articleIndex.body.includes('data-article-command-search'));
+  assert.ok(articleIndex.body.includes('主要通貨'));
+  assert.ok(articleIndex.body.includes('ステーブルコイン'));
+  assert.ok(articleIndex.body.includes('アルトコイン'));
+  assert.ok(articleIndex.body.includes('data-learn-filter="btc"'));
+  assert.ok(articleIndex.body.includes('/crypto-icons/BTC.svg'));
+  assert.ok(!articleIndex.body.includes('data-learn-filter="asset"'));
+  const gramCardStart = articleIndex.body.indexOf('<a class="learn-card" href="/articles/gram"');
+  const gramCardEnd = articleIndex.body.indexOf('</a>', gramCardStart);
+  const gramCard = articleIndex.body.slice(gramCardStart, gramCardEnd);
+  const gramTagStart = gramCard.indexOf('<span class="learn-card__tags"');
+  const gramTags = gramCard.slice(gramTagStart);
+  assert.ok(gramCardStart >= 0);
+  assert.ok(gramTagStart >= 0);
+  assert.ok(!gramTags.includes('<span>GRAM</span>'));
+  assert.ok(!gramTags.includes('<span>Gram</span>'));
+  assert.ok(!gramTags.includes('<span>Toncoin</span>'));
+  assert.ok((gramTags.match(/<span>/g) || []).length <= 3);
   assertCommonDisclosure(articleIndex.body);
+
+  const btcIcon = await fetchText(baseUrl, '/crypto-icons/BTC.svg');
+  assert.equal(btcIcon.status, 200);
+  assert.ok(btcIcon.body.includes('<svg'));
+  assert.ok(btcIcon.body.includes('#F7931A'));
+
+  const cantonIcon = await fetchText(baseUrl, '/crypto-icons/CANTON.svg');
+  assert.equal(cantonIcon.status, 200);
+  assert.ok(cantonIcon.body.includes('<svg'));
+
+  const unknownIcon = await fetchText(baseUrl, '/crypto-icons/UNKNOWN.svg');
+  assert.equal(unknownIcon.status, 404);
 
   const btcArticle = await fetchText(baseUrl, '/articles/btc');
   assert.equal(btcArticle.status, 200);
