@@ -322,22 +322,32 @@
       });
     };
 
-    setActive(headings[0].id);
-    if (!('IntersectionObserver' in window)) return;
+    let scrollSpyFrame = 0;
+    const updateActiveFromScroll = () => {
+      scrollSpyFrame = 0;
+      const marker = Math.min(220, Math.max(112, window.innerHeight * 0.24));
+      let current = headings[0];
 
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries
-        .filter(entry => entry.isIntersecting)
-        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-      if (visible && visible.target && visible.target.id) {
-        setActive(visible.target.id);
-      }
-    }, {
-      rootMargin: '-24% 0px -64% 0px',
-      threshold: [0, 1],
+      headings.forEach((heading) => {
+        if (heading.getBoundingClientRect().top <= marker) {
+          current = heading;
+        }
+      });
+
+      setActive(current.id);
+    };
+    const queueScrollSpyUpdate = () => {
+      if (scrollSpyFrame) return;
+      scrollSpyFrame = window.requestAnimationFrame(updateActiveFromScroll);
+    };
+
+    updateActiveFromScroll();
+    window.addEventListener('scroll', queueScrollSpyUpdate, { passive: true });
+    window.addEventListener('resize', queueScrollSpyUpdate);
+    window.addEventListener('hashchange', () => {
+      window.requestAnimationFrame(queueScrollSpyUpdate);
     });
-
-    headings.forEach(heading => observer.observe(heading));
+    window.addEventListener('load', queueScrollSpyUpdate, { once: true });
   }
 
   function initReadingProgress() {
