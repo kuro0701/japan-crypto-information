@@ -35,6 +35,12 @@
 
   function ensureTooltip() {
     if (tooltip) return tooltip;
+    const existing = document.querySelector('.term-tooltip');
+    if (existing) {
+      tooltip = existing;
+      tooltip.classList.add('article-term-tooltip');
+      return tooltip;
+    }
     tooltip = document.createElement('div');
     tooltip.className = 'term-tooltip article-term-tooltip';
     tooltip.hidden = true;
