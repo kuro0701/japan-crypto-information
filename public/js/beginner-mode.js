@@ -163,6 +163,26 @@
       title: '注文サイズ',
       description: '注文する数量や金額の大きさです。同じ銘柄でも、注文サイズが大きいほどImpactや実効コストが悪化しやすくなります。',
     },
+    daml: {
+      title: 'Daml',
+      description: '複数組織の契約当事者、権利、義務、承認手順を記述するスマートコントラクト言語です。Cantonでは誰がどのデータを見て操作できるかも契約モデルに組み込みます。',
+    },
+    validator: {
+      title: 'Validator',
+      description: '自らがホストする当事者に関係する取引を受け取り、署名、権限、入力状態、Daml契約の整合性を検証するノードです。',
+    },
+    'global-synchronizer': {
+      title: 'Global Synchronizer',
+      description: '関係するValidator間で暗号化メッセージの順序とタイミングを調整し、複数アプリにまたがる取引をまとめて成立または不成立にする共有同期基盤です。',
+    },
+    bft: {
+      title: 'BFT（ビザンチン障害耐性）',
+      description: '一部の参加ノードが停止したり不正な応答を返したりしても、所定のしきい値を満たす正常な参加者で合意を継続するための設計です。',
+    },
+    'burn-mint': {
+      title: 'Burn-Mint Equilibrium',
+      description: '利用料としてCCを焼却し、アプリケーションやインフラの貢献に応じて別途CCをミントする仕組みです。価格を一定に保つペッグではありません。',
+    },
   };
 
   let beginnerMode = false;

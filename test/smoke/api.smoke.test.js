@@ -794,7 +794,16 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(cantonArticle.body.includes('Canton Coin（CC）の用途'));
   assert.ok(cantonArticle.body.includes('Burn-Mint Equilibrium'));
   assert.ok(cantonArticle.body.includes('日本での取扱いと実務'));
-  assert.ok(cantonArticle.body.includes('class="article-mermaid"'));
+  assert.match(cantonArticle.body, /class="article-mermaid[^"]*"/);
+  assert.ok(cantonArticle.body.includes('data-article-slug="canton"'));
+  assert.ok(cantonArticle.body.includes('article-hero__brand--canton'));
+  assert.ok(cantonArticle.body.includes('/crypto-icons/CANTON.svg'));
+  assert.ok(cantonArticle.body.includes('article-key-takeaways'));
+  assert.ok(cantonArticle.body.includes('この記事でわかること'));
+  assert.ok(cantonArticle.body.includes('article-concept-diagram'));
+  assert.ok(cantonArticle.body.includes('data-term-key="daml"'));
+  assert.ok(cantonArticle.body.includes('data-term-key="bft"'));
+  assert.ok(cantonArticle.body.includes('data-reading-progress-label'));
   assert.ok(cantonArticle.body.includes('https://www.canton.network/'));
   assert.ok(cantonArticle.body.includes('国内取扱い銘柄の比較を見る'));
   assert.ok(!cantonArticle.body.includes('/markets/CANTON-JPY'));

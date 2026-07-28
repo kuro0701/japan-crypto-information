@@ -1,6 +1,7 @@
 (() => {
   const THEME_STORAGE_KEY = 'okj.theme.v1';
   const EXCHANGE_CHECKLIST_STORAGE_KEY = 'okj.exchangeChecklist.v1';
+  const BEGINNER_GUIDE_STORAGE_KEY = 'okj.articleBeginnerGuide.v1';
   const ARTICLE_TERM_SELECTOR = '.article-term[data-term-key]';
 
   const $ = (selector, root = document) => root.querySelector(selector);
@@ -343,6 +344,7 @@
     const bar = $('[data-reading-progress]');
     const article = $('.article-main');
     if (!bar || !article) return;
+    const labels = $$('[data-reading-progress-label]');
 
     const update = () => {
       const rect = article.getBoundingClientRect();
@@ -351,6 +353,11 @@
       const progress = end <= start ? 1 : (window.scrollY - start) / (end - start);
       const clamped = Math.max(0, Math.min(1, progress));
       bar.style.transform = `scaleX(${clamped})`;
+      const percentage = `${Math.round(clamped * 100)}%`;
+      labels.forEach((label) => {
+        label.value = percentage;
+        label.textContent = percentage;
+      });
     };
 
     update();
@@ -1247,12 +1254,58 @@
     });
   }
 
+  function markArticleTableNumericColumns(table) {
+    const rows = Array.from(table.tBodies || []).flatMap(tbody => Array.from(tbody.rows || []));
+    const columnCount = table.rows && table.rows[0] ? table.rows[0].cells.length : 0;
+    for (let index = 0; index < columnCount; index += 1) {
+      const cells = rows.map(row => row.cells[index]).filter(Boolean);
+      const numericCells = cells.filter((cell) => {
+        const value = cell.textContent.trim().replace(/[,\s]/g, '');
+        return value && /^(?:[¥$€£]?[-+]?[\d.]+(?:億|万|千)?(?:円|CC|%|倍|年|日|月)?|—|-)$/.test(value);
+      });
+      if (!cells.length || numericCells.length / cells.length < 0.6) continue;
+      const header = table.tHead && table.tHead.rows[0] && table.tHead.rows[0].cells[index];
+      if (header) header.classList.add('is-num');
+      cells.forEach((cell) => {
+        cell.classList.add('is-num');
+        cell.dataset.align = 'number';
+      });
+    }
+  }
+
+  function syncArticleTableScrollState(wrapper, hint) {
+    if (!wrapper) return;
+    const scrollable = wrapper.scrollWidth - wrapper.clientWidth > 4;
+    const atEnd = !scrollable || wrapper.scrollLeft + wrapper.clientWidth >= wrapper.scrollWidth - 4;
+    wrapper.classList.toggle('is-scrollable', scrollable);
+    wrapper.classList.toggle('is-at-end', atEnd);
+    if (wrapper.parentElement) {
+      wrapper.parentElement.classList.toggle('is-scrollable', scrollable);
+      wrapper.parentElement.classList.toggle('is-at-end', atEnd);
+    }
+    if (hint) hint.hidden = !scrollable;
+  }
+
   function wrapArticleTable(table) {
-    if (!table || table.parentElement.classList.contains('article-table-scroll')) return;
+    if (!table || table.closest('.article-table-shell')) return;
+    const shell = document.createElement('div');
+    shell.className = 'article-table-shell';
     const wrapper = document.createElement('div');
     wrapper.className = 'article-table-scroll';
-    table.parentNode.insertBefore(wrapper, table);
+    wrapper.setAttribute('role', 'region');
+    wrapper.setAttribute('aria-label', '横スクロールできる表');
+    wrapper.tabIndex = 0;
+    const hint = document.createElement('p');
+    hint.className = 'article-table-scroll-hint';
+    hint.textContent = '左右にスクロールできます';
+    hint.hidden = true;
+    table.parentNode.insertBefore(shell, table);
+    shell.append(hint, wrapper);
     wrapper.appendChild(table);
+    const sync = () => syncArticleTableScrollState(wrapper, hint);
+    wrapper.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync);
+    window.requestAnimationFrame(sync);
   }
 
   function buildStatCardsFromTable(table, headingText) {
@@ -1296,6 +1349,7 @@
       const heading = previousSectionHeading(table);
       applyMobileTableLabels(table, labels);
       table.classList.add('data-table', 'data-table--cards', 'article-data-table');
+      markArticleTableNumericColumns(table);
       buildStatCardsFromTable(table, heading ? heading.textContent.trim() : '');
       if (!table.hidden) wrapArticleTable(table);
       table.dataset.articleTableReady = 'true';
@@ -1397,6 +1451,8 @@
         <span data-live-market-trend>履歴を確認中</span>
         <span data-live-market-updated>最新取得を確認中</span>
       </div>
+      <div class="article-live-market-card__status" data-live-market-status hidden></div>
+      <button class="article-live-market-card__retry" type="button" data-live-market-retry hidden>再取得</button>
     `;
 
     if (anchor) {
@@ -1474,6 +1530,41 @@
     `;
   }
 
+  function setLiveMarketCardState(card, state, message = '') {
+    if (!card) return;
+    ['is-loading', 'is-ready', 'is-error', 'is-unavailable'].forEach(className => card.classList.remove(className));
+    card.classList.add(`is-${state}`);
+    card.setAttribute('aria-busy', state === 'loading' ? 'true' : 'false');
+    card.dataset.liveState = state;
+    const retry = $('[data-live-market-retry]', card);
+    if (retry) retry.hidden = !['error', 'unavailable'].includes(state);
+    const status = $('[data-live-market-status]', card);
+    if (status) {
+      status.textContent = message || (state === 'loading' ? '参考データを取得中です' : '');
+      status.hidden = !status.textContent;
+    }
+  }
+
+  function setAnimatedJpy(node, value) {
+    if (!node || !Number.isFinite(value)) return;
+    const previous = Number(node.dataset.liveValue);
+    node.dataset.liveValue = String(value);
+    if ((window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || !window.requestAnimationFrame) {
+      node.textContent = formatJpy(value);
+      return;
+    }
+    const start = Number.isFinite(previous) ? previous : value * 0.985;
+    const startedAt = performance.now();
+    const duration = 560;
+    const tick = (now) => {
+      const ratio = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - ((1 - ratio) ** 3);
+      node.textContent = formatJpy(start + (value - start) * eased);
+      if (ratio < 1) window.requestAnimationFrame(tick);
+    };
+    window.requestAnimationFrame(tick);
+  }
+
   function renderLiveMarketCard(card, report, history, instrumentId) {
     const rows = report && Array.isArray(report.rows) ? report.rows : [];
     const historyRows = history && Array.isArray(history.rows) ? history.rows : [];
@@ -1497,9 +1588,12 @@
     const updatedNode = $('[data-live-market-updated]', card);
     const sparklineNode = $('[data-live-market-sparkline]', card);
 
-    if (priceNode) priceNode.textContent = price != null ? formatJpy(price) : '取得待ち';
+    if (priceNode) {
+      if (price != null) setAnimatedJpy(priceNode, price);
+      else priceNode.textContent = '—';
+    }
     if (venueNode) venueNode.textContent = venue;
-    if (spreadNode) spreadNode.textContent = spread != null ? `販売所スプレッド ${formatPct(spread, 2)}` : 'スプレッド確認中';
+    if (spreadNode) spreadNode.textContent = spread != null ? `販売所スプレッド ${formatPct(spread, 2)}` : 'スプレッドデータなし';
     if (sparklineNode) sparklineNode.innerHTML = renderSparkline(series);
 
     if (trendNode) {
@@ -1510,17 +1604,24 @@
         trendNode.textContent = `直近履歴 ${pct >= 0 ? '+' : ''}${formatPct(pct, 2)}`;
         trendNode.dataset.trend = pct >= 0 ? 'up' : 'down';
       } else {
-        trendNode.textContent = '直近履歴を蓄積中';
+        trendNode.textContent = series.length ? '直近履歴を蓄積中' : '履歴データなし';
         trendNode.removeAttribute('data-trend');
       }
     }
 
     const updatedAt = (latest && (latest.priceTimestamp || latest.capturedAt))
       || (report && report.meta && (report.meta.latestCapturedAt || report.meta.generatedAt));
-    if (updatedNode) updatedNode.textContent = updatedAt ? `最新取得 ${formatCompactDateTime(updatedAt)}` : '最新取得を確認中';
+    if (updatedNode) updatedNode.textContent = updatedAt ? `最新取得 ${formatCompactDateTime(updatedAt)}` : '取得時刻なし';
 
-    card.classList.add('is-fresh');
-    window.setTimeout(() => card.classList.remove('is-fresh'), 640);
+    if (price != null) {
+      setLiveMarketCardState(card, 'ready');
+      card.classList.add('is-fresh');
+      window.setTimeout(() => card.classList.remove('is-fresh'), 640);
+      return true;
+    }
+
+    setLiveMarketCardState(card, 'unavailable', `現在、${articleTicker() || instrumentId}の参考価格を取得できません。時間をおいて再取得してください。`);
+    return false;
   }
 
   function initArticleLiveMarketCard() {
@@ -1534,6 +1635,9 @@
       if (abortController) abortController.abort();
       abortController = new AbortController();
       const controller = abortController;
+      if (card.dataset.liveState !== 'ready') {
+        setLiveMarketCardState(card, 'loading');
+      }
       try {
         const [reportResult, historyResult] = await Promise.allSettled([
           fetch('/api/sales-spread', { cache: 'no-store', signal: controller.signal }).then((response) => {
@@ -1546,16 +1650,28 @@
           }),
         ]);
         if (abortController !== controller) return;
+        if (reportResult.status === 'rejected' && historyResult.status === 'rejected') {
+          throw reportResult.reason || historyResult.reason || new Error('Live reference unavailable');
+        }
         const report = reportResult.status === 'fulfilled' ? reportResult.value : null;
         const history = historyResult.status === 'fulfilled' ? historyResult.value : null;
         renderLiveMarketCard(card, report, history, instrumentId);
       } catch (err) {
         if (err && err.name === 'AbortError') return;
+        setLiveMarketCardState(card, 'error', '参考データを取得できませんでした。通信状況を確認して再取得してください。');
+        const priceNode = $('[data-live-market-price]', card);
+        const venueNode = $('[data-live-market-venue]', card);
+        const spreadNode = $('[data-live-market-spread]', card);
         const updatedNode = $('[data-live-market-updated]', card);
-        if (updatedNode) updatedNode.textContent = '参考値を取得できませんでした';
+        if (priceNode) priceNode.textContent = '—';
+        if (venueNode) venueNode.textContent = '取得エラー';
+        if (spreadNode) spreadNode.textContent = 'データを表示できません';
+        if (updatedNode) updatedNode.textContent = '最終取得を確認できません';
       }
     };
 
+    const retry = $('[data-live-market-retry]', card);
+    if (retry) retry.addEventListener('click', load);
     load();
     window.setInterval(load, 30000);
   }
@@ -1789,6 +1905,63 @@
     });
   }
 
+  function initArticleBeginnerGuide() {
+    const article = $('.article-main[data-article-slug]');
+    const slug = article && article.dataset ? article.dataset.articleSlug : '';
+    if (slug !== 'canton') return;
+    const toggle = $('.topbar [data-beginner-toggle]');
+    if (!toggle) return;
+    const storageKey = `${BEGINNER_GUIDE_STORAGE_KEY}:${slug}`;
+    try {
+      if (localStorage.getItem(storageKey) === 'seen') return;
+    } catch (_) {
+      // Show the guide when storage is unavailable.
+    }
+
+    const guide = document.createElement('aside');
+    guide.className = 'article-beginner-guide';
+    guide.hidden = true;
+    guide.setAttribute('role', 'status');
+    guide.setAttribute('aria-label', '初心者モードの案内');
+    guide.innerHTML = `
+      <span>初めての方へ</span>
+      <strong>初心者モードで読み方が変わります</strong>
+      <p>DamlやBFTなどの用語をタップで確認でき、比較表では補足列を整理します。いつでも通常表示へ戻せます。</p>
+      <button type="button" data-beginner-guide-dismiss>わかりました</button>
+    `;
+    document.body.appendChild(guide);
+
+    const position = () => {
+      const rect = toggle.getBoundingClientRect();
+      const margin = 12;
+      const width = Math.min(340, window.innerWidth - margin * 2);
+      const left = Math.max(margin, Math.min(rect.right - width, window.innerWidth - width - margin));
+      guide.style.width = `${width}px`;
+      guide.style.left = `${left}px`;
+      guide.style.top = `${Math.max(margin, Math.min(window.innerHeight - guide.offsetHeight - margin, rect.bottom + 10))}px`;
+    };
+    const dismiss = () => {
+      guide.hidden = true;
+      try {
+        localStorage.setItem(storageKey, 'seen');
+      } catch (_) {
+        // noop
+      }
+    };
+
+    $('[data-beginner-guide-dismiss]', guide).addEventListener('click', dismiss);
+    toggle.addEventListener('click', dismiss, { once: true });
+    window.addEventListener('resize', position);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !guide.hidden) dismiss();
+    });
+    window.setTimeout(() => {
+      guide.hidden = false;
+      position();
+      guide.classList.add('is-visible');
+    }, 700);
+  }
+
   function initExchangeChecklist() {
     $$('[data-exchange-checklist]').forEach((root) => {
       const items = $$('[data-checklist-item]', root);
@@ -1925,6 +2098,7 @@
     initOrderbookMiniQuiz();
     initBeginnerSpotlight();
     initArticleTerms();
+    initArticleBeginnerGuide();
     initExchangeChecklist();
     initArticleMobileActions();
     initArticleCopyToast();
