@@ -44,15 +44,15 @@ readMinutes: 29
 
 ## エグゼクティブサマリー
 
-Canton Networkは、規制金融で求められるプライバシー、権限制御、相互運用性を同時に扱うために設計されたオープンなブロックチェーンネットワークです。単一の共有台帳へ全参加者の取引を公開するのではなく、独立して運営されるアプリケーション台帳を、必要な取引だけ<span class="article-term article-term--always" data-term-key="global-synchronizer" data-term-always="true" data-beginner-label="＝台帳間の同期基盤">Global Synchronizer</span>経由で同期させます。運営主体ごとの主権を残しながら、複数アプリケーションにまたがる資産移転を一つの原子的な処理として組み合わせられる点が中心です。
+Canton Networkは、規制金融で求められるプライバシー、権限制御、相互運用性を同時に扱うために設計されたオープンなブロックチェーンネットワークです。単一の共有台帳へ全参加者の取引を公開するのではなく、独立して運営されるアプリケーション台帳を、必要な取引だけ<button type="button" class="article-term article-term--always" data-term-key="global-synchronizer" data-term-always="true" data-beginner-label="＝台帳間の同期基盤">Global Synchronizer</button>経由で同期させます。運営主体ごとの主権を残しながら、複数アプリケーションにまたがる資産移転を一つの原子的な処理として組み合わせられる点が中心です。
 
-Cantonのプライバシーは、単純な匿名化ではありません。<span class="article-term article-term--always" data-term-key="daml" data-term-always="true" data-beginner-label="＝契約ルールを記述する言語">Daml</span>スマートコントラクトが契約当事者と権限を定義し、各<span class="article-term article-term--always" data-term-key="validator" data-term-always="true" data-beginner-label="＝関係取引を検証するノード">Validator</span>は自らが関係するデータだけを受け取り、検証します。Global Synchronizerは暗号化されたメッセージの順序付けと同期を担いますが、通常の私的な取引内容を全ノードへ複製しません。一方、Canton Coinの残高と移転は公開性を持つため、「Canton上のすべてが非公開」という説明も正確ではありません。
+Cantonのプライバシーは、単純な匿名化ではありません。<button type="button" class="article-term article-term--always" data-term-key="daml" data-term-always="true" data-beginner-label="＝契約ルールを記述する言語">Daml</button>スマートコントラクトが契約当事者と権限を定義し、各<button type="button" class="article-term article-term--always" data-term-key="validator" data-term-always="true" data-beginner-label="＝関係取引を検証するノード">Validator</button>は自らが関係するデータだけを受け取り、検証します。Global Synchronizerは暗号化されたメッセージの順序付けと同期を担いますが、通常の私的な取引内容を全ノードへ複製しません。一方、Canton Coinの残高と移転は公開性を持つため、「Canton上のすべてが非公開」という説明も正確ではありません。
 
 Global SynchronizerとCanton Coinは2024年7月1日に本番稼働しました。Global Synchronizerは独立組織が運営するSuper Validatorによって構成され、重要な構成変更、手数料、ミント曲線等は原則としてSuper Validatorの3分の2以上の承認を必要とします。Canton Foundationは運営の透明性と組織的中立性を支える役割を持ちます。CC保有量に応じて一般保有者が投票するトークンガバナンスではありません。
 
 Canton Coin（CC）は、Global Synchronizerのトラフィック、アプリケーション料金、参加者間の価値移転、ネットワーク貢献者への報酬に利用できるユーティリティトークンです。ただし、参加ノードは第三者が法定通貨等で用意したトラフィック残高を使うこともでき、すべてのCanton利用者がCCを直接保有する必要はありません。CCの価値捕捉を考える際は、ネットワーク利用量だけでなく、どの料金がCCで焼却されるか、利用者がCCを直接調達するか、報酬として何枚ミントされるかを分けて確認する必要があります。
 
-トークノミクスは<span class="article-term article-term--always" data-term-key="burn-mint" data-term-always="true" data-beginner-label="＝利用時に焼却し、貢献時に発行">Burn-Mint Equilibrium</span>を採用します。USD建ての利用料をCCで支払う際にCCを焼却し、アプリケーション提供者、Validator、Super Validatorはネットワークへの貢献に応じて新しいCCをミントできます。最初の10年間に1000億CCをミントできる曲線が設定されていますが、これは固定最大供給量ではありません。10年後も年25億CCのミント枠が続き、実際の流通供給はミントと焼却の差で変動します。
+トークノミクスは<button type="button" class="article-term article-term--always" data-term-key="burn-mint" data-term-always="true" data-beginner-label="＝利用時に焼却し、貢献時に発行">Burn-Mint Equilibrium</button>を採用します。USD建ての利用料をCCで支払う際にCCを焼却し、アプリケーション提供者、Validator、Super Validatorはネットワークへの貢献に応じて新しいCCをミントできます。最初の10年間に1000億CCをミントできる曲線が設定されていますが、これは固定最大供給量ではありません。10年後も年25億CCのミント枠が続き、実際の流通供給はミントと焼却の差で変動します。
 
 実運用では、DTCCによるDTC保管米国債のトークン化計画、Franklin TempletonからVirtu Financialへのトークン化米国債とUSDCxの同期決済、担保モビリティ、HQLAX、Goldman Sachsのデジタル資産基盤等が公表されています。ただし、エコシステム掲載、資金調達への参加、実証実験、限定的な本番取引、商用サービスの全面稼働は同じ採用段階ではありません。個々の案件の法的権利、対象顧客、取引量、反復性を確認する必要があります。
 
@@ -174,7 +174,7 @@ Canton Coinは例外的に公開性を持ちます。公式ホワイトペーパ
 
 ## 合意形成と確定
 
-Cantonでは、関係当事者がDaml取引の妥当性を確認する処理と、Synchronizerがメッセージを順序付けて原子的に確定させる処理を分けます。Global SynchronizerではSuper Validatorが<span class="article-term article-term--always" data-term-key="bft" data-term-always="true" data-beginner-label="＝一部の障害に耐える合意方式">BFT</span>合意を形成し、Canton Coinの移転や共同サービスを確認します。ホワイトペーパーでは、Super Validator全体の3分の2以上による確認を基準としています。
+Cantonでは、関係当事者がDaml取引の妥当性を確認する処理と、Synchronizerがメッセージを順序付けて原子的に確定させる処理を分けます。Global SynchronizerではSuper Validatorが<button type="button" class="article-term article-term--always" data-term-key="bft" data-term-always="true" data-beginner-label="＝一部の障害に耐える合意方式">BFT</button>合意を形成し、Canton Coinの移転や共同サービスを確認します。ホワイトペーパーでは、Super Validator全体の3分の2以上による確認を基準としています。
 
 これは「各プライベート台帳の内容をSuper Validatorがすべて閲覧して承認する」という意味ではありません。暗号化されたプロトコルメッセージを使い、関係するValidatorが内容を検証し、Synchronizerは二重使用や不整合を避けるための調整を行います。
 
