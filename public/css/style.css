@@ -12799,7 +12799,6 @@ html.theme-light .home-field select option {
   width: 104px;
   max-width: none;
   height: 26px;
-  transform: translateX(38px);
 }
 
 .learn-asset-mark__fallback {
@@ -12831,7 +12830,6 @@ html.theme-light .home-field select option {
 .learn-asset-mark--chip.learn-asset-mark--wide img {
   width: 68px;
   height: 17px;
-  transform: translateX(25px);
 }
 
 .learn-card__meta {
@@ -13052,7 +13050,6 @@ html.theme-light .home-field select option {
 .learn-asset-mark--command.learn-asset-mark--wide img {
   width: 128px;
   height: 32px;
-  transform: translateX(48px);
 }
 
 .article-command__result-copy {
