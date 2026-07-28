@@ -199,6 +199,12 @@ URL: https://get-crypto.org/articles/usd1
 
 World Liberty Financial USD（USD1）のBitGoとWLFの役割分担、発行・償還条件、2026年5月末の準備資産実額、Croweによる月次アテステーションの範囲、Ethereum・BNB Smart Chain・Tron・Solana・Aptos・Tempoの供給、コントラクト管理・凍結権限、供給推移、MGX・Binance事例、GENIUS ActとOCC申請、日本の電子決済手段、EU MiCA、USDC・USDT比較、準備・流動性・技術・規制・政治リスクをまとめた総合分析記事です。BitGo、World Liberty Financial、Crowe、OCC、金融庁、国税庁、EU、ESMA等の参照先を併記しています。
 
+## Gram（旧Toncoin／TON）総合分析｜改称・Telegram連携・技術・供給・リスク
+
+URL: https://get-crypto.org/articles/gram
+
+Toncoin（TON）からGram（GRAM）への2026年改称、変更点と手動交換不要の注意、旧Telegram版Gram購入契約・同名Jettonとの区別、masterchain・workchain・動的shardchain、PoS・Catchain 2.0、TVM・Tolk・非同期メッセージ、公開100K TPSテストと2024年障害、初期PoW Giver配布、供給と発行、Telegram Mini Apps・USDT、日本のTON表記、米国SEC事件、国内税務、技術・集中・市場・規制リスクをまとめた総合分析記事です。TON、Telegram、SEC、金融庁、国税庁、国内取引所等の参照先を併記しています。
+
 ## Data endpoints
 
 `/api/exchanges` は、対応取引所、取引所名、データソース、デフォルト銘柄、対応銘柄一覧を返します。
