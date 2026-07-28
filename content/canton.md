@@ -15,17 +15,44 @@ readMinutes: 29
 
 > **重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。** 掲載する評価、市場データ、利用例は調査時点の分析上の情報であり、将来の成果を保証しません。暗号資産は、価格変動、流動性、技術、規制、税務、オペレーション、カウンターパーティー等のリスクを伴います。実際の利用・取引判断は、最新の公式情報を確認し、ご自身の状況に応じて行ってください。本稿の時点データは、原則として2026年7月27日JST時点で確認できた公開情報に基づきます。
 
+<section class="article-key-takeaways" aria-labelledby="canton-key-takeaways-title">
+  <div class="article-key-takeaways__header">
+    <div>
+      <span>Key takeaways</span>
+      <h2 id="canton-key-takeaways-title">この記事でわかること</h2>
+    </div>
+    <p>まず3つの論点を押さえてから、仕組み・供給・採用事例を読み進められます。</p>
+  </div>
+  <ol class="article-key-takeaways__grid">
+    <li>
+      <span>Point 1</span>
+      <strong>必要な当事者だけで同期</strong>
+      <p>独立した台帳をGlobal Synchronizerでつなぎ、関係のない参加者へ取引内容を広く複製しない設計です。</p>
+    </li>
+    <li>
+      <span>Point 2</span>
+      <strong>利用料の焼却と報酬ミント</strong>
+      <p>CCの供給は固定上限ではなく、ネットワーク利用による焼却と貢献報酬のミントの差で変動します。</p>
+    </li>
+    <li>
+      <span>Point 3</span>
+      <strong>採用段階を分けて確認</strong>
+      <p>実証、限定的な本番取引、全面的な商用稼働を同じ「採用」と扱わず、案件ごとの実態を確認します。</p>
+    </li>
+  </ol>
+</section>
+
 ## エグゼクティブサマリー
 
-Canton Networkは、規制金融で求められるプライバシー、権限制御、相互運用性を同時に扱うために設計されたオープンなブロックチェーンネットワークです。単一の共有台帳へ全参加者の取引を公開するのではなく、独立して運営されるアプリケーション台帳を、必要な取引だけGlobal Synchronizer経由で同期させます。運営主体ごとの主権を残しながら、複数アプリケーションにまたがる資産移転を一つの原子的な処理として組み合わせられる点が中心です。
+Canton Networkは、規制金融で求められるプライバシー、権限制御、相互運用性を同時に扱うために設計されたオープンなブロックチェーンネットワークです。単一の共有台帳へ全参加者の取引を公開するのではなく、独立して運営されるアプリケーション台帳を、必要な取引だけ<span class="article-term article-term--always" data-term-key="global-synchronizer" data-term-always="true" data-beginner-label="＝台帳間の同期基盤">Global Synchronizer</span>経由で同期させます。運営主体ごとの主権を残しながら、複数アプリケーションにまたがる資産移転を一つの原子的な処理として組み合わせられる点が中心です。
 
-Cantonのプライバシーは、単純な匿名化ではありません。Damlスマートコントラクトが契約当事者と権限を定義し、各Validatorは自らが関係するデータだけを受け取り、検証します。Global Synchronizerは暗号化されたメッセージの順序付けと同期を担いますが、通常の私的な取引内容を全ノードへ複製しません。一方、Canton Coinの残高と移転は公開性を持つため、「Canton上のすべてが非公開」という説明も正確ではありません。
+Cantonのプライバシーは、単純な匿名化ではありません。<span class="article-term article-term--always" data-term-key="daml" data-term-always="true" data-beginner-label="＝契約ルールを記述する言語">Daml</span>スマートコントラクトが契約当事者と権限を定義し、各<span class="article-term article-term--always" data-term-key="validator" data-term-always="true" data-beginner-label="＝関係取引を検証するノード">Validator</span>は自らが関係するデータだけを受け取り、検証します。Global Synchronizerは暗号化されたメッセージの順序付けと同期を担いますが、通常の私的な取引内容を全ノードへ複製しません。一方、Canton Coinの残高と移転は公開性を持つため、「Canton上のすべてが非公開」という説明も正確ではありません。
 
 Global SynchronizerとCanton Coinは2024年7月1日に本番稼働しました。Global Synchronizerは独立組織が運営するSuper Validatorによって構成され、重要な構成変更、手数料、ミント曲線等は原則としてSuper Validatorの3分の2以上の承認を必要とします。Canton Foundationは運営の透明性と組織的中立性を支える役割を持ちます。CC保有量に応じて一般保有者が投票するトークンガバナンスではありません。
 
 Canton Coin（CC）は、Global Synchronizerのトラフィック、アプリケーション料金、参加者間の価値移転、ネットワーク貢献者への報酬に利用できるユーティリティトークンです。ただし、参加ノードは第三者が法定通貨等で用意したトラフィック残高を使うこともでき、すべてのCanton利用者がCCを直接保有する必要はありません。CCの価値捕捉を考える際は、ネットワーク利用量だけでなく、どの料金がCCで焼却されるか、利用者がCCを直接調達するか、報酬として何枚ミントされるかを分けて確認する必要があります。
 
-トークノミクスはBurn-Mint Equilibriumを採用します。USD建ての利用料をCCで支払う際にCCを焼却し、アプリケーション提供者、Validator、Super Validatorはネットワークへの貢献に応じて新しいCCをミントできます。最初の10年間に1000億CCをミントできる曲線が設定されていますが、これは固定最大供給量ではありません。10年後も年25億CCのミント枠が続き、実際の流通供給はミントと焼却の差で変動します。
+トークノミクスは<span class="article-term article-term--always" data-term-key="burn-mint" data-term-always="true" data-beginner-label="＝利用時に焼却し、貢献時に発行">Burn-Mint Equilibrium</span>を採用します。USD建ての利用料をCCで支払う際にCCを焼却し、アプリケーション提供者、Validator、Super Validatorはネットワークへの貢献に応じて新しいCCをミントできます。最初の10年間に1000億CCをミントできる曲線が設定されていますが、これは固定最大供給量ではありません。10年後も年25億CCのミント枠が続き、実際の流通供給はミントと焼却の差で変動します。
 
 実運用では、DTCCによるDTC保管米国債のトークン化計画、Franklin TempletonからVirtu Financialへのトークン化米国債とUSDCxの同期決済、担保モビリティ、HQLAX、Goldman Sachsのデジタル資産基盤等が公表されています。ただし、エコシステム掲載、資金調達への参加、実証実験、限定的な本番取引、商用サービスの全面稼働は同じ採用段階ではありません。個々の案件の法的権利、対象顧客、取引量、反復性を確認する必要があります。
 
@@ -75,16 +102,32 @@ Digital Assetは2014年に設立され、金融機関向け分散台帳とスマ
 
 Cantonは、全アプリケーションが一つのグローバル状態を共有する設計ではありません。各運営者は、自社のValidator、アプリケーション、データ管理方針を持ちます。取引に複数のアプリケーションや当事者が関わるとき、Synchronizerが必要なメッセージを調整し、全構成要素が成立するか、全体が成立しないかという原子性を提供します。
 
-<div class="article-mermaid">
-<pre class="mermaid">flowchart TD
-    A[資産アプリ<br/>Validator A] --> S[Global Synchronizer]
-    B[決済アプリ<br/>Validator B] --> S
-    C[担保アプリ<br/>Validator C] --> S
-    S --> D[同期された原子取引]
-    D --> A
-    D --> B
-    D --> C</pre>
-</div>
+<figure class="article-mermaid article-mermaid--canton article-concept-diagram">
+  <figcaption>
+    <span>Architecture</span>
+    <strong>独立した台帳を、必要な取引だけ同期する</strong>
+    <small>各Validatorは関係するデータだけを検証し、Global Synchronizerが複数レッグの順序と原子性を調整します。</small>
+  </figcaption>
+<pre class="mermaid">flowchart LR
+    subgraph APPS["独立して運営されるアプリケーション"]
+      A["資産アプリ<br/>Validator A"]
+      B["決済アプリ<br/>Validator B"]
+      C["担保アプリ<br/>Validator C"]
+    end
+    A -->|"必要なメッセージ"| S["Global<br/>Synchronizer"]
+    B -->|"必要なメッセージ"| S
+    C -->|"必要なメッセージ"| S
+    S -->|"全レッグを同時確定"| D["同期された<br/>原子取引"]
+    D -.-> A
+    D -.-> B
+    D -.-> C
+    classDef app fill:#151925,stroke:#f3ff97,color:#f8fafc,stroke-width:1.5px
+    classDef sync fill:#23243a,stroke:#c4b5fd,color:#ffffff,stroke-width:2px
+    classDef result fill:#10231d,stroke:#35e0a5,color:#ffffff,stroke-width:2px
+    class A,B,C app
+    class S sync
+    class D result</pre>
+</figure>
 
 この構造では、ある機関が資産台帳を変更しても、無関係な参加者へ取引内容を公開する必要はありません。一方、複数台帳の取引が完全に独立しているわけでもなく、関係当事者の承認と同期がそろった場合だけ状態更新を確定できます。
 
@@ -131,7 +174,7 @@ Canton Coinは例外的に公開性を持ちます。公式ホワイトペーパ
 
 ## 合意形成と確定
 
-Cantonでは、関係当事者がDaml取引の妥当性を確認する処理と、Synchronizerがメッセージを順序付けて原子的に確定させる処理を分けます。Global SynchronizerではSuper ValidatorがBFT合意を形成し、Canton Coinの移転や共同サービスを確認します。ホワイトペーパーでは、Super Validator全体の3分の2以上による確認を基準としています。
+Cantonでは、関係当事者がDaml取引の妥当性を確認する処理と、Synchronizerがメッセージを順序付けて原子的に確定させる処理を分けます。Global SynchronizerではSuper Validatorが<span class="article-term article-term--always" data-term-key="bft" data-term-always="true" data-beginner-label="＝一部の障害に耐える合意方式">BFT</span>合意を形成し、Canton Coinの移転や共同サービスを確認します。ホワイトペーパーでは、Super Validator全体の3分の2以上による確認を基準としています。
 
 これは「各プライベート台帳の内容をSuper Validatorがすべて閲覧して承認する」という意味ではありません。暗号化されたプロトコルメッセージを使い、関係するValidatorが内容を検証し、Synchronizerは二重使用や不整合を避けるための調整を行います。
 
@@ -184,15 +227,30 @@ CCはGlobal Synchronizerが稼働してから、ネットワークへユーテ�
 
 利用料はUSD建てで計算され、CCで支払うと利用者側で焼却されます。アプリケーション提供者やインフラ提供者は別途、新しいCCをミントします。
 
-<div class="article-mermaid">
+<figure class="article-mermaid article-mermaid--canton article-concept-diagram">
+  <figcaption>
+    <span>Burn–Mint Equilibrium</span>
+    <strong>利用と貢献を、焼却とミントの別経路で記録する</strong>
+    <small>流通供給は「焼却量」と「実際にミントされた量」の差で変化します。価格を一定に保つ仕組みではありません。</small>
+  </figcaption>
 <pre class="mermaid">flowchart LR
-    A[ネットワーク利用] --> B[USD建て料金]
-    B --> C[CCを焼却]
-    A --> D[活動記録]
-    D --> E[貢献者がCCをミント]
-    C --> F[流通供給を減らす要因]
-    E --> G[流通供給を増やす要因]</pre>
-</div>
+    U["ネットワーク利用"] --> F["USD建て料金"]
+    F --> B["CCを焼却"]
+    B --> DOWN["供給を減らす要因"]
+    U --> R["活動・貢献を記録"]
+    R --> M["貢献者がCCをミント"]
+    M --> UP["供給を増やす要因"]
+    DOWN --> NET["純供給の変化"]
+    UP --> NET
+    classDef input fill:#151925,stroke:#c4b5fd,color:#ffffff,stroke-width:1.5px
+    classDef burn fill:#2a1719,stroke:#ff6b70,color:#ffffff,stroke-width:2px
+    classDef mint fill:#10231d,stroke:#35e0a5,color:#ffffff,stroke-width:2px
+    classDef net fill:#242315,stroke:#f3ff97,color:#ffffff,stroke-width:2px
+    class U,F,R input
+    class B,DOWN burn
+    class M,UP mint
+    class NET net</pre>
+</figure>
 
 定常期には年25億CCのミント枠があり、同じ年に25億CCが焼却されれば理論上の純供給はおおむね横ばいになります。焼却が多ければ純減、少なければ純増です。ただし、ホワイトペーパーが説明する「均衡」は設計上の目標であり、市場価格を一定に保つペッグ、償還保証、中央銀行型の価格介入ではありません。
 
