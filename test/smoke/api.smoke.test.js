@@ -435,6 +435,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(articleIndex.body.includes('/articles/dai'));
   assert.ok(articleIndex.body.includes('/articles/bch'));
   assert.ok(articleIndex.body.includes('/articles/usd1'));
+  assert.ok(articleIndex.body.includes('/articles/gram'));
   assert.ok(articleIndex.body.includes('国内市場データ対象外'));
   assert.ok(!articleIndex.body.includes('USD1-JPY'));
   assert.ok(articleIndex.body.includes('ビットコインとは？仕組み・歴史・税金・リスクを初心者向けに解説'));
@@ -845,6 +846,33 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!usd1Article.body.includes('積み増し'));
   assertMarketArticleInvestmentDisclaimer(usd1Article.body);
   assertCommonDisclosure(usd1Article.body);
+
+  const gramArticle = await fetchText(baseUrl, '/articles/gram');
+  assert.equal(gramArticle.status, 200);
+  assert.ok(gramArticle.body.includes('Gram（旧Toncoin／TON）総合分析'));
+  assert.ok(gramArticle.body.includes('エグゼクティブサマリー'));
+  assert.ok(gramArticle.body.includes('2026年の改称：変わったもの、変わらないもの'));
+  assert.ok(gramArticle.body.includes('旧Telegram版Gramと現在のGram'));
+  assert.ok(gramArticle.body.includes('同名のGRAMを識別する'));
+  assert.ok(gramArticle.body.includes('技術アーキテクチャ'));
+  assert.ok(gramArticle.body.includes('供給と初期配布'));
+  assert.ok(gramArticle.body.includes('日本での取扱いと実務'));
+  assert.ok(gramArticle.body.includes('class="article-mermaid"'));
+  assert.ok(gramArticle.body.includes('https://ton.org/'));
+  assert.ok(gramArticle.body.includes('https://www.sec.gov/newsroom/press-releases/2020-146'));
+  assert.ok(gramArticle.body.includes('GRAM（国内表示TON）の比較を見る'));
+  assert.ok(gramArticle.body.includes('/markets/TON-JPY'));
+  assert.ok(gramArticle.body.includes('スワップ、ブリッジ、請求、秘密鍵入力は不要'));
+  assert.ok(!gramArticle.body.includes('cite'));
+  assert.ok(!gramArticle.body.includes('finance'));
+  assert.ok(!gramArticle.body.includes('navlist'));
+  assert.ok(!gramArticle.body.includes('強気シナリオ'));
+  assert.ok(!gramArticle.body.includes('現時点の投資判断'));
+  assert.ok(!gramArticle.body.includes('買うべき'));
+  assert.ok(!gramArticle.body.includes('最終推奨'));
+  assert.ok(!gramArticle.body.includes('積み増し'));
+  assertMarketArticleInvestmentDisclaimer(gramArticle.body);
+  assertCommonDisclosure(gramArticle.body);
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);
@@ -1306,6 +1334,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(sitemap.body.includes('/articles/dai'));
   assert.ok(sitemap.body.includes('/articles/bch'));
   assert.ok(sitemap.body.includes('/articles/usd1'));
+  assert.ok(sitemap.body.includes('/articles/gram'));
   assert.ok(!sitemap.body.includes('/campaigns'));
   assert.ok(!sitemap.body.includes('/campaigns/referrals'));
   assert.ok(sitemap.body.includes('/learn/how-to-compare-exchanges'));
