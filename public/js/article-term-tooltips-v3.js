@@ -83,6 +83,19 @@
     if (tooltip) tooltip.hidden = true;
   }
 
+  document.addEventListener('click', (event) => {
+    const target = event.target && event.target.closest ? event.target : null;
+    const term = target ? target.closest('.article-term[data-article-term-tooltip="ready"]') : null;
+    if (!term) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (activeTerm === term && tooltip && !tooltip.hidden && pinned) {
+      hideTooltip();
+      return;
+    }
+    showTooltip(term, true);
+  }, true);
+
   document.querySelectorAll('.article-term[data-term-key]').forEach((term) => {
     if (!DEFINITIONS[term.dataset.termKey]) return;
     term.dataset.articleTermTooltip = 'ready';
