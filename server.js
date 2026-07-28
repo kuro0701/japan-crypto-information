@@ -223,6 +223,7 @@ const analyticsAdminService = createAnalyticsAdminService({
   sessionTtlMs: ANALYTICS_ADMIN_SESSION_TTL_MS,
 });
 const siteContentService = createSiteContentService({
+  analyticsStore,
   getArticle,
   getPublicExchanges,
   listArticles,
@@ -241,6 +242,8 @@ function normalizeAnalyticsRoute(reqPath) {
   if (reqPath === '/financial-comparison' || reqPath === '/financial-comparison.html') return '/financial-comparison';
   if (reqPath === '/learn' || reqPath === '/learn/') return '/learn';
   if (/^\/learn\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
+  if (reqPath === '/articles' || reqPath === '/articles/' || reqPath === '/articles.html') return '/articles';
+  if (/^\/articles\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
   if (reqPath === '/markets' || reqPath === '/markets.html') return '/markets';
   if (/^\/markets\/[A-Z0-9]+(?:-[A-Z0-9]+)+$/i.test(reqPath)) return reqPath.toUpperCase();
   if (/^\/exchanges\/[a-z0-9-]+$/i.test(reqPath)) return reqPath.toLowerCase();
