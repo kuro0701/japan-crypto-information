@@ -12609,6 +12609,25 @@ html.theme-light .home-field select option {
   padding: 1px 34px 4px 1px;
   scroll-snap-type: x proximity;
   scrollbar-width: thin;
+  scrollbar-color: rgba(53, 200, 210, 0.34) rgba(255, 255, 255, 0.04);
+}
+
+.learn-filter-list--tickers::-webkit-scrollbar {
+  height: 5px;
+}
+
+.learn-filter-list--tickers::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.learn-filter-list--tickers::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(53, 200, 210, 0.34);
+}
+
+.learn-filter-list--tickers::-webkit-scrollbar-thumb:hover {
+  background: rgba(53, 200, 210, 0.5);
 }
 
 .learn-filter-chip {
