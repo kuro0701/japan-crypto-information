@@ -18,6 +18,7 @@
     "preview": "wrangler dev"
   },
   "dependencies": {
+    "@web3icons/core": "^4.0.53",
     "chart.js": "^4.5.1",
     "express": "^4.21.0",
     "marked": "^18.0.2",
