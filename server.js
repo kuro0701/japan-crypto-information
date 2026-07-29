@@ -59,7 +59,7 @@ const { createMarketDataService } = require('./lib/server/market-data-service');
 const { registerApiRoutes } = require('./lib/server/register-api-routes');
 const { registerPageRoutes } = require('./lib/server/register-page-routes');
 const { createSiteContentService } = require('./lib/server/site-content-service');
-const { createCoinGeckoPriceClient } = require('./lib/coingecko-price-client');
+const { createMarketReferenceClient } = require('./lib/market-reference-client');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -380,7 +380,7 @@ const marketDataService = createMarketDataService({
   volumeShareStore,
   wsManager,
 });
-const marketReferenceClient = createCoinGeckoPriceClient();
+const marketReferenceClient = createMarketReferenceClient();
 siteContentService.setMarketPageSnapshotLoader((instrumentId) => marketDataService.buildMarketPageSnapshot(
   siteContentService.getMarketInfo(instrumentId)
 ));

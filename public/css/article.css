@@ -2628,6 +2628,11 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
   color: var(--ask);
 }
 
+.article-live-market-card__reference[data-kind="orderbook"] strong {
+  font-size: clamp(13px, 1.8vw, 18px);
+  letter-spacing: -0.04em;
+}
+
 .article-live-market-card__status {
   grid-column: 1 / -1;
   color: var(--text-3);

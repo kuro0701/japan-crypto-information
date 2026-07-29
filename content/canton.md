@@ -2,12 +2,13 @@
 title: Canton Network（CC）総合分析｜プライバシー・Daml・トークノミクス・機関採用
 description: Canton NetworkとCanton Coin（CC）のGlobal Synchronizer、Daml、選択的プライバシー、バーン・ミント、ガバナンス、機関採用、日本での取扱い、市場・規制・主要リスクを総合分析します。
 date: 2026-07-27
-updated: 2026-07-27
+updated: 2026-07-29
 author: 国内暗号資産取引所ナビ
 slug: canton
 path: /articles/canton
 articleType: market
 marketTicker: CANTON
+marketInstrumentId: CC-JPY
 category: 機関金融・資産トークン化
 tags: Canton Network, Canton Coin, CC, Global Synchronizer, Daml, RWA, トークン化, プライバシー, アトミック決済, DTCC, Tradeweb
 readMinutes: 29
@@ -56,7 +57,7 @@ Canton Coin（CC）は、Global Synchronizerのトラフィック、アプリケ
 
 実運用では、DTCCによるDTC保管米国債のトークン化計画、Franklin TempletonからVirtu Financialへのトークン化米国債とUSDCxの同期決済、担保モビリティ、HQLAX、Goldman Sachsのデジタル資産基盤等が公表されています。ただし、エコシステム掲載、資金調達への参加、実証実験、限定的な本番取引、商用サービスの全面稼働は同じ採用段階ではありません。個々の案件の法的権利、対象顧客、取引量、反復性を確認する必要があります。
 
-日本では、SBI VCトレードが2026年3月25日に国内でCantonの取扱いを開始しました。同社サービス内の通貨単位は `CANTON`、ネットワーク上の一般的な略号は `CC` です。名称が異なるため、入出庫先ネットワーク、対応ウォレット、最低数量、手数料、メンテナンス状況を取引所の最新案内で照合する必要があります。
+日本では、SBI VCトレードが2026年3月25日に国内でCantonの取扱いを開始しました。続いてOKJが2026年7月15日に `CC/JPY` の板取引、販売所、積立、入出庫の提供を開始し、同社発表では国内交換業者として初のCC板取引となりました。SBI VCトレード内の通貨単位は `CANTON`、OKJとネットワーク上の一般的な略号は `CC` です。名称が異なるため、入出庫先ネットワーク、対応ウォレット、最低数量、手数料、メンテナンス状況を取引所の最新案内で照合する必要があります。
 
 市場データでは、2026年7月27日のCoinGecko表示でCCは約0.123ドル、流通供給約391.6億CC、時価総額約48.1億ドル、24時間出来高約758万ドルでした。時価総額に対して取引高が小さく、取引所・通貨ペアごとの板の厚みには差があります。価格、時価総額順位、出来高、流通供給は時刻と集計方法で変わるため、固定値ではなく時点スナップショットとして扱います。
 
@@ -71,7 +72,7 @@ Canton Coin（CC）は、Global Synchronizerのトラフィック、アプリケ
 | 実行・検証ノード | Validator | ホストする当事者に関係する取引を処理・検証 |
 | 共有同期基盤 | Global Synchronizer | 暗号化メッセージの同期、順序付け、原子性を支える |
 | 基盤運営 | Super Validator | Global Synchronizerを共同運営し、CC取引をBFT合意で確認 |
-| ネイティブ資産 | Canton Coin（CC） | SBI VCトレード内の表示はCANTON |
+| ネイティブ資産 | Canton Coin（CC） | SBI VCトレード内の表示はCANTON、OKJのシンボルはCC |
 | 供給上限 | 固定上限なし | 最初の10年に最大1000億CCをミント可能、その後も年25億CCの曲線 |
 | 主な用途 | トラフィック・アプリ料金、価値移転、貢献報酬 | CCの直接保有はすべてのCanton利用で必須ではない |
 | ガバナンス | Super Validatorの投票、Canton Foundation | 一般CC保有者の保有量比例投票ではない |
@@ -90,6 +91,7 @@ Digital Assetは2014年に設立され、金融機関向け分散台帳とスマ
 | 2025年6月 | Digital Assetが1.35億ドル調達 | DRW Venture Capital、Tradeweb等が参加 |
 | 2025年12月 | DTCCとの米国債トークン化計画 | DTC保管資産を対象に段階的な本番化を計画 |
 | 2026年3月25日 | SBI VCトレードが国内取扱い開始 | 国内サービスではCANTON表記 |
+| 2026年7月15日 | OKJがCCの取扱い開始 | CC/JPYの国内初板取引、販売所、積立、入出庫に対応 |
 | 2026年4月 | 日本国債担保管理PoC | みずほFG、野村HD、JSCC、Digital Assetが検証 |
 | 2026年6月 | Digital Assetが3.55億ドル調達 | a16z crypto主導。DAへの出資とCC保有は別 |
 | 2026年7月1日 | Tradeweb上の同期決済 | トークン化米国債とUSDCxをリアルタイム決済 |
@@ -329,11 +331,12 @@ Canton公式エコシステムには、金融機関、市場インフラ、Valid
 
 ## 日本での取扱いと実務
 
-SBI VCトレードは2026年3月25日、国内で初めてCantonを取り扱いました。同社の取扱暗号資産ページでは、名称をCanton Coin、サービス内通貨単位をCANTON、一般的なネットワーク記号をCCとしています。
+SBI VCトレードは2026年3月25日、国内で初めてCantonを取り扱いました。同社の取扱暗号資産ページでは、名称をCanton Coin、サービス内通貨単位をCANTON、一般的なネットワーク記号をCCとしています。OKJは2026年7月15日にCCの取扱いを開始し、取引所、販売所、積立、入出庫に対応しました。同社発表では、暗号資産交換業者によるCCの板取引は国内初です。
 
 入出庫・取引前に確認する項目は次のとおりです。
 
 - SBI VCトレードでの表示名はCANTONであること
+- OKJの板取引ではCC/JPYとして表示されること
 - 送信元・受信先がCanton Networkに対応していること
 - 取引所が外部入出庫を提供しているか
 - 最低注文量、呼値、販売所・取引所の別
@@ -494,6 +497,7 @@ DTCC、Tradeweb、Franklin Templeton、Virtu Financial、日本国債担保PoC�
 - [SBI VCトレード：Canton取扱い開始のお知らせ](https://www.sbivc.co.jp/newsview/4ji6fu9b63q)
 - [SBI VCトレード：取扱暗号資産](https://www.sbivc.co.jp/services/handling-crypto-assets)
 - [SBI VCトレード：Cantonの解説とMiCA対応状況](https://www.sbivc.co.jp/columns/content/4_gewkthgn)
+- [OKJ：カントンコイン（CC）の取扱い開始](https://support.okj.com/hc/ja/articles/59887403461273)
 - [暗号資産交換業者登録一覧（金融庁）](https://www.fsa.go.jp/menkyo/menkyoj/kasoutuka.pdf)
 - [暗号資産の税務上の取扱い（国税庁）](https://www.nta.go.jp/publication/pamph/shotoku/kakuteishinkokukankei/kasoutuka/)
 - [EU Markets in Crypto-Assets Regulation](https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX%3A32023R1114)

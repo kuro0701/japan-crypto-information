@@ -1452,7 +1452,7 @@
       <div class="article-live-market-card__copy">
         <span>Live reference</span>
         <h3>${escapeHtml(ticker || instrumentId)} の現在地</h3>
-        <p>国内販売所または公開市場データを使った参考値です。実際の注文前は取引所の公式画面で最終確認してください。</p>
+        <p data-live-market-copy>国内取引所の板を優先し、国内未取扱いの場合のみ海外取引所の板を参照します。注文前は取引所の公式画面で最終確認してください。</p>
         <a class="article-live-market-card__source" data-live-market-source target="_blank" rel="noopener noreferrer" hidden>データ元を確認 ↗</a>
       </div>
       <div class="article-live-market-card__quote">
@@ -1653,15 +1653,31 @@
     }
   }
 
-  function renderExternalMarketReference(card, reference) {
-    const rawPriceJpy = reference && reference.price && reference.price.jpy;
-    const rawPriceUsd = reference && reference.price && reference.price.usd;
-    const rawChange24h = reference && reference.change24hPct && reference.change24hPct.jpy;
-    const priceJpy = rawPriceJpy == null ? NaN : Number(rawPriceJpy);
-    if (!Number.isFinite(priceJpy) || priceJpy <= 0) return false;
+  function renderDomesticMarketReference(card, report, instrumentId) {
+    const snapshot = report && report.snapshot;
+    const bestBid = snapshot && snapshot.bestBid;
+    const bestAsk = snapshot && snapshot.bestAsk;
+    const bidJpy = Number(bestBid && bestBid.price);
+    const askJpy = Number(bestAsk && bestAsk.price);
+    if (
+      !Number.isFinite(bidJpy)
+      || !Number.isFinite(askJpy)
+      || bidJpy <= 0
+      || askJpy <= 0
+    ) {
+      return false;
+    }
 
-    const change24h = rawChange24h == null ? NaN : Number(rawChange24h);
-    const priceUsd = rawPriceUsd == null ? NaN : Number(rawPriceUsd);
+    const midpointJpy = (bidJpy + askJpy) / 2;
+    const spreadPct = midpointJpy > 0 ? ((askJpy - bidJpy) / midpointJpy) * 100 : NaN;
+    const bidVenue = bestBid.exchangeLabel || bestBid.exchangeId || '国内取引所';
+    const askVenue = bestAsk.exchangeLabel || bestAsk.exchangeId || '国内取引所';
+    const timestamps = [bestBid.updatedAt, bestAsk.updatedAt]
+      .map(value => (Number.isFinite(Number(value)) ? Number(value) : Date.parse(value)))
+      .filter(Number.isFinite);
+    const updatedAt = timestamps.length ? new Date(Math.min(...timestamps)).toISOString() : '';
+    const isStale = [bestBid.freshnessStatus, bestAsk.freshnessStatus].includes('stale');
+
     const priceNode = $('[data-live-market-price]', card);
     const venueNode = $('[data-live-market-venue]', card);
     const spreadNode = $('[data-live-market-spread]', card);
@@ -1669,19 +1685,99 @@
     const updatedNode = $('[data-live-market-updated]', card);
     const sparklineNode = $('[data-live-market-sparkline]', card);
     const sourceNode = $('[data-live-market-source]', card);
+    const copyNode = $('[data-live-market-copy]', card);
+
+    if (priceNode) setAnimatedJpy(priceNode, midpointJpy);
+    if (venueNode) venueNode.textContent = '国内取引所ベストレート';
+    if (spreadNode) spreadNode.textContent = `売却 ${formatJpy(bidJpy)} / 購入 ${formatJpy(askJpy)}`;
+    if (trendNode) {
+      trendNode.textContent = Number.isFinite(spreadPct)
+        ? `最良気配差 ${spreadPct >= 0 ? '' : '−'}${formatPct(Math.abs(spreadPct), 3)}`
+        : '最良気配差を確認中';
+      trendNode.removeAttribute('data-trend');
+    }
+    if (updatedNode) {
+      updatedNode.textContent = updatedAt ? `板更新 ${formatCompactDateTime(updatedAt)}` : '板更新時刻なし';
+    }
+    if (sparklineNode) {
+      sparklineNode.innerHTML = `
+        <div class="article-live-market-card__reference" data-kind="orderbook">
+          <span>Best bid / ask</span>
+          <strong>${escapeHtml(`${formatJpy(bidJpy)} / ${formatJpy(askJpy)}`)}</strong>
+          <small>${escapeHtml(`${bidVenue}で売却・${askVenue}で購入`)}</small>
+        </div>
+      `;
+    }
+    if (copyNode) {
+      copyNode.textContent = '国内取引所だけを比較した最良買気配・最良売気配です。中央の価格は両レートの仲値で、販売所価格は使用していません。';
+    }
+    if (sourceNode) {
+      sourceNode.hidden = false;
+      sourceNode.href = `/markets/${encodeURIComponent(instrumentId)}`;
+      sourceNode.textContent = '国内取引所の板比較を見る →';
+    }
+
+    setLiveMarketCardState(
+      card,
+      'ready',
+      isStale ? '一部に直近取得の板データを含みます。' : ''
+    );
+    card.classList.add('is-fresh');
+    window.setTimeout(() => card.classList.remove('is-fresh'), 640);
+    return true;
+  }
+
+  function renderExternalMarketReference(card, reference) {
+    const rawPriceJpy = reference && reference.price && reference.price.jpy;
+    const rawQuotePrice = reference && reference.price && reference.price.quote;
+    const rawChange24h = reference && reference.change24hPct && reference.change24hPct.quote;
+    const priceJpy = rawPriceJpy == null ? NaN : Number(rawPriceJpy);
+    if (!Number.isFinite(priceJpy) || priceJpy <= 0) return false;
+
+    const change24h = rawChange24h == null ? NaN : Number(rawChange24h);
+    const quotePrice = rawQuotePrice == null ? NaN : Number(rawQuotePrice);
+    const rawBidJpy = reference && reference.bestBid && reference.bestBid.jpy;
+    const rawAskJpy = reference && reference.bestAsk && reference.bestAsk.jpy;
+    const rawSpreadPct = reference && reference.spreadPct;
+    const bidJpy = rawBidJpy == null ? NaN : Number(rawBidJpy);
+    const askJpy = rawAskJpy == null ? NaN : Number(rawAskJpy);
+    const spreadPct = rawSpreadPct == null ? NaN : Number(rawSpreadPct);
+    const isOrderbook = reference && reference.kind === 'orderbook'
+      && Number.isFinite(bidJpy)
+      && Number.isFinite(askJpy)
+      && bidJpy > 0
+      && askJpy > 0;
+    const priceNode = $('[data-live-market-price]', card);
+    const venueNode = $('[data-live-market-venue]', card);
+    const spreadNode = $('[data-live-market-spread]', card);
+    const trendNode = $('[data-live-market-trend]', card);
+    const updatedNode = $('[data-live-market-updated]', card);
+    const sparklineNode = $('[data-live-market-sparkline]', card);
+    const sourceNode = $('[data-live-market-source]', card);
+    const copyNode = $('[data-live-market-copy]', card);
 
     if (priceNode) setAnimatedJpy(priceNode, priceJpy);
-    if (venueNode) venueNode.textContent = `${reference.source || '公開市場'} 集計`;
+    if (venueNode) {
+      venueNode.textContent = isOrderbook
+        ? `${reference.source || '海外取引所'} ${reference.pair || ''}`.trim()
+        : `${reference.source || '公開市場'} 集計`;
+    }
     if (spreadNode) {
-      spreadNode.textContent = Number.isFinite(change24h)
+      spreadNode.textContent = isOrderbook
+        ? `売却 ${formatJpy(bidJpy)} / 購入 ${formatJpy(askJpy)}`
+        : Number.isFinite(change24h)
         ? `24時間 ${change24h >= 0 ? '+' : ''}${formatPct(change24h, 2)}`
         : '24時間変動は集計中';
-      if (Number.isFinite(change24h)) spreadNode.dataset.trend = change24h >= 0 ? 'up' : 'down';
+      if (!isOrderbook && Number.isFinite(change24h)) {
+        spreadNode.dataset.trend = change24h >= 0 ? 'up' : 'down';
+      }
       else spreadNode.removeAttribute('data-trend');
     }
     if (trendNode) {
-      trendNode.textContent = Number.isFinite(priceUsd)
-        ? `USD $${priceUsd.toLocaleString('en-US', { maximumFractionDigits: 6 })}`
+      trendNode.textContent = Number.isFinite(change24h)
+        ? `24時間 ${change24h >= 0 ? '+' : ''}${formatPct(change24h, 2)}`
+        : Number.isFinite(quotePrice)
+        ? `${reference.price.quoteCurrency || 'USD'} ${quotePrice.toLocaleString('en-US', { maximumFractionDigits: 6 })}`
         : 'グローバル参考価格';
       trendNode.removeAttribute('data-trend');
     }
@@ -1690,23 +1786,43 @@
       updatedNode.textContent = updated ? `価格更新 ${updated}` : '価格更新時刻なし';
     }
     if (sparklineNode) {
-      const tone = !Number.isFinite(change24h) ? 'flat' : change24h >= 0 ? 'up' : 'down';
-      const changeLabel = Number.isFinite(change24h)
-        ? `${change24h >= 0 ? '+' : ''}${formatPct(change24h, 2)}`
-        : '集計中';
-      sparklineNode.innerHTML = `
-        <div class="article-live-market-card__reference" data-trend="${tone}">
-          <span>24h change</span>
-          <strong>${escapeHtml(changeLabel)}</strong>
-          <small>公開市場の集計値</small>
-        </div>
-      `;
+      if (isOrderbook) {
+        sparklineNode.innerHTML = `
+          <div class="article-live-market-card__reference" data-kind="orderbook">
+            <span>Best bid / ask</span>
+            <strong>${escapeHtml(`${formatJpy(bidJpy)} / ${formatJpy(askJpy)}`)}</strong>
+            <small>${Number.isFinite(spreadPct) ? `板スプレッド ${escapeHtml(formatPct(spreadPct, 3))}` : '海外取引所の板情報'}</small>
+          </div>
+        `;
+      } else {
+        const tone = !Number.isFinite(change24h) ? 'flat' : change24h >= 0 ? 'up' : 'down';
+        const changeLabel = Number.isFinite(change24h)
+          ? `${change24h >= 0 ? '+' : ''}${formatPct(change24h, 2)}`
+          : '集計中';
+        sparklineNode.innerHTML = `
+          <div class="article-live-market-card__reference" data-trend="${tone}">
+            <span>24h change</span>
+            <strong>${escapeHtml(changeLabel)}</strong>
+            <small>海外板を取得できない場合の集計値</small>
+          </div>
+        `;
+      }
     }
     if (sourceNode) {
       const sourceUrl = safeHttpsUrl(reference.sourceUrl);
       sourceNode.hidden = !sourceUrl;
-      if (sourceUrl) sourceNode.href = sourceUrl;
+      if (sourceUrl) {
+        sourceNode.href = sourceUrl;
+        sourceNode.textContent = isOrderbook
+          ? `${reference.source || '海外取引所'}の板を確認 ↗`
+          : '集計データ元を確認 ↗';
+      }
       else sourceNode.removeAttribute('href');
+    }
+    if (copyNode) {
+      copyNode.textContent = isOrderbook
+        ? '国内取引所で未取扱いのため、海外取引所の最良買気配・最良売気配を表示しています。中央の価格は両レートの仲値です。'
+        : '国内取引所で未取扱いかつ海外板を取得できないため、公開市場の集計参考値を表示しています。';
     }
 
     setLiveMarketCardState(
@@ -1738,7 +1854,13 @@
     if (!card) return;
 
     let abortController = null;
+    let domesticRetryTimer = null;
+    let domesticRetryCount = 0;
     const load = async () => {
+      if (domesticRetryTimer) {
+        window.clearTimeout(domesticRetryTimer);
+        domesticRetryTimer = null;
+      }
       if (abortController) abortController.abort();
       abortController = new AbortController();
       const controller = abortController;
@@ -1746,30 +1868,37 @@
         setLiveMarketCardState(card, 'loading');
       }
       try {
-        const [reportResult, historyResult, referenceResult] = await Promise.allSettled([
-          fetch('/api/sales-spread', { cache: 'no-store', signal: controller.signal }).then((response) => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
-          }),
-          fetch(`/api/sales-spread/history?window=30d&instrumentId=${encodeURIComponent(instrumentId)}`, { cache: 'no-store', signal: controller.signal }).then((response) => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
-          }),
-          fetchExternalMarketReference(ticker, controller.signal),
-        ]);
+        const domesticResponse = await fetch(`/api/markets/${encodeURIComponent(instrumentId)}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
         if (abortController !== controller) return;
-        const hasExternalReference = EXTERNAL_MARKET_REFERENCE_TICKERS.has(ticker);
-        if (
-          reportResult.status === 'rejected'
-          && historyResult.status === 'rejected'
-          && (!hasExternalReference || referenceResult.status === 'rejected')
-        ) {
-          throw reportResult.reason || historyResult.reason || referenceResult.reason || new Error('Live reference unavailable');
+        if (domesticResponse.ok) {
+          const domesticReport = await domesticResponse.json();
+          if (abortController !== controller) return;
+          if (renderDomesticMarketReference(card, domesticReport, instrumentId)) {
+            domesticRetryCount = 0;
+            return;
+          }
+          domesticRetryCount += 1;
+          if (domesticRetryCount >= 4) {
+            setLiveMarketCardState(
+              card,
+              'unavailable',
+              '国内取引所で取扱いがありますが、現在は板データを取得できません。時間をおいて再取得してください。'
+            );
+            return;
+          }
+          setLiveMarketCardState(card, 'loading', '国内取引所の板データを取得中です。');
+          domesticRetryTimer = window.setTimeout(load, 3000);
+          return;
+        } else if (domesticResponse.status !== 404) {
+          throw new Error(`HTTP ${domesticResponse.status}`);
         }
-        const report = reportResult.status === 'fulfilled' ? reportResult.value : null;
-        const history = historyResult.status === 'fulfilled' ? historyResult.value : null;
-        if (renderLiveMarketCard(card, report, history, instrumentId)) return;
-        const reference = referenceResult.status === 'fulfilled' ? referenceResult.value : null;
+
+        domesticRetryCount = 0;
+        const reference = await fetchExternalMarketReference(ticker, controller.signal);
+        if (abortController !== controller) return;
         if (renderExternalMarketReference(card, reference)) return;
         setLiveMarketCardState(card, 'unavailable', `現在、${ticker || instrumentId}の参考価格を取得できません。時間をおいて再取得してください。`);
       } catch (err) {
@@ -1787,7 +1916,12 @@
     };
 
     const retry = $('[data-live-market-retry]', card);
-    if (retry) retry.addEventListener('click', load);
+    if (retry) {
+      retry.addEventListener('click', () => {
+        domesticRetryCount = 0;
+        load();
+      });
+    }
     load();
     window.setInterval(load, 30000);
   }
