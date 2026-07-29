@@ -20,3 +20,19 @@ test('article Live reference resolves domestic orderbooks before any overseas fa
   assert.ok(overseasFetch > domesticFetch);
   assert.doesNotMatch(liveReferenceSource, /sales-spread|sales-reference|販売所データ/);
 });
+
+test('article Live reference links best bid and ask venues through exchange referral metadata', () => {
+  const source = fs.readFileSync(articleScriptPath, 'utf8');
+  const helperStart = source.indexOf('function articleExchangeAffiliateLink(');
+  const rendererEnd = source.indexOf('function renderExternalMarketReference(', helperStart);
+  assert.ok(helperStart >= 0);
+  assert.ok(rendererEnd > helperStart);
+
+  const domesticReferenceSource = source.slice(helperStart, rendererEnd);
+  assert.match(domesticReferenceSource, /actions\.referralUrl/);
+  assert.match(domesticReferenceSource, /sponsored noopener/);
+  assert.match(domesticReferenceSource, /bestBid\.exchangeId/);
+  assert.match(domesticReferenceSource, /bestAsk\.exchangeId/);
+  assert.match(domesticReferenceSource, /article-live-market-card__venue-link/);
+  assert.match(domesticReferenceSource, /data-live-market-exchange/);
+});
