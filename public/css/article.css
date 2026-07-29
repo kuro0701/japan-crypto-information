@@ -2633,6 +2633,44 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
   letter-spacing: -0.04em;
 }
 
+.article-live-market-card__reference small.article-live-market-card__venue-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 10px;
+  text-transform: none;
+}
+
+.article-live-market-card__venue-links > span {
+  white-space: nowrap;
+}
+
+.article-live-market-card__venue-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 42%, transparent);
+  text-underline-offset: 3px;
+  transition: color 160ms ease, text-decoration-color 160ms ease;
+}
+
+.article-live-market-card__venue-link:hover,
+.article-live-market-card__venue-link:focus-visible {
+  color: var(--warn);
+  text-decoration-color: currentColor;
+}
+
+.article-live-market-card__venue-link span[aria-hidden="true"] {
+  margin-left: 2px;
+  font-size: 0.9em;
+}
+
+.article-live-market-card__venue-link img {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
 .article-live-market-card__status {
   grid-column: 1 / -1;
   color: var(--text-3);
