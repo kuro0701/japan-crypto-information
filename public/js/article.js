@@ -1523,6 +1523,50 @@
     }
   }
 
+  function articleExchangeActions(report, exchangeId) {
+    const normalizedId = String(exchangeId || '').trim().toLowerCase();
+    if (!normalizedId) return {};
+
+    const exchanges = report && Array.isArray(report.exchanges) ? report.exchanges : [];
+    const exchange = exchanges.find(item => String(item && item.id || '').trim().toLowerCase() === normalizedId);
+    if (exchange && exchange.actions) return exchange.actions;
+
+    const rows = report
+      && report.domesticComparison
+      && Array.isArray(report.domesticComparison.rows)
+      ? report.domesticComparison.rows
+      : [];
+    const row = rows.find(item => String(item && item.exchangeId || '').trim().toLowerCase() === normalizedId);
+    return row && row.actions ? row.actions : {};
+  }
+
+  function articleExchangeAffiliateLink(report, exchangeId, exchangeLabel) {
+    const label = String(exchangeLabel || exchangeId || '国内取引所').trim();
+    const actions = articleExchangeActions(report, exchangeId);
+    const href = safeHttpsUrl(actions.referralUrl);
+    if (!href) return escapeHtml(label);
+
+    const attributes = [
+      `href="${escapeHtml(href)}"`,
+      `data-live-market-exchange="${escapeHtml(String(exchangeId || '').trim().toLowerCase())}"`,
+    ];
+    const target = Object.prototype.hasOwnProperty.call(actions, 'referralTarget')
+      ? actions.referralTarget
+      : '_blank';
+    if (target) attributes.push(`target="${escapeHtml(target)}"`);
+    attributes.push(`rel="${escapeHtml(actions.referralRel || 'sponsored noopener')}"`);
+    if (actions.referralReferrerPolicy) {
+      attributes.push(`referrerpolicy="${escapeHtml(actions.referralReferrerPolicy)}"`);
+    }
+
+    const trackingPixelUrl = safeHttpsUrl(actions.referralTrackingPixelUrl);
+    const trackingPixel = trackingPixelUrl
+      ? `<img src="${escapeHtml(trackingPixelUrl)}" width="1" height="1" alt="" aria-hidden="true">`
+      : '';
+
+    return `<a class="article-live-market-card__venue-link" ${attributes.join(' ')}>${escapeHtml(label)}<span aria-hidden="true">↗</span>${trackingPixel}</a>`;
+  }
+
   function renderDomesticMarketReference(card, report, instrumentId) {
     const snapshot = report && report.snapshot;
     const bestBid = snapshot && snapshot.bestBid;
@@ -1542,6 +1586,8 @@
     const spreadPct = midpointJpy > 0 ? ((askJpy - bidJpy) / midpointJpy) * 100 : NaN;
     const bidVenue = bestBid.exchangeLabel || bestBid.exchangeId || '国内取引所';
     const askVenue = bestAsk.exchangeLabel || bestAsk.exchangeId || '国内取引所';
+    const bidVenueLink = articleExchangeAffiliateLink(report, bestBid.exchangeId, bidVenue);
+    const askVenueLink = articleExchangeAffiliateLink(report, bestAsk.exchangeId, askVenue);
     const timestamps = [bestBid.updatedAt, bestAsk.updatedAt]
       .map(value => (Number.isFinite(Number(value)) ? Number(value) : Date.parse(value)))
       .filter(Number.isFinite);
@@ -1574,7 +1620,10 @@
         <div class="article-live-market-card__reference" data-kind="orderbook">
           <span>Best bid / ask</span>
           <strong>${escapeHtml(`${formatJpy(bidJpy)} / ${formatJpy(askJpy)}`)}</strong>
-          <small>${escapeHtml(`${bidVenue}で売却・${askVenue}で購入`)}</small>
+          <small class="article-live-market-card__venue-links">
+            <span>売却 ${bidVenueLink}</span>
+            <span>購入 ${askVenueLink}</span>
+          </small>
         </div>
       `;
     }
