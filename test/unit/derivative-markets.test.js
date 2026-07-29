@@ -3,7 +3,12 @@ const assert = require('node:assert/strict');
 
 const BitflyerClient = require('../../lib/bitflyer-client');
 const GMOClient = require('../../lib/gmo-client');
-const { BITFLYER_EXCHANGE_ID, GMO_EXCHANGE_ID, getPublicExchanges } = require('../../lib/exchanges');
+const {
+  BITFLYER_EXCHANGE_ID,
+  DEFAULT_EXCHANGE_ID,
+  GMO_EXCHANGE_ID,
+  getPublicExchanges,
+} = require('../../lib/exchanges');
 
 function mockFetch(handler) {
   const originalFetch = global.fetch;
@@ -25,12 +30,18 @@ function jsonResponse(body, status = 200) {
 
 test('static exchange metadata exposes derivative markets separately from spot', () => {
   const exchanges = getPublicExchanges();
+  const okj = exchanges.find(exchange => exchange.id === DEFAULT_EXCHANGE_ID);
   const bitflyer = exchanges.find(exchange => exchange.id === BITFLYER_EXCHANGE_ID);
   const gmo = exchanges.find(exchange => exchange.id === GMO_EXCHANGE_ID);
 
+  const okjCanton = okj.markets.find(market => market.instrumentId === 'CC-JPY');
   const bitflyerCfd = bitflyer.markets.find(market => market.instrumentId === 'BTC-CFD-JPY');
   const gmoCfd = gmo.markets.find(market => market.instrumentId === 'BTC-CFD-JPY');
   const gmoEthCfd = gmo.markets.find(market => market.instrumentId === 'ETH-CFD-JPY');
+
+  assert.equal(okjCanton.baseCurrency, 'CC');
+  assert.equal(okjCanton.quoteCurrency, 'JPY');
+  assert.equal(okjCanton.marketType, 'spot');
 
   assert.equal(bitflyer.defaultInstrumentId, 'BTC-JPY');
   assert.equal(bitflyerCfd.marketType, 'derivative');

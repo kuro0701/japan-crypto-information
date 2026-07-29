@@ -798,6 +798,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(cantonArticle.body.includes('data-article-slug="canton"'));
   assert.ok(cantonArticle.body.includes('article-hero__brand--canton'));
   assert.ok(cantonArticle.body.includes('/crypto-icons/CANTON.svg'));
+  assert.ok(cantonArticle.body.includes('data-article-instrument-id="CC-JPY"'));
+  assert.ok(cantonArticle.body.includes('/markets/CC-JPY'));
   assert.ok(cantonArticle.body.includes('article-key-takeaways'));
   assert.ok(cantonArticle.body.includes('この記事でわかること'));
   assert.ok(cantonArticle.body.includes('article-concept-diagram'));
@@ -805,7 +807,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(cantonArticle.body.includes('data-term-key="bft"'));
   assert.ok(cantonArticle.body.includes('data-reading-progress-label'));
   assert.ok(cantonArticle.body.includes('https://www.canton.network/'));
-  assert.ok(cantonArticle.body.includes('国内取扱い銘柄の比較を見る'));
+  assert.ok(cantonArticle.body.includes('CANTON の比較を見る'));
   assert.ok(!cantonArticle.body.includes('/markets/CANTON-JPY'));
   assert.ok(!cantonArticle.body.includes('cite'));
   assert.ok(!cantonArticle.body.includes('finance'));
@@ -949,6 +951,12 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
     && row.salesSpread
     && row.funding
   )));
+
+  const cantonMarketPage = await fetchJson(baseUrl, '/api/markets/CC-JPY');
+  assert.equal(cantonMarketPage.status, 200);
+  assert.equal(cantonMarketPage.body.market.instrumentId, 'CC-JPY');
+  assert.equal(cantonMarketPage.body.market.baseCurrency, 'CC');
+  assert.ok(cantonMarketPage.body.exchanges.some(exchange => exchange.id === 'okj'));
 
   const marketHtml = await fetchText(baseUrl, '/markets/BTC-JPY');
   assert.equal(marketHtml.status, 200);
