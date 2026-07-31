@@ -877,6 +877,13 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(usd1Article.body.includes('供給推移とチェーン構成'));
   assert.ok(usd1Article.body.includes('日本での法的区分・取扱い・税務'));
   assert.ok(usd1Article.body.includes('class="article-mermaid"'));
+  assert.ok(usd1Article.body.includes('article-hero__title-phrase'));
+  assert.ok(usd1Article.body.includes('usd1-callout'));
+  assert.ok(usd1Article.body.includes('usd1-timeline'));
+  assert.ok(usd1Article.body.includes('usd1-donut--reserve'));
+  assert.ok(usd1Article.body.includes('usd1-donut--chains'));
+  assert.ok(usd1Article.body.includes('data-reading-progress-ring'));
+  assert.ok(usd1Article.body.includes('data-article-toc-collapse'));
   assert.ok(usd1Article.body.includes('https://www.bitgo.com/usd1/attestations/'));
   assert.ok(usd1Article.body.includes('国内取扱い銘柄の比較を見る'));
   assert.ok(!usd1Article.body.includes('/markets/USD1-JPY'));

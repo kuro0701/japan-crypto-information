@@ -262,6 +262,9 @@
       button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       button.textContent = expanded ? '閉じる' : '+ もっと見る';
     });
+    $$('[data-article-toc-collapse]', container).forEach((button) => {
+      button.hidden = !expanded;
+    });
   }
 
   function wireTocExpansion(container) {
@@ -269,6 +272,11 @@
     $$('[data-article-toc-more]', container).forEach((button) => {
       button.addEventListener('click', () => {
         setTocExpanded(container, !container.classList.contains('is-expanded'));
+      });
+    });
+    $$('[data-article-toc-collapse]', container).forEach((button) => {
+      button.addEventListener('click', () => {
+        setTocExpanded(container, false);
       });
     });
   }
@@ -356,6 +364,7 @@
     const article = $('.article-main');
     if (!bar || !article) return;
     const labels = $$('[data-reading-progress-label]');
+    const rings = $$('[data-reading-progress-ring]');
 
     const update = () => {
       const rect = article.getBoundingClientRect();
@@ -364,6 +373,9 @@
       const progress = end <= start ? 1 : (window.scrollY - start) / (end - start);
       const clamped = Math.max(0, Math.min(1, progress));
       bar.style.transform = `scaleX(${clamped})`;
+      rings.forEach((ring) => {
+        ring.style.setProperty('--reading-progress', `${clamped * 360}deg`);
+      });
       const percentage = `${Math.round(clamped * 100)}%`;
       labels.forEach((label) => {
         label.value = percentage;

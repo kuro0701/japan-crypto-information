@@ -14,7 +14,13 @@ tags: USD1, World Liberty Financial, WLFI, BitGo, ステーブルコイン, 準�
 readMinutes: 27
 ---
 
-> **重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。** 掲載する評価、市場データ、利用例は調査時点の分析上の情報であり、将来の成果を保証しません。USD1は1米ドルでの償還を設計目標としますが、二次市場価格、即時償還、流動性、元本、利回りを保証するものではありません。発行体、準備資産、銀行、スマートコントラクト、対応チェーン、規制、保管、取引所等のリスクがあり、元本の全部を失う可能性があります。実際の利用・取引にあたっては最新の公式情報をご確認ください。本稿の時点データは、原則として2026年7月28日JST時点で確認できた公開情報に基づきます。
+<aside class="usd1-callout" role="note" aria-label="重要な免責事項">
+  <span class="usd1-callout__icon" aria-hidden="true">!</span>
+  <div>
+    <strong>重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。</strong>
+    <p>掲載する評価、市場データ、利用例は調査時点の分析上の情報であり、将来の成果を保証しません。USD1は1米ドルでの償還を設計目標としますが、二次市場価格、即時償還、流動性、元本、利回りを保証するものではありません。発行体、準備資産、銀行、スマートコントラクト、対応チェーン、規制、保管、取引所等のリスクがあり、元本の全部を失う可能性があります。実際の利用・取引にあたっては最新の公式情報をご確認ください。本稿の時点データは、原則として2026年7月28日JST時点で確認できた公開情報に基づきます。</p>
+  </div>
+</aside>
 
 ## エグゼクティブサマリー
 
@@ -77,20 +83,38 @@ WLFは2025年3月25日、USD1を米ドル、短期米国債、その他の現金
 
 WLFの公式資料は、Donald J. TrumpをCo-Founder Emeritus、Eric Trump、Donald Trump Jr.、Barron Trumpらを共同創設者として表示し、Donald J. TrumpとSteve Witkoffは公職就任時に外れたと注記しています。また、WLF公式サイトは、Donald J. Trumpと一部家族に関係するDT Marks DEFI LLCがWLF Holdcoの持分約38%を保有すると開示しています。この関係は、USD1の技術仕様とは別に、評判、利益相反、規制、政策変更のリスク要因になります。
 
-<div class="article-mermaid">
-<pre class="mermaid">timeline
-    title USD1の主な経緯
-    2025-03 : USD1を発表
-              : BitGoがカストディ・インフラを公表
-    2025-04 : 初回の月次準備金報告
-              : 月末残高が約21.28億USD1
-    2025-05 : MGXのBinance出資決済での利用を発表
-    2025-07 : 米国でGENIUS Act成立
-    2026-01 : World Liberty Trust CompanyがOCCへ申請
-              : 月末残高が約50.67億USD1
-    2026-05 : 6ネットワークでの発行・償還を報告
-              : 月末残高が約47.25億USD1</pre>
-</div>
+<section class="usd1-timeline-card" aria-labelledby="usd1-timeline-title">
+  <div class="usd1-visual-heading">
+    <span>History</span>
+    <h3 id="usd1-timeline-title">USD1の主な経緯</h3>
+  </div>
+  <ol class="usd1-timeline">
+    <li>
+      <time datetime="2025-03">2025.03</time>
+      <div><strong>USD1を発表</strong><p>BitGoがカストディとインフラ提供を公表。</p></div>
+    </li>
+    <li>
+      <time datetime="2025-04">2025.04</time>
+      <div><strong>初回の月次準備金報告</strong><p>月末残高は約21.28億USD1へ拡大。</p></div>
+    </li>
+    <li>
+      <time datetime="2025-05">2025.05</time>
+      <div><strong>大規模決済での利用を発表</strong><p>MGXによるBinance出資の決済にUSD1を採用。</p></div>
+    </li>
+    <li>
+      <time datetime="2025-07">2025.07</time>
+      <div><strong>GENIUS Act成立</strong><p>米国の決済用ステーブルコイン規制枠組みが成立。</p></div>
+    </li>
+    <li>
+      <time datetime="2026-01">2026.01</time>
+      <div><strong>OCCへ申請</strong><p>World Liberty Trust Companyが申請。月末残高は約50.67億USD1。</p></div>
+    </li>
+    <li>
+      <time datetime="2026-05">2026.05</time>
+      <div><strong>6ネットワークへ拡大</strong><p>月末残高は約47.25億USD1。6チェーンでの発行・償還を報告。</p></div>
+    </li>
+  </ol>
+</section>
 
 ### 誰が何を担うのか
 
@@ -160,6 +184,29 @@ BitGoの規約も、第三者プラットフォームでUSD1が常に1米ドル�
 | 未決済の償還 | 9,501,996米ドル | タイミング差異 |
 | 調整後の超過額 | 88,311米ドル | 報告書のSurplus |
 
+<figure class="usd1-allocation" aria-labelledby="usd1-reserve-chart-title">
+  <figcaption class="usd1-visual-heading">
+    <span>Reserve allocation</span>
+    <h3 id="usd1-reserve-chart-title">償還資産の構成</h3>
+    <p>2026年5月31日時点。合計4,734,684,613米ドル。</p>
+  </figcaption>
+  <div class="usd1-allocation__body">
+    <div class="usd1-donut usd1-donut--reserve" role="img" aria-label="米国政府MMF 85.0%、要求払預金 15.0%">
+      <span><strong>85.0%</strong><small>政府MMF</small></span>
+    </div>
+    <dl class="usd1-allocation__legend">
+      <div style="--usd1-share: 85%; --usd1-color: #35c8d2;">
+        <dt><span aria-hidden="true"></span>米国政府MMF</dt>
+        <dd><strong>85.0%</strong><small>4,024,481,921米ドル</small></dd>
+      </div>
+      <div style="--usd1-share: 15%; --usd1-color: #f4c95d;">
+        <dt><span aria-hidden="true"></span>要求払預金</dt>
+        <dd><strong>15.0%</strong><small>710,202,692米ドル</small></dd>
+      </div>
+    </dl>
+  </div>
+</figure>
+
 要求払預金は米国商業銀行に置かれ、USD1保有者の利益のための名義と説明されています。ただし、銀行ごとの残高は示されず、預金がFDICの25万米ドル上限を超える場合があることも報告書に記載されています。政府MMFは、現金、現金同等物、短期債務証券を保有し、BitGo Bank & Trustの分別されたqualified trustで管理されると説明されています。
 
 元原稿には「短期米国債50〜70%、預金10〜30%、MMF10〜30%」という推測値がありましたが、公開報告と一致しないため削除しました。2026年5月末の実際の開示は、政府MMFが約85%、要求払預金が約15%です。将来の構成は変わり得るため、固定比率としては扱いません。
@@ -217,6 +264,33 @@ Croweはreasonable assuranceを得る手続きを行い、管理者主張が重�
 | BNB Smart Chain | 1,788,761,516 USD1 | 約37.9% |
 | その他4チェーン合計 | 1,015,697,401 USD1 | 約21.5% |
 | 合計 | 4,725,094,306 USD1 | 100.0% |
+
+<figure class="usd1-allocation" aria-labelledby="usd1-chain-chart-title">
+  <figcaption class="usd1-visual-heading">
+    <span>Native supply</span>
+    <h3 id="usd1-chain-chart-title">チェーン別の構成比</h3>
+    <p>2026年5月31日時点。その他はTron、Solana、Aptos、Tempoの合計。</p>
+  </figcaption>
+  <div class="usd1-allocation__body">
+    <div class="usd1-donut usd1-donut--chains" role="img" aria-label="Ethereum 40.6%、BNB Smart Chain 37.9%、その他4チェーン 21.5%">
+      <span><strong>6</strong><small>chains</small></span>
+    </div>
+    <dl class="usd1-allocation__legend">
+      <div style="--usd1-share: 40.6%; --usd1-color: #35c8d2;">
+        <dt><span aria-hidden="true"></span>Ethereum</dt>
+        <dd><strong>40.6%</strong><small>1,920,635,389 USD1</small></dd>
+      </div>
+      <div style="--usd1-share: 37.9%; --usd1-color: #9c8cff;">
+        <dt><span aria-hidden="true"></span>BNB Smart Chain</dt>
+        <dd><strong>37.9%</strong><small>1,788,761,516 USD1</small></dd>
+      </div>
+      <div style="--usd1-share: 21.5%; --usd1-color: #f4c95d;">
+        <dt><span aria-hidden="true"></span>その他4チェーン</dt>
+        <dd><strong>21.5%</strong><small>1,015,697,401 USD1</small></dd>
+      </div>
+    </dl>
+  </div>
+</figure>
 
 最新報告の「その他」にはTron、Solana、Aptos、Tempoが含まれますが、個別残高は同表で分解されていません。チェーン別データを扱う場合は、各チェーンのネイティブ発行量、ブリッジ保管残高、取引所内部残高を二重計上しないよう注意が必要です。
 
