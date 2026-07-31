@@ -533,6 +533,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(bnbArticle.body.includes('規制・法務・セキュリティ・競争'));
   assert.ok(bnbArticle.body.includes('機関投資家向け評価とリスク論点'));
   assert.ok(bnbArticle.body.includes('class="article-mermaid"'));
+  assert.ok(bnbArticle.body.includes('data-article-slug="bnb"'));
+  assert.ok(bnbArticle.body.includes('>BNB総合分析</h1>'));
+  assert.ok(bnbArticle.body.includes('class="article-hero__subtitle"'));
+  assert.ok(bnbArticle.body.includes('トークノミクス・技術・規制・機関投資家評価'));
+  assert.ok(bnbArticle.body.includes('article-disclosure article-disclosure--compact'));
+  assert.ok(bnbArticle.body.includes('本記事は情報提供を目的としており、投資助言ではありません。'));
+  assert.ok(bnbArticle.body.includes('data-reading-progress-ring'));
+  assert.ok(bnbArticle.body.includes('data-article-toc-collapse'));
   assert.ok(bnbArticle.body.includes('https://www.justice.gov/opa/pr/binance-and-ceo-plead-guilty'));
   assert.ok(bnbArticle.body.includes('BNB の比較を見る'));
   assert.ok(bnbArticle.body.includes('/markets/BNB-JPY'));

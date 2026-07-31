@@ -309,7 +309,7 @@
     const linksHtml = `${buildTocLinks(headings)}${buildTocMoreButton(headings)}`;
     tocList.innerHTML = linksHtml;
     toc.hidden = false;
-    setTocExpanded(toc, false);
+    setTocExpanded(toc, true);
     wireTocExpansion(toc);
     if (mobileToc && mobileTocList) {
       mobileTocList.innerHTML = linksHtml;
@@ -1528,12 +1528,17 @@
   }
 
   function setAnimatedJpy(node, value) {
-    if (!node || !Number.isFinite(value)) return;
+    if (!node || !Number.isFinite(value)) return 'steady';
     const previous = Number(node.dataset.liveValue);
+    const tone = !Number.isFinite(previous) || previous === value
+      ? 'steady'
+      : value > previous
+      ? 'up'
+      : 'down';
     node.dataset.liveValue = String(value);
     if ((window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || !window.requestAnimationFrame) {
       node.textContent = formatJpy(value);
-      return;
+      return tone;
     }
     const start = Number.isFinite(previous) ? previous : value * 0.985;
     const startedAt = performance.now();
@@ -1545,6 +1550,21 @@
       if (ratio < 1) window.requestAnimationFrame(tick);
     };
     window.requestAnimationFrame(tick);
+    return tone;
+  }
+
+  function flashLiveMarketPrice(card, tone = 'steady') {
+    if (!card) return;
+    const classes = ['is-price-up', 'is-price-down', 'is-price-steady'];
+    classes.forEach(className => card.classList.remove(className));
+    void card.offsetWidth;
+    const className = tone === 'up'
+      ? 'is-price-up'
+      : tone === 'down'
+      ? 'is-price-down'
+      : 'is-price-steady';
+    card.classList.add(className);
+    window.setTimeout(() => card.classList.remove(className), 720);
   }
 
   function safeHttpsUrl(value) {
@@ -1602,6 +1622,43 @@
     return `<a class="article-live-market-card__venue-link" ${attributes.join(' ')}>${escapeHtml(label)}<span aria-hidden="true">↗</span>${trackingPixel}</a>`;
   }
 
+  function articleExchangeToken(exchangeId, exchangeLabel) {
+    const normalized = String(exchangeId || exchangeLabel || '').trim().toLowerCase();
+    if (normalized.includes('okcoin') || normalized === 'okj') return 'okj';
+    if (normalized.includes('coincheck')) return 'coincheck';
+    if (normalized.includes('bitflyer')) return 'bitflyer';
+    if (normalized.includes('bitbank')) return 'bitbank';
+    if (normalized.includes('gmo')) return 'gmo';
+    if (normalized.includes('binance')) return 'binance-japan';
+    if (normalized.includes('bittrade') || normalized.includes('huobi')) return 'bittrade';
+    return normalized.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'more';
+  }
+
+  function articleExchangeShortLabel(exchangeId, exchangeLabel) {
+    const token = articleExchangeToken(exchangeId, exchangeLabel);
+    const labels = {
+      okj: 'OKJ',
+      coincheck: 'CC',
+      bitflyer: 'BF',
+      bitbank: 'BB',
+      gmo: 'GMO',
+      'binance-japan': 'BN',
+      bittrade: 'BT',
+    };
+    return labels[token] || String(exchangeLabel || exchangeId || '?').trim().slice(0, 3).toUpperCase();
+  }
+
+  function articleExchangeIdentity(report, exchangeId, exchangeLabel) {
+    const label = String(exchangeLabel || exchangeId || '取引所').trim();
+    const token = articleExchangeToken(exchangeId, label);
+    return `
+      <span class="article-live-market-card__venue">
+        <span class="article-live-market-card__exchange-logo market-exchange-logo market-exchange-logo--${escapeHtml(token)}" role="img" aria-label="${escapeHtml(label)}">${escapeHtml(articleExchangeShortLabel(exchangeId, label))}</span>
+        ${articleExchangeAffiliateLink(report, exchangeId, label)}
+      </span>
+    `;
+  }
+
   function renderDomesticMarketReference(card, report, instrumentId) {
     const snapshot = report && report.snapshot;
     const bestBid = snapshot && snapshot.bestBid;
@@ -1622,8 +1679,8 @@
     const bidVenue = bestBid.exchangeLabel || bestBid.exchangeId || '国内取引所';
     const askVenue = bestAsk.exchangeLabel || bestAsk.exchangeId || '国内取引所';
     const venueCount = new Set([bestBid.exchangeId || bidVenue, bestAsk.exchangeId || askVenue]).size;
-    const bidVenueLink = articleExchangeAffiliateLink(report, bestBid.exchangeId, bidVenue);
-    const askVenueLink = articleExchangeAffiliateLink(report, bestAsk.exchangeId, askVenue);
+    const bidVenueIdentity = articleExchangeIdentity(report, bestBid.exchangeId, bidVenue);
+    const askVenueIdentity = articleExchangeIdentity(report, bestAsk.exchangeId, askVenue);
     const timestamps = [bestBid.updatedAt, bestAsk.updatedAt]
       .map(value => (Number.isFinite(Number(value)) ? Number(value) : Date.parse(value)))
       .filter(Number.isFinite);
@@ -1639,7 +1696,7 @@
     const sourceNode = $('[data-live-market-source]', card);
     const copyNode = $('[data-live-market-copy]', card);
 
-    if (priceNode) setAnimatedJpy(priceNode, midpointJpy);
+    const priceTone = priceNode ? setAnimatedJpy(priceNode, midpointJpy) : 'steady';
     if (venueNode) venueNode.textContent = '仲値（国内取引所ベストレート）';
     if (spreadNode) {
       spreadNode.textContent = Number.isFinite(spreadPct)
@@ -1659,12 +1716,12 @@
         <article class="article-live-market-card__side article-live-market-card__side--sell">
           <span>売却 / Best bid</span>
           <strong>${escapeHtml(formatJpy(bidJpy))}</strong>
-          <small>${bidVenueLink}</small>
+          <small>${bidVenueIdentity}</small>
         </article>
         <article class="article-live-market-card__side article-live-market-card__side--buy">
           <span>購入 / Best ask</span>
           <strong>${escapeHtml(formatJpy(askJpy))}</strong>
-          <small>${askVenueLink}</small>
+          <small>${askVenueIdentity}</small>
         </article>
       `;
     }
@@ -1682,8 +1739,7 @@
       'ready',
       isStale ? '一部に直近取得の板データを含みます。' : ''
     );
-    card.classList.add('is-fresh');
-    window.setTimeout(() => card.classList.remove('is-fresh'), 640);
+    flashLiveMarketPrice(card, priceTone);
     return true;
   }
 
@@ -1716,7 +1772,7 @@
     const sourceNode = $('[data-live-market-source]', card);
     const copyNode = $('[data-live-market-copy]', card);
 
-    if (priceNode) setAnimatedJpy(priceNode, priceJpy);
+    const priceTone = priceNode ? setAnimatedJpy(priceNode, priceJpy) : 'steady';
     if (venueNode) {
       venueNode.textContent = isOrderbook
         ? `仲値（${reference.source || '海外取引所'} ${reference.pair || ''}）`.trim()
@@ -1752,17 +1808,18 @@
     if (sparklineNode) {
       if (isOrderbook) {
         const sourceLabel = reference.source || '海外取引所';
+        const sourceIdentity = articleExchangeIdentity(null, sourceLabel, sourceLabel);
         sparklineNode.setAttribute('aria-label', `売却 ${formatJpy(bidJpy)}、購入 ${formatJpy(askJpy)}、${sourceLabel}`);
         sparklineNode.innerHTML = `
           <article class="article-live-market-card__side article-live-market-card__side--sell">
             <span>売却 / Best bid</span>
             <strong>${escapeHtml(formatJpy(bidJpy))}</strong>
-            <small>${escapeHtml(sourceLabel)}</small>
+            <small>${sourceIdentity}</small>
           </article>
           <article class="article-live-market-card__side article-live-market-card__side--buy">
             <span>購入 / Best ask</span>
             <strong>${escapeHtml(formatJpy(askJpy))}</strong>
-            <small>${escapeHtml(sourceLabel)}</small>
+            <small>${sourceIdentity}</small>
           </article>
         `;
       } else {
@@ -1802,8 +1859,7 @@
       'ready',
       reference.stale ? '直近に取得した参考値を表示しています。' : ''
     );
-    card.classList.add('is-fresh');
-    window.setTimeout(() => card.classList.remove('is-fresh'), 640);
+    flashLiveMarketPrice(card, priceTone);
     return true;
   }
 

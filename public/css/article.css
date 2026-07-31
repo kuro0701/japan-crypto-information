@@ -192,6 +192,27 @@
   white-space: nowrap;
 }
 
+.article-hero__subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+
+.article-hero__subtitle span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(53, 200, 210, 0.2);
+  border-radius: 999px;
+  background: rgba(53, 200, 210, 0.07);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .topbar .status-cluster--compact {
   min-height: 40px;
   gap: 4px;
@@ -205,14 +226,37 @@
 
 .topbar .beginner-toggle--header,
 .topbar .beginner-toggle--header.is-active {
-  border-color: rgba(53, 200, 210, 0.34) !important;
-  background: rgba(53, 200, 210, 0.1) !important;
+  border-color: rgba(53, 200, 210, 0.24) !important;
+  background: rgba(4, 10, 12, 0.72) !important;
   color: var(--accent) !important;
 }
 
-.topbar .beginner-toggle--header .beginner-toggle-switch__knob,
-.topbar .beginner-toggle--header.beginner-toggle--switch.is-active .beginner-toggle-switch__knob {
-  background: var(--accent);
+.topbar .beginner-toggle--header.beginner-toggle--switch {
+  gap: 2px;
+  padding: 2px !important;
+  border-radius: 10px !important;
+}
+
+.topbar .beginner-toggle--header .beginner-toggle-switch__track {
+  display: none;
+}
+
+.topbar .beginner-toggle--header .beginner-toggle-switch__option {
+  display: block;
+  min-width: 48px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  text-align: center;
+  opacity: 0.52;
+  transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+
+.topbar .beginner-toggle--header.beginner-toggle--switch.is-active .beginner-toggle-switch__option--beginner,
+.topbar .beginner-toggle--header.beginner-toggle--switch:not(.is-active) .beginner-toggle-switch__option--advanced {
+  background: rgba(53, 200, 210, 0.16);
+  color: var(--text-1);
+  opacity: 1;
+  box-shadow: inset 0 0 0 1px rgba(53, 200, 210, 0.18);
 }
 
 .article-mode-help {
@@ -451,6 +495,45 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
   overflow-wrap: normal;
 }
 
+.article-main.panel[data-article-slug="bnb"] {
+  --accent: #35c8d2;
+  border-color: rgba(53, 200, 210, 0.16) !important;
+  background:
+    radial-gradient(circle at 94% 3%, rgba(53, 200, 210, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(11, 18, 20, 0.94), rgba(7, 12, 14, 0.96));
+  backdrop-filter: blur(16px);
+}
+
+.article-main[data-article-slug="bnb"] .article-hero {
+  position: relative;
+  padding-top: var(--sp-3);
+}
+
+.article-main[data-article-slug="bnb"] .article-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(53, 200, 210, 0.96), rgba(53, 224, 165, 0.42), transparent 86%);
+}
+
+.article-main[data-article-slug="bnb"] .article-hero__title {
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.article-main[data-article-slug="bnb"] .article-hero__subtitle span {
+  border-color: rgba(53, 200, 210, 0.2);
+  background: linear-gradient(90deg, rgba(53, 200, 210, 0.1), rgba(53, 224, 165, 0.05));
+}
+
+.article-main[data-article-slug="bnb"] :is(.article-mermaid, .article-live-market-card) {
+  border-color: rgba(53, 200, 210, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(16px);
+}
+
 .article-callout {
   position: relative;
   display: grid;
@@ -492,6 +575,90 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
   color: var(--text-3);
   font-size: 13px;
   line-height: 1.75;
+}
+
+.article-disclosure {
+  width: min(100%, 740px);
+  margin-right: auto;
+  margin-left: auto;
+  overflow: hidden;
+  border: 1px solid rgba(53, 200, 210, 0.16);
+  border-left: 3px solid rgba(53, 200, 210, 0.72);
+  border-radius: var(--r-sm);
+  background: rgba(53, 200, 210, 0.035);
+}
+
+.article-disclosure summary {
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: center;
+  padding: 7px 12px;
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.55;
+  list-style: none;
+}
+
+.article-disclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.article-disclosure__mark {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(53, 200, 210, 0.28);
+  border-radius: 50%;
+  background: rgba(53, 200, 210, 0.09);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.article-disclosure summary strong {
+  color: var(--text-2);
+  font-weight: 800;
+}
+
+.article-disclosure__action {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.article-disclosure__action::after {
+  content: "⌄";
+  display: inline-block;
+  margin-left: 5px;
+  transition: transform 160ms ease;
+}
+
+.article-disclosure[open] .article-disclosure__action::after {
+  transform: rotate(180deg);
+}
+
+.article-disclosure__body {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 12px 45px;
+  border-top: 1px solid rgba(53, 200, 210, 0.1);
+}
+
+.article-disclosure__body p {
+  margin: 10px 0 0;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.75;
+}
+
+.article-disclosure__body strong {
+  color: var(--text-2);
 }
 
 .article-body > blockquote {
@@ -603,8 +770,8 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
 .article-toc__progress {
   --reading-progress: 0deg;
   position: relative;
-  width: 68px;
-  height: 68px;
+  width: 76px;
+  height: 76px;
   display: grid;
   place-items: center;
   margin: 4px auto var(--sp-3);
@@ -617,7 +784,7 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
 .article-toc__progress::before {
   content: "";
   position: absolute;
-  inset: 5px;
+  inset: 6px;
   border-radius: inherit;
   background: rgba(8, 12, 14, 0.96);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
@@ -634,15 +801,15 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
 .article-toc__progress output {
   color: var(--text-1);
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
 
 .article-toc__progress small {
-  margin-top: 3px;
+  margin-top: 4px;
   color: var(--text-4);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -2915,8 +3082,19 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
   text-shadow: 0 0 24px rgba(53, 200, 210, 0.18);
 }
 
-.article-live-market-card.is-fresh .article-live-market-card__quote strong {
-  animation: about-data-flash 640ms ease;
+.article-live-market-card.is-price-up .article-live-market-card__quote strong,
+.article-live-market-card.is-price-up .article-live-market-card__side strong {
+  animation: article-price-flash-up 680ms ease;
+}
+
+.article-live-market-card.is-price-down .article-live-market-card__quote strong,
+.article-live-market-card.is-price-down .article-live-market-card__side strong {
+  animation: article-price-flash-down 680ms ease;
+}
+
+.article-live-market-card.is-price-steady .article-live-market-card__quote strong,
+.article-live-market-card.is-price-steady .article-live-market-card__side strong {
+  animation: article-price-flash-steady 620ms ease;
 }
 
 .article-live-market-card__sides {
@@ -2965,13 +3143,43 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
 }
 
 .article-live-market-card__side--sell {
-  border-color: rgba(53, 200, 210, 0.26);
-  background: linear-gradient(135deg, rgba(53, 200, 210, 0.1), rgba(4, 9, 11, 0.48));
+  border-color: rgba(53, 224, 165, 0.22);
+  background: linear-gradient(135deg, rgba(53, 224, 165, 0.1), rgba(4, 9, 11, 0.48));
 }
 
 .article-live-market-card__side--buy {
-  border-color: rgba(53, 200, 210, 0.18);
-  background: linear-gradient(225deg, rgba(53, 200, 210, 0.08), rgba(4, 9, 11, 0.48));
+  border-color: rgba(74, 156, 255, 0.2);
+  background: linear-gradient(225deg, rgba(74, 156, 255, 0.08), rgba(4, 9, 11, 0.48));
+}
+
+.article-live-market-card__side--sell > span {
+  color: var(--bid);
+}
+
+.article-live-market-card__side--buy > span {
+  color: #77b6ff;
+}
+
+.article-live-market-card__venue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.article-live-market-card__exchange-logo.market-exchange-logo {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  font-size: 8px;
+}
+
+.article-live-market-card__venue .article-live-market-card__venue-link {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .article-live-market-card__sparkline {
@@ -6084,9 +6292,15 @@ html.theme-light .beginner-guide-warning {
     max-height: calc(100vh - 116px);
     overflow-y: auto;
     padding: var(--sp-3);
-    border: 1px solid var(--line);
+    border: 1px solid rgba(53, 200, 210, 0.12);
     border-radius: var(--r);
     background: rgba(8, 12, 14, 0.72);
+    backdrop-filter: blur(16px);
+  }
+
+  .article-toc .article-toc__more,
+  .article-toc .article-toc__collapse {
+    display: none !important;
   }
 }
 
@@ -6614,8 +6828,71 @@ html.theme-light .beginner-guide-warning {
   }
 }
 
+@keyframes article-price-flash-up {
+  0% {
+    color: #baffdf;
+    text-shadow: 0 0 0 rgba(53, 224, 165, 0);
+    filter: brightness(1);
+  }
+  42% {
+    color: var(--bid);
+    text-shadow: 0 0 22px rgba(53, 224, 165, 0.48);
+    filter: brightness(1.24);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes article-price-flash-down {
+  0% {
+    color: #ffd5d7;
+    text-shadow: 0 0 0 rgba(255, 107, 112, 0);
+    filter: brightness(1);
+  }
+  42% {
+    color: var(--ask);
+    text-shadow: 0 0 22px rgba(255, 107, 112, 0.42);
+    filter: brightness(1.2);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes article-price-flash-steady {
+  0% { filter: brightness(1); }
+  42% {
+    text-shadow: 0 0 22px rgba(53, 200, 210, 0.4);
+    filter: brightness(1.18);
+  }
+  100% { filter: brightness(1); }
+}
+
 @keyframes canton-flow {
   to { stroke-dashoffset: -120; }
+}
+
+html.theme-light .article-main.panel[data-article-slug="bnb"] {
+  border-color: rgba(23, 125, 146, 0.16) !important;
+  background:
+    radial-gradient(circle at 94% 3%, rgba(23, 125, 146, 0.07), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(243, 248, 247, 0.97));
+}
+
+html.theme-light .article-disclosure {
+  border-color: rgba(23, 125, 146, 0.16);
+  border-left-color: rgba(23, 125, 146, 0.64);
+  background: rgba(23, 125, 146, 0.035);
+}
+
+html.theme-light .article-disclosure__body {
+  border-top-color: rgba(23, 125, 146, 0.1);
+}
+
+html.theme-light .topbar .beginner-toggle--header,
+html.theme-light .topbar .beginner-toggle--header.is-active {
+  background: rgba(255, 255, 255, 0.8) !important;
 }
 
 html.theme-light .article-key-takeaways {
@@ -6870,7 +7147,10 @@ html.theme-light .article-toc__progress::before {
 
 @media (prefers-reduced-motion: reduce) {
   .article-live-ticker.is-fresh .article-live-ticker__item span,
-  .article-live-market-card.is-fresh .article-live-market-card__quote strong,
+  .article-live-market-card:is(.is-price-up, .is-price-down, .is-price-steady) :is(
+    .article-live-market-card__quote strong,
+    .article-live-market-card__side strong
+  ),
   .spread-bar-visual__gap::before,
   .orderbook-learning-hero.is-ticking .orderbook-learning-row,
   .mini-orderbook__mid,
