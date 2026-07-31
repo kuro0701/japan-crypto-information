@@ -444,6 +444,22 @@
         });
       });
 
+      root.addEventListener('click', (event) => {
+        const jump = event.target.closest('[data-summary-jump]');
+        if (!jump) return;
+        const body = root.closest('.article-body');
+        const headings = body ? $$('h2', body) : [];
+        const heading = headings[Number(jump.dataset.summaryJump)];
+        if (!heading) return;
+        let parentDetails = heading.closest('details');
+        while (parentDetails) {
+          parentDetails.open = true;
+          parentDetails = parentDetails.parentElement && parentDetails.parentElement.closest('details');
+        }
+        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        heading.focus({ preventScroll: true });
+      });
+
       if (window.BeginnerMode && window.BeginnerMode.isEnabled && window.BeginnerMode.isEnabled()) {
         selectTab('quick');
       } else {
@@ -455,12 +471,46 @@
     });
   }
 
-  function initSolBeginnerSections() {
-    const article = $('.article-main[data-article-slug="sol"]');
+  function initArticleEndDisclaimer() {
+    const article = $('.article-main[data-article-kind="market"]');
     const body = article && $('.article-body', article);
     if (!body) return;
 
-    const technicalHeadings = $$('h2', body).filter(heading => /プロトコル概要|パフォーマンス・セキュリティ・ガバナンス/.test(heading.textContent));
+    const headings = $$('h2', body);
+    const heading = headings[headings.length - 1];
+    if (!heading || !/免責事項|重要事項/.test(heading.textContent.trim())) return;
+    const content = [];
+    let cursor = heading.nextSibling;
+    while (cursor) {
+      const next = cursor.nextSibling;
+      content.push(cursor);
+      cursor = next;
+    }
+    if (!content.some(node => node.nodeType === 1 || String(node.textContent || '').trim())) return;
+
+    const details = document.createElement('details');
+    details.className = 'article-section-disclaimer article-section-disclaimer--shared';
+    details.dataset.sharedEndDisclaimer = 'true';
+    details.innerHTML = `
+      <summary><span aria-hidden="true">!</span><strong>${escapeHtml(heading.textContent.trim())}</strong><small>開いて確認</small></summary>
+      <div></div>
+    `;
+    heading.replaceWith(details);
+    const container = $('div', details);
+    content.forEach(node => container.appendChild(node));
+  }
+
+  function initMarketBeginnerSections() {
+    const article = $('.article-main[data-article-kind="market"]');
+    const body = article && $('.article-body', article);
+    if (!body) return;
+
+    const technicalPattern = /技術|仕組み|アーキテクチャ|プロトコル|コンセンサス|トークノミクス|供給|ステーキング|ガバナンス|セキュリティ|オンチェーン|スマートコントラクト|性能|パフォーマンス|実装|ネットワーク/i;
+    const keepVisiblePattern = /エグゼクティブサマリー|要約|結論|リスク|規制|参考|ソース|免責/i;
+    const technicalHeadings = $$('h2', body).filter((heading) => {
+      const label = heading.textContent.trim();
+      return technicalPattern.test(label) && !keepVisiblePattern.test(label) && !heading.closest('details');
+    });
     technicalHeadings.forEach((heading) => {
       if (heading.dataset.beginnerFoldReady === 'true') return;
       const details = document.createElement('details');
@@ -588,6 +638,25 @@
   }
 
   function initArticleSourcePopovers() {
+    const body = $('.article-body');
+    if (!body) return;
+    $$('a[href]', body).forEach((source) => {
+      if (source.matches('.article-source-link[data-source-title][data-source-summary]')) return;
+      if (source.closest('[data-article-summary-tabs], .article-live-market-card, .article-next-actions')) return;
+      if (String(source.rel || '').split(/\s+/).includes('sponsored')) return;
+      let url;
+      try {
+        url = new URL(source.href, window.location.href);
+      } catch (_) {
+        return;
+      }
+      if (!/^https?:$/.test(url.protocol) || url.origin === window.location.origin) return;
+      const host = url.hostname.replace(/^www\./, '');
+      source.classList.add('article-source-link', 'article-source-link--shared');
+      source.dataset.sourceTitle = source.title || source.textContent.replace(/\s+/g, ' ').trim() || host;
+      source.dataset.sourceSummary = `${host} の参照ページです。本文から参照している内容と更新時点をリンク先で確認できます。`;
+    });
+
     const sources = $$('.article-source-link[data-source-title][data-source-summary]');
     if (!sources.length) return;
     const popover = document.createElement('aside');
@@ -619,7 +688,7 @@
         <span>Source preview</span>
         <strong>${escapeHtml(source.dataset.sourceTitle)}</strong>
         <p>${escapeHtml(source.dataset.sourceSummary)}</p>
-        <a href="${escapeHtml(source.href)}" target="_blank" rel="noopener noreferrer">公式ソースを開く ↗</a>
+        <a href="${escapeHtml(source.href)}" target="_blank" rel="noopener noreferrer">参照ページを開く ↗</a>
       `;
       popover.hidden = false;
       source.setAttribute('aria-expanded', 'true');
@@ -2980,12 +3049,11 @@
   }
 
   function initArticleBeginnerGuide() {
-    const article = $('.article-main[data-article-slug]');
-    const slug = article && article.dataset ? article.dataset.articleSlug : '';
-    if (slug !== 'canton') return;
+    const article = $('.article-main[data-article-kind="market"]');
+    if (!article) return;
     const toggle = $('.topbar [data-beginner-toggle]');
     if (!toggle) return;
-    const storageKey = `${BEGINNER_GUIDE_STORAGE_KEY}:${slug}`;
+    const storageKey = `${BEGINNER_GUIDE_STORAGE_KEY}:shared-reading-mode`;
     try {
       if (localStorage.getItem(storageKey) === 'seen') return;
     } catch (_) {
@@ -3000,7 +3068,7 @@
     guide.innerHTML = `
       <span>初めての方へ</span>
       <strong>初心者モードで読み方が変わります</strong>
-      <p>DamlやBFTなどの用語をタップで確認でき、比較表では補足列を整理します。いつでも通常表示へ戻せます。</p>
+      <p>要点ナビを先に表示し、専門用語はタップ解説、技術的な節は折りたたみで整理します。いつでも通常表示へ戻せます。</p>
       <button type="button" data-beginner-guide-dismiss>わかりました</button>
     `;
     document.body.appendChild(guide);
@@ -3154,8 +3222,9 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
+    initArticleEndDisclaimer();
     initArticleSummaryTabs();
-    initSolBeginnerSections();
+    initMarketBeginnerSections();
     initToc();
     initReadingProgress();
     initArticleTables();
