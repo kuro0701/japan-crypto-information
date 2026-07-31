@@ -1296,6 +1296,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.equal(volumeSharePage.status, 200);
   assert.ok(volumeSharePage.body.includes('流動性サマリー'));
   assert.ok(volumeSharePage.body.includes('目的別取引所マップ'));
+  assert.ok(volumeSharePage.body.includes('銘柄別・月間取引所シェア'));
+  assert.ok(volumeSharePage.body.includes('出来高（銘柄建て）'));
   assert.ok(volumeSharePage.body.includes('取引所（口座開設）'));
   assert.ok(volumeSharePage.body.includes('市場のトレンド速報'));
   assert.ok(volumeSharePage.body.includes(COINCHECK_AFFILIATE_URL));
@@ -1422,6 +1424,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   const volumeHistory = await fetchJson(baseUrl, '/api/volume-share/history?window=30d');
   assert.equal(volumeHistory.status, 200);
   assert.equal(volumeHistory.body.rows.length, 2);
+
+  const monthlyVolumeShare = await fetchJson(baseUrl, '/api/volume-share/monthly?months=12');
+  assert.equal(monthlyVolumeShare.status, 200);
+  assert.equal(monthlyVolumeShare.body.meta.source, 'monthly-snapshots');
+  assert.equal(monthlyVolumeShare.body.months.length, 1);
+  assert.equal(monthlyVolumeShare.body.rows.length, 2);
+  assert.ok(monthlyVolumeShare.body.rows.every(row => !row.instrumentId.includes('-CFD-')));
+  assert.ok(monthlyVolumeShare.body.rows.every(row => Number.isFinite(row.baseVolume)));
 
   const volumeInsights = await fetchJson(baseUrl, '/api/volume-share/insights?window=90d&maxInsights=6');
   assert.equal(volumeInsights.status, 200);

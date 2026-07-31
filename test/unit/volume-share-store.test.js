@@ -85,6 +85,76 @@ test('VolumeShareStore aggregates exchange and instrument share from daily snaps
   assert.equal(Number(btcOkj.instrumentSharePct.toFixed(6)), Number((300 / 700 * 100).toFixed(6)));
 });
 
+test('VolumeShareStore builds calendar-month instrument shares with base-volume totals', (t) => {
+  const tempDir = createTempDir('okj-volume-store-monthly-');
+  t.after(() => removeTempDir(tempDir));
+
+  const store = new VolumeShareStore({
+    dataFilePath: path.join(tempDir, 'volume-share-history.json'),
+  });
+
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 100, '2026-04-01T00:00:00.000Z', { baseVolume24h: 1 }),
+    volumeRecord('coincheck', 'BTC-JPY', 300, '2026-04-01T00:00:00.000Z', { baseVolume24h: 3 }),
+  ], {
+    capturedAt: '2026-04-01T00:00:00.000Z',
+    volumeDateJst: '2026-04-01',
+    reason: 'jst-midnight',
+  });
+  store.captureDaily([
+    volumeRecord('okj', 'BTC-JPY', 300, '2026-04-02T00:00:00.000Z', { baseVolume24h: 3 }),
+    volumeRecord('coincheck', 'BTC-JPY', 300, '2026-04-02T00:00:00.000Z', { baseVolume24h: 3 }),
+  ], {
+    capturedAt: '2026-04-02T00:00:00.000Z',
+    volumeDateJst: '2026-04-02',
+    reason: 'jst-midnight',
+  });
+
+  const monthly = store.getMonthlyShare({
+    months: 12,
+    now: '2026-05-01T12:00:00.000+09:00',
+  });
+  assert.equal(monthly.meta.source, 'monthly-snapshots');
+  assert.equal(monthly.months.length, 1);
+  assert.equal(monthly.months[0].monthJst, '2026-04');
+  assert.equal(monthly.months[0].dayCount, 2);
+  assert.equal(monthly.months[0].isClosed, true);
+  assert.equal(monthly.months[0].isComplete, false);
+
+  const okj = monthly.rows.find(row => row.exchangeId === 'okj' && row.instrumentId === 'BTC-JPY');
+  assert.equal(okj.quoteVolume, 400);
+  assert.equal(okj.baseVolume, 4);
+  assert.equal(okj.instrumentTotalQuoteVolume, 1_000);
+  assert.equal(okj.instrumentSharePct, 40);
+});
+
+test('VolumeShareStore retains completed monthly aggregates after raw daily retention rolls forward', () => {
+  const store = new VolumeShareStore({
+    dataFilePath: null,
+  });
+
+  const start = new Date('2025-01-01T00:00:00.000Z');
+  for (let index = 0; index < 125; index += 1) {
+    const date = new Date(start.getTime());
+    date.setUTCDate(date.getUTCDate() + index);
+    const isoDate = date.toISOString().slice(0, 10);
+    store.captureDaily([
+      volumeRecord('okj', 'BTC-JPY', 100, `${isoDate}T00:00:00.000Z`, { baseVolume24h: 1 }),
+    ], {
+      capturedAt: `${isoDate}T00:00:00.000Z`,
+      volumeDateJst: isoDate,
+      reason: 'jst-midnight',
+    });
+  }
+
+  assert.equal(store.data.dailySnapshots.length, 120);
+  const january = store.data.monthlySnapshots.find(snapshot => snapshot.monthJst === '2025-01');
+  assert.ok(january);
+  assert.equal(january.dayCount, 31);
+  assert.equal(january.records[0].quoteVolume, 3_100);
+  assert.equal(january.records[0].baseVolume, 31);
+});
+
 test('VolumeShareStore can filter derivative records for dedicated share and insights views', (t) => {
   const tempDir = createTempDir('okj-volume-store-derivatives-');
   t.after(() => removeTempDir(tempDir));
