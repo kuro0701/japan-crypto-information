@@ -878,7 +878,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(usd1Article.body.includes('日本での法的区分・取扱い・税務'));
   assert.ok(usd1Article.body.includes('class="article-mermaid"'));
   assert.ok(usd1Article.body.includes('article-hero__title-phrase'));
-  assert.ok(usd1Article.body.includes('usd1-callout'));
+  assert.ok(usd1Article.body.includes('article-callout article-callout--warning'));
   assert.ok(usd1Article.body.includes('usd1-timeline'));
   assert.ok(usd1Article.body.includes('usd1-donut--reserve'));
   assert.ok(usd1Article.body.includes('usd1-donut--chains'));
@@ -897,6 +897,14 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!usd1Article.body.includes('積み増し'));
   assertMarketArticleInvestmentDisclaimer(usd1Article.body);
   assertCommonDisclosure(usd1Article.body);
+
+  const btcSharedArticleUi = await fetchText(baseUrl, '/articles/btc');
+  assert.equal(btcSharedArticleUi.status, 200);
+  assert.ok(btcSharedArticleUi.body.includes('<span class="article-hero__title-phrase">ビットコインとは？</span>'));
+  assert.ok(btcSharedArticleUi.body.includes('<span class="article-hero__title-group">仕組み</span>'));
+  assert.ok(btcSharedArticleUi.body.includes('class="article-meta-row'));
+  assert.ok(btcSharedArticleUi.body.includes('data-reading-progress-ring'));
+  assert.ok(btcSharedArticleUi.body.includes('data-article-toc-collapse'));
 
   const gramArticle = await fetchText(baseUrl, '/articles/gram');
   assert.equal(gramArticle.status, 200);

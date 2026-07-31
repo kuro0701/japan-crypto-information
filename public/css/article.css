@@ -137,7 +137,7 @@
 
 .article-main .article-body {
   font-size: 15px;
-  line-height: 1.86;
+  line-height: 1.8;
 }
 
 .article-main .article-body > * + * {
@@ -156,7 +156,13 @@
 }
 
 .article-main .article-body p {
-  line-height: 1.86;
+  line-height: 1.8;
+}
+
+.article-main .article-body > :is(h2, h3, p, ul, ol, blockquote, .article-callout) {
+  width: min(100%, 740px);
+  margin-right: auto;
+  margin-left: auto;
 }
 
 .article-hero {
@@ -176,6 +182,7 @@
 .article-hero__title-phrase,
 .article-hero__title-group {
   display: inline-block;
+  max-width: 100%;
   white-space: nowrap;
 }
 
@@ -284,6 +291,32 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
 
 .article-meta-row {
   align-items: center;
+  gap: 8px;
+}
+
+.article-meta-row > span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border: 1px solid rgba(156, 140, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(156, 140, 255, 0.07);
+  color: var(--text-3);
+  font-weight: 800;
+}
+
+.article-meta-row time {
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.article-meta-row .article-reading-time {
+  border-color: rgba(53, 200, 210, 0.28);
+  background: rgba(53, 200, 210, 0.1);
+  color: var(--accent);
 }
 
 .article-main[data-article-slug="usd1"] {
@@ -312,47 +345,7 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
   overflow-wrap: normal;
 }
 
-.article-main[data-article-slug="usd1"] .article-meta-row {
-  gap: 8px;
-}
-
-.article-main[data-article-slug="usd1"] .article-meta-row > span {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0 10px;
-  border: 1px solid rgba(156, 140, 255, 0.22);
-  border-radius: 999px;
-  background: rgba(156, 140, 255, 0.07);
-  color: var(--text-3);
-  font-weight: 800;
-}
-
-.article-main[data-article-slug="usd1"] .article-meta-row time {
-  color: var(--text-2);
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
-.article-main[data-article-slug="usd1"] .article-meta-row .article-reading-time {
-  border-color: rgba(53, 200, 210, 0.28);
-  background: rgba(53, 200, 210, 0.1);
-  color: var(--accent);
-}
-
-.article-main[data-article-slug="usd1"] .article-body > :is(h2, h3, p, ul, ol, blockquote, .usd1-callout) {
-  width: min(100%, 740px);
-  margin-right: auto;
-  margin-left: auto;
-}
-
-.article-main[data-article-slug="usd1"] .article-body,
-.article-main[data-article-slug="usd1"] .article-body p {
-  line-height: 1.8;
-}
-
-.usd1-callout {
+.article-callout {
   position: relative;
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr);
@@ -360,7 +353,7 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
   padding: var(--sp-4);
   overflow: hidden;
   border: 1px solid rgba(244, 201, 93, 0.28);
-  border-left: 4px solid var(--usd1-gold);
+  border-left: 4px solid var(--warn);
   border-radius: var(--r);
   background:
     radial-gradient(circle at top right, rgba(244, 201, 93, 0.12), transparent 44%),
@@ -368,7 +361,7 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-.usd1-callout__icon {
+.article-callout__icon {
   width: 34px;
   height: 34px;
   display: grid;
@@ -376,23 +369,67 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
   border: 1px solid rgba(244, 201, 93, 0.38);
   border-radius: 50%;
   background: rgba(244, 201, 93, 0.14);
-  color: var(--usd1-gold);
+  color: var(--warn);
   font-family: var(--font-mono);
   font-size: 18px;
   font-weight: 900;
 }
 
-.usd1-callout strong {
+.article-callout strong {
   display: block;
   color: var(--text-1);
   line-height: 1.65;
 }
 
-.usd1-callout p {
+.article-callout p {
   margin: 8px 0 0;
   color: var(--text-3);
   font-size: 13px;
   line-height: 1.75;
+}
+
+.article-body > blockquote {
+  position: relative;
+  min-height: 58px;
+  padding: var(--sp-4) var(--sp-4) var(--sp-4) 64px;
+  overflow: hidden;
+  border: 1px solid rgba(244, 201, 93, 0.28);
+  border-left: 4px solid var(--warn);
+  border-radius: var(--r);
+  background:
+    radial-gradient(circle at top right, rgba(244, 201, 93, 0.12), transparent 44%),
+    rgba(244, 201, 93, 0.06);
+  color: var(--text-3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.article-body > blockquote::before {
+  content: "!";
+  position: absolute;
+  top: var(--sp-4);
+  left: var(--sp-4);
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(244, 201, 93, 0.38);
+  border-radius: 50%;
+  background: rgba(244, 201, 93, 0.14);
+  color: var(--warn);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.article-body > blockquote p {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.article-body > blockquote strong {
+  color: var(--text-1);
 }
 
 .article-reading-time {
@@ -4981,7 +5018,8 @@ html.theme-light .article-mermaid {
 
 html.theme-light .usd1-allocation,
 html.theme-light .usd1-timeline-card,
-html.theme-light .usd1-callout {
+html.theme-light .article-callout,
+html.theme-light .article-body > blockquote {
   border-color: rgba(23, 124, 132, 0.2);
   background:
     radial-gradient(circle at top right, rgba(91, 73, 186, 0.08), transparent 42%),
@@ -6462,23 +6500,35 @@ html.theme-light .article-toc__progress::before {
     width: min(170px, 72vw);
   }
 
-  .article-main[data-article-slug="usd1"] .article-body > :is(h2, h3, p, ul, ol, blockquote, .usd1-callout) {
+  .article-main .article-body > :is(h2, h3, p, ul, ol, blockquote, .article-callout) {
     width: 100%;
   }
 }
 
 @media (max-width: 640px) {
-  .article-main[data-article-slug="usd1"] .article-hero__title {
+  .article-hero__title {
     font-size: 28px !important;
     line-height: 1.28;
   }
 
-  .usd1-callout {
+  .article-callout {
     grid-template-columns: 30px minmax(0, 1fr);
     padding: var(--sp-3);
   }
 
-  .usd1-callout__icon {
+  .article-callout__icon {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .article-body > blockquote {
+    padding: var(--sp-3) var(--sp-3) var(--sp-3) 52px;
+  }
+
+  .article-body > blockquote::before {
+    top: var(--sp-3);
+    left: var(--sp-3);
     width: 30px;
     height: 30px;
     font-size: 16px;

@@ -14,8 +14,8 @@ tags: USD1, World Liberty Financial, WLFI, BitGo, ステーブルコイン, 準�
 readMinutes: 27
 ---
 
-<aside class="usd1-callout" role="note" aria-label="重要な免責事項">
-  <span class="usd1-callout__icon" aria-hidden="true">!</span>
+<aside class="article-callout article-callout--warning" role="note" aria-label="重要な免責事項">
+  <span class="article-callout__icon" aria-hidden="true">!</span>
   <div>
     <strong>重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。</strong>
     <p>掲載する評価、市場データ、利用例は調査時点の分析上の情報であり、将来の成果を保証しません。USD1は1米ドルでの償還を設計目標としますが、二次市場価格、即時償還、流動性、元本、利回りを保証するものではありません。発行体、準備資産、銀行、スマートコントラクト、対応チェーン、規制、保管、取引所等のリスクがあり、元本の全部を失う可能性があります。実際の利用・取引にあたっては最新の公式情報をご確認ください。本稿の時点データは、原則として2026年7月28日JST時点で確認できた公開情報に基づきます。</p>
