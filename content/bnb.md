@@ -1,8 +1,10 @@
 ---
 title: BNB総合分析｜トークノミクス・技術・規制・機関投資家評価
+heroTitle: BNB総合分析
+heroSubtitle: トークノミクス・技術・規制・機関投資家評価
 description: BNBの歴史、バーンとステーキング、BNB Chainの技術基盤、エコシステム、市場・オンチェーン動向、規制・セキュリティ、競争環境と機関投資家向け評価論点を総合分析します。
 date: 2026-07-14
-updated: 2026-07-17
+updated: 2026-07-31
 author: 国内暗号資産取引所ナビ
 slug: bnb
 path: /articles/bnb
@@ -13,7 +15,17 @@ tags: BNB, BNB Chain, Binance, BSC, opBNB, Greenfield, PoSA, Auto-Burn, DeFi, �
 readMinutes: 24
 ---
 
-> **重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。** 掲載する評価、シナリオ、価格レンジ、運用例は調査時点の分析上の仮定であり、将来の成果を保証しません。暗号資産は価格変動・流動性・技術・規制等のリスクを伴います。実際の取引判断は、最新の公式情報を確認し、ご自身の状況に応じて行ってください。
+<details class="article-disclosure article-disclosure--compact">
+  <summary>
+    <span class="article-disclosure__mark" aria-hidden="true">!</span>
+    <strong>本記事は情報提供を目的としており、投資助言ではありません。</strong>
+    <span class="article-disclosure__action">詳細を見る</span>
+  </summary>
+  <div class="article-disclosure__body">
+    <p><strong>重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。</strong></p>
+    <p>掲載する評価、シナリオ、価格レンジ、運用例は調査時点の分析上の仮定であり、将来の成果を保証しません。暗号資産は価格変動・流動性・技術・規制等のリスクを伴います。実際の取引判断は、最新の公式情報を確認し、ご自身の状況に応じて行ってください。</p>
+  </div>
+</details>
 
 ## エグゼクティブサマリー
 
