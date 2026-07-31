@@ -171,6 +171,38 @@
       title: 'Validator',
       description: '自らがホストする当事者に関係する取引を受け取り、署名、権限、入力状態、Daml契約の整合性を検証するノードです。',
     },
+    dpos: {
+      title: 'DPoS（Delegated Proof of Stake）',
+      description: '保有者の投票で選ばれた少数の代表者がブロック生成を担う方式です。TRONでは上位27のSuper Representativesが約3秒間隔でブロックを生成します。',
+      visual: ['TRXをステーク', '投票', '27 SRが生成'],
+      links: [
+        { href: 'https://developers.tron.network/docs/super-representatives', label: 'TRON公式：Super Representatives' },
+      ],
+    },
+    tvm: {
+      title: 'TVM（TRON Virtual Machine）',
+      description: 'TRON上でSolidityスマートコントラクトを実行する仮想マシンです。EVMに概ね互換ですが、小数桁・opcode・最大実行時間などに差があります。',
+      visual: ['Solidity', 'TVMで実行', 'TRONの状態更新'],
+      links: [
+        { href: 'https://developers.tron.network/docs/tvm', label: 'TRON公式：TVM' },
+      ],
+    },
+    'bandwidth-energy': {
+      title: 'Bandwidth / Energy',
+      description: 'TRONのネットワーク資源です。通常送金は主にBandwidth、スマートコントラクト実行はBandwidthとEnergyを消費し、TRXのステークやTRXバーンで賄います。',
+      visual: ['送金＝Bandwidth', 'Contract＝Energy', '不足分＝TRX消費'],
+      links: [
+        { href: 'https://developers.tron.network/docs/resource-model', label: 'TRON公式：Resource Model' },
+      ],
+    },
+    'trc-20': {
+      title: 'TRC-20',
+      description: 'TVM上で発行される代替可能トークンの規格です。ERC-20と互換性が高く、TRON上のUSDTなどで使われています。',
+      visual: ['発行Contract', 'TRC-20 Token', 'Wallet / DApp'],
+      links: [
+        { href: 'https://developers.tron.network/docs/trc20', label: 'TRON公式：TRC-20' },
+      ],
+    },
     'global-synchronizer': {
       title: 'Global Synchronizer',
       description: '関係するValidator間で暗号化メッセージの順序とタイミングを調整し、複数アプリにまたがる取引をまとめて成立または不成立にする共有同期基盤です。',
@@ -210,6 +242,10 @@
   };
 
   const AUTO_ARTICLE_TERMS = [
+    { key: 'dpos', pattern: /Delegated Proof of Stake|\bDPoS\b/i },
+    { key: 'tvm', pattern: /TRON Virtual Machine|\bTVM\b/i },
+    { key: 'bandwidth-energy', pattern: /Bandwidth\s*(?:と|\/|／|and)\s*Energy/i },
+    { key: 'trc-20', pattern: /\bTRC-20\b/i },
     { key: 'proof-of-work', pattern: /\bProof[\s-]?of[\s-]?Work\b|\bPoW\b/i },
     { key: 'proof-of-history', pattern: /\bProof[\s-]?of[\s-]?History\b|\bPoH\b/i },
     { key: 'alpenglow', pattern: /\bAlpenglow\b/i },
@@ -730,9 +766,17 @@
     if (!button || !entry) return;
 
     const node = ensureTooltip();
+    const visual = Array.isArray(entry.visual) && entry.visual.length
+      ? `<div class="term-tooltip__visual" aria-label="${escapeHtml(entry.title)}の流れ">${entry.visual.map((item, index) => `<span>${escapeHtml(item)}${index < entry.visual.length - 1 ? '<i aria-hidden="true">→</i>' : ''}</span>`).join('')}</div>`
+      : '';
+    const links = Array.isArray(entry.links) && entry.links.length
+      ? `<div class="term-tooltip__links">${entry.links.map(link => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label)}<span aria-hidden="true">↗</span></a>`).join('')}</div>`
+      : '';
     node.innerHTML = `
       <div class="term-tooltip__title">${escapeHtml(entry.title)}</div>
       <div class="term-tooltip__body">${escapeHtml(entry.description)}</div>
+      ${visual}
+      ${links}
     `;
     node.hidden = false;
     if (activeButton && activeButton !== button) {

@@ -60,6 +60,7 @@ const { registerApiRoutes } = require('./lib/server/register-api-routes');
 const { registerPageRoutes } = require('./lib/server/register-page-routes');
 const { createSiteContentService } = require('./lib/server/site-content-service');
 const { createMarketReferenceClient } = require('./lib/market-reference-client');
+const { createTronOnchainClient } = require('./lib/tron-onchain-client');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -381,6 +382,7 @@ const marketDataService = createMarketDataService({
   wsManager,
 });
 const marketReferenceClient = createMarketReferenceClient();
+const tronOnchainClient = createTronOnchainClient();
 siteContentService.setMarketPageSnapshotLoader((instrumentId) => marketDataService.buildMarketPageSnapshot(
   siteContentService.getMarketInfo(instrumentId)
 ));
@@ -396,6 +398,7 @@ registerApiRoutes(app, {
   getPublicExchanges,
   marketDataService,
   marketReferenceClient,
+  tronOnchainClient,
   salesSpreadStore,
   siteContentService,
   volumeShareStore,
