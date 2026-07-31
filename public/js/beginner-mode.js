@@ -209,6 +209,30 @@
     },
   };
 
+  const AUTO_ARTICLE_TERMS = [
+    { key: 'proof-of-work', pattern: /\bProof[\s-]?of[\s-]?Work\b|\bPoW\b/i },
+    { key: 'proof-of-history', pattern: /\bProof[\s-]?of[\s-]?History\b|\bPoH\b/i },
+    { key: 'alpenglow', pattern: /\bAlpenglow\b/i },
+    { key: 'firedancer', pattern: /\bFiredancer\b/i },
+    { key: 'lst', pattern: /\bLSTs?\b|リキッドステーキングトークン/i },
+    { key: 'depin', pattern: /\bDePIN\b/i },
+    { key: 'nakamoto-coefficient', pattern: /Nakamoto coefficient|ナカモト係数/i },
+    { key: 'validator', pattern: /\bValidators?\b|バリデータ/i },
+    { key: 'bft', pattern: /\bBFT\b|ビザンチン障害耐性/i },
+    { key: 'market-cap', pattern: /時価総額/i },
+    { key: 'liquidity', pattern: /流動性/i },
+    { key: 'slippage', pattern: /スリッページ/i },
+    { key: 'maker', pattern: /\bmaker\b/i },
+    { key: 'taker', pattern: /\btaker\b/i },
+    { key: 'orderbook', pattern: /板取引|オーダーブック/i },
+    { key: 'best-bid-ask', pattern: /Best\s*bid\s*\/\s*ask|最良Bid\s*\/\s*Ask/i },
+    { key: 'volume-share', pattern: /出来高シェア/i },
+    { key: 'api', pattern: /\bAPI\b/i },
+    { key: 'websocket', pattern: /\bWebSocket\b/i },
+    { key: 'halving', pattern: /半減期/i },
+    { key: 'seed-phrase', pattern: /シードフレーズ/i },
+  ];
+
   let beginnerMode = false;
   let tooltip = null;
   let activeButton = null;
@@ -222,6 +246,58 @@
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+
+  function annotateArticleTerms() {
+    const root = document.querySelector('.article-main .article-body');
+    if (!root || root.dataset.autoTermsReady === 'true') return;
+
+    const counts = new Map();
+    let total = 0;
+    const walker = document.createTreeWalker(root, 4);
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+    textNodes.forEach((node) => {
+      if (total >= 24 || !node.nodeValue || node.nodeValue.trim().length < 2) return;
+      const parent = node.parentElement;
+      if (!parent || parent.closest('a, button, script, style, code, pre, textarea, select, option, [data-term-key], [data-article-summary-tabs], .article-changelog, .article-disclosure, .article-live-market-card')) return;
+
+      const value = node.nodeValue;
+      const fragment = document.createDocumentFragment();
+      let cursor = 0;
+      let changed = false;
+
+      while (cursor < value.length && total < 24) {
+        let selected = null;
+        AUTO_ARTICLE_TERMS.forEach((entry) => {
+          if ((counts.get(entry.key) || 0) >= 2) return;
+          const match = entry.pattern.exec(value.slice(cursor));
+          if (!match) return;
+          if (!selected || match.index < selected.match.index) selected = { entry, match };
+        });
+        if (!selected) break;
+
+        const matchStart = cursor + selected.match.index;
+        const matchText = selected.match[0];
+        if (matchStart > cursor) fragment.appendChild(document.createTextNode(value.slice(cursor, matchStart)));
+        const term = document.createElement('span');
+        term.className = 'article-term article-term--auto';
+        term.dataset.termKey = selected.entry.key;
+        term.setAttribute('aria-label', `${matchText}の用語解説`);
+        term.textContent = matchText;
+        fragment.appendChild(term);
+        counts.set(selected.entry.key, (counts.get(selected.entry.key) || 0) + 1);
+        total += 1;
+        cursor = matchStart + matchText.length;
+        changed = true;
+      }
+
+      if (!changed) return;
+      if (cursor < value.length) fragment.appendChild(document.createTextNode(value.slice(cursor)));
+      node.replaceWith(fragment);
+    });
+    root.dataset.autoTermsReady = 'true';
+  }
 
   function readMode() {
     try {
@@ -849,6 +925,7 @@
     beginnerMode = isBeginnerModeDisabled() ? false : readMode();
     ensurePageToggle();
     renderBeginnerGuide();
+    annotateArticleTerms();
     observeTables();
     syncMode();
   });
