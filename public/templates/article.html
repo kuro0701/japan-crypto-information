@@ -32,7 +32,7 @@
     })();
   </script>
   <link rel="stylesheet" href="/css/style.css?v=ui-35">
-  <link rel="stylesheet" href="/css/article.css?v=28">
+  <link rel="stylesheet" href="/css/article.css?v=29">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -161,6 +161,33 @@
     </section>
   </main>
 
+  <aside class="article-reader-tools" data-article-reader-tools aria-label="閲覧ツール">
+    <button type="button" data-article-search-open title="記事内検索（Cmd/Ctrl + K）" aria-label="記事内検索を開く">⌕<span>検索</span></button>
+    <button type="button" data-reader-font="down" title="文字を小さく" aria-label="文字を小さくする">A−</button>
+    <button type="button" data-reader-font="up" title="文字を大きく" aria-label="文字を大きくする">A＋</button>
+    <button type="button" data-reader-focus aria-pressed="false" title="集中読書モード" aria-label="集中読書モードを切り替える">▱<span>集中</span></button>
+    <button type="button" data-reader-speech aria-pressed="false" title="音声読み上げ" aria-label="記事の音声読み上げを切り替える">▶<span>音声</span></button>
+    <button type="button" data-reader-print title="印刷・PDF保存" aria-label="印刷画面を開いてPDF保存する">PDF</button>
+    <button type="button" data-reader-markdown title="Markdownで保存" aria-label="記事をMarkdown形式で保存する">MD</button>
+    <button type="button" data-reader-share title="記事を共有" aria-label="記事を共有する">↗<span>共有</span></button>
+  </aside>
+
+  <dialog class="article-search-dialog" data-article-search-dialog aria-labelledby="article-search-title">
+    <form method="dialog" class="article-search-dialog__surface">
+      <header>
+        <div><span>Quick find</span><strong id="article-search-title">この記事を検索</strong></div>
+        <button type="submit" value="close" aria-label="検索を閉じる">×</button>
+      </header>
+      <label class="article-search-dialog__field">
+        <span aria-hidden="true">⌕</span>
+        <input type="search" data-article-search-input autocomplete="off" placeholder="例：インフレ率、障害履歴、Firedancer" aria-describedby="article-search-help">
+        <kbd>Esc</kbd>
+      </label>
+      <p id="article-search-help">見出しと本文から一致箇所を探し、その場へ移動します。</p>
+      <div class="article-search-dialog__results" data-article-search-results role="listbox" aria-label="検索結果"></div>
+    </form>
+  </dialog>
+
   <div class="article-mobile-actions" data-article-mobile-actions aria-label="記事ナビゲーション">
     <a href="{{ARTICLE_MOBILE_PRIMARY_HREF}}" data-mobile-nav-link="simulator"><span>{{ARTICLE_MOBILE_PRIMARY_LABEL}}</span></a>
     <a href="{{ARTICLE_MOBILE_SECOND_HREF}}" data-mobile-nav-link="comparison"><span>{{ARTICLE_MOBILE_SECOND_LABEL}}</span></a>
@@ -173,6 +200,6 @@
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 記事</footer>
   <script src="/js/article-term-tooltips-v4.js?v=1"></script>
   <script src="/js/beginner-mode.js?v=17"></script>
-  <script src="/js/article.js?v=23"></script>
+  <script src="/js/article.js?v=24"></script>
 </body>
 </html>
