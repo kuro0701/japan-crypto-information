@@ -2,6 +2,9 @@
   const THEME_STORAGE_KEY = 'okj.theme.v1';
   const EXCHANGE_CHECKLIST_STORAGE_KEY = 'okj.exchangeChecklist.v1';
   const BEGINNER_GUIDE_STORAGE_KEY = 'okj.articleBeginnerGuide.v1';
+  const ARTICLE_READER_STORAGE_KEY = 'okj.articleReader.v1';
+  const ARTICLE_MEMO_STORAGE_KEY = 'okj.articleMemos.v1';
+  const ARTICLE_LIVE_SERIES_STORAGE_KEY = 'okj.articleLiveSeries.v1';
   const ARTICLE_TERM_SELECTOR = '.article-term[data-term-key]';
   const EXTERNAL_MARKET_REFERENCE_TICKERS = new Set(['CANTON']);
 
@@ -405,6 +408,260 @@
     update();
     window.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
+  }
+
+  function initArticleSummaryTabs() {
+    $$('[data-article-summary-tabs]').forEach((root) => {
+      const tabs = $$('[data-summary-tab]', root);
+      const panels = $$('[data-summary-panel]', root);
+      if (!tabs.length || !panels.length) return;
+
+      const selectTab = (key, options = {}) => {
+        const activeTab = tabs.find(tab => tab.dataset.summaryTab === key) || tabs[0];
+        tabs.forEach((tab) => {
+          const active = tab === activeTab;
+          tab.setAttribute('aria-selected', active ? 'true' : 'false');
+          tab.tabIndex = active ? 0 : -1;
+        });
+        panels.forEach((panel) => {
+          panel.hidden = panel.dataset.summaryPanel !== activeTab.dataset.summaryTab;
+        });
+        root.dataset.activeSummary = activeTab.dataset.summaryTab;
+        if (options.focus) activeTab.focus();
+      };
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener('click', () => selectTab(tab.dataset.summaryTab));
+        tab.addEventListener('keydown', (event) => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          let nextIndex = index;
+          if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+          if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+          if (event.key === 'Home') nextIndex = 0;
+          if (event.key === 'End') nextIndex = tabs.length - 1;
+          selectTab(tabs[nextIndex].dataset.summaryTab, { focus: true });
+        });
+      });
+
+      if (window.BeginnerMode && window.BeginnerMode.isEnabled && window.BeginnerMode.isEnabled()) {
+        selectTab('quick');
+      } else {
+        selectTab(root.dataset.activeSummary || 'full');
+      }
+      window.addEventListener('okj:beginner-mode-change', (event) => {
+        if (event.detail && event.detail.enabled) selectTab('quick');
+      });
+    });
+  }
+
+  function initSolBeginnerSections() {
+    const article = $('.article-main[data-article-slug="sol"]');
+    const body = article && $('.article-body', article);
+    if (!body) return;
+
+    const technicalHeadings = $$('h2', body).filter(heading => /プロトコル概要|パフォーマンス・セキュリティ・ガバナンス/.test(heading.textContent));
+    technicalHeadings.forEach((heading) => {
+      if (heading.dataset.beginnerFoldReady === 'true') return;
+      const details = document.createElement('details');
+      details.className = 'article-beginner-section';
+      details.open = true;
+      details.innerHTML = `
+        <summary>
+          <span>Technical detail</span>
+          <strong>${escapeHtml(heading.textContent.trim())}の詳細を読む</strong>
+          <small>専門的な説明と図表を開きます</small>
+        </summary>
+        <div class="article-beginner-section__body"></div>
+      `;
+      heading.insertAdjacentElement('afterend', details);
+      const sectionBody = $('.article-beginner-section__body', details);
+      let cursor = details.nextSibling;
+      while (cursor && !(cursor.nodeType === 1 && cursor.tagName === 'H2')) {
+        const next = cursor.nextSibling;
+        sectionBody.appendChild(cursor);
+        cursor = next;
+      }
+      heading.dataset.beginnerFoldReady = 'true';
+    });
+
+    const sync = (enabled) => {
+      $$('.article-beginner-section', body).forEach((details) => {
+        details.open = !enabled;
+      });
+    };
+    sync(Boolean(window.BeginnerMode && window.BeginnerMode.isEnabled && window.BeginnerMode.isEnabled()));
+    window.addEventListener('okj:beginner-mode-change', (event) => {
+      sync(Boolean(event.detail && event.detail.enabled));
+    });
+  }
+
+  function initArticleSearch() {
+    const dialog = $('[data-article-search-dialog]');
+    const input = $('[data-article-search-input]', dialog || document);
+    const results = $('[data-article-search-results]', dialog || document);
+    const body = $('.article-body');
+    if (!dialog || !input || !results || !body) return;
+
+    const searchable = $$('h2, h3, p, li, td', body)
+      .filter(node => !node.closest('[hidden], .article-flow-notes'))
+      .map((node, index) => ({
+        node,
+        index,
+        text: node.textContent.replace(/\s+/g, ' ').trim(),
+      }))
+      .filter(item => item.text.length >= 2);
+
+    const openDialog = () => {
+      if (typeof dialog.showModal === 'function') {
+        if (!dialog.open) dialog.showModal();
+      } else {
+        dialog.setAttribute('open', '');
+      }
+      window.setTimeout(() => input.focus(), 0);
+      if (!input.value) {
+        results.innerHTML = '<p class="article-search-dialog__empty">検索語を入力すると、本文中の候補を表示します。</p>';
+      }
+    };
+    const closeDialog = () => {
+      if (typeof dialog.close === 'function' && dialog.open) dialog.close();
+      else dialog.removeAttribute('open');
+    };
+    const excerptFor = (text, query) => {
+      const lower = text.toLocaleLowerCase('ja');
+      const at = lower.indexOf(query.toLocaleLowerCase('ja'));
+      const start = Math.max(0, at - 42);
+      const end = Math.min(text.length, at + query.length + 70);
+      return `${start ? '…' : ''}${text.slice(start, end)}${end < text.length ? '…' : ''}`;
+    };
+    const search = () => {
+      const query = input.value.trim();
+      if (!query) {
+        results.innerHTML = '<p class="article-search-dialog__empty">検索語を入力すると、本文中の候補を表示します。</p>';
+        return;
+      }
+      const normalized = query.toLocaleLowerCase('ja');
+      const matches = searchable.filter(item => item.text.toLocaleLowerCase('ja').includes(normalized)).slice(0, 14);
+      if (!matches.length) {
+        results.innerHTML = `<p class="article-search-dialog__empty">「${escapeHtml(query)}」に一致する箇所はありません。</p>`;
+        return;
+      }
+      results.innerHTML = matches.map(item => `
+        <button type="button" role="option" data-article-search-result="${item.index}">
+          <span>${escapeHtml(item.node.tagName === 'H2' || item.node.tagName === 'H3' ? '見出し' : '本文')}</span>
+          <strong>${escapeHtml(excerptFor(item.text, query))}</strong>
+        </button>
+      `).join('');
+    };
+
+    $$('[data-article-search-open]').forEach(button => button.addEventListener('click', openDialog));
+    input.addEventListener('input', search);
+    results.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-article-search-result]');
+      if (!button) return;
+      const item = searchable.find(candidate => candidate.index === Number(button.dataset.articleSearchResult));
+      if (!item) return;
+      let parentDetails = item.node.closest('details');
+      while (parentDetails) {
+        parentDetails.open = true;
+        parentDetails = parentDetails.parentElement && parentDetails.parentElement.closest('details');
+      }
+      const summaryPanel = item.node.closest('[data-summary-panel]');
+      if (summaryPanel && summaryPanel.hidden) {
+        const tab = $(`[data-summary-tab="${summaryPanel.dataset.summaryPanel}"]`, summaryPanel.closest('[data-article-summary-tabs]'));
+        if (tab) tab.click();
+      }
+      closeDialog();
+      item.node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      item.node.classList.add('article-search-hit');
+      window.setTimeout(() => item.node.classList.remove('article-search-hit'), 2600);
+    });
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) closeDialog();
+    });
+    document.addEventListener('keydown', (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === 'k') {
+        event.preventDefault();
+        openDialog();
+      }
+    });
+  }
+
+  function initArticleSourcePopovers() {
+    const sources = $$('.article-source-link[data-source-title][data-source-summary]');
+    if (!sources.length) return;
+    const popover = document.createElement('aside');
+    popover.className = 'article-source-popover';
+    popover.hidden = true;
+    popover.setAttribute('role', 'dialog');
+    popover.setAttribute('aria-label', '参照ソースの概要');
+    document.body.appendChild(popover);
+    let active = null;
+    let pinned = false;
+
+    const position = (source) => {
+      const rect = source.getBoundingClientRect();
+      const margin = 12;
+      const width = Math.min(360, window.innerWidth - margin * 2);
+      popover.style.width = `${width}px`;
+      const left = Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin));
+      let top = rect.bottom + 10;
+      if (top + popover.offsetHeight > window.innerHeight - margin) {
+        top = Math.max(margin, rect.top - popover.offsetHeight - 10);
+      }
+      popover.style.left = `${left}px`;
+      popover.style.top = `${top}px`;
+    };
+    const show = (source, pin = false) => {
+      active = source;
+      pinned = pin;
+      popover.innerHTML = `
+        <span>Source preview</span>
+        <strong>${escapeHtml(source.dataset.sourceTitle)}</strong>
+        <p>${escapeHtml(source.dataset.sourceSummary)}</p>
+        <a href="${escapeHtml(source.href)}" target="_blank" rel="noopener noreferrer">公式ソースを開く ↗</a>
+      `;
+      popover.hidden = false;
+      source.setAttribute('aria-expanded', 'true');
+      position(source);
+    };
+    const hide = () => {
+      if (active) active.setAttribute('aria-expanded', 'false');
+      active = null;
+      pinned = false;
+      popover.hidden = true;
+    };
+
+    sources.forEach((source) => {
+      source.setAttribute('aria-haspopup', 'dialog');
+      source.setAttribute('aria-expanded', 'false');
+      source.addEventListener('mouseenter', () => show(source));
+      source.addEventListener('focus', () => show(source));
+      source.addEventListener('mouseleave', () => {
+        if (!pinned) hide();
+      });
+      source.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (active === source && pinned) hide();
+        else show(source, true);
+      });
+    });
+    popover.addEventListener('mouseleave', () => {
+      if (!pinned) hide();
+    });
+    document.addEventListener('click', (event) => {
+      if (!pinned || event.target.closest('.article-source-link, .article-source-popover')) return;
+      hide();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !popover.hidden) hide();
+    });
+    window.addEventListener('resize', () => {
+      if (active && !popover.hidden) position(active);
+    });
+    window.addEventListener('scroll', () => {
+      if (active && !popover.hidden) position(active);
+    }, true);
   }
 
   function formatJpy(value) {
@@ -1238,6 +1495,274 @@
     textarea.remove();
   }
 
+  function articleReaderSettings() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(ARTICLE_READER_STORAGE_KEY) || '{}');
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function writeArticleReaderSettings(settings) {
+    try {
+      localStorage.setItem(ARTICLE_READER_STORAGE_KEY, JSON.stringify(settings));
+    } catch (_) {
+      // Keep the current session usable when storage is unavailable.
+    }
+  }
+
+  function articleInlineMarkdown(node) {
+    const clone = node.cloneNode(true);
+    $$('button, script, style, [hidden]', clone).forEach(item => item.remove());
+    $$('a[href]', clone).forEach((link) => {
+      const href = link.getAttribute('href') || '';
+      const text = link.textContent.trim() || href;
+      link.replaceWith(document.createTextNode(`[${text}](${href})`));
+    });
+    $$('strong, b', clone).forEach((strong) => {
+      strong.replaceWith(document.createTextNode(`**${strong.textContent.trim()}**`));
+    });
+    $$('br', clone).forEach(br => br.replaceWith(document.createTextNode('\n')));
+    return clone.textContent.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  function articleMarkdownFromDom() {
+    const article = $('.article-main');
+    const body = $('.article-body');
+    if (!article || !body) return '';
+    const title = $('.article-hero__title', article)?.textContent.trim() || document.title;
+    const description = $('.article-hero__copy > p:last-child', article)?.textContent.trim() || '';
+    const lines = [`# ${title}`, '', description, '', `Source: ${window.location.href}`, ''];
+
+    Array.from(body.children).forEach((node) => {
+      if (node.matches('.article-live-market-card, .article-changelog, .article-toast')) return;
+      if (/^H[2-4]$/.test(node.tagName)) {
+        lines.push(`${'#'.repeat(Number(node.tagName.slice(1)))} ${node.textContent.trim()}`, '');
+        return;
+      }
+      if (node.tagName === 'P' || node.tagName === 'BLOCKQUOTE') {
+        const text = articleInlineMarkdown(node);
+        if (text) lines.push(node.tagName === 'BLOCKQUOTE' ? `> ${text}` : text, '');
+        return;
+      }
+      if (node.matches('UL, OL')) {
+        $$(':scope > li', node).forEach((item, index) => {
+          lines.push(`${node.tagName === 'OL' ? `${index + 1}.` : '-'} ${articleInlineMarkdown(item)}`);
+        });
+        lines.push('');
+        return;
+      }
+      if (node.tagName === 'TABLE') {
+        const rows = $$('tr', node).map(row => $$('th, td', row).map(cell => cell.textContent.replace(/\|/g, '\\|').trim()));
+        if (rows.length) {
+          lines.push(`| ${rows[0].join(' | ')} |`);
+          lines.push(`| ${rows[0].map(() => '---').join(' | ')} |`);
+          rows.slice(1).forEach(row => lines.push(`| ${row.join(' | ')} |`));
+          lines.push('');
+        }
+        return;
+      }
+      if (node.tagName === 'DETAILS') {
+        const text = articleInlineMarkdown(node);
+        if (text) lines.push(text, '');
+      }
+    });
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
+  }
+
+  function initArticleReaderTools() {
+    const tools = $('[data-article-reader-tools]');
+    const article = $('.article-main');
+    const body = $('.article-body');
+    if (!tools || !article || !body) return;
+    const settings = articleReaderSettings();
+    let fontScale = Number(settings.fontScale);
+    if (!Number.isFinite(fontScale)) fontScale = 1;
+    fontScale = Math.max(0.9, Math.min(1.25, fontScale));
+    let utterance = null;
+
+    const syncFont = () => {
+      article.style.setProperty('--article-reader-scale', String(fontScale));
+      tools.dataset.fontScale = fontScale.toFixed(2);
+    };
+    const syncFocus = (enabled) => {
+      document.body.classList.toggle('article-focus-mode', enabled);
+      const button = $('[data-reader-focus]', tools);
+      if (button) button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    };
+    syncFont();
+    syncFocus(Boolean(settings.focus));
+
+    $$('[data-reader-font]', tools).forEach((button) => {
+      button.addEventListener('click', () => {
+        fontScale += button.dataset.readerFont === 'up' ? 0.05 : -0.05;
+        fontScale = Math.round(Math.max(0.9, Math.min(1.25, fontScale)) * 100) / 100;
+        settings.fontScale = fontScale;
+        writeArticleReaderSettings(settings);
+        syncFont();
+        showArticleToast(`文字サイズ ${Math.round(fontScale * 100)}%`);
+      });
+    });
+
+    const focusButton = $('[data-reader-focus]', tools);
+    if (focusButton) {
+      focusButton.addEventListener('click', () => {
+        settings.focus = !document.body.classList.contains('article-focus-mode');
+        writeArticleReaderSettings(settings);
+        syncFocus(settings.focus);
+        showArticleToast(settings.focus ? '集中読書モードをONにしました' : '通常レイアウトに戻しました');
+      });
+    }
+
+    const speechButton = $('[data-reader-speech]', tools);
+    const stopSpeech = () => {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      utterance = null;
+      if (speechButton) {
+        speechButton.setAttribute('aria-pressed', 'false');
+        speechButton.classList.remove('is-active');
+      }
+    };
+    if (speechButton) {
+      speechButton.addEventListener('click', () => {
+        if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+          showArticleToast('このブラウザは音声読み上げに対応していません');
+          return;
+        }
+        if (utterance || window.speechSynthesis.speaking) {
+          stopSpeech();
+          showArticleToast('読み上げを停止しました');
+          return;
+        }
+        const readable = $$('h2, h3, p, li', body)
+          .filter(node => !node.closest('[hidden], .article-live-market-card, .article-flow-notes'))
+          .map(node => node.textContent.replace(/\s+/g, ' ').trim())
+          .filter(Boolean)
+          .join('。');
+        utterance = new SpeechSynthesisUtterance(readable);
+        utterance.lang = 'ja-JP';
+        utterance.rate = 0.95;
+        utterance.onend = stopSpeech;
+        utterance.onerror = stopSpeech;
+        speechButton.setAttribute('aria-pressed', 'true');
+        speechButton.classList.add('is-active');
+        window.speechSynthesis.speak(utterance);
+        showArticleToast('記事の読み上げを開始しました');
+      });
+    }
+
+    const printButton = $('[data-reader-print]', tools);
+    if (printButton) printButton.addEventListener('click', () => window.print());
+
+    const markdownButton = $('[data-reader-markdown]', tools);
+    if (markdownButton) {
+      markdownButton.addEventListener('click', () => {
+        const markdown = articleMarkdownFromDom();
+        if (!markdown) return;
+        const slug = article.dataset.articleSlug || 'article';
+        const url = URL.createObjectURL(new Blob([markdown], { type: 'text/markdown;charset=utf-8' }));
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `${slug}.md`;
+        anchor.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        showArticleToast('Markdownを保存しました');
+      });
+    }
+
+    const shareButton = $('[data-reader-share]', tools);
+    if (shareButton) {
+      shareButton.addEventListener('click', async () => {
+        const shareData = { title: document.title, text: document.title, url: window.location.href };
+        try {
+          if (navigator.share) await navigator.share(shareData);
+          else {
+            await copyTextToClipboard(window.location.href);
+            showArticleToast('記事URLをコピーしました');
+          }
+        } catch (error) {
+          if (!error || error.name !== 'AbortError') showArticleToast('共有できませんでした');
+        }
+      });
+    }
+    window.addEventListener('beforeunload', stopSpeech);
+  }
+
+  function initArticleSelectionTools() {
+    const body = $('.article-body');
+    if (!body) return;
+    const tools = document.createElement('div');
+    tools.className = 'article-selection-tools';
+    tools.hidden = true;
+    tools.innerHTML = `
+      <button type="button" data-selection-action="x">Xで引用</button>
+      <button type="button" data-selection-action="copy">コピー</button>
+      <button type="button" data-selection-action="memo">メモ</button>
+    `;
+    document.body.appendChild(tools);
+    let quote = '';
+
+    const hide = () => {
+      tools.hidden = true;
+      quote = '';
+    };
+    const show = () => {
+      const selection = window.getSelection();
+      const text = selection ? selection.toString().replace(/\s+/g, ' ').trim() : '';
+      if (!selection || selection.rangeCount === 0 || text.length < 2 || text.length > 280) {
+        hide();
+        return;
+      }
+      const range = selection.getRangeAt(0);
+      const container = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+        ? range.commonAncestorContainer
+        : range.commonAncestorContainer.parentElement;
+      if (!container || !body.contains(container)) {
+        hide();
+        return;
+      }
+      quote = text;
+      const rect = range.getBoundingClientRect();
+      tools.hidden = false;
+      const width = tools.offsetWidth;
+      tools.style.left = `${Math.max(8, Math.min(window.innerWidth - width - 8, rect.left + rect.width / 2 - width / 2))}px`;
+      tools.style.top = `${Math.max(8, rect.top - tools.offsetHeight - 10)}px`;
+    };
+    body.addEventListener('mouseup', () => window.setTimeout(show, 0));
+    body.addEventListener('touchend', () => window.setTimeout(show, 80), { passive: true });
+    tools.addEventListener('pointerdown', event => event.preventDefault());
+    tools.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-selection-action]');
+      if (!button || !quote) return;
+      const action = button.dataset.selectionAction;
+      if (action === 'x') {
+        const intent = new URL('https://twitter.com/intent/tweet');
+        intent.searchParams.set('text', `「${quote}」`);
+        intent.searchParams.set('url', window.location.href);
+        window.open(intent.href, '_blank', 'noopener,noreferrer,width=640,height=560');
+      } else if (action === 'copy') {
+        await copyTextToClipboard(`${quote}\n${window.location.href}`);
+        showArticleToast('引用文とURLをコピーしました');
+      } else if (action === 'memo') {
+        try {
+          const current = JSON.parse(localStorage.getItem(ARTICLE_MEMO_STORAGE_KEY) || '[]');
+          const memos = Array.isArray(current) ? current : [];
+          memos.unshift({ quote, url: window.location.href, title: document.title, savedAt: new Date().toISOString() });
+          localStorage.setItem(ARTICLE_MEMO_STORAGE_KEY, JSON.stringify(memos.slice(0, 50)));
+          showArticleToast('このブラウザのメモに保存しました');
+        } catch (_) {
+          showArticleToast('メモを保存できませんでした');
+        }
+      }
+      hide();
+    });
+    document.addEventListener('mousedown', (event) => {
+      if (!tools.hidden && !tools.contains(event.target)) hide();
+    });
+    window.addEventListener('scroll', hide, { passive: true });
+  }
+
   function initArticleCopyToast() {
     document.addEventListener('click', async (event) => {
       const trigger = event.target && event.target.closest ? event.target.closest('[data-copy-text]') : null;
@@ -1400,6 +1925,139 @@
     });
   }
 
+  function initInteractiveArticleFlows() {
+    $$('[data-article-flow]').forEach((wrapper) => {
+      if (wrapper.dataset.articleFlowReady === 'true') return;
+      const detail = $('[data-article-flow-detail]', wrapper);
+      const notes = $$('.article-flow-notes [data-flow-label]', wrapper);
+      const nodes = $$('svg .node', wrapper);
+      if (!detail || !notes.length || !nodes.length) return;
+
+      const normalize = value => String(value || '').replace(/\s+/g, '').replace(/[?？]/g, '').trim();
+      const show = (node, note) => {
+        nodes.forEach(item => item.classList.toggle('is-active', item === node));
+        detail.innerHTML = `<span>Selected step</span><strong>${escapeHtml(note.dataset.flowTitle || note.dataset.flowLabel)}</strong><p>${escapeHtml(note.textContent.trim())}</p>`;
+      };
+      nodes.forEach((node) => {
+        const label = normalize(node.textContent);
+        const note = notes.find(item => label.includes(normalize(item.dataset.flowLabel)) || normalize(item.dataset.flowLabel).includes(label));
+        if (!note) return;
+        node.classList.add('is-interactive');
+        node.setAttribute('tabindex', '0');
+        node.setAttribute('role', 'button');
+        node.setAttribute('aria-label', `${note.dataset.flowTitle || note.dataset.flowLabel}の解説を表示`);
+        node.addEventListener('click', () => show(node, note));
+        node.addEventListener('keydown', (event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          show(node, note);
+        });
+      });
+      wrapper.dataset.articleFlowReady = 'true';
+    });
+  }
+
+  function loadArticleChartRuntime() {
+    if (window.Chart) return Promise.resolve(window.Chart);
+    if (loadArticleChartRuntime.promise) return loadArticleChartRuntime.promise;
+    loadArticleChartRuntime.promise = new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-article-chart-runtime]');
+      if (existing) {
+        existing.addEventListener('load', () => resolve(window.Chart), { once: true });
+        existing.addEventListener('error', reject, { once: true });
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = '/vendor/chart.umd.min.js';
+      script.async = true;
+      script.dataset.articleChartRuntime = 'true';
+      script.addEventListener('load', () => resolve(window.Chart), { once: true });
+      script.addEventListener('error', reject, { once: true });
+      document.head.appendChild(script);
+    });
+    return loadArticleChartRuntime.promise;
+  }
+
+  function initArticleDataCharts() {
+    const roots = $$('[data-article-chart]');
+    if (!roots.length) return;
+    roots.forEach(root => root.classList.add('is-loading'));
+    loadArticleChartRuntime().then((Chart) => {
+      if (!Chart) throw new Error('Chart runtime unavailable');
+      roots.forEach((root) => {
+        const canvas = $('canvas', root);
+        const labels = String(root.dataset.chartLabels || '').split('|').filter(Boolean);
+        const values = String(root.dataset.chartValues || '').split('|').map(Number).filter(Number.isFinite);
+        const unit = root.dataset.chartUnit || '';
+        const type = root.dataset.chartType === 'line' ? 'line' : 'bar';
+        if (!canvas || !labels.length || labels.length !== values.length) {
+          root.classList.remove('is-loading');
+          root.classList.add('is-error');
+          return;
+        }
+        const styles = getComputedStyle(document.documentElement);
+        const accent = styles.getPropertyValue('--accent').trim() || '#35c8d2';
+        const text = styles.getPropertyValue('--text-3').trim() || '#aeb9bc';
+        const line = styles.getPropertyValue('--line-weak').trim() || 'rgba(255,255,255,.1)';
+        new Chart(canvas, {
+          type,
+          data: {
+            labels,
+            datasets: [{
+              label: root.dataset.chartLabel || 'Data',
+              data: values,
+              borderColor: accent,
+              backgroundColor: type === 'line' ? 'rgba(53, 200, 210, 0.16)' : 'rgba(53, 200, 210, 0.58)',
+              pointBackgroundColor: '#f4c95d',
+              pointBorderColor: accent,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              borderWidth: 2,
+              borderRadius: 8,
+              tension: 0.3,
+              fill: type === 'line',
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'nearest', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                displayColors: false,
+                callbacks: {
+                  label(context) {
+                    return `${Number(context.raw).toLocaleString('ja-JP')} ${unit}`.trim();
+                  },
+                },
+              },
+            },
+            scales: {
+              x: { ticks: { color: text }, grid: { display: false } },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  color: text,
+                  callback(value) { return Number(value).toLocaleString('ja-JP'); },
+                },
+                grid: { color: line },
+              },
+            },
+          },
+        });
+        root.classList.remove('is-loading');
+        root.classList.add('is-ready');
+      });
+    }).catch((error) => {
+      console.warn('[article] Chart rendering failed', error);
+      roots.forEach((root) => {
+        root.classList.remove('is-loading');
+        root.classList.add('is-error');
+      });
+    });
+  }
+
   function initMermaidDiagrams() {
     const nodes = $$('.article-body .mermaid');
     if (!nodes.length) return;
@@ -1418,6 +2076,7 @@
       try {
         await window.mermaid.run({ nodes, suppressErrors: true });
         wrappers.forEach(wrapper => wrapper.classList.add('is-rendered'));
+        initInteractiveArticleFlows();
       } catch (error) {
         console.warn('[article] Mermaid diagram rendering failed', error);
         wrappers.forEach(wrapper => wrapper.classList.add('is-error'));
@@ -1492,6 +2151,17 @@
         <small data-live-market-price-note>最良買気配と最良売気配の仲値</small>
       </div>
       <div class="article-live-market-card__sides" data-live-market-sparkline aria-label="売却と購入の最良気配を取得中"></div>
+      <div class="article-live-market-card__trend-chart" data-live-market-trend-chart>
+        <header>
+          <div><span>Price trend</span><strong>このブラウザで取得した価格推移</strong></div>
+          <div role="group" aria-label="価格推移の期間">
+            <button type="button" data-live-series-range="1h" aria-pressed="true">1H</button>
+            <button type="button" data-live-series-range="24h" aria-pressed="false">24H</button>
+          </div>
+        </header>
+        <div data-live-market-series><span>最初の価格を記録中です</span></div>
+      </div>
+      <div class="article-live-market-card__spread-gauge" data-live-market-spread-gauge aria-live="polite"></div>
       <div class="article-live-market-card__meta">
         <span data-live-market-trend>比較対象を確認中</span>
         <span data-live-market-spread>最良気配差を確認中</span>
@@ -1595,11 +2265,11 @@
     return row && row.actions ? row.actions : {};
   }
 
-  function articleExchangeAffiliateLink(report, exchangeId, exchangeLabel) {
+  function articleExchangeAffiliateLink(report, exchangeId, exchangeLabel, variant = 'label') {
     const label = String(exchangeLabel || exchangeId || '国内取引所').trim();
     const actions = articleExchangeActions(report, exchangeId);
     const href = safeHttpsUrl(actions.referralUrl);
-    if (!href) return escapeHtml(label);
+    if (!href) return variant === 'cta' ? '' : escapeHtml(label);
 
     const attributes = [
       `href="${escapeHtml(href)}"`,
@@ -1619,7 +2289,11 @@
       ? `<img src="${escapeHtml(trackingPixelUrl)}" width="1" height="1" alt="" aria-hidden="true">`
       : '';
 
-    return `<a class="article-live-market-card__venue-link" ${attributes.join(' ')}>${escapeHtml(label)}<span aria-hidden="true">↗</span>${trackingPixel}</a>`;
+    const className = variant === 'cta'
+      ? 'article-live-market-card__venue-link article-live-market-card__venue-cta'
+      : 'article-live-market-card__venue-link';
+    const linkLabel = variant === 'cta' ? '口座開設 / 取引へ' : label;
+    return `<a class="${className}" ${attributes.join(' ')}>${escapeHtml(linkLabel)}<span aria-hidden="true">↗</span>${trackingPixel}</a>`;
   }
 
   function articleExchangeToken(exchangeId, exchangeLabel) {
@@ -1654,8 +2328,126 @@
     return `
       <span class="article-live-market-card__venue">
         <span class="article-live-market-card__exchange-logo market-exchange-logo market-exchange-logo--${escapeHtml(token)}" role="img" aria-label="${escapeHtml(label)}">${escapeHtml(articleExchangeShortLabel(exchangeId, label))}</span>
-        ${articleExchangeAffiliateLink(report, exchangeId, label)}
+        <span class="article-live-market-card__venue-actions">
+          ${articleExchangeAffiliateLink(report, exchangeId, label)}
+          ${articleExchangeAffiliateLink(report, exchangeId, label, 'cta')}
+        </span>
       </span>
+    `;
+  }
+
+  function readArticleLiveSeries(instrumentId) {
+    try {
+      const stored = JSON.parse(localStorage.getItem(ARTICLE_LIVE_SERIES_STORAGE_KEY) || '{}');
+      const rows = stored && Array.isArray(stored[instrumentId]) ? stored[instrumentId] : [];
+      const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+      return rows
+        .map(item => ({ at: Number(item.at), value: Number(item.value) }))
+        .filter(item => Number.isFinite(item.at) && Number.isFinite(item.value) && item.at >= cutoff && item.value > 0);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function appendArticleLiveSeries(instrumentId, value) {
+    if (!instrumentId || !Number.isFinite(value) || value <= 0) return [];
+    const rows = readArticleLiveSeries(instrumentId);
+    const now = Date.now();
+    const last = rows[rows.length - 1];
+    if (!last || last.value !== value || now - last.at >= 120000) {
+      rows.push({ at: now, value });
+    }
+    const trimmed = rows.slice(-3000);
+    try {
+      const stored = JSON.parse(localStorage.getItem(ARTICLE_LIVE_SERIES_STORAGE_KEY) || '{}');
+      const next = stored && typeof stored === 'object' ? stored : {};
+      next[instrumentId] = trimmed;
+      localStorage.setItem(ARTICLE_LIVE_SERIES_STORAGE_KEY, JSON.stringify(next));
+    } catch (_) {
+      // The chart remains available for the current render when storage is unavailable.
+    }
+    return trimmed;
+  }
+
+  function renderArticleLiveSeries(card, instrumentId, value) {
+    const root = $('[data-live-market-trend-chart]', card);
+    const chart = $('[data-live-market-series]', card);
+    if (!root || !chart) return;
+    const allRows = appendArticleLiveSeries(instrumentId, value);
+    const selectedRange = root.dataset.liveSeriesRange || '1h';
+    const duration = selectedRange === '24h' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000;
+    const cutoff = Date.now() - duration;
+    const rows = allRows.filter(item => item.at >= cutoff);
+    $$('[data-live-series-range]', root).forEach((button) => {
+      const active = button.dataset.liveSeriesRange === selectedRange;
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      if (button.dataset.liveSeriesReady !== 'true') {
+        button.addEventListener('click', () => {
+          root.dataset.liveSeriesRange = button.dataset.liveSeriesRange;
+          renderArticleLiveSeries(card, instrumentId, value);
+        });
+        button.dataset.liveSeriesReady = 'true';
+      }
+    });
+
+    if (!rows.length) {
+      chart.innerHTML = '<span>価格履歴を取得中です</span>';
+      return;
+    }
+    const width = 640;
+    const height = 112;
+    const pad = 8;
+    const values = rows.map(item => item.value);
+    let min = Math.min(...values);
+    let max = Math.max(...values);
+    if (min === max) {
+      min *= 0.9995;
+      max *= 1.0005;
+    }
+    const firstAt = rows[0].at;
+    const lastAt = rows[rows.length - 1].at;
+    const timeSpan = Math.max(1, lastAt - firstAt);
+    const points = rows.map((item, index) => {
+      const x = rows.length === 1 ? width / 2 : pad + ((item.at - firstAt) / timeSpan) * (width - pad * 2);
+      const y = height - pad - ((item.value - min) / (max - min)) * (height - pad * 2);
+      return { x, y, ...item, index };
+    });
+    const path = points.map(point => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
+    const change = values.length > 1 ? ((values[values.length - 1] - values[0]) / values[0]) * 100 : 0;
+    const tone = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+    chart.innerHTML = `
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${selectedRange === '24h' ? '24時間' : '1時間'}の記録価格推移、${change >= 0 ? '+' : ''}${formatPct(change, 3)}">
+        <defs><linearGradient id="article-live-fill-${escapeHtml(instrumentId.toLowerCase())}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".28"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+        ${points.length > 1 ? `<polygon points="${path} ${points[points.length - 1].x.toFixed(1)},${height - pad} ${points[0].x.toFixed(1)},${height - pad}" fill="url(#article-live-fill-${escapeHtml(instrumentId.toLowerCase())})"/>` : ''}
+        <polyline points="${path}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        ${points.map(point => `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${point.index === points.length - 1 ? 4.5 : 2.5}"><title>${new Date(point.at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })} ${formatJpy(point.value)}</title></circle>`).join('')}
+      </svg>
+      <div class="article-live-market-card__trend-legend" data-trend="${tone}"><span>${rows.length < 2 ? '次回更新から線で表示' : `${rows.length}件の取得値`}</span><strong>${change >= 0 ? '+' : ''}${formatPct(change, 3)}</strong></div>
+    `;
+  }
+
+  function renderArticleSpreadGauge(card, spreadPct) {
+    const root = $('[data-live-market-spread-gauge]', card);
+    if (!root || !Number.isFinite(spreadPct)) return;
+    const absolute = Math.abs(spreadPct);
+    const position = Math.max(0, Math.min(100, (absolute / 1) * 100));
+    const level = absolute <= 0.1
+      ? { tone: 'low', label: '小さい' }
+      : absolute <= 0.3
+      ? { tone: 'moderate', label: 'やや小さい' }
+      : absolute <= 0.8
+      ? { tone: 'watch', label: '要確認' }
+      : { tone: 'high', label: '大きい' };
+    root.dataset.spreadTone = level.tone;
+    root.innerHTML = `
+      <div class="article-live-market-card__spread-copy">
+        <span>Best bid / ask gap</span>
+        <strong>気配差 ${formatPct(absolute, 3)} <small>${level.label}</small></strong>
+      </div>
+      <div class="article-live-market-card__spread-meter" role="meter" aria-label="最良気配差" aria-valuemin="0" aria-valuemax="1" aria-valuenow="${absolute.toFixed(4)}" aria-valuetext="${formatPct(absolute, 3)}、${level.label}">
+        <span style="--spread-position:${position}%"></span>
+      </div>
+      <p>板の最良気配差だけを示します。取引手数料と注文量によるスリッページは含みません。</p>
     `;
   }
 
@@ -1728,6 +2520,8 @@
     if (copyNode) {
       copyNode.textContent = '国内取引所だけを比較した最良買気配・最良売気配です。中央の価格は両レートの仲値で、販売所価格は使用していません。';
     }
+    renderArticleLiveSeries(card, instrumentId, midpointJpy);
+    renderArticleSpreadGauge(card, spreadPct);
     if (sourceNode) {
       sourceNode.hidden = false;
       sourceNode.href = `/markets/${encodeURIComponent(instrumentId)}`;
@@ -1853,6 +2647,8 @@
         ? '国内取引所で未取扱いのため、海外取引所の最良買気配・最良売気配を表示しています。中央の価格は両レートの仲値です。'
         : '国内取引所で未取扱いかつ海外板を取得できないため、公開市場の集計参考値を表示しています。';
     }
+    renderArticleLiveSeries(card, articleInstrumentId(), priceJpy);
+    if (isOrderbook) renderArticleSpreadGauge(card, spreadPct);
 
     setLiveMarketCardState(
       card,
@@ -2358,9 +3154,12 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
+    initArticleSummaryTabs();
+    initSolBeginnerSections();
     initToc();
     initReadingProgress();
     initArticleTables();
+    initArticleDataCharts();
     initMermaidDiagrams();
     initArticleLiveMarketCard();
     initBeginnerModeToast();
@@ -2380,5 +3179,9 @@
     initExchangeChecklist();
     initArticleMobileActions();
     initArticleCopyToast();
+    initArticleSearch();
+    initArticleSourcePopovers();
+    initArticleReaderTools();
+    initArticleSelectionTools();
   });
 })();
