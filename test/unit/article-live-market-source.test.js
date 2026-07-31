@@ -37,6 +37,9 @@ test('article Live reference links best bid and ask venues through exchange refe
   assert.match(domesticReferenceSource, /data-live-market-exchange/);
   assert.match(domesticReferenceSource, /article-live-market-card__side--sell/);
   assert.match(domesticReferenceSource, /article-live-market-card__side--buy/);
+  assert.match(domesticReferenceSource, /articleExchangeIdentity/);
+  assert.match(domesticReferenceSource, /article-live-market-card__exchange-logo/);
+  assert.match(domesticReferenceSource, /market-exchange-logo--/);
   assert.match(domesticReferenceSource, /仲値（国内取引所ベストレート）/);
 });
 
@@ -46,4 +49,20 @@ test('article Live reference exposes a pulsing update status beside the board ti
   assert.match(source, /article-live-market-card__live-dot/);
   assert.match(source, /data-live-market-updated/);
   assert.match(source, /最良買気配と最良売気配の仲値/);
+});
+
+test('article Live reference flashes price updates according to direction', () => {
+  const source = fs.readFileSync(articleScriptPath, 'utf8');
+
+  assert.match(source, /flashLiveMarketPrice/);
+  assert.match(source, /is-price-up/);
+  assert.match(source, /is-price-down/);
+  assert.match(source, /is-price-steady/);
+});
+
+test('desktop article contents starts expanded while mobile contents remains compact', () => {
+  const source = fs.readFileSync(articleScriptPath, 'utf8');
+
+  assert.match(source, /setTocExpanded\(toc, true\)/);
+  assert.match(source, /setTocExpanded\(mobileToc, false\)/);
 });
