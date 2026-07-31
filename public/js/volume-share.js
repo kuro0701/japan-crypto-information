@@ -42,13 +42,20 @@ document.addEventListener('DOMContentLoaded', () => {
   let volumeHistoryRows = [];
   let volumeHistoryMeta = {};
   let volumeShareHistoryChart = null;
+  let monthlyVolumeShareChart = null;
+  let monthlyVolumeData = null;
+  let selectedMonthlyInstrument = 'BTC-JPY';
+  let selectedMonthlyRange = 12;
+  let monthlyInstrumentInitialized = false;
   let shareAbortController = null;
   let volumeHistoryAbortController = null;
   let volumeInsightsAbortController = null;
+  let monthlyVolumeAbortController = null;
   const CHART_COLORS = ['#35e0a5', '#ff6b70', '#35c8d2', '#f4c95d', '#dbe7df', '#ff9f7e', '#9ad46a'];
   const SHARE_REFRESH_MS = 60000;
   const VOLUME_HISTORY_REFRESH_MS = 600000;
   const VOLUME_INSIGHTS_REFRESH_MS = 600000;
+  const MONTHLY_VOLUME_REFRESH_MS = 600000;
   const EMPTY_FILTER_MESSAGE = '条件に合う出来高データがありません。フィルターを変更してください。';
   const WAITING_DATA_MESSAGE = '出来高データを取得中です。集計に数秒かかる場合があります。';
   const PARTIAL_DATA_FAILURE_MESSAGE = '一部の取引所APIからデータを取得できていません。取得できた取引所のみで比較しています。';
@@ -94,6 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   const JPY_UNIT_FORMATTER = new Intl.NumberFormat('ja-JP', {
     maximumFractionDigits: 1,
+  });
+  const BASE_VOLUME_FORMATTER = new Intl.NumberFormat('ja-JP', {
+    maximumFractionDigits: 8,
   });
   const setHtml = (id, html) => {
     const el = $(id);
@@ -1691,6 +1701,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function initVolumeHistoryCharts() {
     const shareCanvas = $('volume-share-history-chart');
+    const monthlyShareCanvas = $('monthly-volume-share-chart');
     if (typeof Chart === 'undefined') return;
 
     if (shareCanvas) {
@@ -1702,6 +1713,35 @@ document.addEventListener('DOMContentLoaded', () => {
           yTickCallback: (value) => `${value}%`,
           tooltipLabel: (ctx) => `${ctx.dataset.label}: ${fmtPct(ctx.parsed.y)}`,
         }),
+      });
+    }
+
+    if (monthlyShareCanvas) {
+      const monthlyOptions = baseHistoryChartOptions({
+        yTitle: 'シェア (%)',
+        yTickCallback: (value) => `${value}%`,
+        tooltipLabel: (ctx) => `${ctx.dataset.label}: ${fmtPct(ctx.parsed.y)}`,
+      });
+      monthlyOptions.scales.x.stacked = true;
+      monthlyOptions.scales.y.stacked = true;
+      monthlyOptions.scales.y.max = 100;
+      monthlyOptions.plugins.tooltip.callbacks.afterLabel = (ctx) => {
+        const quoteVolume = ctx.dataset.quoteVolumes
+          ? ctx.dataset.quoteVolumes[ctx.dataIndex]
+          : null;
+        const baseVolume = ctx.dataset.baseVolumes
+          ? ctx.dataset.baseVolumes[ctx.dataIndex]
+          : null;
+        const baseCurrency = ctx.dataset.baseCurrency || '';
+        return [
+          `JPY換算: ${fmtJpy(quoteVolume)}`,
+          `銘柄建て: ${formatBaseVolume(baseVolume, baseCurrency)}`,
+        ];
+      };
+      monthlyVolumeShareChart = new Chart(monthlyShareCanvas, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: monthlyOptions,
       });
     }
   }
@@ -1841,6 +1881,226 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   }
 
+  function formatBaseVolume(value, baseCurrency) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return '-';
+    const unit = String(baseCurrency || '').trim().toUpperCase();
+    return `${BASE_VOLUME_FORMATTER.format(numericValue)}${unit ? ` ${unit}` : ''}`;
+  }
+
+  function monthlyInstrumentOptions(data) {
+    return (data && Array.isArray(data.instruments) ? data.instruments : [])
+      .filter(item => item && item.instrumentId)
+      .sort((a, b) => String(a.instrumentLabel || a.instrumentId).localeCompare(String(b.instrumentLabel || b.instrumentId), 'ja'));
+  }
+
+  function populateMonthlyInstrumentFilter(data) {
+    const select = $('monthly-instrument-filter');
+    if (!select) return;
+    const options = monthlyInstrumentOptions(data);
+    const ids = new Set(options.map(option => option.instrumentId));
+
+    if (!monthlyInstrumentInitialized) {
+      const preferredInstrument = selectedInstrument !== ALL_VALUE
+        ? selectedInstrument
+        : selectedMonthlyInstrument;
+      selectedMonthlyInstrument = ids.has(preferredInstrument)
+        ? preferredInstrument
+        : (ids.has('BTC-JPY') ? 'BTC-JPY' : (options[0] ? options[0].instrumentId : ''));
+      monthlyInstrumentInitialized = true;
+    } else if (!ids.has(selectedMonthlyInstrument)) {
+      selectedMonthlyInstrument = ids.has('BTC-JPY')
+        ? 'BTC-JPY'
+        : (options[0] ? options[0].instrumentId : '');
+    }
+
+    select.innerHTML = options.length > 0
+      ? options.map(option => (
+        `<option value="${escapeHtml(option.instrumentId)}">${escapeHtml(option.instrumentLabel || option.instrumentId)}</option>`
+      )).join('')
+      : '<option value="">対象データなし</option>';
+    select.value = selectedMonthlyInstrument;
+  }
+
+  function monthlyCoverageHtml(month) {
+    if (!month) return '<span class="monthly-coverage-badge monthly-coverage-badge--partial">集計状況不明</span>';
+    const dayCount = Number(month.dayCount) || 0;
+    const expectedDayCount = Number(month.expectedDayCount) || 0;
+    if (!month.isClosed) {
+      return `<span class="monthly-coverage-badge">暫定 ${dayCount}日分</span>`;
+    }
+    if (month.isComplete) {
+      return `<span class="monthly-coverage-badge monthly-coverage-badge--complete">確定 ${dayCount}日分</span>`;
+    }
+    const missingNote = month.hasPartialData ? '・欠損あり' : '';
+    return `<span class="monthly-coverage-badge monthly-coverage-badge--partial">一部期間 ${dayCount}/${expectedDayCount}日${missingNote}</span>`;
+  }
+
+  function renderMonthlyVolumeTable(rows, monthsByKey, baseCurrency) {
+    const tbody = $('monthly-volume-tbody');
+    if (!tbody) return;
+    const heading = $('monthly-base-volume-heading');
+    if (heading) heading.textContent = `出来高（${baseCurrency || '銘柄建て'}）`;
+
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-4">選択銘柄の月次データはまだありません。</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = [...rows]
+      .sort((a, b) => {
+        if (a.monthJst !== b.monthJst) return String(b.monthJst).localeCompare(String(a.monthJst));
+        return (Number(b.quoteVolume) || 0) - (Number(a.quoteVolume) || 0);
+      })
+      .map((row) => {
+        const month = monthsByKey.get(row.monthJst);
+        const monthLabel = month && month.label ? month.label : row.monthJst;
+        const exchangeLabel = displayExchangeLabel(row.exchangeId, row.exchangeLabel);
+        return `
+          <tr>
+            <td data-label="対象月" class="text-left">${escapeHtml(monthLabel)}</td>
+            <td data-label="取引所" class="text-left">${renderExchangeNameLink(row.exchangeId, exchangeLabel, 'table-link')}</td>
+            <td data-label="出来高（JPY）" class="is-num text-right">${escapeHtml(fmtJpy(row.quoteVolume))}</td>
+            <td data-label="出来高（${escapeHtml(baseCurrency || '銘柄建て')}）" class="is-num text-right">${escapeHtml(formatBaseVolume(row.baseVolume, baseCurrency))}</td>
+            <td data-label="銘柄内シェア" class="is-num text-right">${escapeHtml(fmtPctCompact(row.instrumentSharePct, 1))}${shareBar(row.instrumentSharePct)}</td>
+            <td data-label="集計状況" class="text-left">${monthlyCoverageHtml(month)}</td>
+          </tr>
+        `;
+      })
+      .join('');
+  }
+
+  function renderMonthlyVolumeShare() {
+    if (!monthlyVolumeData) return;
+    const rows = (monthlyVolumeData.rows || [])
+      .filter(row => row.instrumentId === selectedMonthlyInstrument);
+    const months = monthlyVolumeData.months || [];
+    const monthsByKey = new Map(months.map(month => [month.monthJst, month]));
+    const instrument = (monthlyVolumeData.instruments || [])
+      .find(item => item.instrumentId === selectedMonthlyInstrument);
+    const instrumentLabel = instrument
+      ? (instrument.instrumentLabel || instrument.instrumentId)
+      : (selectedMonthlyInstrument || '選択銘柄');
+    const baseCurrency = (instrument && instrument.baseCurrency)
+      || (rows[0] && rows[0].baseCurrency)
+      || String(selectedMonthlyInstrument || '').split('-')[0];
+
+    renderMonthlyVolumeTable(rows, monthsByKey, baseCurrency);
+
+    const rangeLabel = months.length > 0
+      ? `${months[0].monthJst} - ${months[months.length - 1].monthJst}`
+      : '月次履歴待ち';
+    const latestMonth = months[months.length - 1] || null;
+    const latestStatus = latestMonth
+      ? (latestMonth.isClosed ? (latestMonth.isComplete ? '確定値' : '一部期間') : '当月暫定値')
+      : null;
+    setText(
+      'monthly-volume-meta',
+      [instrumentLabel, `${months.length}か月`, rangeLabel, latestStatus, '毎月自動保存'].filter(Boolean).join(' | ')
+    );
+
+    if (!monthlyVolumeShareChart) return;
+    const monthKeys = months.map(month => month.monthJst);
+    const rowsByExchange = new Map();
+
+    for (const row of rows) {
+      if (!rowsByExchange.has(row.exchangeId)) {
+        rowsByExchange.set(row.exchangeId, {
+          exchangeId: row.exchangeId,
+          exchangeLabel: displayExchangeLabel(row.exchangeId, row.exchangeLabel),
+          byMonth: new Map(),
+        });
+      }
+      rowsByExchange.get(row.exchangeId).byMonth.set(row.monthJst, row);
+    }
+
+    const series = Array.from(rowsByExchange.values())
+      .sort((a, b) => {
+        const latestKey = monthKeys[monthKeys.length - 1];
+        const aShare = Number(a.byMonth.get(latestKey) && a.byMonth.get(latestKey).instrumentSharePct) || 0;
+        const bShare = Number(b.byMonth.get(latestKey) && b.byMonth.get(latestKey).instrumentSharePct) || 0;
+        if (aShare !== bShare) return bShare - aShare;
+        return String(a.exchangeLabel).localeCompare(String(b.exchangeLabel), 'ja');
+      });
+
+    monthlyVolumeShareChart.data.labels = months.map(month => month.label || month.monthJst);
+    monthlyVolumeShareChart.data.datasets = series.map((item, index) => {
+      const color = chartColor(index);
+      return {
+        label: item.exchangeLabel,
+        data: monthKeys.map((monthJst) => {
+          const row = item.byMonth.get(monthJst);
+          return row ? Number(row.instrumentSharePct) || 0 : 0;
+        }),
+        quoteVolumes: monthKeys.map((monthJst) => {
+          const row = item.byMonth.get(monthJst);
+          return row ? Number(row.quoteVolume) || 0 : 0;
+        }),
+        baseVolumes: monthKeys.map((monthJst) => {
+          const row = item.byMonth.get(monthJst);
+          return row && Number.isFinite(Number(row.baseVolume)) ? Number(row.baseVolume) : null;
+        }),
+        baseCurrency,
+        backgroundColor: `${color}cc`,
+        borderColor: color,
+        borderWidth: 1,
+      };
+    });
+    monthlyVolumeShareChart.update('none');
+
+    const canvas = $('monthly-volume-share-chart');
+    if (canvas) {
+      canvas.setAttribute(
+        'aria-label',
+        `${instrumentLabel}の取引所別月間出来高シェア。${rangeLabel}、${series.length}取引所を表示。`
+      );
+    }
+  }
+
+  function syncMonthlyInstrumentFromPrimary() {
+    if (
+      !monthlyVolumeData
+      || selectedInstrument === ALL_VALUE
+      || !(monthlyVolumeData.instruments || []).some(item => item.instrumentId === selectedInstrument)
+    ) {
+      return;
+    }
+    selectedMonthlyInstrument = selectedInstrument;
+    const select = $('monthly-instrument-filter');
+    if (select) select.value = selectedMonthlyInstrument;
+    renderMonthlyVolumeShare();
+  }
+
+  async function loadMonthlyVolumeShare() {
+    if (!$('monthly-volume-share-chart')) return;
+    setText('monthly-volume-meta', '月次データを読み込み中');
+    if (monthlyVolumeAbortController) {
+      monthlyVolumeAbortController.abort();
+      monthlyVolumeAbortController = null;
+    }
+    const controller = new AbortController();
+    monthlyVolumeAbortController = controller;
+    try {
+      const data = await Api.fetchJson(`${API_BASE}/monthly?months=${encodeURIComponent(selectedMonthlyRange)}`, {
+        signal: controller.signal,
+      });
+      monthlyVolumeData = data;
+      populateMonthlyInstrumentFilter(data);
+      renderMonthlyVolumeShare();
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      setText('monthly-volume-meta', '月次データを取得できませんでした。時間をおいて再読み込みしてください。');
+      const tbody = $('monthly-volume-tbody');
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-4">月次データを取得できませんでした。</td></tr>';
+      }
+    } finally {
+      if (monthlyVolumeAbortController === controller) {
+        monthlyVolumeAbortController = null;
+      }
+    }
+  }
+
   async function loadShare() {
     setText('share-status', '読み込み中');
     if (shareAbortController) {
@@ -1947,6 +2207,11 @@ document.addEventListener('DOMContentLoaded', () => {
     callback: loadInsights,
   });
 
+  const monthlyVolumeRefreshTask = pagePoller.createTask({
+    intervalMs: MONTHLY_VOLUME_REFRESH_MS,
+    callback: loadMonthlyVolumeShare,
+  });
+
   document.querySelectorAll('[data-window]').forEach(button => {
     button.addEventListener('click', () => {
       resetInstrumentPreview();
@@ -1987,6 +2252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (search) search.value = '';
       }
       renderFilteredShare();
+      syncMonthlyInstrumentFromPrimary();
       loadInsights();
     });
   }
@@ -2047,6 +2313,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  const monthlyInstrumentFilter = $('monthly-instrument-filter');
+  if (monthlyInstrumentFilter) {
+    monthlyInstrumentFilter.addEventListener('change', () => {
+      selectedMonthlyInstrument = monthlyInstrumentFilter.value || '';
+      renderMonthlyVolumeShare();
+    });
+  }
+
+  const monthlyRangeFilter = $('monthly-range-filter');
+  if (monthlyRangeFilter) {
+    monthlyRangeFilter.value = String(selectedMonthlyRange);
+    monthlyRangeFilter.addEventListener('change', () => {
+      const nextRange = Number.parseInt(monthlyRangeFilter.value, 10);
+      selectedMonthlyRange = Number.isFinite(nextRange) ? nextRange : 12;
+      loadMonthlyVolumeShare();
+    });
+  }
+
   syncTabButtons('[data-window]', 'window', selectedWindow);
   syncTabButtons('[data-volume-history-window]', 'volumeHistoryWindow', selectedHistoryWindow);
   hydratePurposeAccountLinks();
@@ -2056,13 +2340,16 @@ document.addEventListener('DOMContentLoaded', () => {
   loadShare();
   loadVolumeHistory();
   loadInsights();
+  loadMonthlyVolumeShare();
   shareRefreshTask.start({ immediate: false });
   volumeHistoryRefreshTask.start({ immediate: false });
   volumeInsightsRefreshTask.start({ immediate: false });
+  monthlyVolumeRefreshTask.start({ immediate: false });
   window.addEventListener('beforeunload', () => {
     pagePoller.dispose();
     if (shareAbortController) shareAbortController.abort();
     if (volumeHistoryAbortController) volumeHistoryAbortController.abort();
     if (volumeInsightsAbortController) volumeInsightsAbortController.abort();
+    if (monthlyVolumeAbortController) monthlyVolumeAbortController.abort();
   });
 });

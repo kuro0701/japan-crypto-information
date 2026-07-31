@@ -216,6 +216,42 @@ test('GoogleSheetsStateStore chunks large payloads across rows', async () => {
   assert.deepEqual(await store.load('volume-share'), payload);
 });
 
+test('GoogleSheetsStateStore round-trips monthly volume summaries', async () => {
+  const sheets = createSheetsFetchMock({
+    hasSheet: true,
+    hasHeader: true,
+  });
+  const store = new GoogleSheetsStateStore({
+    spreadsheetId: 'spreadsheet-id',
+    serviceAccount: createServiceAccount(),
+    fetchImpl: sheets.fetchImpl,
+    now: () => new Date('2026-07-01T00:00:00.000Z'),
+  });
+  const payload = {
+    version: 2,
+    latest: { capturedAt: '2026-07-01T00:00:00.000Z' },
+    dailySnapshots: [],
+    monthlySnapshots: [
+      {
+        monthJst: '2026-06',
+        dayCount: 30,
+        records: [
+          {
+            exchangeId: 'okj',
+            instrumentId: 'BTC-JPY',
+            quoteVolume: 123_000,
+            baseVolume: 1.23,
+          },
+        ],
+      },
+    ],
+  };
+
+  assert.equal(await store.save('volume-share', payload), true);
+  assert.ok(sheets.state.rows.some(row => row[1] === 'monthly' && row[2] === '2026-06'));
+  assert.deepEqual(await store.load('volume-share'), payload);
+});
+
 test('loadGoogleSheetsServiceAccountFromEnv supports base64 JSON credentials', () => {
   const serviceAccount = createServiceAccount();
   const encoded = Buffer.from(JSON.stringify(serviceAccount)).toString('base64');

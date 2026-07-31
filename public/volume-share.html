@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=ui-28">
+  <link rel="stylesheet" href="/css/style.css?v=ui-29">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -192,6 +192,69 @@
       </div>
     </section>
 
+    <section class="panel panel--dense monthly-volume-panel info-layer info-layer--middle" data-info-layer="middle" aria-labelledby="monthly-volume-title">
+      <div class="panel-title-row mb-4">
+        <div>
+          <h2 id="monthly-volume-title" class="panel-title">銘柄別・月間取引所シェア</h2>
+          <p class="text-xs text-gray-400 mt-1">銘柄を選ぶと、暦月ごとの取引所シェアと、円換算・銘柄建ての月間出来高を確認できます。</p>
+          <p id="monthly-volume-meta" class="text-xs text-gray-500 mt-1">月次データを読み込み中</p>
+        </div>
+        <span class="panel-kicker">Monthly Archive</span>
+      </div>
+      <div class="monthly-volume-toolbar mb-4" aria-label="月間出来高フィルター">
+        <label class="filter-control" for="monthly-instrument-filter">
+          <span>銘柄</span>
+          <select id="monthly-instrument-filter" class="field" aria-label="月間シェアを表示する銘柄">
+            <option value="">読み込み中</option>
+          </select>
+        </label>
+        <label class="filter-control" for="monthly-range-filter">
+          <span>表示期間</span>
+          <select id="monthly-range-filter" class="field" aria-label="表示する月数">
+            <option value="6">直近6か月</option>
+            <option value="12" selected>直近12か月</option>
+            <option value="24">直近24か月</option>
+            <option value="60">最大5年</option>
+          </select>
+        </label>
+      </div>
+      <div class="monthly-volume-layout">
+        <div class="history-chart-block">
+          <div class="history-chart-heading">
+            <h3>取引所シェアの月次推移</h3>
+            <p>各月を100%として、選択銘柄の取引所別構成比を表示します</p>
+          </div>
+          <div class="chart-container history-chart-container monthly-volume-chart-container">
+            <canvas id="monthly-volume-share-chart" role="img" aria-label="選択した暗号資産の取引所別月間出来高シェアを示す100%積み上げ棒グラフ"></canvas>
+          </div>
+        </div>
+        <div class="monthly-volume-table-block">
+          <div class="history-chart-heading">
+            <h3>月間出来高</h3>
+            <p>JPY換算とBTC・ETH等の銘柄建てを併記します</p>
+          </div>
+          <div class="overflow-auto scrollbar-thin">
+            <table class="data-table data-table--cards text-xs">
+              <thead class="sticky">
+                <tr>
+                  <th class="text-left">対象月</th>
+                  <th class="text-left">取引所</th>
+                  <th class="is-num text-right">出来高（JPY）</th>
+                  <th id="monthly-base-volume-heading" class="is-num text-right">出来高（銘柄建て）</th>
+                  <th class="is-num text-right">銘柄内シェア</th>
+                  <th class="text-left">集計状況</th>
+                </tr>
+              </thead>
+              <tbody id="monthly-volume-tbody">
+                <tr><td colspan="6" class="text-center text-gray-500 py-4">読み込み中</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <p class="volume-quality-note mt-3">※月間値は毎日取得する24時間出来高スナップショットの合計です。当月は暫定値、過去月でも取得日数が不足する場合は「一部期間」と表示します。</p>
+    </section>
+
     <div id="volume-table-hint" class="volume-table-hint info-layer info-layer--middle" data-info-layer="middle" role="note">銘柄や取引所を絞り込むと、より正確なコスト比較が可能です</div>
 
     <div class="dashboard-grid dashboard-grid--left volume-share-grid info-layer info-layer--middle" data-info-layer="middle">
@@ -307,6 +370,6 @@
   <script src="js/app-formatters.js?v=app-formatters-1"></script>
   <script src="js/app-api.js?v=app-api-1"></script>
   <script src="js/page-poller.js?v=poller-1"></script>
-  <script src="js/volume-share.js?v=volume-share-32"></script>
+  <script src="js/volume-share.js?v=volume-share-33"></script>
 </body>
 </html>
