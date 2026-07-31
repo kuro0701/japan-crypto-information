@@ -4,6 +4,11 @@
   initial-value: 0deg;
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
 .reading-progress {
   position: absolute;
   left: 0;
