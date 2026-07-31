@@ -14,7 +14,13 @@ tags: ETH, イーサリアム, Ethereum, EVM, PoS, ステーキング, L2, DeFi,
 readMinutes: 22
 ---
 
-> **重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。** 掲載する評価、シナリオ、価格レンジ、運用例は調査時点の分析上の仮定であり、将来の成果を保証しません。暗号資産は価格変動・流動性・技術・規制等のリスクを伴います。実際の取引判断は、最新の公式情報を確認し、ご自身の状況に応じて行ってください。
+<aside class="article-callout article-callout--warning" role="note" aria-label="重要な免責事項">
+  <span class="article-callout__icon" aria-hidden="true">!</span>
+  <div>
+    <strong>重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。</strong>
+    <p>掲載する評価、シナリオ、価格レンジ、運用例は調査時点の分析上の仮定であり、将来の成果を保証しません。暗号資産は価格変動・流動性・技術・規制等のリスクを伴います。実際の取引判断は、最新の公式情報を確認し、ご自身の状況に応じて行ってください。</p>
+  </div>
+</aside>
 
 ## エグゼクティブサマリー
 
@@ -27,6 +33,38 @@ readMinutes: 22
 本レポートの結論は明確です。イーサリアムの強みは、Solanaのような高頻度実行チェーンと比べた瞬間的TPSではなく、資本の深さ、規制親和的な機関導入、L2を含む拡張性の制度化、そしてETHというネイティブ資産に結びついたセキュリティと担保性にあります。一方で、低ガス環境が続く場合、ETHのバーン圧力は弱まり、バリュエーションは「L1手数料」より「L2 settlement demand」「RWA・ステーブルコイン需要」「機関投資家の保有需要」に一段と依存します。ETHを評価する際の優先的な確認候補として、総供給の伸び、ステーク比率、L2 TVS/UOPS、Ethereum上のステーブルコインとRWA残高、規制適合的な投資ビークルの資産流入が挙げられます。
 
 主要な市場・オンチェーン数値の取得時点は、特記のない限り2026年7月10日23時41分JST前後です。ソース間で定義が異なる指標は併記し、一次ソースで現時点の定義が統一されていない項目は「未指定」としました。
+
+<section class="article-key-takeaways article-key-takeaways--eth" aria-labelledby="eth-key-takeaways-title">
+  <div class="article-key-takeaways__header">
+    <div>
+      <span>Key points</span>
+      <h2 id="eth-key-takeaways-title">ETHを読む4つの観測点</h2>
+    </div>
+    <p>価格だけでなく、スケーリング、担保、資本集積、機関需要を同じ時点で確認します。</p>
+  </div>
+  <ol class="article-key-takeaways__grid">
+    <li>
+      <span>Scaling</span>
+      <strong>L2スケーリング係数 約39.92倍</strong>
+      <p>実行の重心はL2へ移り、L1は決済・データ可用性・最終性を担います。</p>
+    </li>
+    <li>
+      <span>Staking</span>
+      <strong>有効ステーク比率 約30.2%</strong>
+      <p>約3,680万ETHがネットワークの経済的セキュリティを支えています。</p>
+    </li>
+    <li>
+      <span>Capital</span>
+      <strong>ステーブルコイン 約1,513.54億ドル</strong>
+      <p>決済・流動性・RWAを含むオンチェーン資本市場の厚みを示します。</p>
+    </li>
+    <li>
+      <span>Institutional</span>
+      <strong>ETHA純資産 約48.31億ドル</strong>
+      <p>規制適合的な投資ビークルを通じた機関アクセスが定着しています。</p>
+    </li>
+  </ol>
+</section>
 
 ## プロジェクト概要
 
