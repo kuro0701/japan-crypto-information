@@ -494,6 +494,12 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(ethArticle.body.includes('経済設計'));
   assert.ok(ethArticle.body.includes('評価シナリオとリスク論点'));
   assert.ok(ethArticle.body.includes('class="article-mermaid"'));
+  assert.ok(ethArticle.body.includes('article-callout article-callout--warning'));
+  assert.ok(ethArticle.body.includes('article-key-takeaways article-key-takeaways--eth'));
+  assert.ok(ethArticle.body.includes('ETHを読む4つの観測点'));
+  assert.ok(ethArticle.body.includes('class="article-meta-badge'));
+  assert.ok(ethArticle.body.includes('class="article-mode-help'));
+  assert.ok(ethArticle.body.includes('data-reading-progress-ring'));
   assert.ok(ethArticle.body.includes('https://ethereum.org/en/roadmap/'));
   assert.ok(ethArticle.body.includes('/markets/ETH-JPY'));
   assert.ok(!ethArticle.body.includes('cite'));
