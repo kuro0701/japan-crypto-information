@@ -365,6 +365,45 @@ body {
   letter-spacing: 0.03em;
 }
 
+.article-main.panel[data-article-kind="market"] {
+  --accent: #35c8d2;
+  border-color: rgba(53, 200, 210, 0.16) !important;
+  background:
+    radial-gradient(circle at 94% 3%, rgba(53, 200, 210, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(11, 18, 20, 0.94), rgba(7, 12, 14, 0.96));
+  backdrop-filter: blur(16px);
+}
+
+.article-main[data-article-kind="market"] .article-hero {
+  position: relative;
+  padding-top: var(--sp-3);
+}
+
+.article-main[data-article-kind="market"] .article-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(53, 200, 210, 0.96), rgba(53, 224, 165, 0.42), transparent 86%);
+}
+
+.article-main[data-article-kind="market"] .article-hero__title {
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.article-main[data-article-kind="market"] .article-hero__subtitle span {
+  border-color: rgba(53, 200, 210, 0.2);
+  background: linear-gradient(90deg, rgba(53, 200, 210, 0.1), rgba(53, 224, 165, 0.05));
+}
+
+.article-main[data-article-kind="market"] :is(.article-mermaid, .article-live-market-card) {
+  border-color: rgba(53, 200, 210, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(16px);
+}
+
 .article-main[data-article-slug="canton"] {
   --canton-lime: #f3ff97;
   --canton-violet: #c4b5fd;
@@ -498,45 +537,6 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
 .article-main[data-article-slug="eth"] .article-hero__title {
   word-break: keep-all;
   overflow-wrap: normal;
-}
-
-.article-main.panel[data-article-slug="bnb"] {
-  --accent: #35c8d2;
-  border-color: rgba(53, 200, 210, 0.16) !important;
-  background:
-    radial-gradient(circle at 94% 3%, rgba(53, 200, 210, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(11, 18, 20, 0.94), rgba(7, 12, 14, 0.96));
-  backdrop-filter: blur(16px);
-}
-
-.article-main[data-article-slug="bnb"] .article-hero {
-  position: relative;
-  padding-top: var(--sp-3);
-}
-
-.article-main[data-article-slug="bnb"] .article-hero::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(53, 200, 210, 0.96), rgba(53, 224, 165, 0.42), transparent 86%);
-}
-
-.article-main[data-article-slug="bnb"] .article-hero__title {
-  word-break: keep-all;
-  overflow-wrap: normal;
-}
-
-.article-main[data-article-slug="bnb"] .article-hero__subtitle span {
-  border-color: rgba(53, 200, 210, 0.2);
-  background: linear-gradient(90deg, rgba(53, 200, 210, 0.1), rgba(53, 224, 165, 0.05));
-}
-
-.article-main[data-article-slug="bnb"] :is(.article-mermaid, .article-live-market-card) {
-  border-color: rgba(53, 200, 210, 0.16);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
-  backdrop-filter: blur(16px);
 }
 
 .article-callout {
@@ -5122,7 +5122,7 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
 }
 
 @media (min-width: 769px) {
-  .article-main[data-article-slug="bnb"] .article-data-table {
+  .article-main[data-article-kind="market"] .article-data-table {
     width: max-content;
     min-width: 100%;
   }
@@ -6885,7 +6885,7 @@ html.theme-light .beginner-guide-warning {
   to { stroke-dashoffset: -120; }
 }
 
-html.theme-light .article-main.panel[data-article-slug="bnb"] {
+html.theme-light .article-main.panel[data-article-kind="market"] {
   border-color: rgba(23, 125, 146, 0.16) !important;
   background:
     radial-gradient(circle at 94% 3%, rgba(23, 125, 146, 0.07), transparent 28%),

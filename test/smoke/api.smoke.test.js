@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const OrderBook = require('../../lib/orderbook');
+const { listArticles } = require('../../lib/content');
 const { createTempDir, removeTempDir } = require('../helpers/temp-dir');
 
 const SERVER_PATH = path.resolve(__dirname, '../../server.js');
@@ -166,6 +167,16 @@ function assertMarketArticleInvestmentDisclaimer(body) {
   assert.ok(body.includes('本記事は情報提供のみを目的としており'));
   assert.ok(body.includes('特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。'));
   assert.ok(body.includes('将来の成果を保証しません。'));
+}
+
+function assertSharedMarketArticleUi(body) {
+  assert.ok(body.includes('data-article-kind="market"'));
+  assert.ok(body.includes('article-disclosure article-disclosure--compact'));
+  assert.ok(body.includes('本記事は情報提供を目的としており、投資助言ではありません。'));
+  assert.ok(body.includes('class="article-hero__subtitle"'));
+  assert.ok(body.includes('class="article-mode-help'));
+  assert.ok(body.includes('data-reading-progress-ring'));
+  assert.ok(body.includes('data-article-toc-collapse'));
 }
 
 function assertExchangeDetailReferralCtas(body, href) {
@@ -494,7 +505,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(ethArticle.body.includes('経済設計'));
   assert.ok(ethArticle.body.includes('評価シナリオとリスク論点'));
   assert.ok(ethArticle.body.includes('class="article-mermaid"'));
-  assert.ok(ethArticle.body.includes('article-callout article-callout--warning'));
+  assert.ok(ethArticle.body.includes('>イーサリアム（ETH）総合分析</h1>'));
+  assert.ok(ethArticle.body.includes('技術・経済設計・機関投資家動向'));
   assert.ok(ethArticle.body.includes('article-key-takeaways article-key-takeaways--eth'));
   assert.ok(ethArticle.body.includes('ETHを読む4つの観測点'));
   assert.ok(ethArticle.body.includes('class="article-meta-badge'));
@@ -505,6 +517,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!ethArticle.body.includes('cite'));
   assert.ok(!ethArticle.body.includes('最終推奨'));
   assert.ok(!ethArticle.body.includes('コア・アロケーション候補'));
+  assertSharedMarketArticleUi(ethArticle.body);
   assertMarketArticleInvestmentDisclaimer(ethArticle.body);
   assertCommonDisclosure(ethArticle.body);
 
@@ -522,6 +535,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!usdtArticle.body.includes('cite'));
   assert.ok(!usdtArticle.body.includes('常時保有を避けるべき'));
   assert.ok(!usdtArticle.body.includes('実務提言'));
+  assertSharedMarketArticleUi(usdtArticle.body);
   assertMarketArticleInvestmentDisclaimer(usdtArticle.body);
   assertCommonDisclosure(usdtArticle.body);
 
@@ -548,6 +562,7 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!bnbArticle.body.includes('finance'));
   assert.ok(!bnbArticle.body.includes('投資判断の要旨'));
   assert.ok(!bnbArticle.body.includes('現物長期保有よりも'));
+  assertSharedMarketArticleUi(bnbArticle.body);
   assertMarketArticleInvestmentDisclaimer(bnbArticle.body);
   assertCommonDisclosure(bnbArticle.body);
 
@@ -891,8 +906,8 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(usd1Article.body.includes('供給推移とチェーン構成'));
   assert.ok(usd1Article.body.includes('日本での法的区分・取扱い・税務'));
   assert.ok(usd1Article.body.includes('class="article-mermaid"'));
-  assert.ok(usd1Article.body.includes('article-hero__title-phrase'));
-  assert.ok(usd1Article.body.includes('article-callout article-callout--warning'));
+  assert.ok(usd1Article.body.includes('>USD1総合分析</h1>'));
+  assert.ok(usd1Article.body.includes('発行体・準備金・償還・マルチチェーン・規制リスク'));
   assert.ok(usd1Article.body.includes('usd1-timeline'));
   assert.ok(usd1Article.body.includes('usd1-donut--reserve'));
   assert.ok(usd1Article.body.includes('usd1-donut--chains'));
@@ -909,16 +924,16 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!usd1Article.body.includes('買うべき'));
   assert.ok(!usd1Article.body.includes('最終推奨'));
   assert.ok(!usd1Article.body.includes('積み増し'));
+  assertSharedMarketArticleUi(usd1Article.body);
   assertMarketArticleInvestmentDisclaimer(usd1Article.body);
   assertCommonDisclosure(usd1Article.body);
 
   const btcSharedArticleUi = await fetchText(baseUrl, '/articles/btc');
   assert.equal(btcSharedArticleUi.status, 200);
-  assert.ok(btcSharedArticleUi.body.includes('<span class="article-hero__title-phrase">ビットコインとは？</span>'));
-  assert.ok(btcSharedArticleUi.body.includes('<span class="article-hero__title-group">仕組み</span>'));
+  assert.ok(btcSharedArticleUi.body.includes('>ビットコインとは？</h1>'));
+  assert.ok(btcSharedArticleUi.body.includes('仕組み・歴史・税金・リスクを初心者向けに解説'));
   assert.ok(btcSharedArticleUi.body.includes('class="article-meta-row'));
-  assert.ok(btcSharedArticleUi.body.includes('data-reading-progress-ring'));
-  assert.ok(btcSharedArticleUi.body.includes('data-article-toc-collapse'));
+  assertSharedMarketArticleUi(btcSharedArticleUi.body);
 
   const gramArticle = await fetchText(baseUrl, '/articles/gram');
   assert.equal(gramArticle.status, 200);
@@ -944,8 +959,17 @@ test('major public APIs return seeded test data over HTTP', async (t) => {
   assert.ok(!gramArticle.body.includes('買うべき'));
   assert.ok(!gramArticle.body.includes('最終推奨'));
   assert.ok(!gramArticle.body.includes('積み増し'));
+  assertSharedMarketArticleUi(gramArticle.body);
   assertMarketArticleInvestmentDisclaimer(gramArticle.body);
   assertCommonDisclosure(gramArticle.body);
+
+  const marketArticles = listArticles().filter((article) => article.path.startsWith('/articles/'));
+  assert.ok(marketArticles.length >= 20);
+  for (const article of marketArticles) {
+    const sharedArticle = await fetchText(baseUrl, article.path);
+    assert.equal(sharedArticle.status, 200, article.path);
+    assertSharedMarketArticleUi(sharedArticle.body);
+  }
 
   const simulatorPage = await fetchText(baseUrl, '/simulator?market=BTC-JPY&side=buy&amountType=jpy&amount=100000');
   assert.equal(simulatorPage.status, 200);

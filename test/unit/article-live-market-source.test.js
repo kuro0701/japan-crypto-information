@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const articleScriptPath = path.join(__dirname, '../../public/js/article.js');
+const articleStylePath = path.join(__dirname, '../../public/css/article.css');
+const articleTemplatePath = path.join(__dirname, '../../public/templates/article.html');
 
 test('article Live reference resolves domestic orderbooks before any overseas fallback', () => {
   const source = fs.readFileSync(articleScriptPath, 'utf8');
@@ -65,4 +67,15 @@ test('desktop article contents starts expanded while mobile contents remains com
 
   assert.match(source, /setTocExpanded\(toc, true\)/);
   assert.match(source, /setTocExpanded\(mobileToc, false\)/);
+});
+
+test('market article visual hierarchy is shared instead of being BNB-specific', () => {
+  const style = fs.readFileSync(articleStylePath, 'utf8');
+  const template = fs.readFileSync(articleTemplatePath, 'utf8');
+
+  assert.match(template, /data-article-kind="\{\{ARTICLE_KIND\}\}"/);
+  assert.match(style, /\.article-main\.panel\[data-article-kind="market"\]/);
+  assert.match(style, /\.article-main\[data-article-kind="market"\] \.article-hero::before/);
+  assert.match(style, /\.article-main\[data-article-kind="market"\] \.article-data-table/);
+  assert.doesNotMatch(style, /\.article-main\.panel\[data-article-slug="bnb"\]/);
 });
