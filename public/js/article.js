@@ -319,7 +319,10 @@
     }
 
     const links = $$('[data-article-toc-link]');
+    let activeTocId = '';
     const setActive = (id) => {
+      const changed = id !== activeTocId;
+      activeTocId = id;
       links.forEach((link) => {
         const active = link.dataset.articleTocLink === id;
         link.classList.toggle('is-active', active);
@@ -329,6 +332,22 @@
           setTocExpanded(link.closest('[data-article-toc], [data-article-mobile-toc]'), true);
         }
       });
+      if (changed) {
+        const sideLink = links.find(link => link.dataset.articleTocLink === id && link.closest('[data-article-toc]'));
+        if (sideLink) {
+          const linkTop = sideLink.offsetTop;
+          const linkBottom = linkTop + sideLink.offsetHeight;
+          const visibleTop = toc.scrollTop;
+          const visibleBottom = visibleTop + toc.clientHeight;
+          if (linkTop < visibleTop + 12 || linkBottom > visibleBottom - 12) {
+            const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            toc.scrollTo({
+              top: Math.max(0, linkTop - (toc.clientHeight - sideLink.offsetHeight) / 2),
+              behavior: reduceMotion ? 'auto' : 'smooth',
+            });
+          }
+        }
+      }
     };
 
     let scrollSpyFrame = 0;
@@ -1461,21 +1480,25 @@
     card.dataset.articleLiveMarketCard = 'true';
     card.setAttribute('aria-live', 'polite');
     card.innerHTML = `
-      <div class="article-live-market-card__copy">
+      <header class="article-live-market-card__copy">
         <span>Live reference</span>
         <h3>${escapeHtml(ticker || instrumentId)} の現在地</h3>
         <p data-live-market-copy>国内取引所の板を優先し、国内未取扱いの場合のみ海外取引所の板を参照します。注文前は取引所の公式画面で最終確認してください。</p>
         <a class="article-live-market-card__source" data-live-market-source target="_blank" rel="noopener noreferrer" hidden>データ元を確認 ↗</a>
-      </div>
+      </header>
       <div class="article-live-market-card__quote">
         <span data-live-market-venue>データ取得中</span>
         <strong data-live-market-price>取得中</strong>
-        <small data-live-market-spread>変動・スプレッド確認中</small>
+        <small data-live-market-price-note>最良買気配と最良売気配の仲値</small>
       </div>
-      <div class="article-live-market-card__sparkline" data-live-market-sparkline aria-hidden="true"></div>
+      <div class="article-live-market-card__sides" data-live-market-sparkline aria-label="売却と購入の最良気配を取得中"></div>
       <div class="article-live-market-card__meta">
-        <span data-live-market-trend>履歴を確認中</span>
-        <span data-live-market-updated>最新取得を確認中</span>
+        <span data-live-market-trend>比較対象を確認中</span>
+        <span data-live-market-spread>最良気配差を確認中</span>
+        <span class="article-live-market-card__live-status">
+          <i class="article-live-market-card__live-dot" aria-hidden="true"></i>
+          <span data-live-market-updated>最新取得を確認中</span>
+        </span>
       </div>
       <div class="article-live-market-card__status" data-live-market-status hidden></div>
       <button class="article-live-market-card__retry" type="button" data-live-market-retry hidden>再取得</button>
@@ -1598,6 +1621,7 @@
     const spreadPct = midpointJpy > 0 ? ((askJpy - bidJpy) / midpointJpy) * 100 : NaN;
     const bidVenue = bestBid.exchangeLabel || bestBid.exchangeId || '国内取引所';
     const askVenue = bestAsk.exchangeLabel || bestAsk.exchangeId || '国内取引所';
+    const venueCount = new Set([bestBid.exchangeId || bidVenue, bestAsk.exchangeId || askVenue]).size;
     const bidVenueLink = articleExchangeAffiliateLink(report, bestBid.exchangeId, bidVenue);
     const askVenueLink = articleExchangeAffiliateLink(report, bestAsk.exchangeId, askVenue);
     const timestamps = [bestBid.updatedAt, bestAsk.updatedAt]
@@ -1616,27 +1640,32 @@
     const copyNode = $('[data-live-market-copy]', card);
 
     if (priceNode) setAnimatedJpy(priceNode, midpointJpy);
-    if (venueNode) venueNode.textContent = '国内取引所ベストレート';
-    if (spreadNode) spreadNode.textContent = `売却 ${formatJpy(bidJpy)} / 購入 ${formatJpy(askJpy)}`;
-    if (trendNode) {
-      trendNode.textContent = Number.isFinite(spreadPct)
-        ? `最良気配差 ${spreadPct >= 0 ? '' : '−'}${formatPct(Math.abs(spreadPct), 3)}`
+    if (venueNode) venueNode.textContent = '仲値（国内取引所ベストレート）';
+    if (spreadNode) {
+      spreadNode.textContent = Number.isFinite(spreadPct)
+        ? `最良気配差 ${formatPct(Math.abs(spreadPct), 3)}`
         : '最良気配差を確認中';
+    }
+    if (trendNode) {
+      trendNode.textContent = `国内${venueCount}取引所の最良気配を比較`;
       trendNode.removeAttribute('data-trend');
     }
     if (updatedNode) {
       updatedNode.textContent = updatedAt ? `板更新 ${formatCompactDateTime(updatedAt)}` : '板更新時刻なし';
     }
     if (sparklineNode) {
+      sparklineNode.setAttribute('aria-label', `売却 ${formatJpy(bidJpy)} ${bidVenue}、購入 ${formatJpy(askJpy)} ${askVenue}`);
       sparklineNode.innerHTML = `
-        <div class="article-live-market-card__reference" data-kind="orderbook">
-          <span>Best bid / ask</span>
-          <strong>${escapeHtml(`${formatJpy(bidJpy)} / ${formatJpy(askJpy)}`)}</strong>
-          <small class="article-live-market-card__venue-links">
-            <span>売却 ${bidVenueLink}</span>
-            <span>購入 ${askVenueLink}</span>
-          </small>
-        </div>
+        <article class="article-live-market-card__side article-live-market-card__side--sell">
+          <span>売却 / Best bid</span>
+          <strong>${escapeHtml(formatJpy(bidJpy))}</strong>
+          <small>${bidVenueLink}</small>
+        </article>
+        <article class="article-live-market-card__side article-live-market-card__side--buy">
+          <span>購入 / Best ask</span>
+          <strong>${escapeHtml(formatJpy(askJpy))}</strong>
+          <small>${askVenueLink}</small>
+        </article>
       `;
     }
     if (copyNode) {
@@ -1690,12 +1719,14 @@
     if (priceNode) setAnimatedJpy(priceNode, priceJpy);
     if (venueNode) {
       venueNode.textContent = isOrderbook
-        ? `${reference.source || '海外取引所'} ${reference.pair || ''}`.trim()
+        ? `仲値（${reference.source || '海外取引所'} ${reference.pair || ''}）`.trim()
         : `${reference.source || '公開市場'} 集計`;
     }
     if (spreadNode) {
       spreadNode.textContent = isOrderbook
-        ? `売却 ${formatJpy(bidJpy)} / 購入 ${formatJpy(askJpy)}`
+        ? Number.isFinite(spreadPct)
+          ? `最良気配差 ${formatPct(Math.abs(spreadPct), 3)}`
+          : '最良気配差を確認中'
         : Number.isFinite(change24h)
         ? `24時間 ${change24h >= 0 ? '+' : ''}${formatPct(change24h, 2)}`
         : '24時間変動は集計中';
@@ -1705,7 +1736,9 @@
       else spreadNode.removeAttribute('data-trend');
     }
     if (trendNode) {
-      trendNode.textContent = Number.isFinite(change24h)
+      trendNode.textContent = isOrderbook
+        ? '国内未取扱いのため海外板を参照'
+        : Number.isFinite(change24h)
         ? `24時間 ${change24h >= 0 ? '+' : ''}${formatPct(change24h, 2)}`
         : Number.isFinite(quotePrice)
         ? `${reference.price.quoteCurrency || 'USD'} ${quotePrice.toLocaleString('en-US', { maximumFractionDigits: 6 })}`
@@ -1718,18 +1751,26 @@
     }
     if (sparklineNode) {
       if (isOrderbook) {
+        const sourceLabel = reference.source || '海外取引所';
+        sparklineNode.setAttribute('aria-label', `売却 ${formatJpy(bidJpy)}、購入 ${formatJpy(askJpy)}、${sourceLabel}`);
         sparklineNode.innerHTML = `
-          <div class="article-live-market-card__reference" data-kind="orderbook">
-            <span>Best bid / ask</span>
-            <strong>${escapeHtml(`${formatJpy(bidJpy)} / ${formatJpy(askJpy)}`)}</strong>
-            <small>${Number.isFinite(spreadPct) ? `板スプレッド ${escapeHtml(formatPct(spreadPct, 3))}` : '海外取引所の板情報'}</small>
-          </div>
+          <article class="article-live-market-card__side article-live-market-card__side--sell">
+            <span>売却 / Best bid</span>
+            <strong>${escapeHtml(formatJpy(bidJpy))}</strong>
+            <small>${escapeHtml(sourceLabel)}</small>
+          </article>
+          <article class="article-live-market-card__side article-live-market-card__side--buy">
+            <span>購入 / Best ask</span>
+            <strong>${escapeHtml(formatJpy(askJpy))}</strong>
+            <small>${escapeHtml(sourceLabel)}</small>
+          </article>
         `;
       } else {
         const tone = !Number.isFinite(change24h) ? 'flat' : change24h >= 0 ? 'up' : 'down';
         const changeLabel = Number.isFinite(change24h)
           ? `${change24h >= 0 ? '+' : ''}${formatPct(change24h, 2)}`
           : '集計中';
+        sparklineNode.setAttribute('aria-label', `24時間変動 ${changeLabel}`);
         sparklineNode.innerHTML = `
           <div class="article-live-market-card__reference" data-trend="${tone}">
             <span>24h change</span>
