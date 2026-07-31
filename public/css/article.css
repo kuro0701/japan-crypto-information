@@ -5116,6 +5116,13 @@ html:not(.theme-light) .article-main[data-article-slug="canton"] .article-body {
   display: none;
 }
 
+@media (min-width: 769px) {
+  .article-main[data-article-slug="bnb"] .article-data-table {
+    width: max-content;
+    min-width: 100%;
+  }
+}
+
 .article-data-table :is(th, td).is-num,
 .article-data-table :is(th, td)[data-align="number"] {
   text-align: right;
