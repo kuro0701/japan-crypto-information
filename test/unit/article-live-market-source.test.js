@@ -35,4 +35,15 @@ test('article Live reference links best bid and ask venues through exchange refe
   assert.match(domesticReferenceSource, /bestAsk\.exchangeId/);
   assert.match(domesticReferenceSource, /article-live-market-card__venue-link/);
   assert.match(domesticReferenceSource, /data-live-market-exchange/);
+  assert.match(domesticReferenceSource, /article-live-market-card__side--sell/);
+  assert.match(domesticReferenceSource, /article-live-market-card__side--buy/);
+  assert.match(domesticReferenceSource, /仲値（国内取引所ベストレート）/);
+});
+
+test('article Live reference exposes a pulsing update status beside the board timestamp', () => {
+  const source = fs.readFileSync(articleScriptPath, 'utf8');
+
+  assert.match(source, /article-live-market-card__live-dot/);
+  assert.match(source, /data-live-market-updated/);
+  assert.match(source, /最良買気配と最良売気配の仲値/);
 });
