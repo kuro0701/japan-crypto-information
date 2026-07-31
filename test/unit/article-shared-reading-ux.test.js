@@ -48,9 +48,9 @@ test('external citations and final disclaimers receive shared in-place reading c
 test('article asset versions are bumped for the shared rollout', () => {
   const template = read('public/templates/article.html');
 
-  assert.match(template, /article\.css\?v=30/);
-  assert.match(template, /beginner-mode\.js\?v=18/);
-  assert.match(template, /article\.js\?v=25/);
+  assert.match(template, /article\.css\?v=31/);
+  assert.match(template, /beginner-mode\.js\?v=19/);
+  assert.match(template, /article\.js\?v=26/);
 });
 
 test('all article routes render one changelog and never duplicate summary tabs', () => {

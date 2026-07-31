@@ -1645,6 +1645,9 @@
     const article = $('.article-main');
     const body = $('.article-body');
     if (!tools || !article || !body) return;
+    const menu = $('[data-reader-tools-menu]', tools);
+    const menuToggle = $('[data-reader-tools-toggle]', tools);
+    const menuToggleLabel = $('[data-reader-tools-toggle-label]', tools);
     const settings = articleReaderSettings();
     let fontScale = Number(settings.fontScale);
     if (!Number.isFinite(fontScale)) fontScale = 1;
@@ -1659,7 +1662,47 @@
       document.body.classList.toggle('article-focus-mode', enabled);
       const button = $('[data-reader-focus]', tools);
       if (button) button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+      if (menuToggleLabel) menuToggleLabel.textContent = enabled ? '通常表示へ' : '読書ツール';
+      if (enabled && menu) menu.hidden = true;
+      if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
     };
+    const setMenuOpen = (open) => {
+      if (!menu || !menuToggle) return;
+      const nextOpen = Boolean(open) && !document.body.classList.contains('article-focus-mode');
+      menu.hidden = !nextOpen;
+      menuToggle.setAttribute('aria-expanded', nextOpen ? 'true' : 'false');
+      tools.classList.toggle('is-open', nextOpen);
+      if (nextOpen) {
+        const first = $('button', menu);
+        if (first) first.focus({ preventScroll: true });
+      }
+    };
+    if (menuToggle) {
+      menuToggle.addEventListener('click', () => {
+        if (document.body.classList.contains('article-focus-mode')) {
+          settings.focus = false;
+          writeArticleReaderSettings(settings);
+          syncFocus(false);
+          showArticleToast('通常レイアウトに戻しました');
+          return;
+        }
+        setMenuOpen(menuToggle.getAttribute('aria-expanded') !== 'true');
+      });
+    }
+    document.addEventListener('click', (event) => {
+      if (!tools.contains(event.target)) setMenuOpen(false);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (document.body.classList.contains('article-focus-mode')) {
+        settings.focus = false;
+        writeArticleReaderSettings(settings);
+        syncFocus(false);
+        showArticleToast('通常レイアウトに戻しました');
+      } else {
+        setMenuOpen(false);
+      }
+    });
     syncFont();
     syncFocus(Boolean(settings.focus));
 
@@ -2127,6 +2170,165 @@
     });
   }
 
+  function formatCompactUsd(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '—';
+    if (Math.abs(number) >= 1e12) return `$${(number / 1e12).toFixed(2)}T`;
+    if (Math.abs(number) >= 1e9) return `$${(number / 1e9).toFixed(2)}B`;
+    if (Math.abs(number) >= 1e6) return `$${(number / 1e6).toFixed(1)}M`;
+    return `$${number.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  }
+
+  function sampleArticleSeries(points, limit = 180) {
+    if (points.length <= limit) return points;
+    const step = (points.length - 1) / (limit - 1);
+    return Array.from({ length: limit }, (_, index) => points[Math.round(index * step)]);
+  }
+
+  function initTronOnchainDashboard() {
+    const root = $('[data-tron-onchain-dashboard]');
+    if (!root) return;
+    const canvas = $('canvas', root);
+    const status = $('[data-tron-onchain-status]', root);
+    const current = $('[data-tron-onchain-current]', root);
+    const change = $('[data-tron-onchain-change]', root);
+    const definition = $('[data-tron-onchain-definition]', root);
+    const updated = $('[data-tron-onchain-updated]', root);
+    const metricButtons = $$('[data-onchain-metric]', root);
+    const rangeButtons = $$('[data-onchain-range]', root);
+    if (!canvas || !metricButtons.length || !rangeButtons.length) return;
+
+    let payload = null;
+    let chart = null;
+    let activeMetric = 'tvl';
+    let activeRange = '1y';
+
+    const render = (Chart) => {
+      const metric = payload && payload.metrics && payload.metrics[activeMetric];
+      const allPoints = metric && Array.isArray(metric.points) ? metric.points : [];
+      const latest = allPoints[allPoints.length - 1];
+      const latestDate = latest ? latest.date : Math.floor(Date.now() / 1000);
+      const cutoff = activeRange === '1m'
+        ? latestDate - (31 * 86400)
+        : activeRange === '1y'
+        ? latestDate - (366 * 86400)
+        : 0;
+      const points = sampleArticleSeries(allPoints.filter(point => Number(point.date) >= cutoff));
+      if (!metric || points.length < 2) throw new Error('TRON onchain series is incomplete');
+
+      metricButtons.forEach((button) => button.setAttribute('aria-pressed', button.dataset.onchainMetric === activeMetric ? 'true' : 'false'));
+      rangeButtons.forEach((button) => button.setAttribute('aria-pressed', button.dataset.onchainRange === activeRange ? 'true' : 'false'));
+      const first = points[0];
+      const last = points[points.length - 1];
+      const changePct = first.value > 0 ? ((last.value - first.value) / first.value) * 100 : 0;
+      if (current) current.textContent = formatCompactUsd(last.value);
+      if (change) {
+        change.textContent = `${changePct >= 0 ? '+' : ''}${changePct.toFixed(1)}%`;
+        change.dataset.trend = changePct >= 0 ? 'up' : 'down';
+      }
+      if (definition) definition.textContent = metric.definition || '';
+      if (updated) updated.textContent = `最終系列日 ${new Date(last.date * 1000).toLocaleDateString('ja-JP')}${payload.stale ? ' / キャッシュ値' : ''}`;
+
+      const styles = getComputedStyle(document.documentElement);
+      const accent = styles.getPropertyValue('--accent').trim() || '#35c8d2';
+      const text = styles.getPropertyValue('--text-3').trim() || '#aeb9bc';
+      const line = styles.getPropertyValue('--line-weak').trim() || 'rgba(255,255,255,.1)';
+      if (chart) chart.destroy();
+      chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: points.map(point => new Date(point.date * 1000)),
+          datasets: [{
+            label: metric.label,
+            data: points.map(point => point.value),
+            borderColor: accent,
+            backgroundColor: 'rgba(53, 200, 210, 0.14)',
+            pointRadius: points.length > 90 ? 0 : 2,
+            pointHoverRadius: 5,
+            borderWidth: 2.2,
+            tension: 0.24,
+            fill: true,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              displayColors: false,
+              callbacks: {
+                title(items) { return items[0] ? items[0].raw == null ? '' : new Date(points[items[0].dataIndex].date * 1000).toLocaleDateString('ja-JP') : ''; },
+                label(context) { return `${metric.label}: ${formatCompactUsd(context.raw)}`; },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: text,
+                maxTicksLimit: 6,
+                callback(_value, index) { return new Date(points[index].date * 1000).toLocaleDateString('ja-JP', { year: '2-digit', month: 'short' }); },
+              },
+              grid: { display: false },
+            },
+            y: {
+              beginAtZero: false,
+              ticks: { color: text, callback(value) { return formatCompactUsd(value); } },
+              grid: { color: line },
+            },
+          },
+        },
+      });
+      root.classList.remove('is-loading', 'is-error');
+      root.classList.add('is-ready');
+      if (status) status.textContent = '';
+    };
+
+    root.classList.add('is-loading');
+    Promise.all([
+      fetch('/api/article-onchain/tron', { cache: 'no-store' }).then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      }),
+      loadArticleChartRuntime(),
+    ]).then(([data, Chart]) => {
+      payload = data;
+      metricButtons.forEach((button) => button.addEventListener('click', () => {
+        activeMetric = button.dataset.onchainMetric;
+        render(Chart);
+      }));
+      rangeButtons.forEach((button) => button.addEventListener('click', () => {
+        activeRange = button.dataset.onchainRange;
+        render(Chart);
+      }));
+      render(Chart);
+    }).catch((error) => {
+      console.warn('[article] TRON onchain dashboard failed', error);
+      root.classList.remove('is-loading');
+      root.classList.add('is-error');
+      if (status) status.textContent = 'オンチェーン推移を取得できませんでした。直下の表と出典リンクから確認できます。';
+    });
+  }
+
+  function initArticleDiffHighlight() {
+    const buttons = $$('[data-article-diff-toggle]');
+    const updates = $$('[data-article-update]');
+    if (!buttons.length || !updates.length) return;
+    const sync = (enabled) => {
+      document.body.classList.toggle('article-show-updates', enabled);
+      buttons.forEach((button) => {
+        button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+        const label = $('[data-article-diff-label]', button);
+        if (label) label.textContent = enabled ? '更新箇所を表示中' : '今回の更新箇所を表示';
+      });
+      if (enabled) updates[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    buttons.forEach((button) => button.addEventListener('click', () => sync(!document.body.classList.contains('article-show-updates'))));
+    sync(false);
+  }
+
   function initMermaidDiagrams() {
     const nodes = $$('.article-body .mermaid');
     if (!nodes.length) return;
@@ -2200,37 +2402,27 @@
     if (card) return card;
 
     const body = $('.article-body');
+    const article = $('.article-main');
+    const hero = article && $('.article-hero', article);
+    const slot = article && $('[data-article-live-market-slot]', article);
     if (!body || !instrumentId) return null;
 
     const anchor = findArticleHeading(/市場データの現在地/) || findArticleHeading(/基本データ/);
     card = document.createElement('section');
-    card.className = 'article-live-market-card';
+    card.className = 'article-live-market-card article-live-market-card--ticker';
     card.dataset.articleLiveMarketCard = 'true';
     card.setAttribute('aria-live', 'polite');
     card.innerHTML = `
       <header class="article-live-market-card__copy">
         <span>Live reference</span>
-        <h3>${escapeHtml(ticker || instrumentId)} の現在地</h3>
-        <p data-live-market-copy>国内取引所の板を優先し、国内未取扱いの場合のみ海外取引所の板を参照します。注文前は取引所の公式画面で最終確認してください。</p>
-        <a class="article-live-market-card__source" data-live-market-source target="_blank" rel="noopener noreferrer" hidden>データ元を確認 ↗</a>
+        <h3>${escapeHtml(ticker || instrumentId)} / JPY</h3>
       </header>
       <div class="article-live-market-card__quote">
-        <span data-live-market-venue>データ取得中</span>
+        <span data-live-market-venue>国内板を取得中</span>
         <strong data-live-market-price>取得中</strong>
         <small data-live-market-price-note>最良買気配と最良売気配の仲値</small>
       </div>
       <div class="article-live-market-card__sides" data-live-market-sparkline aria-label="売却と購入の最良気配を取得中"></div>
-      <div class="article-live-market-card__trend-chart" data-live-market-trend-chart>
-        <header>
-          <div><span>Price trend</span><strong>このブラウザで取得した価格推移</strong></div>
-          <div role="group" aria-label="価格推移の期間">
-            <button type="button" data-live-series-range="1h" aria-pressed="true">1H</button>
-            <button type="button" data-live-series-range="24h" aria-pressed="false">24H</button>
-          </div>
-        </header>
-        <div data-live-market-series><span>最初の価格を記録中です</span></div>
-      </div>
-      <div class="article-live-market-card__spread-gauge" data-live-market-spread-gauge aria-live="polite"></div>
       <div class="article-live-market-card__meta">
         <span data-live-market-trend>比較対象を確認中</span>
         <span data-live-market-spread>最良気配差を確認中</span>
@@ -2239,11 +2431,43 @@
           <span data-live-market-updated>最新取得を確認中</span>
         </span>
       </div>
+      <button class="article-live-market-card__expand" type="button" data-live-market-expand aria-expanded="false">詳細<span aria-hidden="true">＋</span></button>
+      <div class="article-live-market-card__details" data-live-market-details hidden>
+        <p data-live-market-copy>国内取引所の板を優先し、国内未取扱いの場合のみ海外取引所の板を参照します。注文前は取引所の公式画面で最終確認してください。</p>
+        <div class="article-live-market-card__trend-chart" data-live-market-trend-chart>
+          <header>
+            <div><span>Price trend</span><strong>このブラウザで取得した価格推移</strong></div>
+            <div role="group" aria-label="価格推移の期間">
+              <button type="button" data-live-series-range="1h" aria-pressed="true">1H</button>
+              <button type="button" data-live-series-range="24h" aria-pressed="false">24H</button>
+            </div>
+          </header>
+          <div data-live-market-series><span>最初の価格を記録中です</span></div>
+        </div>
+        <div class="article-live-market-card__spread-gauge" data-live-market-spread-gauge aria-live="polite"></div>
+        <a class="article-live-market-card__source" data-live-market-source target="_blank" rel="noopener noreferrer" hidden>データ元を確認 ↗</a>
+      </div>
       <div class="article-live-market-card__status" data-live-market-status hidden></div>
       <button class="article-live-market-card__retry" type="button" data-live-market-retry hidden>再取得</button>
     `;
 
-    if (anchor) {
+    const expand = $('[data-live-market-expand]', card);
+    const details = $('[data-live-market-details]', card);
+    if (expand && details) {
+      expand.addEventListener('click', () => {
+        const open = expand.getAttribute('aria-expanded') !== 'true';
+        expand.setAttribute('aria-expanded', open ? 'true' : 'false');
+        expand.lastElementChild.textContent = open ? '−' : '＋';
+        details.hidden = !open;
+        card.classList.toggle('is-expanded', open);
+      });
+    }
+
+    if (slot) {
+      slot.replaceWith(card);
+    } else if (hero) {
+      hero.insertAdjacentElement('beforebegin', card);
+    } else if (anchor) {
       anchor.insertAdjacentElement('afterend', card);
     } else {
       body.insertBefore(card, body.firstElementChild);
@@ -2520,6 +2744,28 @@
     `;
   }
 
+  function renderArticleContextualMarketCtas(report, bestBid, bestAsk) {
+    $$('[data-article-market-cta]').forEach((root) => {
+      const bidTarget = $('[data-article-market-cta-bid]', root);
+      const askTarget = $('[data-article-market-cta-ask]', root);
+      const render = (target, quote, actionLabel) => {
+        if (!target || !quote) return;
+        const exchangeId = quote.exchangeId || '';
+        const exchangeLabel = quote.exchangeLabel || exchangeId || '国内取引所';
+        const link = articleExchangeAffiliateLink(report, exchangeId, exchangeLabel, 'cta');
+        target.innerHTML = `
+          <span>${escapeHtml(actionLabel)}</span>
+          <strong>${escapeHtml(exchangeLabel)}</strong>
+          <small>${escapeHtml(formatJpy(Number(quote.price)))} / 最新の公式条件を確認</small>
+          ${link || `<a class="article-context-market-cta__fallback" href="/markets/${encodeURIComponent(articleInstrumentId())}">国内板比較を見る →</a>`}
+        `;
+      };
+      render(bidTarget, bestBid, '売却側 Best bid');
+      render(askTarget, bestAsk, '購入側 Best ask');
+      root.classList.add('is-ready');
+    });
+  }
+
   function renderDomesticMarketReference(card, report, instrumentId) {
     const snapshot = report && report.snapshot;
     const bestBid = snapshot && snapshot.bestBid;
@@ -2591,6 +2837,7 @@
     }
     renderArticleLiveSeries(card, instrumentId, midpointJpy);
     renderArticleSpreadGauge(card, spreadPct);
+    renderArticleContextualMarketCtas(report, bestBid, bestAsk);
     if (sourceNode) {
       sourceNode.hidden = false;
       sourceNode.href = `/markets/${encodeURIComponent(instrumentId)}`;
@@ -3229,6 +3476,8 @@
     initReadingProgress();
     initArticleTables();
     initArticleDataCharts();
+    initTronOnchainDashboard();
+    initArticleDiffHighlight();
     initMermaidDiagrams();
     initArticleLiveMarketCard();
     initBeginnerModeToast();

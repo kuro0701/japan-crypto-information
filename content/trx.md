@@ -2,7 +2,7 @@
 title: TRON（TRX）総合分析｜技術・USDT決済・市場データ・規制リスク
 description: TRON（TRX）のDPoS、TVM、BandwidthとEnergy、供給・ステーキング、USDT決済、オンチェーン実績、エコシステム、ガバナンス集中、規制・セキュリティリスクを総合分析します。
 date: 2026-07-21
-updated: 2026-07-21
+updated: 2026-08-01
 author: 国内暗号資産取引所ナビ
 slug: trx
 path: /articles/trx
@@ -15,7 +15,48 @@ readMinutes: 24
 
 > **重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。** 掲載する評価、市場データ、利用例は調査時点の分析上の情報であり、将来の成果を保証しません。暗号資産は価格変動・流動性・技術・規制・オペレーション・カウンターパーティー等のリスクを伴います。実際の取引判断は、最新の公式情報を確認し、ご自身の状況に応じて行ってください。本稿の時点データは、原則として2026年7月21日JST時点で確認できた公開情報に基づきます。
 
+<section class="article-summary-tabs trx-summary-tabs" data-article-summary-tabs data-active-summary="key" data-article-update="2026-08-01" aria-label="TRON記事の要点と対象読者">
+  <div class="article-summary-tabs__list" role="tablist" aria-label="読み方を選ぶ">
+    <button type="button" role="tab" id="trx-summary-key-tab" aria-controls="trx-summary-key" aria-selected="true" data-summary-tab="key">要点 <small>2分</small></button>
+    <button type="button" role="tab" id="trx-summary-beginner-tab" aria-controls="trx-summary-beginner" aria-selected="false" tabindex="-1" data-summary-tab="beginner">初心者 <small>5分</small></button>
+    <button type="button" role="tab" id="trx-summary-advanced-tab" aria-controls="trx-summary-advanced" aria-selected="false" tabindex="-1" data-summary-tab="advanced">深掘り <small>24分</small></button>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="trx-summary-key" aria-labelledby="trx-summary-key-tab" data-summary-panel="key">
+    <span class="article-summary-tabs__eyebrow">Key Takeaways</span>
+    <h3>TRONを先に3点でつかむ</h3>
+    <ul class="trx-key-takeaways">
+      <li><strong>主戦場</strong><span>TRONは「万能L1」より、USDTを低コストで動かす決済レールとして見ると実態に近い。</span></li>
+      <li><strong>技術</strong><span>27 SRのDPoS、TVM、Bandwidth／Energyが高速処理とEthereum系からの移植性を支える。</span></li>
+      <li><strong>確認点</strong><span>ガバナンス集中、USDT依存、規制・レピュテーション、TVL定義差を分けて読む。</span></li>
+    </ul>
+    <div class="trx-audience-meter" aria-label="対象読者レベル"><span>対象読者</span><strong>初心者</strong><i></i><strong>実務・上級</strong><small>要点だけでも理解可能。技術・規制節は詳細確認向けです。</small></div>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="trx-summary-beginner" aria-labelledby="trx-summary-beginner-tab" data-summary-panel="beginner" hidden>
+    <span class="article-summary-tabs__eyebrow">Beginner route</span>
+    <h3>送金・USDT利用の視点から読む</h3>
+    <p>「エグゼクティブサマリー」→「市場データとオンチェーン実績」→「採用ドライバーと主要リスク」の順に読むと、技術詳細を飛ばしても全体像をつかめます。初心者モードをONにすると用語の図解をタップ表示できます。</p>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="trx-summary-advanced" aria-labelledby="trx-summary-advanced-tab" data-summary-panel="advanced" hidden>
+    <span class="article-summary-tabs__eyebrow">Research route</span>
+    <h3>技術・供給・制度を横断して読む</h3>
+    <p>TVM差分、資源モデル、SR投票集中、供給の発行／バーン、DefiLlamaとTRONSCANの集計定義差を中心に確認してください。価格スナップショットと継続指標は別物として扱います。</p>
+  </div>
+</section>
+
+<section class="article-changelog trx-changelog" data-article-update="2026-08-01" aria-labelledby="trx-changelog-title">
+  <div class="article-changelog__header">
+    <div><span>Changelog</span><h3 id="trx-changelog-title">この記事の更新履歴</h3></div>
+    <button class="article-diff-toggle" type="button" data-article-diff-toggle aria-pressed="false"><span data-article-diff-label>今回の更新箇所を表示</span><i aria-hidden="true"></i></button>
+  </div>
+  <ol class="article-changelog__timeline">
+    <li><time datetime="2026-08-01">2026/8/1</time><div><span class="article-change-badge article-change-badge--updated">UPDATED</span><strong>読書UI・図解・オンチェーン推移を更新</strong><small>TL;DR、ライブ価格チッカー、期間切替チャート、文脈CTA、差分表示を追加。</small></div></li>
+    <li><time datetime="2026-07-21">2026/7/21</time><div><span class="article-change-badge article-change-badge--new">NEW</span><strong>初版を公開</strong><small>技術・USDT決済・市場データ・規制リスクを整理。</small></div></li>
+  </ol>
+</section>
+
 ## エグゼクティブサマリー
+
+<aside class="article-section-tldr" data-article-update="2026-08-01" aria-label="エグゼクティブサマリーの要点"><span>TL;DR</span><ul><li>TRONの強みは、USDTを大量・低コストで移動させる決済インフラです。</li><li>DPoS、TVM、Bandwidth／Energyが速度と移植性を支えます。</li><li>規制、SR投票集中、USDT偏重、指標定義差を同時に確認します。</li></ul></aside>
 
 TRONは、一般的なスマートコントラクトL1の一つとしてよりも、**低コスト・高稼働のステーブルコイン決済レール**として理解すると実態に近いプロトコルです。公式サイトはTRONを最大規模のUSDTネットワークを支えるブロックチェーンとして位置付けており、TRON DAOは自らをコミュニティ運営型DAOと説明しています。公式ホワイトペーパーでは、TRONは高スループット、高可用性、高拡張性を掲げるアプリケーション基盤であり、2018年以降はTVM、TRC-20、DPoS、Stake 2.0などを通じて機能拡張を続けてきたと整理されています。
 
@@ -29,11 +70,13 @@ TRONは、一般的なスマートコントラクトL1の一つとしてより�
 
 ## プロトコルと技術基盤
 
+<aside class="article-section-tldr" data-article-update="2026-08-01" aria-label="プロトコルと技術基盤の要点"><span>TL;DR</span><ul><li>TRONはCore・Storage・Applicationの3層で構成されます。</li><li>TVMはSolidityを扱えますが、EVMとの差分と80ms制約があります。</li><li>27 SRのDPoSは高速性と引き換えに集中度の検証が必要です。</li></ul></aside>
+
 ### アーキテクチャと実行環境
 
 TRONの公式ホワイトペーパーは、プロトコルを**Core Layer、Storage Layer、Application Layer**の3層アーキテクチャとして説明しています。Core Layerにはスマートコントラクト、アカウント管理、コンセンサスが含まれ、Storage LayerはBlock StorageとState Storageを担い、Application Layer上でdAppsやウォレットが構築されます。通信・データ表現には**Protocol Buffers**が採用されており、多言語クライアント実装に向いた設計です。
 
-TVMはTRONのスマートコントラクト実行環境であり、TRONを単なる分散台帳ではなく**分散ステートマシン**として機能させる中核要素です。開発者向けドキュメントとホワイトペーパーの双方が、TVMを軽量かつチューリング完全な仮想マシンとして記述しており、Solidityでコンパイルされたコントラクトを実行できます。TRONの状態はMerkle Trieで管理され、署名済みトランザクションによって状態遷移が起きます。
+<button class="article-term" type="button" data-term-key="tvm">TVM</button>はTRONのスマートコントラクト実行環境であり、TRONを単なる分散台帳ではなく**分散ステートマシン**として機能させる中核要素です。開発者向けドキュメントとホワイトペーパーの双方が、TVMを軽量かつチューリング完全な仮想マシンとして記述しており、Solidityでコンパイルされたコントラクトを実行できます。TRONの状態はMerkle Trieで管理され、署名済みトランザクションによって状態遷移が起きます。
 
 Ethereum互換性はTRONの重要な採用要因です。TRON Developer Hubは、TVMがEVMに概ね互換であり、**多くのEthereum SolidityコントラクトはTRON上へ移植可能**と説明しています。ただし、TRONはTRXが**6桁小数**、手数料モデルが**GasではなくBandwidth／Energy**、`GASPRICE`や`BASEFEE`など一部opcodeの挙動が異なるなど、差分を明示しています。開発ツールもTronBox、TRON-IDE、TronWeb、TRONSCANなど、Ethereum系ツールチェーンに相当する整備が進んでいます。
 
@@ -41,33 +84,30 @@ Ethereum互換性はTRONの重要な採用要因です。TRON Developer Hubは�
 
 次の図は、TRONの主要な技術・利用主体の関係を、公式サイト、公式ドキュメント、公式エクスプローラ、BTTC公式情報をもとに整理した概念図です。
 
-<div class="article-mermaid">
-<pre class="mermaid">graph TD
-    A[TRON L1]
-    A --> B[TRX]
-    A --> C[TVM]
-    A --> D[DPoS 27 SRs]
-    A --> E[TRC-10]
-    A --> F[TRC-20]
-    A --> G[TRC-721 / TRC-1155]
-    A --> H[TRONSCAN]
-    A --> I[Developer Hub]
-    A --> J[BTTC]
-    F --> K[USDT on TRON]
-    F --> L[USDD]
-    F --> M[stUSDT]
-    C --> N[JustLend DAO]
-    C --> O[SUN.io]
-    A --> P[TronLink]
-    A --> Q[Payments]
-    A --> R[DeFi]
-    A --> S[AI / RWA initiatives]
+<div class="article-mermaid trx-architecture-map" data-article-flow data-article-update="2026-08-01">
+<pre class="mermaid">flowchart TD
+    A[Wallets / DApps] --> B[TVM / TRC-20]
+    B --> C[TRON Core]
+    C --> D[DPoS / 27 SR]
+    C --> E[TRONSCAN]
+    B --> F[USDT / JustLend / SUN]
+    C --> G[BTTC / Cross-chain]
 </pre>
+<div class="article-flow-notes" hidden>
+  <p data-flow-label="Wallets / DApps" data-flow-title="利用者とアプリ層">TronLinkなどのウォレットやDAppが、署名済みトランザクションをTRONへ送ります。</p>
+  <p data-flow-label="TVM / TRC-20" data-flow-title="実行・トークン層">TVMがSolidityコントラクトを実行し、TRC-20がUSDTなどのトークン移転を標準化します。</p>
+  <p data-flow-label="TRON Core" data-flow-title="プロトコル中核">アカウント、状態、リソース、コンセンサス処理を束ねるjava-tronの中核層です。</p>
+  <p data-flow-label="DPoS / 27 SR" data-flow-title="合意形成">投票で選ばれた27 SRが約3秒間隔でブロックを生成します。</p>
+  <p data-flow-label="TRONSCAN" data-flow-title="観測レイヤー">トランザクション、アカウント、ステーキング、SR投票を確認する公式エクスプローラです。</p>
+  <p data-flow-label="USDT / JustLend / SUN" data-flow-title="主要利用">ステーブルコイン送金、レンディング、AMMがTRONの主要なオンチェーン需要です。</p>
+  <p data-flow-label="BTTC / Cross-chain" data-flow-title="相互運用">BTTCがTRON、Ethereum、BNB Chainなどの資産移動を補完します。ブリッジ固有リスクは別評価が必要です。</p>
+</div>
+<div class="article-flow-detail" data-article-flow-detail aria-live="polite"><span>各ブロックをタップすると役割を確認できます。</span></div>
 </div>
 
 ### コンセンサスとガバナンス
 
-TRONのコンセンサスは**Delegated Proof of Stake**です。公式ドキュメントでは、TRONでは**3秒を1スロット**と見なし、通常時は各SRが対応スロットでブロックを生成します。TRX保有者がステーキングを通じて投票権を獲得し、**6時間ごと**に集計される投票で上位27候補がSRになります。ホワイトペーパーは、27 SRがブロック生成を担い、TRONの設計目標を**2,000 TPS超**と説明しています。なお、このTPS値は公式性能主張であり、独立ベンチマークではありません。
+TRONのコンセンサスは<button class="article-term" type="button" data-term-key="dpos">Delegated Proof of Stake（DPoS）</button>です。公式ドキュメントでは、TRONでは**3秒を1スロット**と見なし、通常時は各SRが対応スロットでブロックを生成します。TRX保有者がステーキングを通じて投票権を獲得し、**6時間ごと**に集計される投票で上位27候補がSRになります。ホワイトペーパーは、27 SRがブロック生成を担い、TRONの設計目標を**2,000 TPS超**と説明しています。なお、このTPS値は公式性能主張であり、独立ベンチマークではありません。
 
 報酬設計はガバナンスパラメータにより変更されます。旧ホワイトペーパーでは3秒ごとに1ブロック、1ブロックにつき16 TRXというモデルが示されていましたが、調査時点の公式パラメータ一覧ではSRブロック生成報酬は**8 TRX**と表示されています。したがって、TRXの供給動態を確認する際は、過去の白書数値を現在値として扱わず、最新のネットワークパラメータとバーン量を併せて確認する必要があります。
 
@@ -77,17 +117,34 @@ TRONのガバナンス品質を評価する際には、単にオンチェーン�
 
 TRONのトークン規格は、**TRX、TRC-10、TRC-20、TRC-721、TRC-1155**が中核です。公式ドキュメントでは、TRC-10はシステムコントラクト経由のネイティブ規格、TRC-20はTVM上のスマートコントラクト規格で**ERC-20互換**、TRC-721は**ERC-721互換**と説明されています。この互換性は、Ethereum資産や開発体験に近い一方、コスト構造は異なるというTRONの特徴を示します。
 
-手数料体系はTRON独特です。TRX送金やTRC-10移転は主に**Bandwidth Points**を消費し、スマートコントラクトのデプロイや実行には**BandwidthとEnergy**の双方が必要です。TRXをステーキングすることでこれらの資源を得られるため、単純なGas課金のみを前提にしたEthereum的理解では、TRONの実質コストを正しく把握できません。TRONSCANのステーキングページも、TRX保有者がステーキングを通じてガバナンス参加と報酬獲得を行う構造を示しています。
+手数料体系はTRON独特です。TRX送金やTRC-10移転は主に**Bandwidth Points**を消費し、スマートコントラクトのデプロイや実行には<button class="article-term" type="button" data-term-key="bandwidth-energy">BandwidthとEnergy</button>の双方が必要です。TRXをステーキングすることでこれらの資源を得られるため、単純なGas課金のみを前提にしたEthereum的理解では、TRONの実質コストを正しく把握できません。TRONSCANのステーキングページも、TRX保有者がステーキングを通じてガバナンス参加と報酬獲得を行う構造を示しています。
 
 相互運用性では、**BTTC**がTRONの主要フロントです。BTTC公式ページは、Ethereum、BNB Chain、TRONを含む異種チェーン間のクロスチェーンサービスを提供すると説明しており、TRON側の公式サイトも相互運用性強化を今後の方向性として明示しています。もっとも、ブリッジは一般に高リスク領域であり、エコシステムのセキュリティ評価では本体チェーンとブリッジを分けて考える必要があります。
 
 ## 市場データとオンチェーン実績
+
+<aside class="article-section-tldr" data-article-update="2026-08-01" aria-label="市場データとオンチェーン実績の要点"><span>TL;DR</span><ul><li>価格より、約400万規模のアクティブ利用とステーブルコイン供給を分けて見ます。</li><li>TRX供給は固定上限ではなく、発行とバーンの差で増減します。</li><li>DefiLlamaのDeFi TVLとTRONSCANの広義TVLは定義が異なります。</li></ul></aside>
 
 TRXの市場面では、調査時点のCoinGeckoがTRXの時価総額を**約309億ドル**、流通供給量を**約950億TRX**とし、過去最高値を**0.4313ドル**、過去最安値を**0.001804ドル**と示していました。CoinMarketCapも流通供給量・総供給量ともに約948.7億TRX、最大供給量は上限なしと表示しており、TRXがビットコイン型の固定上限設計ではないことを確認できます。
 
 価格は短期変動が大きいため、本稿は価格予想ではなく、**利用構造とネットワーク特性**の解釈に重心を置きます。以下の値は継続的に変化するスナップショットであり、確認時点の違いにより各データ提供元の表示が一致しない場合があります。
 
 ### 市場・オンチェーン主要指標
+
+<section class="trx-onchain-dashboard" data-tron-onchain-dashboard data-article-update="2026-08-01" aria-labelledby="trx-onchain-dashboard-title">
+  <header class="trx-onchain-dashboard__header">
+    <div><span>Live on-chain trend</span><h4 id="trx-onchain-dashboard-title">TRONのTVL・ステーブルコイン供給推移</h4></div>
+    <a href="https://defillama.com/chain/tron" target="_blank" rel="noopener noreferrer">DefiLlamaで確認 ↗</a>
+  </header>
+  <div class="trx-onchain-dashboard__controls">
+    <div role="group" aria-label="オンチェーン指標"><button type="button" data-onchain-metric="tvl" aria-pressed="true">DeFi TVL</button><button type="button" data-onchain-metric="stablecoins" aria-pressed="false">Stablecoin供給</button></div>
+    <div role="group" aria-label="表示期間"><button type="button" data-onchain-range="1m" aria-pressed="false">1M</button><button type="button" data-onchain-range="1y" aria-pressed="true">1Y</button><button type="button" data-onchain-range="all" aria-pressed="false">ALL</button></div>
+  </div>
+  <div class="trx-onchain-dashboard__metric"><span data-tron-onchain-definition>DefiLlamaの定義に基づく時系列</span><strong data-tron-onchain-current>取得中</strong><em data-tron-onchain-change>—</em><small data-tron-onchain-updated>最終系列日を確認中</small></div>
+  <div class="trx-onchain-dashboard__canvas"><canvas aria-label="TRONオンチェーン指標の推移"></canvas></div>
+  <p data-tron-onchain-status>DefiLlamaの公開APIから履歴を取得中です。</p>
+  <small>TVLはLiquid stakingと二重計上分を除くDefiLlama定義です。TRONSCANの広義TVLとは直接比較できません。</small>
+</section>
 
 | 指標 | 2026年7月21日前後の確認値 | 読み方 |
 |---|---:|---|
@@ -127,11 +184,19 @@ TRXは主要取引所で広く取り扱われています。BinanceはTRX／USDT
 | OKX | TRX／USDT現物 | 国際的な板流動性の補完先 |
 | Coinbase | 価格掲載、現物取引不可 | 地域・取引所ごとの取扱差を示す例 |
 
+<section class="article-context-market-cta" data-article-market-cta data-article-update="2026-08-01" aria-label="TRXの国内取引所比較">
+  <header><span>Context action</span><strong>TRXの国内板と取引条件を確認</strong><small>Live referenceの国内Best bid / askに応じて取引所名と導線を更新します。</small></header>
+  <div><article data-article-market-cta-bid><span>売却側 Best bid</span><strong>国内板を取得中</strong><small>最新レートを確認しています</small></article><article data-article-market-cta-ask><span>購入側 Best ask</span><strong>国内板を取得中</strong><small>最新レートを確認しています</small></article></div>
+  <a class="article-context-market-cta__compare" href="/markets/TRX-JPY">TRX/JPYの国内板をまとめて比較 →</a>
+</section>
+
 ### 大口保有者と分布の読み方
 
 大口保有構造の把握では、**TRONSCANのTop AccountsまたはAccount List APIを当日取得すること**が重要です。TRONSCANにはTop Accountsランキングとアカウント一覧APIが存在し、残高や投票力等による並べ替えができます。ただし、公開検索レンダリングだけでは残高ベースの上位保有比率を安定的に固定できず、厳密な集中度分析にはTRONSCAN本体またはAPIの当日スナップショットが必要です。したがって、**保有者数が多いことと、実効支配が分散していることは別の論点**として確認する必要があります。
 
 ## エコシステムと競争環境
+
+<aside class="article-section-tldr" data-article-update="2026-08-01" aria-label="エコシステムと競争環境の要点"><span>TL;DR</span><ul><li>中核はUSDT、JustLend、SUN.io、USDD、TronLink、BTTCです。</li><li>ネットワーク価値はドル建て流動性の移動に強く結び付きます。</li><li>Ethereumほど用途分散せず、決済・レンディングへの集中が特徴です。</li></ul></aside>
 
 TRONのエコシステムは、公式エクスプローラ上でも**JustLend DAO、SUN.io、USDD、stUSDT、BTTC、BTFS、TronLink**が中核として並びます。これは、TRONのユースケースが決済、レンディング、AMM、分散型ステーブルコイン、RWA、クロスチェーン、ウォレットに広がっていることを意味します。ただし、DeFiの構造を見ると、DefiLlama上のTVL上位は**JustLend**と**USDD**、そして周辺プロトコルへの集中が大きく、プロトコル多様性はEthereumほど厚くありません。
 
@@ -151,6 +216,8 @@ TRON DAOの公式研究は、TRONを**ステーブルコイン決済・流動性
 この比較から見えてくるのは、TRONの競争軸がEthereumの万能L1、Solanaの高性能アプリL1、BSCの低コストEVMと少しずれている点です。TRONの優位は、**大規模ステーブルコイン供給と低コスト送金の組み合わせ**にあります。逆に、NFTカルチャー、最先端アプリ開発、制度商品化の中心という観点では、EthereumやSolanaの方が一般に強い存在感を持ちます。
 
 ## 採用ドライバーと主要リスク
+
+<aside class="article-section-tldr" data-article-update="2026-08-01" aria-label="採用ドライバーと主要リスクの要点"><span>TL;DR</span><ul><li>採用は国際送金、EVM系からの移植性、ウォレット・決済統合が支えます。</li><li>規制・創業者関連ニュースとTRONブランドが結び付きやすい点は継続論点です。</li><li>本体チェーン、ブリッジ、周辺DAppのセキュリティを分けて評価します。</li></ul></aside>
 
 ### 採用ドライバー
 
@@ -174,6 +241,8 @@ TRONの主要な採用ドライバーは、グローバルなドル送金・決�
 
 ## 主要イベント年表
 
+<aside class="article-section-tldr" data-article-update="2026-08-01" aria-label="主要イベント年表の要点"><span>TL;DR</span><ul><li>2018年の独立L1化とTVM公開が現在の技術基盤を作りました。</li><li>2019〜2021年のTRC-20 USDT拡大で決済レールとしての地位を確立しました。</li><li>2025〜2026年はEVM互換・実行環境改善と法務論点の更新が中心です。</li></ul></aside>
+
 | 時期 | 出来事 | 意味 |
 |---|---|---|
 | 2017年7月 | TRON設立 | プロジェクトの起点 |
@@ -192,6 +261,8 @@ TRONの主要な採用ドライバーは、グローバルなドル送金・決�
 
 ## まとめ
 
+<aside class="article-section-tldr" data-article-update="2026-08-01" aria-label="まとめの要点"><span>TL;DR</span><ul><li>TRONはUSDT送金を大量処理する実用インフラとして読むのが出発点です。</li><li>速さ・低コスト・利用実績と、集中・規制・指標差を一組で確認します。</li><li>価格だけでなくネットワーク利用構造の継続変化を追う必要があります。</li></ul></aside>
+
 TRONを理解する上で最初に押さえるべき点は、TRONが次のEthereumを目指すL1というより、**USDT送金を大量に処理する実用インフラ**として強い地位を持つことです。低コスト送金、約3秒のブロック、TVM、TRC-20 USDT、巨大なアクティブアドレス数は、ネットワークの現在地を示す主要な要素です。
 
 技術や市場データは、**速い、低コスト、使われている**という三つの観点に分けると理解しやすくなります。技術面ではDPoS、TVM、Bandwidth／Energy、EVM互換性。市場面では時価総額、流通供給量、供給の増減。利用面ではTRX保有アカウント数、日次アクティブ、日次トランザクション、USDT供給、決済量が確認項目です。
@@ -199,6 +270,8 @@ TRONを理解する上で最初に押さえるべき点は、TRONが次のEthere
 一方、TRONを過度に肯定的または否定的に単純化することは適切ではありません。TRONは大規模決済インフラとして現実の需要を獲得している一方、ガバナンス集中、創業者関連ニュース、規制、ブリッジや周辺アプリのセキュリティ、指標定義の差異といった論点を伴います。技術だけ、または価格だけではなく、**インフラとしての実用性と制度的摩擦の両面**を確認する必要があります。
 
 ## 主要情報源と参考文献
+
+<aside class="article-section-tldr" data-article-update="2026-08-01" aria-label="主要情報源の読み方"><span>TL;DR</span><ul><li>技術仕様はTRON Developer Hubとjava-tronを優先します。</li><li>オンチェーン値はTRONSCANとDefiLlamaで定義を確認します。</li><li>規制情報はSEC・ESMAなど当局の一次資料を確認します。</li></ul></aside>
 
 本稿は、TRONの一次資料、公式エクスプローラ、規制当局資料、独立系オンチェーン集計を横断して作成しています。価格、供給量、ステーク比率、取引件数、TVL、ステーブルコイン供給、取引所取扱状況は変化するため、リンク先の最新値とあわせて確認してください。
 
@@ -222,6 +295,7 @@ TRONを理解する上で最初に押さえるべき点は、TRONが次のEthere
 - [TRON Q1 2026 Quarterly Report](https://trondao.org/research/tron-q1-2026-quarterly-report)
 - [TRONチェーンデータ（DefiLlama）](https://defillama.com/chain/tron)
 - [TRONステーブルコインデータ（DefiLlama）](https://defillama.com/stablecoins/tron)
+- [DefiLlama API documentation](https://api-docs.defillama.com/)
 - [TRX市場データ（CoinGecko）](https://www.coingecko.com/en/coins/tron)
 - [TRX市場データ（CoinMarketCap）](https://coinmarketcap.com/currencies/tron/)
 - [Electric Capital Developer Report](https://www.developerreport.com/)
