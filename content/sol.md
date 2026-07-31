@@ -2,7 +2,7 @@
 title: Solana（SOL）総合分析｜技術・トークノミクス・エコシステム・リスク
 description: Solana（SOL）のプロトコル設計、PoHとPoS、Alpenglow、供給・インフレ・ステーキング、DeFi・決済・DePIN、性能、障害史、分散性、規制と主要リスクを総合分析します。
 date: 2026-07-17
-updated: 2026-07-21
+updated: 2026-08-01
 author: 国内暗号資産取引所ナビ
 slug: sol
 path: /articles/sol
@@ -15,9 +15,65 @@ readMinutes: 18
 
 > **重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。** 掲載する評価、シナリオ、市場データ、運用例は調査時点の分析上の仮定であり、将来の成果を保証しません。暗号資産は価格変動・流動性・技術・規制等のリスクを伴います。実際の取引判断は、最新の公式情報を確認し、ご自身の状況に応じて行ってください。
 
+<section class="article-changelog" aria-labelledby="sol-changelog-title">
+  <div class="article-changelog__header">
+    <span>Changelog</span>
+    <h3 id="sol-changelog-title">この記事の更新履歴</h3>
+  </div>
+  <ol class="article-changelog__timeline">
+    <li>
+      <time datetime="2026-08-01">2026/08/01</time>
+      <div><span class="article-change-badge article-change-badge--updated">UPDATED</span><strong>読了支援とデータ図表を更新</strong><small>要約タブ、用語解説、ページ内検索、価格スパークライン、図表ツールチップ、脚注プレビューを追加。</small></div>
+    </li>
+    <li>
+      <time datetime="2026-07-21">2026/07/21</time>
+      <div><span class="article-change-badge article-change-badge--updated">UPDATED</span><strong>ネットワーク稼働状況を更新</strong><small>ステータス、Alpenglow、Firedancerの記述を見直し。</small></div>
+    </li>
+    <li>
+      <time datetime="2026-07-17">2026/07/17</time>
+      <div><span class="article-change-badge article-change-badge--new">NEW</span><strong>初版公開</strong><small>技術、トークノミクス、エコシステム、規制・リスクを総合整理。</small></div>
+    </li>
+  </ol>
+</section>
+
 ## エグゼクティブサマリー
 
-Solanaは、高速・低コスト・大量処理を重視して設計されたレイヤー1ブロックチェーンであり、アカウントベースの状態管理、事前に参照アカウントを列挙するトランザクション形式、並列実行に適したランタイム設計を中核に持ちます。現在のネットワークはProof of Stakeを基礎に、Proof of Historyによる時間順序付けとリーダースケジュール、ステーク加重の投票で動作しており、開発ロードマップ上ではAlpenglowによる大幅なコンセンサス刷新が計画されています。Solanaは「高性能なモノリシックL1」という立ち位置を維持しつつ、CU上限拡大、XDP、Firedancer、SIMD-123などを通じて、性能・収益配分・クライアント多様性を同時に引き上げようとしています。
+<section class="article-summary-tabs" data-article-summary-tabs aria-label="読み方別の要約">
+  <div class="article-summary-tabs__list" role="tablist" aria-label="要約の長さ">
+    <button type="button" role="tab" id="sol-summary-full-tab" aria-controls="sol-summary-full" aria-selected="true" data-summary-tab="full">全体像 <small>18分</small></button>
+    <button type="button" role="tab" id="sol-summary-quick-tab" aria-controls="sol-summary-quick" aria-selected="false" tabindex="-1" data-summary-tab="quick">要点だけ <small>3分</small></button>
+    <button type="button" role="tab" id="sol-summary-market-tab" aria-controls="sol-summary-market" aria-selected="false" tabindex="-1" data-summary-tab="market">価格・リスク <small>1分</small></button>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="sol-summary-full" aria-labelledby="sol-summary-full-tab" data-summary-panel="full">
+    <span class="article-summary-tabs__eyebrow">Full overview</span>
+    <h3>技術・供給・利用・リスクを一続きで確認</h3>
+    <p>Solanaを、高性能L1という説明だけでなく、コンセンサス刷新、供給設計、実利用、停止履歴、分散性、規制まで含めて評価します。本文は約18分です。</p>
+    <a href="#プロトコル概要">技術から読み始める →</a>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="sol-summary-quick" aria-labelledby="sol-summary-quick-tab" data-summary-panel="quick" hidden>
+    <span class="article-summary-tabs__eyebrow">3-minute brief</span>
+    <h3>3分でつかむSolana</h3>
+    <ul>
+      <li><strong>強み：</strong>低コスト・低遅延と厚いアプリ／流動性を同一L1上で両立。</li>
+      <li><strong>変化：</strong>AlpenglowとFiredancerが、確認時間とクライアント分散を大きく変える可能性。</li>
+      <li><strong>供給：</strong>固定上限ではなく、インフレ率低下と手数料バーンの組み合わせ。</li>
+      <li><strong>注意：</strong>過去の停止、アプリ層の事故、ソフトウェア集中、規制・価格変動を分けて確認。</li>
+    </ul>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="sol-summary-market" aria-labelledby="sol-summary-market-tab" data-summary-panel="market" hidden>
+    <span class="article-summary-tabs__eyebrow">1-minute risk lens</span>
+    <h3>価格を見る前に押さえる4つの変数</h3>
+    <dl>
+      <div><dt>需要</dt><dd>DEX、決済、DePIN、ステーブルコイン利用</dd></div>
+      <div><dt>供給</dt><dd>インフレ率、ステーク解除、手数料バーン</dd></div>
+      <div><dt>技術</dt><dd>Alpenglow／Firedancerの導入と安定稼働</dd></div>
+      <div><dt>外部要因</dt><dd>市場循環、規制、国内外取引所の流動性</dd></div>
+    </dl>
+    <p>ここでの整理は価格予測や売買推奨ではありません。下のLive Referenceも板の最良気配を示す参考値です。</p>
+  </div>
+</section>
+
+Solanaは、高速・低コスト・大量処理を重視して設計されたレイヤー1ブロックチェーンであり、アカウントベースの状態管理、事前に参照アカウントを列挙するトランザクション形式、並列実行に適したランタイム設計を中核に持ちます。現在のネットワークはProof of Stakeを基礎に、<button class="article-term" type="button" data-term-key="proof-of-history">Proof of History（PoH）</button>による時間順序付けとリーダースケジュール、ステーク加重の投票で動作しており、開発ロードマップ上では<button class="article-term" type="button" data-term-key="alpenglow">Alpenglow</button>による大幅なコンセンサス刷新が計画されています。Solanaは「高性能なモノリシックL1」という立ち位置を維持しつつ、CU上限拡大、XDP、<button class="article-term" type="button" data-term-key="firedancer">Firedancer</button>、SIMD-123などを通じて、性能・収益配分・クライアント多様性を同時に引き上げようとしています。
 
 トークノミクス面では、SOLは固定供給上限を明示しないインフレ型資産で、公開アナリティクスでは総供給約6.30億SOL、流通供給約5.83億SOL、現行インフレ率は約3.74%、年率15%のディスインフレで最終1.5%を目指す設計とされています。総供給の約67.5%がステークされており、ネットワーク安全性のかなりの部分をステーキング参加率が支えています。加えて、ユーザーの基本手数料の50%がバーンされるため、実効的な純発行圧力は利用状況に左右されます。
 
@@ -25,19 +81,20 @@ Solanaは、高速・低コスト・大量処理を重視して設計された�
 
 分析対象として見た場合の論点は明確です。主な強みは、実利用を伴う低コスト・高スループット・開発者流入・深い流動性です。主な弱みは、過去の停止事例、依然として発展途上にあるクライアント多様性、性能と分散性・ハードウェア要求の緊張関係、そして規制の不確実性です。2026年7月時点でステータスページ上は直近90日100%稼働ですが、2021年9月の17時間停止や2024年2月の約4時間46分停止といった履歴は、Solanaを評価する上で現在も重要な確認事項です。
 
-## 免責事項
-
-本資料は教育・調査目的の情報提供であり、投資助言、勧誘、税務・法務助言ではありません。暗号資産は価格変動、流動性、技術、規制、カウンターパーティ、運用上の重大なリスクを伴います。Solana Foundation自身も、ネットワーク関連資料は教育・情報提供目的であり、投資助言ではないと明記しています。
+<details class="article-section-disclaimer">
+  <summary><span aria-hidden="true">!</span><strong>免責事項とデータの読み方</strong><small>開いて確認</small></summary>
+  <div><p>本資料は教育・調査目的の情報提供であり、投資助言、勧誘、税務・法務助言ではありません。暗号資産は価格変動、流動性、技術、規制、カウンターパーティ、運用上の重大なリスクを伴います。Solana Foundation自身も、ネットワーク関連資料は教育・情報提供目的であり、投資助言ではないと明記しています。</p></div>
+</details>
 
 ## プロトコル概要
 
 Solanaの基本設計は、**状態を保持するアカウント**と、**原則として状態を持たないプログラム**を分離するアカウントモデルにあります。公式ドキュメントでは、アカウントはデータ保持または実行可能プログラムのいずれかであり、ネイティブSOLやトークン、プログラム状態などはアカウントに保持されると説明されています。トランザクションは複数命令を含められ、すべての命令が成功した場合のみ成功する原子的実行です。加えて、メッセージ内で参照するアカウント群を先に列挙するため、実行計画を立てやすく、並列化しやすい構造になっています。
 
-時間同期と順序付けでは、Solanaの白書がProof of Historyを「ブロックチェーンのための時計」と位置付けています。Terminologyではentry IDが、ある時間の経過後に生成され、どのトランザクションが含まれ、台帳内のどの位置にあるかの証拠になると定義されています。現行ネットワークでは、この時間順序付けとリーダースケジュール、ステーク加重投票、最終的に3分の2のステークが共通ルートを持つfinality条件が組み合わさって稼働しています。
+時間同期と順序付けでは、Solanaの白書が<button class="article-term" type="button" data-term-key="proof-of-history">Proof of History（PoH）</button>を「ブロックチェーンのための時計」と位置付けています。Terminologyではentry IDが、ある時間の経過後に生成され、どのトランザクションが含まれ、台帳内のどの位置にあるかの証拠になると定義されています。現行ネットワークでは、この時間順序付けとリーダースケジュール、ステーク加重投票、最終的に3分の2のステークが共通ルートを持つfinality条件が組み合わさって稼働しています。
 
 手数料モデルは比較的シンプルです。Solana Docsによれば、基本手数料は**署名ごとに5,000 lamports**で、**基本手数料の50%はバーン**され、残り50%は処理したバリデータに支払われます。さらに優先手数料を付けることで、混雑時に取引処理の優先順位を高められます。この構造は、トークンの純供給を部分的に相殺しつつ、ブロック生産者への直接的な収益源を提供します。
 
-<div class="article-mermaid">
+<div class="article-mermaid" data-article-flow>
 <pre class="mermaid">flowchart LR
     A[ユーザー署名] --> B[トランザクションメッセージ作成]
     B --> C[参照アカウント列挙]
@@ -46,11 +103,21 @@ Solanaの基本設計は、**状態を保持するアカウント**と、**原�
     E -- Yes --> F[状態更新と確定]
     E -- No --> G[全体失敗]
 </pre>
+<div class="article-flow-detail" data-article-flow-detail aria-live="polite"><span>図のステップを選択すると、処理が速い理由を確認できます。</span></div>
+<ol class="article-flow-notes" hidden>
+  <li data-flow-label="ユーザー署名" data-flow-title="ユーザー署名">ウォレットが秘密鍵で署名します。ネットワーク側で署名者を再確認できるため、送信後に本人確認の往復は不要です。</li>
+  <li data-flow-label="トランザクションメッセージ作成" data-flow-title="メッセージ作成">複数の命令を1件にまとめます。まとめた命令は原子的に処理され、一部だけ成功する状態を避けられます。</li>
+  <li data-flow-label="参照アカウント列挙" data-flow-title="参照先を先に宣言">読み書きするアカウントを事前に示すため、競合しない処理をランタイムが並列化しやすくなります。</li>
+  <li data-flow-label="命令を順次実行" data-flow-title="命令実行">同一トランザクション内は順序を保ちつつ、別トランザクションとは競合範囲に応じて並列実行できます。</li>
+  <li data-flow-label="全命令成功?" data-flow-title="原子的な成功判定">すべて成功した場合だけ状態を反映します。途中失敗時の不整合をアプリ側で処理する負担を減らします。</li>
+  <li data-flow-label="状態更新と確定" data-flow-title="状態更新">成功した変更をまとめて反映し、コンセンサス上の確定へ進みます。</li>
+  <li data-flow-label="全体失敗" data-flow-title="ロールバック">1つでも失敗すれば全体を失敗として扱い、中途半端な状態更新を残しません。</li>
+</ol>
 </div>
 
 上の流れは、Solanaの「命令集合をまとめて送る原子的トランザクション」と「事前列挙型アカウント参照」の特徴を図式化したものです。金融アプリやDEXで複数操作を一括で通す場合、この実行モデルは実務上の利点になります。
 
-ロードマップ上の最大テーマは**Alpenglow**です。Solana Foundationの2026年アップグレード一覧では、Alpenglowは「コンセンサスの大改修」とされ、**150msの確認時間**、既存の**PoHとオンチェーンvote transactionの除去**、そしてより単純な合意機構への移行が示されています。フォーラム上のSIMD-0326では、TowerBFTとPoHを置き換え、Votorと呼ばれる直接投票ベースの設計で**100〜150ms**の低遅延と、**20%敵対＋20%応答不能**でも生存性を目指す「20+20」レジリエンスが説明されています。2026年7月の公式チェンジログでは、AlpenglowのVotor部分をAgave v4.3以降で段階的に導入する作業が示されており、実装時期や仕様は今後も変更される可能性があります。これはSolanaの将来像を、単なる高速チェーンから超低遅延チェーンへ広げる試みと位置付けられます。
+ロードマップ上の最大テーマは<button class="article-term" type="button" data-term-key="alpenglow">Alpenglow</button>です。Solana Foundationの2026年アップグレード一覧では、Alpenglowは「コンセンサスの大改修」とされ、**150msの確認時間**、既存の**PoHとオンチェーンvote transactionの除去**、そしてより単純な合意機構への移行が示されています。フォーラム上の<a class="article-source-link" href="https://forum.solana.com/t/simd-0326-proposal-for-the-new-alpenglow-consensus-protocol/4236" data-source-title="SIMD-0326" data-source-summary="TowerBFTとPoHをVotorへ置き換えるAlpenglowの提案。低遅延と20+20レジリエンスの設計根拠を確認できます。">SIMD-0326</a>では、TowerBFTとPoHを置き換え、Votorと呼ばれる直接投票ベースの設計で**100〜150ms**の低遅延と、**20%敵対＋20%応答不能**でも生存性を目指す「20+20」レジリエンスが説明されています。2026年7月の公式チェンジログでは、AlpenglowのVotor部分をAgave v4.3以降で段階的に導入する作業が示されており、実装時期や仕様は今後も変更される可能性があります。これはSolanaの将来像を、単なる高速チェーンから超低遅延チェーンへ広げる試みと位置付けられます。
 
 ## トークノミクスと市場データ
 
@@ -68,13 +135,10 @@ Solanaの基本設計は、**状態を保持するアカウント**と、**原�
 
 市場面では、SOLはCoinGeckoで時価総額上位の大型暗号資産に位置付けられ、調査時点の24時間出来高は約15.6億ドルでした。価格履歴では、過去最高値が**293.31ドル**、過去最安値が**0.5008ドル**と示されており、ボラティリティは依然として高い状態です。流動性の厚み自体は大きい一方、価格変動幅も大きいため、現物保有・ステーキング・DeFi活用のいずれでもリスク管理が分析上の論点になります。
 
-<div class="article-mermaid">
-<pre class="mermaid">xychart-beta
-    title "SOL 時価総額の代表点"
-    x-axis ["2023Q4","2024Q4","2025Q3","2026-07-17"]
-    y-axis "USD bn" 0 --> 120
-    bar [43.8, 91.0, 113.5, 43.4]
-</pre>
+<div class="article-data-chart" data-article-chart data-chart-type="line" data-chart-label="SOL 時価総額の代表点" data-chart-unit="USD bn" data-chart-labels="2023Q4|2024Q4|2025Q3|2026-07-17" data-chart-values="43.8|91.0|113.5|43.4">
+  <div class="article-data-chart__header"><div><span>Market cap</span><strong>SOL 時価総額の代表点</strong></div><small>各点に触れると正確な値を表示</small></div>
+  <div class="article-data-chart__canvas"><canvas aria-label="SOL時価総額の代表点を示す折れ線グラフ" role="img"></canvas></div>
+  <p>単位：10億米ドル。連続時系列ではなく、異なる調査時点の代表観測値です。</p>
 </div>
 
 この図は、MessariとCoinGeckoの公開値から抽出した代表点です。2023年末の**438億ドル**、2024年末の**910億ドル**、2025年Q3の**1,135億ドル**を経て、2026年7月時点のCoinGecko値では**約434億ドル**に戻っています。これはSolanaの評価が、単純な右肩上がりではなく、マクロ市況・メムコイン循環・アプリ収益期待・規制・センチメントの影響を強く受けることを示唆します。なお、四半期末値と日次値を混在させているため、厳密な連続系列ではなく「代表観測点」です。
@@ -83,11 +147,11 @@ Solanaの基本設計は、**状態を保持するアカウント**と、**原�
 
 ## エコシステムと開発動向
 
-Solanaエコシステムの厚みは、単純なdApp数よりも、**用途の広さ**と**流動性の深さ**で評価するのが適切です。調査時点のDeFiLlamaでは、Solana上のプロトコル数は**555**、DeFi TVLは**約48.49億ドル**と表示されています。MessariのQ4 2025レポートでは、Solana上のステーブルコイン市場で**USDC 100億ドル、USDT 22億ドル、PYUSD 8.706億ドル**が確認でき、jitoSOLを中心としたliquid stakingも拡大しています。つまり、SOLは単なるL1トークンではなく、**ステーブルコイン流動性、LST、DEX、決済、トークン化資産**を束ねるエコシステム資産として機能しています。
+Solanaエコシステムの厚みは、単純なdApp数よりも、**用途の広さ**と**流動性の深さ**で評価するのが適切です。調査時点のDeFiLlamaでは、Solana上のプロトコル数は**555**、DeFi TVLは**約48.49億ドル**と表示されています。MessariのQ4 2025レポートでは、Solana上のステーブルコイン市場で**USDC 100億ドル、USDT 22億ドル、PYUSD 8.706億ドル**が確認でき、jitoSOLを中心としたliquid stakingも拡大しています。つまり、SOLは単なるL1トークンではなく、**ステーブルコイン流動性、<button class="article-term" type="button" data-term-key="lst">LST</button>、DEX、決済、トークン化資産**を束ねるエコシステム資産として機能しています。
 
 ウォレット基盤も厚いです。Solanaの公式ウォレット比較ページでは**155ウォレット**が掲載され、Feature面では**Phantom、Solflare、Backpack、SquadsX**が目立ちます。さらに公式のWallet Standard／Solana Pay関連ドキュメントでは、**Phantom、Solflare、Backpack、Glow、Brave Wallet、Coinbase Wallet**などが接続先として挙げられています。これはリテールUXの観点で、Solanaがウォレット標準化を重視していることを示しています。
 
-代表的なプロジェクト群を見ると、DeFiでは**Jupiter**がルーティング基盤、**Raydium**が流動性中核、**Jito**がMEV／LST領域、**Marinade**がliquid stakingの古参として知られます。NFT／コンシューマー領域では**Magic Eden**と**Metaplex**、DePINでは**Helium、Hivemapper、XNET**が繰り返し取り上げられています。2026年のSolanaエコシステム報告ではMagic EdenのSolana再集中、Metaplex Appのローンチ、KASTのwaitlistなどが示されており、NFTとコンシューマーアプリが再びSolanaネイティブに回帰している構図も見えます。
+代表的なプロジェクト群を見ると、DeFiでは**Jupiter**がルーティング基盤、**Raydium**が流動性中核、**Jito**がMEV／LST領域、**Marinade**がliquid stakingの古参として知られます。NFT／コンシューマー領域では**Magic Eden**と**Metaplex**、<button class="article-term" type="button" data-term-key="depin">DePIN</button>では**Helium、Hivemapper、XNET**が繰り返し取り上げられています。2026年のSolanaエコシステム報告ではMagic EdenのSolana再集中、Metaplex Appのローンチ、KASTのwaitlistなどが示されており、NFTとコンシューマーアプリが再びSolanaネイティブに回帰している構図も見えます。
 
 機関採用の文脈でも、Solanaは近年かなり前進しています。公式トップページには**Visa、Worldpay、Circle、PayPal、Fiserv、Western Union**が並び、2026年6月の記事では**MoneyGram**がSolana Developer Platformのインフラパートナー兼バリデータとして加わったとされています。こうした事例は、SolanaがDeFiとNFTだけのチェーンではなく、**決済・送金・トークン化・エンタープライズAPI**の土台としても展開されていることを示します。
 
@@ -97,24 +161,21 @@ Solanaエコシステムの厚みは、単純なdApp数よりも、**用途の�
 
 Solanaの性能評価で重要なのは、**TPSだけを見ないこと**です。Solana Compassは、TPSはクラスタ全体の健康状態を見るのに有用だが、投票トランザクションが含まれるため全てではないと明記しています。同ページは**400msの期待ブロック時間**、投票TPSと非投票TPSの分離、CUベースのブロックスペース利用率など、より実務的な指標の方が重要だと示しています。つまりSolanaは、単純なTPS競争から、**compute capacity／latency／blockspace efficiency**の競争へ移行していると理解するのが適切です。
 
-<div class="article-mermaid">
-<pre class="mermaid">xychart-beta
-    title "Solana の公開 throughput 代表値"
-    x-axis ["2022平均実利用","公称能力","テスト環境"]
-    y-axis "TPS" 0 --> 600000
-    bar [4000,50000,600000]
-</pre>
+<div class="article-data-chart" data-article-chart data-chart-type="bar" data-chart-label="Solana の公開 throughput 代表値" data-chart-unit="TPS" data-chart-labels="2022平均実利用|公称能力|Firedancerテスト" data-chart-values="4000|50000|600000">
+  <div class="article-data-chart__header"><div><span>Throughput</span><strong>公開TPSの代表値</strong></div><small>実利用・公称・テスト値は直接比較不可</small></div>
+  <div class="article-data-chart__canvas"><canvas aria-label="Solanaの公開TPS代表値を示す棒グラフ" role="img"></canvas></div>
+  <p>測定条件が異なるため、性能の順位付けではなく数値の種類を見分けるための図です。</p>
 </div>
 
 この図は、**厳密な時系列グラフではなく比較不能な代表値の整理**です。公式記事では2022年当時のネットワーク平均が**約4,000 TPS**、Coinbaseの要約ではSolanaは**50,000 TPSをサポート可能**と紹介され、別の公式記事ではFiredancerのテスト環境で**60万TPS**が示されています。したがって、SolanaのTPSは、**実利用値・公称能力・実験ベンチマークがしばしば混在する**点に注意が必要です。比較する場合は、Solana Data、Solana CompassやRPCの非投票TPS／block time／CUデータを時系列で確認する必要があります。
 
-稼働安定性は、Solanaの主要な検証論点でもあります。公式ステータスページでは、2026年7月21日時点でMainnet Beta、RPC、Explorer、solana.comが**過去90日100% uptime**と表示され、直近のインシデント履歴も「なし」となっています。しかし公式の過去レポートでは、**2024年2月6日に4時間46分の停止**、**2021年9月14日に17時間の停止**が明記されています。2023年2月25日の障害では、長いblock finalization timeによりvote-only modeに入り、その後再起動が必要になりました。Solanaの安定性は改善していますが、「一度も止まらないチェーン」ではありません。
+稼働安定性は、Solanaの主要な検証論点でもあります。<a class="article-source-link" href="https://status.solana.com/" data-source-title="Solana Status" data-source-summary="Mainnet Beta、RPC、Explorer等の稼働率とインシデント履歴を確認できる公式ステータスページです。記事内の稼働率は閲覧時点の表示を固定したものです。">公式ステータスページ</a>では、2026年7月21日時点でMainnet Beta、RPC、Explorer、solana.comが**過去90日100% uptime**と表示され、直近のインシデント履歴も「なし」となっています。しかし公式の過去レポートでは、**2024年2月6日に4時間46分の停止**、**2021年9月14日に17時間の停止**が明記されています。2023年2月25日の障害では、長いblock finalization timeによりvote-only modeに入り、その後再起動が必要になりました。Solanaの安定性は改善していますが、「一度も止まらないチェーン」ではありません。
 
 セキュリティ面では、近年の方向性はかなり明確です。Solanaのv1.17アップデート記事は、**fuzzers**と**複数の外部監査**を挙げ、監査レポートを公開するsecurity-auditsリポジトリへの掲載を案内しています。実際にanza-xyz/security-auditsには、Solana runtime、Durable Nonce、Address Lookup Table、Pinocchio、BLS signaturesなどに関する多数の監査ファイルが並んでいます。2025年4月のZK ElGamal Proof program脆弱性では、Anza・Firedancer・Jitoと外部監査会社がパッチをレビューし、スーパーマジョリティ採用後に公開、既知の悪用なしで収束しました。これは、障害報告だけでなく予防的なインシデント対応能力が高まっていることを示します。
 
 ただし「Solanaは危険か」という問いには、**L1とアプリ層を分けて答える必要**があります。代表例として、2022年の**Wormhole**では約**3.2億ドル**規模の被害、同年の**Mango Markets**ではオラクル操作を用いた約**1.16億〜1.18億ドル**規模の被害が報告されました。これらはSolanaそのもののコンセンサス破綻ではなく、**ブリッジやアプリケーション設計の脆弱性**に属します。利用者・開発者にとっての実務上の教訓は、チェーン性能とは別に、**ブリッジ、オラクル、権限管理、監査品質、ガバナンス手続き**を個別に確認することです。
 
-分散性は改善していますが、論点は残ります。調査時点のSolana Compass decentralization dashboardでは、**4,733ノード、714のstaked validators、Nakamoto coefficient 19、47カ国、450データセンター**と表示されています。一方でSolana Foundationの2025レポートは、**Agave／Jitoが約92%のステーク、Firedancerが約7%**とし、クライアント多様性は進展中だがまだ十分分散していないことを示します。2026年7月のFiredancer adoption trackerでは、Firedancerは**71バリデータ、14.69%のステーク**まで上昇しています。したがって、Solanaの分散性は単純な高低ではなく、**ノード地理的分散は広いが、ソフトウェア実装分散はまだ移行途中**と整理できます。
+分散性は改善していますが、論点は残ります。調査時点のSolana Compass decentralization dashboardでは、**4,733ノード、714のstaked validators、<button class="article-term" type="button" data-term-key="nakamoto-coefficient">Nakamoto coefficient</button> 19、47カ国、450データセンター**と表示されています。一方でSolana Foundationの2025レポートは、**Agave／Jitoが約92%のステーク、<button class="article-term" type="button" data-term-key="firedancer">Firedancer</button>が約7%**とし、クライアント多様性は進展中だがまだ十分分散していないことを示します。2026年7月のFiredancer adoption trackerでは、Firedancerは**71バリデータ、14.69%のステーク**まで上昇しています。したがって、Solanaの分散性は単純な高低ではなく、**ノード地理的分散は広いが、ソフトウェア実装分散はまだ移行途中**と整理できます。
 
 ガバナンスも転換点にあります。長らくSolanaのプロトコル変更は、**SIMD（Solana Improvement Documents）**とフォーラム議論、バリデータ・コア開発者の社会的合意に強く依存してきました。公式リポジトリは**SIMD-0001がプロセスを統治する**とし、2023年のValidator Health ReportもSIMDを「複数クライアント開発チームの調整が必要な変更のための設計文書」と説明しています。そこへ2026年には、**NCN snapshot＋svmgov**を用いたステーク加重のオンチェーン投票システムが加わりました。Solana Governance docsは、これをfully on-chainのvalidator governanceと説明しています。現在のSolanaは、非公式な社会的合意から形式化されたオンチェーン合意へと移行している最中です。
 
