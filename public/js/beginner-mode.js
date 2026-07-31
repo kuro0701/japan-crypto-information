@@ -183,6 +183,30 @@
       title: 'Burn-Mint Equilibrium',
       description: '利用料としてCCを焼却し、アプリケーションやインフラの貢献に応じて別途CCをミントする仕組みです。価格を一定に保つペッグではありません。',
     },
+    'proof-of-history': {
+      title: 'Proof of History（PoH）',
+      description: '暗号学的な連続計算を使い、出来事の前後関係と時間の経過を検証しやすくするSolanaの仕組みです。単独の合意方式ではなく、PoSや投票の順序付けを助けます。',
+    },
+    alpenglow: {
+      title: 'Alpenglow',
+      description: 'Solanaが計画する次世代コンセンサス設計です。現行のPoHとTowerBFTを置き換え、確認時間の短縮と合意手順の簡素化を目指します。仕様や導入時期は変更される可能性があります。',
+    },
+    firedancer: {
+      title: 'Firedancer',
+      description: 'Jump Cryptoが中心となって開発するSolanaの独立バリデータクライアントです。処理性能の向上だけでなく、同じ不具合で全ノードが止まるリスクを下げる役割が期待されています。',
+    },
+    lst: {
+      title: 'LST（リキッドステーキングトークン）',
+      description: 'SOLをステーキングした状態を表す受取証のようなトークンです。報酬を得ながらDeFiで利用できますが、価格乖離やスマートコントラクトのリスクがあります。',
+    },
+    depin: {
+      title: 'DePIN',
+      description: '通信、位置情報、計算資源など現実のインフラを、トークン報酬とブロックチェーンで共同運営する仕組みです。SolanaではHeliumやHivemapperが代表例です。',
+    },
+    'nakamoto-coefficient': {
+      title: 'Nakamoto coefficient',
+      description: 'ネットワークを停止・支配し得る最小の独立主体数を示す分散性の目安です。大きいほど分散していると見やすい一方、地理・クラウド・ソフトウェア集中は別に確認が必要です。',
+    },
   };
 
   let beginnerMode = false;
