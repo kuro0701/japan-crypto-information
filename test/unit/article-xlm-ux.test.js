@@ -11,7 +11,7 @@ test('XLM article exposes the requested reading modes, metric cards, sources, an
   assert.match(source, /data-summary-tab="full"/);
   assert.match(source, /data-summary-tab="quick"/);
   assert.match(source, /data-summary-tab="focus"/);
-  assert.match(source, /xlm-key-metrics/);
+  assert.match(source, /article-key-metrics article-key-metrics--xlm/);
   assert.match(source, /500\.018/);
   assert.match(source, /155\.578/);
   assert.match(source, /100<small>stroops/);
@@ -58,5 +58,6 @@ test('Live Reference supports an external 24-hour XLM sparkline without replacin
   assert.match(client, /fetchCoinGeckoSparkline/);
   assert.match(script, /EXTERNAL_MARKET_REFERENCE_TICKERS = new Set\(\['CANTON', 'XLM'\]\)/);
   assert.match(script, /renderArticleRemoteSparkline/);
+  assert.match(script, /renderArticleLocalMiniSparkline/);
   assert.match(script, /renderDomesticMarketReference\(card, domesticReport, instrumentId\)/);
 });

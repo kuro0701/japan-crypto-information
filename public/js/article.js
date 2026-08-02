@@ -2733,6 +2733,51 @@
     table.parentNode.insertBefore(grid, table);
   }
 
+  function buildKeyMetricsFromTable(table, headingText) {
+    const body = table && table.closest('.article-body');
+    if (!body || body.querySelector('.article-key-metrics') || table.dataset.articleKeyMetrics === 'true') return;
+    if (!/供給|トークノミクス|市場データ|主要指標|性能指標|手数料|コスト|経済構造/i.test(String(headingText || ''))) return;
+    if (/基本データ|市場データの現在地/.test(String(headingText || ''))) return;
+
+    const rows = Array.from(table.tBodies && table.tBodies[0] ? table.tBodies[0].rows : []);
+    const items = rows.map((row) => {
+      const cells = Array.from(row.cells);
+      if (cells.length < 2) return null;
+      const label = cells[0].textContent.replace(/\s+/g, ' ').trim();
+      const value = cells[1].textContent.replace(/\s+/g, ' ').trim();
+      if (!label || label.length > 38 || !/\d/.test(value) || value.length > 48) return null;
+      return {
+        label,
+        valueHtml: cells[1].innerHTML.trim(),
+        noteHtml: cells[2] ? cells[2].innerHTML.trim() : '',
+      };
+    }).filter(Boolean).slice(0, 4);
+    if (items.length < 3) return;
+
+    const section = document.createElement('section');
+    section.className = 'article-key-metrics article-key-metrics--auto';
+    section.dataset.sharedKeyMetrics = 'true';
+    section.setAttribute('aria-label', `${headingText}の重要数値`);
+    section.innerHTML = `
+      <header>
+        <span>Key metrics</span>
+        <h3>重要数値を先に確認</h3>
+        <p>本文の表から、比較の起点になる数値を抽出しています。定義と注意点は元の表もあわせて確認してください。</p>
+      </header>
+      <div class="article-key-metrics__grid">
+        ${items.map(item => `
+          <article>
+            <span>${escapeHtml(item.label)}</span>
+            <strong>${item.valueHtml}</strong>
+            ${item.noteHtml ? `<p>${item.noteHtml}</p>` : ''}
+          </article>
+        `).join('')}
+      </div>
+    `;
+    table.parentNode.insertBefore(section, table);
+    table.dataset.articleKeyMetrics = 'true';
+  }
+
   function initArticleTables() {
     $$('.article-body table').forEach((table) => {
       if (!shouldEnhanceArticleTable(table)) return;
@@ -2741,6 +2786,7 @@
       applyMobileTableLabels(table, labels);
       table.classList.add('data-table', 'data-table--cards', 'article-data-table');
       markArticleTableNumericColumns(table);
+      buildKeyMetricsFromTable(table, heading ? heading.textContent.trim() : '');
       buildStatCardsFromTable(table, heading ? heading.textContent.trim() : '');
       if (!table.hidden) wrapArticleTable(table);
       table.dataset.articleTableReady = 'true';
@@ -2750,12 +2796,28 @@
   function initInteractiveArticleFlows() {
     $$('[data-article-flow]').forEach((wrapper) => {
       if (wrapper.dataset.articleFlowReady === 'true') return;
-      const detail = $('[data-article-flow-detail]', wrapper);
-      const notes = $$('.article-flow-notes [data-flow-label]', wrapper);
       const nodes = $$('svg .node', wrapper);
-      if (!detail || !notes.length || !nodes.length) return;
+      if (!nodes.length) return;
+
+      let notesRoot = $('.article-flow-notes', wrapper);
+      if (!notesRoot) {
+        notesRoot = document.createElement('div');
+        notesRoot.className = 'article-flow-notes';
+        notesRoot.hidden = true;
+        wrapper.appendChild(notesRoot);
+      }
+      let detail = $('[data-article-flow-detail]', wrapper);
+      if (!detail) {
+        detail = document.createElement('div');
+        detail.className = 'article-flow-detail';
+        detail.dataset.articleFlowDetail = 'true';
+        detail.setAttribute('aria-live', 'polite');
+        detail.innerHTML = '<span>図のステップを選ぶと、前後のつながりを確認できます。</span>';
+        wrapper.appendChild(detail);
+      }
 
       const normalize = value => String(value || '').replace(/\s+/g, '').replace(/[?？]/g, '').trim();
+      const notes = $$('.article-flow-notes [data-flow-label]', wrapper);
       const steps = [];
       const controls = document.createElement('div');
       controls.className = 'article-flow-controls';
@@ -2770,8 +2832,17 @@
         controls.dataset.activeFlowStep = String(index);
       };
       nodes.forEach((node) => {
-        const label = normalize(node.textContent);
-        const note = notes.find(item => label.includes(normalize(item.dataset.flowLabel)) || normalize(item.dataset.flowLabel).includes(label));
+        const readableLabel = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+        const label = normalize(readableLabel);
+        let note = notes.find(item => label.includes(normalize(item.dataset.flowLabel)) || normalize(item.dataset.flowLabel).includes(label));
+        if (!note && readableLabel) {
+          note = document.createElement('span');
+          note.dataset.flowLabel = readableLabel;
+          note.dataset.flowTitle = readableLabel;
+          note.textContent = `「${readableLabel}」が図の中で担う役割です。前後の矢印と本文の説明を合わせて確認できます。`;
+          notesRoot.appendChild(note);
+          wrapper.dataset.articleFlowAuto = 'true';
+        }
         if (!note) return;
         node.classList.add('is-interactive');
         node.setAttribute('tabindex', '0');
@@ -3066,7 +3137,10 @@
     if (!nodes.length) return;
 
     const wrappers = nodes.map(node => node.closest('.article-mermaid')).filter(Boolean);
-    wrappers.forEach(wrapper => wrapper.classList.add('is-loading'));
+    wrappers.forEach((wrapper) => {
+      wrapper.classList.add('is-loading');
+      if (!wrapper.hasAttribute('data-article-flow')) wrapper.dataset.articleFlow = 'auto';
+    });
 
     const render = async () => {
       if (!window.mermaid) return;
@@ -3458,37 +3532,68 @@
     `;
   }
 
-  function renderArticleRemoteSparkline(card, reference) {
+  function renderArticleMiniSparkline(card, rows, options = {}) {
     const root = $('[data-live-market-mini-chart]', card);
-    const rows = reference && Array.isArray(reference.sparkline24h)
-      ? reference.sparkline24h
-        .map(item => ({ at: Number(item && item.at), value: Number(item && item.jpy) }))
-        .filter(item => Number.isFinite(item.at) && Number.isFinite(item.value) && item.value > 0)
-      : [];
-    if (!root || rows.length < 2) return false;
+    if (!root || !Array.isArray(rows) || rows.length < 2) return false;
+    const normalizedRows = rows
+      .map(item => ({ at: Number(item && item.at), value: Number(item && item.value) }))
+      .filter(item => Number.isFinite(item.at) && Number.isFinite(item.value) && item.at > 0 && item.value > 0)
+      .sort((a, b) => a.at - b.at);
+    if (normalizedRows.length < 2) return false;
     const width = 180;
     const height = 48;
     const pad = 3;
-    const values = rows.map(item => item.value);
+    const values = normalizedRows.map(item => item.value);
     const min = Math.min(...values);
     const max = Math.max(...values);
     const spread = Math.max(max - min, Math.max(0.000001, max * 0.0005));
-    const firstAt = rows[0].at;
-    const timeSpan = Math.max(1, rows[rows.length - 1].at - firstAt);
-    const points = rows.map(item => {
+    const firstAt = normalizedRows[0].at;
+    const timeSpan = Math.max(1, normalizedRows[normalizedRows.length - 1].at - firstAt);
+    const points = normalizedRows.map(item => {
       const x = pad + ((item.at - firstAt) / timeSpan) * (width - pad * 2);
       const y = height - pad - ((item.value - min) / spread) * (height - pad * 2);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
     const change = ((values[values.length - 1] - values[0]) / values[0]) * 100;
     const tone = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+    const sourceLabel = options.sourceLabel || 'ブラウザ記録値';
+    const ticker = options.ticker || articleTicker() || articleInstrumentId().split('-')[0];
     root.dataset.trend = tone;
-    root.setAttribute('aria-label', `CoinGeckoによる直近24時間のXLM/JPY推移、${change >= 0 ? '+' : ''}${formatPct(change, 2)}`);
+    root.dataset.miniChartSource = options.source || 'local';
+    root.setAttribute('aria-label', `${sourceLabel}による直近24時間の${ticker}/JPY推移、${change >= 0 ? '+' : ''}${formatPct(change, 2)}`);
     root.innerHTML = `
       <svg viewBox="0 0 ${width} ${height}" role="img" aria-hidden="true"><polyline points="${points}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span>24h <strong>${change >= 0 ? '+' : ''}${escapeHtml(formatPct(change, 2))}</strong></span>
+      <span>${escapeHtml(options.shortLabel || '記録 24h')} <strong>${change >= 0 ? '+' : ''}${escapeHtml(formatPct(change, 2))}</strong></span>
     `;
     return true;
+  }
+
+  function renderArticleLocalMiniSparkline(card, instrumentId) {
+    const root = $('[data-live-market-mini-chart]', card);
+    if (!root || root.dataset.miniChartSource === 'remote') return false;
+    const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+    const rows = readArticleLiveSeries(instrumentId).filter(item => item.at >= cutoff);
+    if (renderArticleMiniSparkline(card, rows, {
+      source: 'local',
+      sourceLabel: 'このブラウザの記録値',
+      shortLabel: '記録 24h',
+    })) return true;
+    root.dataset.miniChartSource = 'local-pending';
+    root.setAttribute('aria-label', '直近24時間の価格推移をこのブラウザに記録中');
+    root.innerHTML = '<span>24h推移を記録中</span>';
+    return false;
+  }
+
+  function renderArticleRemoteSparkline(card, reference) {
+    const rows = reference && Array.isArray(reference.sparkline24h)
+      ? reference.sparkline24h.map(item => ({ at: item && item.at, value: item && item.jpy }))
+      : [];
+    return renderArticleMiniSparkline(card, rows, {
+      source: 'remote',
+      sourceLabel: 'CoinGecko',
+      shortLabel: '24h',
+      ticker: reference && reference.ticker,
+    });
   }
 
   function renderArticleSpreadGauge(card, spreadPct) {
@@ -3516,6 +3621,40 @@
     `;
   }
 
+  function ensureSharedContextualMarketCta() {
+    const article = $('.article-main[data-article-kind="market"]');
+    const body = article && $('.article-body', article);
+    const instrumentId = articleInstrumentId();
+    if (!article || !body || !instrumentId || $('[data-article-market-cta]', body)) return;
+
+    const headings = $$('h2', body);
+    const heading = headings.find(item => /市場|価格|流動性|取引所|売買|取引実務|取扱/i.test(item.textContent))
+      || headings.find(item => !/まとめ|参考|免責/i.test(item.textContent));
+    if (!heading) return;
+
+    const ticker = articleTicker() || instrumentId.split('-')[0];
+    const root = document.createElement('section');
+    root.className = 'article-context-market-cta article-context-market-cta--shared';
+    root.dataset.articleMarketCta = 'true';
+    root.dataset.sharedMarketCta = 'true';
+    root.hidden = true;
+    root.setAttribute('aria-label', `${ticker}の国内取引所比較`);
+    root.innerHTML = `
+      <header>
+        <span>Live market context</span>
+        <strong>${escapeHtml(ticker)}/JPYの国内Best bid / ask</strong>
+        <small>この章の内容に沿って、国内取引所の現在気配と公式条件を確認できます。</small>
+      </header>
+      <div>
+        <article data-article-market-cta-bid><span>売却側 Best bid</span><strong>国内板を取得中</strong><small>最も高い買気配を確認します</small></article>
+        <article data-article-market-cta-ask><span>購入側 Best ask</span><strong>国内板を取得中</strong><small>最も安い売気配を確認します</small></article>
+      </div>
+    `;
+    const readingSection = heading.closest('[data-article-reading-section]');
+    if (readingSection) readingSection.appendChild(root);
+    else heading.insertAdjacentElement('afterend', root);
+  }
+
   function renderArticleContextualMarketCtas(report, bestBid, bestAsk) {
     $$('[data-article-market-cta]').forEach((root) => {
       const bidTarget = $('[data-article-market-cta-bid]', root);
@@ -3534,6 +3673,7 @@
       };
       render(bidTarget, bestBid, '売却側 Best bid');
       render(askTarget, bestAsk, '購入側 Best ask');
+      root.hidden = false;
       root.classList.add('is-ready');
     });
   }
@@ -3609,6 +3749,7 @@
       copyNode.textContent = '国内取引所だけを比較した最良買気配・最良売気配です。中央の価格は両レートの仲値で、販売所価格は使用していません。';
     }
     renderArticleLiveSeries(card, instrumentId, midpointJpy);
+    renderArticleLocalMiniSparkline(card, instrumentId);
     renderArticleSpreadGauge(card, spreadPct);
     renderArticleContextualMarketCtas(report, bestBid, bestAsk);
     const smartCta = $('[data-article-smart-cta]');
@@ -3750,6 +3891,7 @@
         : '国内取引所で未取扱いかつ海外板を取得できないため、公開市場の集計参考値を表示しています。';
     }
     renderArticleLiveSeries(card, articleInstrumentId(), priceJpy);
+    renderArticleLocalMiniSparkline(card, articleInstrumentId());
     renderArticleRemoteSparkline(card, reference);
     if (isOrderbook) renderArticleSpreadGauge(card, spreadPct);
 
@@ -4276,6 +4418,7 @@
     initTronOnchainDashboard();
     initArticleDiffHighlight();
     initMermaidDiagrams();
+    ensureSharedContextualMarketCta();
     initArticleLiveMarketCard();
     initDogeCostCalculator();
     initBeginnerModeToast();

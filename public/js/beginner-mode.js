@@ -840,6 +840,30 @@
     if (tooltip) tooltip.hidden = true;
   }
 
+  function articleSectionForTerm(button, entry) {
+    const headings = Array.from(document.querySelectorAll('.article-body h2'));
+    if (!headings.length) return null;
+
+    if (entry.sectionPattern) {
+      const explicit = headings.find(heading => heading.textContent.includes(entry.sectionPattern));
+      if (explicit) return explicit;
+    }
+
+    const candidates = [button.textContent, entry.title]
+      .map(value => String(value || '').replace(/[()（）]/g, ' ').split(/[／/・]/)[0].trim())
+      .filter(value => value.length >= 2);
+    const matching = headings.find((heading) => {
+      const label = heading.textContent.replace(/\s+/g, ' ').trim().toLowerCase();
+      return candidates.some(candidate => label.includes(candidate.toLowerCase()));
+    });
+    if (matching) return matching;
+
+    const preceding = headings.filter(heading => (
+      button.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_PRECEDING
+    ));
+    return preceding[preceding.length - 1] || headings[0];
+  }
+
   function showTooltip(button, options = {}) {
     const key = button && button.dataset ? button.dataset.termKey : '';
     const entry = entryFor(key);
@@ -852,9 +876,7 @@
     const links = Array.isArray(entry.links) && entry.links.length
       ? `<div class="term-tooltip__links">${entry.links.map(link => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label)}<span aria-hidden="true">↗</span></a>`).join('')}</div>`
       : '';
-    const section = entry.sectionPattern
-      ? Array.from(document.querySelectorAll('.article-body h2')).find(heading => heading.textContent.includes(entry.sectionPattern))
-      : null;
+    const section = articleSectionForTerm(button, entry);
     const sectionLink = section && section.id
       ? `<a class="term-tooltip__section-link" href="#${escapeHtml(section.id)}">この記事の「${escapeHtml(section.textContent.trim())}」へ移動 →</a>`
       : '';

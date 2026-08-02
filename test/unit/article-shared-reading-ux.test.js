@@ -67,12 +67,31 @@ test('live ticker placement and long-form interaction tools are shared by every 
   assert.match(articleStyle, /\.article-table-view-toggle/);
 });
 
+test('key metrics, diagram steps, local sparklines, and market CTAs have shared fallbacks', () => {
+  const articleScript = read('public/js/article.js');
+  const beginnerMode = read('public/js/beginner-mode.js');
+  const articleStyle = read('public/css/article.css');
+
+  assert.match(articleScript, /function buildKeyMetricsFromTable/);
+  assert.match(articleScript, /section\.dataset\.sharedKeyMetrics = 'true'/);
+  assert.match(articleScript, /wrapper\.dataset\.articleFlow = 'auto'/);
+  assert.match(articleScript, /wrapper\.dataset\.articleFlowAuto = 'true'/);
+  assert.match(articleScript, /function ensureSharedContextualMarketCta/);
+  assert.match(articleScript, /root\.dataset\.sharedMarketCta = 'true'/);
+  assert.match(articleScript, /function renderArticleLocalMiniSparkline/);
+  assert.match(articleScript, /sourceLabel: 'このブラウザの記録値'/);
+  assert.match(beginnerMode, /function articleSectionForTerm/);
+  assert.match(beginnerMode, /Node\.DOCUMENT_POSITION_PRECEDING/);
+  assert.match(articleStyle, /\.article-context-market-cta\[hidden\]/);
+  assert.match(articleStyle, /\.article-key-metrics/);
+});
+
 test('article asset versions are bumped for the shared rollout', () => {
   const template = read('public/templates/article.html');
 
-  assert.match(template, /article\.css\?v=34/);
-  assert.match(template, /beginner-mode\.js\?v=21/);
-  assert.match(template, /article\.js\?v=29/);
+  assert.match(template, /article\.css\?v=35/);
+  assert.match(template, /beginner-mode\.js\?v=22/);
+  assert.match(template, /article\.js\?v=30/);
 });
 
 test('all article routes render one changelog and never duplicate summary tabs', () => {
