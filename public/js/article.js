@@ -272,6 +272,16 @@
 
   function wireTocExpansion(container) {
     if (!container) return;
+    $$('[data-article-toc-link]', container).forEach((link) => {
+      link.addEventListener('click', () => {
+        const heading = document.getElementById(link.dataset.articleTocLink || '');
+        let details = heading && heading.closest('details');
+        while (details) {
+          details.open = true;
+          details = details.parentElement && details.parentElement.closest('details');
+        }
+      });
+    });
     $$('[data-article-toc-more]', container).forEach((button) => {
       button.addEventListener('click', () => {
         setTocExpanded(container, !container.classList.contains('is-expanded'));
@@ -513,49 +523,18 @@
     return Array.from(audiences);
   }
 
-  function syncDogeTocVisibility() {
-    const article = $('.article-main[data-article-slug="doge"]');
+  function syncArticleTocVisibility() {
+    const article = $('.article-main');
     if (!article) return;
     $$('[data-article-toc-link]').forEach((link) => {
       const heading = document.getElementById(link.dataset.articleTocLink || '');
-      const section = heading && heading.closest('[data-doge-section]');
+      const section = heading && heading.closest('[data-article-reading-section]');
       link.hidden = Boolean(section && section.classList.contains('is-reading-mode-hidden'));
     });
   }
 
-  function makeDogeCollapsible(section, label) {
-    if (!section || section.dataset.dogeCollapsibleReady === 'true') return;
-    const heading = $('h2', section);
-    if (!heading) return;
-    const body = document.createElement('div');
-    body.className = 'doge-collapsible__body';
-    let cursor = heading.nextSibling;
-    while (cursor) {
-      const next = cursor.nextSibling;
-      body.appendChild(cursor);
-      cursor = next;
-    }
-    const toggle = document.createElement('button');
-    toggle.className = 'doge-collapsible__toggle';
-    toggle.type = 'button';
-    toggle.setAttribute('aria-expanded', 'false');
-    toggle.innerHTML = `<span>${escapeHtml(label)}</span><strong>開いて確認</strong><i aria-hidden="true">＋</i>`;
-    section.append(toggle, body);
-    section.classList.add('doge-section--collapsible');
-    section.dataset.dogeCollapsibleReady = 'true';
-    const sync = (open) => {
-      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      toggle.querySelector('strong').textContent = open ? '閉じる' : '開いて確認';
-      toggle.querySelector('i').textContent = open ? '−' : '＋';
-      body.hidden = !open;
-      section.classList.toggle('is-open', open);
-    };
-    toggle.addEventListener('click', () => sync(toggle.getAttribute('aria-expanded') !== 'true'));
-    sync(false);
-  }
-
-  function collapseDogeChangelog(body) {
-    const source = $('.article-changelog--shared', body);
+  function collapseArticleChangelog(body) {
+    const source = $('.article-changelog', body);
     if (!source || source.tagName === 'DETAILS') return;
     const title = $('h3', source)?.textContent.trim() || 'この記事の更新履歴';
     const details = document.createElement('details');
@@ -572,55 +551,106 @@
     source.replaceWith(details);
   }
 
+  function collapseArticleSupplementSection(heading) {
+    if (!heading || heading.closest('details')) return;
+    const details = document.createElement('details');
+    details.className = 'article-supplement-section';
+    details.dataset.articleSupplementSection = 'true';
+    details.innerHTML = `
+      <summary><span>Supporting information</span><strong>${escapeHtml(heading.textContent.trim())}</strong><small>開いて確認</small><i aria-hidden="true">＋</i></summary>
+      <div class="article-supplement-section__body"></div>
+    `;
+    const host = $('.article-supplement-section__body', details);
+    heading.parentNode.insertBefore(details, heading);
+    host.appendChild(heading);
+    let cursor = details.nextSibling;
+    while (cursor) {
+      if (cursor.nodeType === 1 && (cursor.tagName === 'H2' || cursor.matches('.article-section-disclaimer'))) break;
+      const next = cursor.nextSibling;
+      host.appendChild(cursor);
+      cursor = next;
+    }
+    details.addEventListener('toggle', () => {
+      const icon = $('summary i', details);
+      const state = $('summary small', details);
+      if (icon) icon.textContent = details.open ? '−' : '＋';
+      if (state) state.textContent = details.open ? '閉じる' : '開いて確認';
+    });
+  }
+
+  function initArticleSupportingAccordions() {
+    const body = $('.article-main .article-body');
+    if (!body) return;
+    collapseArticleChangelog(body);
+    $$(':scope > h2', body)
+      .filter(heading => /主要情報源|参考文献|参考資料|出典|ソース/i.test(heading.textContent.trim()))
+      .forEach(collapseArticleSupplementSection);
+  }
+
+  function initArticleReadingModes() {
+    const article = $('.article-main');
+    const body = article && $('.article-body', article);
+    if (!article || !body) return;
+
+    $$(':scope > h2', body).forEach((heading) => {
+      if (heading.closest('[data-article-reading-section]')) return;
+      const label = heading.textContent.trim();
+      const section = document.createElement('section');
+      section.className = 'article-reading-section';
+      section.dataset.articleReadingSection = label;
+      heading.parentNode.insertBefore(section, heading);
+      section.appendChild(heading);
+      let cursor = section.nextSibling;
+      while (cursor) {
+        if (cursor.nodeType === 1 && (cursor.tagName === 'H2' || cursor.matches('.article-section-disclaimer, .article-supplement-section'))) break;
+        const next = cursor.nextSibling;
+        section.appendChild(cursor);
+        cursor = next;
+      }
+    });
+
+    const sections = $$('[data-article-reading-section]', body);
+    if (!sections.length) return;
+    const quickPattern = /エグゼクティブ|要約|全体像|概要|歴史|コミュニティ|技術|アーキテクチャ|供給|トークノミクス|市場|価格|主要リスク|まとめ|結論/i;
+    const focusPattern = /価格|市場|取引|手数料|コスト|流動性|供給|希薄化|インフレ|上場商品|規制|税|リスク|シナリオ|チェックリスト|まとめ|結論/i;
+    const setReadingMode = (mode) => {
+      const normalized = ['quick', 'focus'].includes(mode) ? mode : 'full';
+      const pattern = normalized === 'quick' ? quickPattern : focusPattern;
+      const matches = normalized === 'full'
+        ? sections
+        : sections.filter(section => pattern.test(section.dataset.articleReadingSection || ''));
+      const visibleSections = matches.length ? matches : sections;
+      article.dataset.articleReadingMode = normalized;
+      sections.forEach((section) => {
+        const visible = normalized === 'full' || visibleSections.includes(section);
+        section.classList.toggle('is-reading-mode-hidden', !visible);
+        section.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      });
+      window.requestAnimationFrame(syncArticleTocVisibility);
+      window.setTimeout(() => window.dispatchEvent(new Event('resize')), 380);
+    };
+    body.addEventListener('article:summary-mode-change', event => setReadingMode(event.detail && event.detail.key));
+    setReadingMode('full');
+  }
+
   function initDogeArticleExperience() {
     const article = $('.article-main[data-article-slug="doge"]');
     const body = article && $('.article-body', article);
     if (!article || !body) return;
 
-    collapseDogeChangelog(body);
-
-    const headings = $$(':scope > h2', body);
-    headings.forEach((heading) => {
-      const label = heading.textContent.trim();
-      const section = document.createElement('section');
-      section.className = 'doge-section';
+    $$('[data-article-reading-section]', body).forEach((section) => {
+      const heading = $('h2', section);
+      if (!heading) return;
+      const label = section.dataset.articleReadingSection || heading.textContent.trim();
+      section.classList.add('doge-section');
       section.dataset.dogeSection = label;
       const audiences = dogeSectionAudiences(label);
       section.dataset.dogeAudiences = audiences.join(' ');
-      heading.parentNode.insertBefore(section, heading);
-      section.appendChild(heading);
-      let cursor = section.nextSibling;
-      while (cursor) {
-        if (cursor.nodeType === 1 && (cursor.tagName === 'H2' || cursor.matches('.article-section-disclaimer'))) break;
-        const next = cursor.nextSibling;
-        section.appendChild(cursor);
-        cursor = next;
-      }
       const badge = document.createElement('span');
       badge.className = 'doge-section__audience-badge';
       badge.textContent = audiences.map(item => ({ beginner: '初心者', trader: 'トレーダー', developer: '技術' }[item])).join(' / ');
       heading.appendChild(badge);
-      if (/主要情報源|参考文献/.test(label)) makeDogeCollapsible(section, 'Sources');
     });
-
-    const quickPattern = /エグゼクティブ|歴史|技術アーキテクチャ|供給設計|市場データ|主要リスク|まとめ/;
-    const focusPattern = /供給設計|市場データ|米国上場商品|日本の規制|主要リスク|ネットワーク・事業シナリオ|確認チェックリスト|まとめ/;
-    const setReadingMode = (mode) => {
-      const normalized = ['quick', 'focus'].includes(mode) ? mode : 'full';
-      article.dataset.dogeReadingMode = normalized;
-      $$('[data-doge-section]', body).forEach((section) => {
-        const label = section.dataset.dogeSection || '';
-        const visible = normalized === 'full'
-          || (normalized === 'quick' && quickPattern.test(label))
-          || (normalized === 'focus' && focusPattern.test(label));
-        section.classList.toggle('is-reading-mode-hidden', !visible);
-        section.setAttribute('aria-hidden', visible ? 'false' : 'true');
-      });
-      window.requestAnimationFrame(syncDogeTocVisibility);
-      window.setTimeout(() => window.dispatchEvent(new Event('resize')), 380);
-    };
-    body.addEventListener('article:summary-mode-change', (event) => setReadingMode(event.detail && event.detail.key));
-    setReadingMode('full');
 
     const controls = $$('[data-doge-persona]', body);
     const status = $('[data-doge-persona-status]', body);
@@ -1332,7 +1362,7 @@
     window.setInterval(load, 30000);
   }
 
-  function wrapDogeCanvasText(context, text, x, y, maxWidth, lineHeight, maxLines) {
+  function wrapArticleCanvasText(context, text, x, y, maxWidth, lineHeight, maxLines) {
     const characters = Array.from(String(text || ''));
     const lines = [];
     let line = '';
@@ -1352,7 +1382,12 @@
     });
   }
 
-  function saveDogeSectionCard(title, summary, slug) {
+  function saveArticleSectionCard(title, summary, slug) {
+    const article = $('.article-main');
+    const articleSlug = String(article && article.dataset.articleSlug || 'article').replace(/[^a-z0-9-]/gi, '-') || 'article';
+    const ticker = String(article && article.dataset.articleTicker || '').trim().toUpperCase();
+    const articleTitle = $('.article-hero__title', article || document)?.textContent.replace(/\s+/g, ' ').trim() || document.title;
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#35c8d2';
     const canvas = document.createElement('canvas');
     canvas.width = 1200;
     canvas.height = 630;
@@ -1361,29 +1396,29 @@
     const gradient = context.createLinearGradient(0, 0, 1200, 630);
     gradient.addColorStop(0, '#070b0e');
     gradient.addColorStop(0.65, '#111a1d');
-    gradient.addColorStop(1, '#2a2108');
+    gradient.addColorStop(1, '#0b2930');
     context.fillStyle = gradient;
     context.fillRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = 'rgba(245,196,81,.14)';
+    context.fillStyle = 'rgba(53,200,210,.14)';
     context.beginPath();
     context.arc(1050, 80, 280, 0, Math.PI * 2);
     context.fill();
-    context.fillStyle = '#f5c451';
+    context.fillStyle = accent;
     context.font = '800 26px sans-serif';
-    context.fillText('DOGECOIN RESEARCH', 70, 82);
+    context.fillText(`${ticker || 'CRYPTO'} RESEARCH`, 70, 82);
     context.fillStyle = '#f7faf9';
     context.font = '800 54px sans-serif';
-    wrapDogeCanvasText(context, title, 70, 180, 1030, 72, 3);
+    wrapArticleCanvasText(context, title, 70, 180, 1030, 72, 3);
     context.fillStyle = '#c5d0cf';
     context.font = '400 30px sans-serif';
-    wrapDogeCanvasText(context, summary, 70, 390, 1040, 46, 3);
-    context.fillStyle = '#f5c451';
+    wrapArticleCanvasText(context, summary, 70, 390, 1040, 46, 3);
+    context.fillStyle = accent;
     context.font = '700 24px sans-serif';
-    context.fillText('get-crypto.org/articles/doge', 70, 574);
+    context.fillText(`${articleTitle} — ${window.location.host}${window.location.pathname}`, 70, 574);
     const download = (url) => {
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = `doge-${slug || 'section'}.png`;
+      anchor.download = `${articleSlug}-${slug || 'section'}.png`;
       anchor.click();
     };
     if (canvas.toBlob) {
@@ -1398,31 +1433,39 @@
     }
   }
 
-  function initDogeSectionShareTools() {
-    const article = $('.article-main[data-article-slug="doge"]');
+  function articleHeadingText(heading) {
+    if (!heading) return '';
+    const clone = heading.cloneNode(true);
+    $$('.doge-section__audience-badge', clone).forEach(node => node.remove());
+    return clone.textContent.replace(/\s+/g, ' ').trim();
+  }
+
+  function initArticleSectionShareTools() {
+    const article = $('.article-main');
     if (!article) return;
-    $$('[data-doge-section]', article).forEach((section) => {
+    const articleTitle = articleHeadingText($('.article-hero__title', article)) || document.title;
+    $$('[data-article-reading-section]', article).forEach((section) => {
       const heading = $('h2', section);
-      if (!heading || /主要情報源|参考文献/.test(heading.textContent)) return;
-      const summary = $('p', section)?.textContent.replace(/\s+/g, ' ').trim().slice(0, 180) || 'Dogecoinの要点を確認します。';
+      if (!heading || !heading.id || /主要情報源|参考文献|参考資料|出典|ソース/i.test(heading.textContent)) return;
+      const summary = $('p', section)?.textContent.replace(/\s+/g, ' ').trim().slice(0, 180) || `${articleTitle}の要点を確認します。`;
       const tools = document.createElement('div');
-      tools.className = 'doge-section-share';
-      tools.setAttribute('aria-label', `${heading.textContent.trim()}を共有`);
-      tools.innerHTML = '<button type="button" data-doge-section-share="x">X</button><button type="button" data-doge-section-share="image">画像保存</button><button type="button" data-doge-section-share="copy">リンク</button>';
+      tools.className = 'article-section-share';
+      tools.setAttribute('aria-label', `${articleHeadingText(heading)}を共有`);
+      tools.innerHTML = '<button type="button" data-article-section-share="x">X</button><button type="button" data-article-section-share="image">画像保存</button><button type="button" data-article-section-share="copy">リンク</button>';
       heading.insertAdjacentElement('afterend', tools);
       tools.addEventListener('click', async (event) => {
-        const button = event.target.closest('[data-doge-section-share]');
+        const button = event.target.closest('[data-article-section-share]');
         if (!button) return;
         const url = new URL(window.location.href);
         url.hash = heading.id;
-        const title = heading.textContent.replace(/初心者|トレーダー|技術/g, '').trim();
-        if (button.dataset.dogeSectionShare === 'x') {
+        const title = articleHeadingText(heading);
+        if (button.dataset.articleSectionShare === 'x') {
           const intent = new URL('https://twitter.com/intent/tweet');
-          intent.searchParams.set('text', `${title}｜Dogecoin（DOGE）総合分析`);
+          intent.searchParams.set('text', `${title}｜${articleTitle}`);
           intent.searchParams.set('url', url.href);
           window.open(intent.href, '_blank', 'noopener,noreferrer,width=640,height=560');
-        } else if (button.dataset.dogeSectionShare === 'image') {
-          saveDogeSectionCard(title, summary, heading.id);
+        } else if (button.dataset.articleSectionShare === 'image') {
+          saveArticleSectionCard(title, summary, heading.id);
           showArticleToast('共有カード画像を保存しました');
         } else {
           await copyTextToClipboard(url.href);
@@ -1432,22 +1475,26 @@
     });
   }
 
-  function initDogeMobileBar() {
-    const article = $('.article-main[data-article-slug="doge"]');
+  function initArticleSmartMobileBar() {
+    const article = $('.article-main');
     const actions = $('[data-article-mobile-actions]');
     if (!article || !actions) return;
-    actions.classList.add('article-mobile-actions--doge');
+    const hasLivePrice = Boolean(String(article.dataset.articleInstrumentId || '').trim());
+    const readingTime = $('.article-reading-time', article)?.textContent.match(/\d+/)?.[0] || '';
+    actions.classList.add('article-mobile-actions--smart');
     actions.innerHTML = `
       <button type="button" data-mobile-toc-button><span aria-hidden="true">☰</span><strong>目次</strong></button>
-      <button type="button" data-doge-mobile-price><span data-doge-mobile-price-value>取得中</span><strong>価格</strong></button>
-      <button type="button" data-doge-mobile-mode><span data-doge-mobile-mode-value>23分</span><strong>モード</strong></button>
-      <button type="button" data-doge-mobile-share><span aria-hidden="true">↗</span><strong>シェア</strong></button>
+      ${hasLivePrice
+        ? '<button type="button" data-article-mobile-price><span data-article-mobile-price-value>取得中</span><strong>価格</strong></button>'
+        : '<button type="button" data-mobile-top-button><span aria-hidden="true">↑</span><strong>上へ</strong></button>'}
+      <button type="button" data-article-mobile-mode><span data-article-mobile-mode-value>${escapeHtml(readingTime ? `${readingTime}分` : '全体')}</span><strong>モード</strong></button>
+      <button type="button" data-article-mobile-share><span aria-hidden="true">↗</span><strong>シェア</strong></button>
     `;
-    const priceButton = $('[data-doge-mobile-price]', actions);
-    const priceValue = $('[data-doge-mobile-price-value]', actions);
-    const modeButton = $('[data-doge-mobile-mode]', actions);
-    const modeValue = $('[data-doge-mobile-mode-value]', actions);
-    const shareButton = $('[data-doge-mobile-share]', actions);
+    const priceButton = $('[data-article-mobile-price]', actions);
+    const priceValue = $('[data-article-mobile-price-value]', actions);
+    const modeButton = $('[data-article-mobile-mode]', actions);
+    const modeValue = $('[data-article-mobile-mode-value]', actions);
+    const shareButton = $('[data-article-mobile-share]', actions);
     const livePrice = $('[data-live-market-price]');
     const syncPrice = () => {
       if (priceValue && livePrice) priceValue.textContent = livePrice.textContent.trim() || '取得中';
@@ -1460,8 +1507,10 @@
     });
     const summaryRoot = $('[data-article-summary-tabs]');
     const syncMode = () => {
-      const labels = { full: '23分', quick: '3分', focus: '1分' };
-      if (modeValue) modeValue.textContent = labels[summaryRoot && summaryRoot.dataset.activeSummary] || '23分';
+      const key = summaryRoot && summaryRoot.dataset.activeSummary;
+      const tab = key && $(`[data-summary-tab="${key}"]`, summaryRoot);
+      const compact = tab && tab.textContent.match(/\d+分/)?.[0];
+      if (modeValue) modeValue.textContent = compact || (key === 'full' && readingTime ? `${readingTime}分` : '全体');
     };
     syncMode();
     if (summaryRoot) new MutationObserver(syncMode).observe(summaryRoot, { attributes: true, attributeFilter: ['data-active-summary'] });
@@ -3022,6 +3071,7 @@
     } else {
       body.insertBefore(card, body.firstElementChild);
     }
+    if (article) article.classList.add('article-main--live-ticker');
     return card;
   }
 
@@ -3978,7 +4028,8 @@
     });
 
     const updateVisibility = () => {
-      const alwaysVisible = navLinks.length > 0 && window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+      const alwaysVisible = (navLinks.length > 0 || actions.classList.contains('article-mobile-actions--smart'))
+        && window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
       actions.classList.toggle('is-visible', alwaysVisible || window.scrollY > 360);
     };
 
@@ -4025,10 +4076,12 @@
     initThemeToggle();
     initArticleEndDisclaimer();
     initMarketBeginnerSections();
+    initArticleSupportingAccordions();
+    initArticleReadingModes();
     initDogeArticleExperience();
     initArticleSummaryTabs();
     initToc();
-    syncDogeTocVisibility();
+    syncArticleTocVisibility();
     initReadingProgress();
     initArticleTables();
     initDogeSupplySimulator();
@@ -4053,8 +4106,8 @@
     initArticleTerms();
     initArticleBeginnerGuide();
     initExchangeChecklist();
-    initDogeSectionShareTools();
-    initDogeMobileBar();
+    initArticleSectionShareTools();
+    initArticleSmartMobileBar();
     initArticleMobileActions();
     initArticleCopyToast();
     initArticleSearch();
