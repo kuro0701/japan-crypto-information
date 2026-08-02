@@ -2,7 +2,7 @@
 title: Dogecoin（DOGE）総合分析｜歴史・PoW・供給・決済・市場リスク
 description: Dogecoin（DOGE）の歴史、Scrypt PoW、Litecoinとのマージマイニング、供給設計、決済・コミュニティ、ETF、市場データ、規制・税制・技術リスクを総合分析します。
 date: 2026-07-22
-updated: 2026-07-22
+updated: 2026-08-02
 author: 国内暗号資産取引所ナビ
 slug: doge
 path: /articles/doge
@@ -14,6 +14,39 @@ readMinutes: 23
 ---
 
 > **重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。** 掲載する評価、市場データ、利用例は調査時点の分析上の情報であり、将来の成果を保証しません。暗号資産は、価格変動、流動性、技術、規制、税務、オペレーション、カウンターパーティー等のリスクを伴います。実際の利用・取引判断は、最新の公式情報を確認し、ご自身の状況に応じて行ってください。本稿の時点データは、原則として2026年7月22日JST時点で確認できた公開情報に基づきます。
+
+<section class="doge-purpose-switcher" data-doge-purpose-switcher aria-labelledby="doge-purpose-title">
+  <div>
+    <span>Personalized reading</span>
+    <h3 id="doge-purpose-title">あなたの目的に合わせる</h3>
+    <p>選んだ目的に関係する章を強調します。もう一度押すと全章表示へ戻ります。</p>
+  </div>
+  <div class="doge-purpose-switcher__tabs" role="group" aria-label="読者タイプを選ぶ">
+    <button type="button" data-doge-persona="beginner" aria-pressed="false"><span aria-hidden="true">🔰</span>初心者</button>
+    <button type="button" data-doge-persona="trader" aria-pressed="false"><span aria-hidden="true">📊</span>トレーダー</button>
+    <button type="button" data-doge-persona="developer" aria-pressed="false"><span aria-hidden="true">💻</span>技術・開発者</button>
+  </div>
+  <p class="doge-purpose-switcher__status" data-doge-persona-status aria-live="polite">すべての章を表示しています</p>
+</section>
+
+<section class="doge-cost-calculator" data-doge-cost-calculator aria-labelledby="doge-cost-calculator-title">
+  <div class="doge-cost-calculator__header">
+    <div>
+      <span>Live execution estimate</span>
+      <h3 id="doge-cost-calculator-title">DOGE購入コストを国内板で比較</h3>
+      <p>同じ購入金額で、GMOコインとbitbankの板・既定手数料・スリッページを含む参考結果を比較します。</p>
+    </div>
+    <label>
+      <span>購入金額</span>
+      <span class="doge-cost-calculator__input"><span>¥</span><input type="number" min="1000" max="10000000" step="1000" value="100000" inputmode="numeric" data-doge-cost-amount></span>
+    </label>
+  </div>
+  <div class="doge-cost-calculator__rows" data-doge-cost-rows aria-live="polite">
+    <p>国内取引所の板データを取得中です。</p>
+  </div>
+  <div class="doge-cost-calculator__summary" data-doge-cost-summary>取得できた新鮮な板だけで比較します。</div>
+  <p class="doge-cost-calculator__note">参考値です。通信遅延、注文直前の板変化、各社の手数料区分、注文制約は公式画面で最終確認してください。</p>
+</section>
 
 ## エグゼクティブサマリー
 
@@ -60,16 +93,25 @@ Dogecoinは、アカウント残高を直接更新するのではなく、未使
 
 マイナーは検証済みの未確定トランザクションをブロックへまとめ、ScryptによるPoWを計算します。条件を満たすブロックを最初に提示したマイナーは、10,000 DOGEのブロック報酬と、そのブロックに含まれる取引手数料を受け取ります。ブロック生成は競争であるため、約1分は目標値であり、各ブロックが常に60秒ちょうどで生成されるわけではありません。
 
-<div class="article-mermaid">
+<div class="article-mermaid article-mermaid--doge" data-article-flow>
 <pre class="mermaid">graph TD
-    A[Wallet] -->|signed transaction| B[Dogecoin nodes]
-    B --> C[Mempool]
-    C --> D[Scrypt miners and pools]
-    E[Litecoin mining work] -->|AuxPoW| D
-    D -->|valid block| F[Dogecoin blockchain]
+    A[ウォレット署名] -->|UTXOを使用| B[Dogecoinノード検証]
+    B --> C[メンプール]
+    C --> D[Scryptマイナー]
+    E[Litecoin採掘作業] -->|AuxPoW| D
+    D -->|有効ブロック| F[Dogecoinチェーン]
     F --> B
-    F -->|10,000 DOGE plus fees| D
+    F -->|10,000 DOGE + 手数料| D
 </pre>
+<div class="article-flow-detail" data-article-flow-detail><span>図のノードを選ぶと、役割と注意点を確認できます。</span></div>
+<div class="article-flow-notes" hidden>
+  <p data-flow-label="ウォレット署名" data-flow-title="UTXOを署名して支出">ウォレットは保有残高そのものを書き換えず、未使用の取引出力（UTXO）を秘密鍵で署名して次の受取先へ移します。</p>
+  <p data-flow-label="Dogecoinノード検証" data-flow-title="ノードがルールを検証">ノードは二重使用、署名、金額、ブロック形式がDogecoinのコンセンサスルールに合うか検証します。</p>
+  <p data-flow-label="メンプール" data-flow-title="未確定取引の待機場所">検証済みでもブロックへ入る前の取引が待機します。混雑時は手数料や承認時間が変化します。</p>
+  <p data-flow-label="Scryptマイナー" data-flow-title="Scrypt PoWとAuxPoW">マイナーはScryptの計算を行い、Litecoin側の採掘作業をAuxPoWとしてDogecoinにも利用できます。</p>
+  <p data-flow-label="Litecoin採掘作業" data-flow-title="親チェーンの計算作業を再利用">同じScrypt採掘作業を二つのチェーンで利用しますが、プール集中やノード運用のリスクは別に残ります。</p>
+  <p data-flow-label="Dogecoinチェーン" data-flow-title="約1分ごとに状態を確定">有効ブロックが連なり、使用済みUTXOと新しいUTXOの履歴を共有します。</p>
+</div>
 </div>
 
 ### Scryptとマージマイニング
@@ -93,6 +135,29 @@ DogecoinはDigiByte由来の**DigiShield**難易度調整を導入していま�
 **10,000 DOGE × 60分 × 24時間 × 365日 = 5,256,000,000 DOGE／年**
 
 年間発行量は**約52.56億DOGE**です。実際の年間発行はブロック生成間隔や暦年の日数によりわずかに変わります。
+
+<section class="doge-supply-simulator" data-doge-supply-simulator data-base-supply="155100000000" data-annual-issuance="5256000000" aria-labelledby="doge-supply-simulator-title">
+  <div class="doge-supply-simulator__header">
+    <div>
+      <span>Supply & dilution simulator</span>
+      <h3 id="doge-supply-simulator-title">定額発行で供給量と増加率はどう変わる？</h3>
+      <p>基準供給量1,551億DOGE、年52.56億DOGE発行を固定した単純試算です。</p>
+    </div>
+    <output data-doge-supply-year>5年後</output>
+  </div>
+  <label class="doge-supply-simulator__slider">
+    <span>試算期間</span>
+    <input type="range" min="1" max="10" value="5" step="1" data-doge-supply-years aria-describedby="doge-supply-simulator-note">
+    <span><b>1年</b><b>10年</b></span>
+  </label>
+  <div class="doge-supply-simulator__metrics">
+    <article><span>推定総供給量</span><strong data-doge-supply-total>—</strong><small data-doge-supply-added>—</small></article>
+    <article><span>その時点の単純年間増加率</span><strong data-doge-supply-inflation>—</strong><small>翌1年の発行量 ÷ その時点の供給量</small></article>
+  </div>
+  <div class="doge-supply-simulator__chart" data-doge-supply-chart role="img" aria-label="DOGE供給量と単純年間増加率の試算グラフ"></div>
+  <div class="doge-supply-simulator__legend"><span><i class="is-supply"></i>総供給量</span><span><i class="is-inflation"></i>単純年間増加率</span></div>
+  <p id="doge-supply-simulator-note">価格・需要・バーン・ブロック間隔の実績は反映しません。将来価格を予測するものではありません。</p>
+</section>
 
 | 指標 | 設計・概算 | 読み方 |
 |---|---:|---|
@@ -165,6 +230,8 @@ Trailmapは固定納期を保証する企業ロードマップではありませ
 ### Dogechainとの区別
 
 Dogechainと呼ばれるEVM互換ネットワークやブリッジは、Dogecoinメインネットの公式フォークやDogecoin Coreの一部ではありません。DOGEをブリッジしてスマートコントラクトへ利用する仕組みは、Dogecoin本体とは異なるコンセンサス、運営、コントラクト、ブリッジリスクを持ちます。
+
+Dogechain上のDEX（分散型取引所）を利用する場合も、ネイティブDOGEの送金とは別に、ブリッジ、ラップ資産、スマートコントラクトの依存を確認する必要があります。
 
 「DOGEを使える」ことと「Dogecoinネットワーク上で動く」ことは同じではありません。周辺サービスを利用する際は、ネイティブDOGEかラップ資産か、出庫経路、管理鍵、監査、停止権限を確認してください。
 
