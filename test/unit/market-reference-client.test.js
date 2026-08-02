@@ -149,3 +149,37 @@ test('returns the last cached value as stale when every refresh source fails', a
   assert.equal(stale.stale, true);
   assert.equal(await client.getMarketReference('BTC'), null);
 });
+
+test('returns a CoinGecko XLM reference with a downsampled 24-hour sparkline', async () => {
+  const prices = Array.from({ length: 96 }, (_, index) => [1_000 + index * 60_000, 28 + index * 0.01]);
+  const client = createMarketReferenceClient({
+    now: () => 10_000,
+    fetchImpl: async (url) => {
+      if (url.includes('/market_chart?')) {
+        return { ok: true, async json() { return { prices }; } };
+      }
+      assert.match(url, /ids=stellar/);
+      return {
+        ok: true,
+        async json() {
+          return {
+            stellar: {
+              jpy: 28.95,
+              usd: 0.184,
+              usd_24h_change: 1.25,
+              last_updated_at: 10,
+            },
+          };
+        },
+      };
+    },
+  });
+
+  assert.equal(client.supports('xlm'), true);
+  const reference = await client.getMarketReference('XLM');
+  assert.equal(reference.source, 'CoinGecko');
+  assert.equal(reference.price.jpy, 28.95);
+  assert.ok(reference.sparkline24h.length <= 49);
+  assert.deepEqual(reference.sparkline24h[0], { at: 1_000, jpy: 28 });
+  assert.deepEqual(reference.sparkline24h.at(-1), { at: prices.at(-1)[0], jpy: prices.at(-1)[1] });
+});

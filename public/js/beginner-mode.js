@@ -244,6 +244,48 @@
       title: 'Burn-Mint Equilibrium',
       description: '利用料としてCCを焼却し、アプリケーションやインフラの貢献に応じて別途CCをミントする仕組みです。価格を一定に保つペッグではありません。',
     },
+    scp: {
+      title: 'SCP（Stellar Consensus Protocol）',
+      description: '各バリデーターが信頼するノード集合を選び、十分に重なるクォーラムスライスを通じて取引集合に合意するStellarの方式です。PoWやPoSではありません。',
+      visual: ['信頼集合を設定', '候補と投票', '台帳を確定'],
+      sectionPattern: 'Stellar Consensus Protocol',
+      relatedTerms: ['FBA', 'クォーラムスライス', 'バリデーター'],
+      links: [
+        { href: 'https://developers.stellar.org/docs/learn/fundamentals/stellar-consensus-protocol', label: 'Stellar公式：SCP' },
+      ],
+    },
+    fba: {
+      title: 'FBA（Federated Byzantine Agreement）',
+      description: '全参加者共通の中央リストではなく、各ノードが自分の信頼集合を選ぶビザンチン合意の考え方です。集合の重なりが安全性と継続性を左右します。',
+      sectionPattern: 'Stellar Consensus Protocol',
+      relatedTerms: ['SCP', 'quorum intersection'],
+    },
+    soroban: {
+      title: 'Soroban',
+      description: 'StellarのRust向けスマートコントラクト基盤です。Wasmで実行し、CPU、台帳I/O、保存期間などに応じたresource feeとrentを使います。',
+      visual: ['Rust Contract', 'Wasm実行', 'Stellar台帳を更新'],
+      sectionPattern: 'Soroban',
+      relatedTerms: ['Wasm', 'resource fee', 'rent'],
+      links: [
+        { href: 'https://developers.stellar.org/docs/build/smart-contracts/overview', label: 'Stellar公式：Smart Contracts' },
+      ],
+    },
+    clawback: {
+      title: 'Clawback',
+      description: '発行体が対応資産の残高を回収して消却できる機能です。法令対応等に使えますが、ネイティブXLMではなく、設定を有効化した発行資産に関する権限です。',
+      sectionPattern: 'Stellar資産、信頼ライン、発行体リスク',
+      relatedTerms: ['AUTH_REVOCABLE', '信頼ライン', '発行体'],
+      links: [
+        { href: 'https://developers.stellar.org/docs/build/guides/transactions/clawbacks', label: 'Stellar公式：Clawbacks' },
+      ],
+    },
+    'path-payment': {
+      title: 'Path Payment',
+      description: '送付資産から受取資産まで、SDEXの注文板やAMMを組み合わせて交換と送金を一つの処理で実行する機能です。XLMを必ず経由するわけではありません。',
+      visual: ['送付資産', '注文板 / AMM', '希望資産で受取'],
+      sectionPattern: 'SDEX、AMM、パス支払い',
+      relatedTerms: ['SDEX', 'AMM', '最小受取額'],
+    },
     'proof-of-history': {
       title: 'Proof of History（PoH）',
       description: '暗号学的な連続計算を使い、出来事の前後関係と時間の経過を検証しやすくするSolanaの仕組みです。単独の合意方式ではなく、PoSや投票の順序付けを助けます。',
@@ -271,6 +313,11 @@
   };
 
   const AUTO_ARTICLE_TERMS = [
+    { key: 'scp', pattern: /Stellar Consensus Protocol|\bSCP\b/i },
+    { key: 'fba', pattern: /Federated Byzantine Agreement|\bFBA\b/i },
+    { key: 'soroban', pattern: /\bSoroban\b/i },
+    { key: 'clawback', pattern: /\bClawback\b/i },
+    { key: 'path-payment', pattern: /\bPath Payment\b|パス支払い/i },
     { key: 'utxo', pattern: /\bUTXO(?:モデル)?\b/i },
     { key: 'scrypt', pattern: /\bScrypt(?:-1024)?\b/i },
     { key: 'auxpow', pattern: /\bAux(?:iliary\s+)?PoW\b|マージマイニング/i },
@@ -805,10 +852,22 @@
     const links = Array.isArray(entry.links) && entry.links.length
       ? `<div class="term-tooltip__links">${entry.links.map(link => `<a href="${escapeHtml(link.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.label)}<span aria-hidden="true">↗</span></a>`).join('')}</div>`
       : '';
+    const section = entry.sectionPattern
+      ? Array.from(document.querySelectorAll('.article-body h2')).find(heading => heading.textContent.includes(entry.sectionPattern))
+      : null;
+    const sectionLink = section && section.id
+      ? `<a class="term-tooltip__section-link" href="#${escapeHtml(section.id)}">この記事の「${escapeHtml(section.textContent.trim())}」へ移動 →</a>`
+      : '';
+    const related = Array.isArray(entry.relatedTerms) && entry.relatedTerms.length
+      ? `<div class="term-tooltip__related"><span>関連用語</span>${entry.relatedTerms.map(item => `<small>${escapeHtml(item)}</small>`).join('')}</div>`
+      : '';
     node.innerHTML = `
+      <button class="term-tooltip__close" type="button" data-term-tooltip-close aria-label="用語解説を閉じる">×</button>
       <div class="term-tooltip__title">${escapeHtml(entry.title)}</div>
       <div class="term-tooltip__body">${escapeHtml(entry.description)}</div>
       ${visual}
+      ${related}
+      ${sectionLink}
       ${links}
     `;
     node.hidden = false;
@@ -930,6 +989,12 @@
     if (toggle) {
       event.preventDefault();
       toggleMode();
+      return;
+    }
+
+    if (target.closest('[data-term-tooltip-close]')) {
+      event.preventDefault();
+      hideTooltip();
       return;
     }
 

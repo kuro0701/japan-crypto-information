@@ -6,7 +6,7 @@
   const ARTICLE_MEMO_STORAGE_KEY = 'okj.articleMemos.v1';
   const ARTICLE_LIVE_SERIES_STORAGE_KEY = 'okj.articleLiveSeries.v1';
   const ARTICLE_TERM_SELECTOR = '.article-term[data-term-key]';
-  const EXTERNAL_MARKET_REFERENCE_TICKERS = new Set(['CANTON']);
+  const EXTERNAL_MARKET_REFERENCE_TICKERS = new Set(['CANTON', 'XLM']);
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -243,13 +243,27 @@
     return slug || `section-${index + 1}`;
   }
 
+  function assignSectionReadingMinutes(headings) {
+    const article = $('.article-main');
+    const total = Number($('.article-reading-time', article || document)?.textContent.match(/\d+/)?.[0]) || headings.length;
+    const weights = headings.map((heading) => {
+      const section = heading.closest('[data-article-reading-section]');
+      const text = (section || heading.parentElement || heading).textContent.replace(/\s+/g, '');
+      return Math.max(80, text.length);
+    });
+    const weightTotal = weights.reduce((sum, value) => sum + value, 0) || 1;
+    headings.forEach((heading, index) => {
+      heading.dataset.articleSectionMinutes = String(Math.max(1, Math.round((weights[index] / weightTotal) * total)));
+    });
+  }
+
   function buildTocLinks(headings) {
     return headings.map((heading, index) => {
       const className = [
         'article-toc__link',
         index >= 4 ? 'article-toc__link--extra' : '',
       ].filter(Boolean).join(' ');
-      return `<a class="${className}" href="#${heading.id}" data-article-toc-link="${heading.id}">${heading.textContent.trim()}</a>`;
+      return `<a class="${className}" href="#${heading.id}" data-article-toc-link="${heading.id}"><span>${escapeHtml(heading.textContent.trim())}</span><small>約${escapeHtml(heading.dataset.articleSectionMinutes || '1')}分</small></a>`;
     }).join('');
   }
 
@@ -318,6 +332,7 @@
       heading.id = id;
       heading.tabIndex = -1;
     });
+    assignSectionReadingMinutes(headings);
 
     const linksHtml = `${buildTocLinks(headings)}${buildTocMoreButton(headings)}`;
     tocList.innerHTML = linksHtml;
@@ -346,6 +361,8 @@
         }
       });
       if (changed) {
+        const smartSection = $('[data-article-smart-section]');
+        if (smartSection) smartSection.textContent = currentHeadingText(headings, id);
         const sideLink = links.find(link => link.dataset.articleTocLink === id && link.closest('[data-article-toc]'));
         if (sideLink) {
           const linkTop = sideLink.offsetTop;
@@ -391,6 +408,11 @@
     window.addEventListener('load', queueScrollSpyUpdate, { once: true });
   }
 
+  function currentHeadingText(headings, id) {
+    const heading = headings.find(item => item.id === id);
+    return heading ? heading.textContent.trim() : '記事の先頭';
+  }
+
   function initReadingProgress() {
     const bar = $('[data-reading-progress]');
     const article = $('.article-main');
@@ -413,8 +435,46 @@
         label.value = percentage;
         label.textContent = percentage;
       });
+      const smartProgress = $('[data-article-smart-progress]');
+      if (smartProgress) {
+        const value = Math.round(clamped * 100);
+        smartProgress.setAttribute('aria-valuenow', String(value));
+        smartProgress.style.setProperty('--article-smart-progress', `${value}%`);
+        const output = $('output', smartProgress);
+        if (output) output.textContent = `${value}%`;
+      }
     };
 
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+  }
+
+  function syncArticleSmartHeaderPrice(value, tone = 'steady') {
+    const header = $('[data-article-smart-header]');
+    const price = $('[data-article-smart-price]', header || document);
+    if (!header || !price || !Number.isFinite(value)) return;
+    price.textContent = formatJpy(value);
+    header.classList.remove('is-price-up', 'is-price-down', 'is-price-steady');
+    void header.offsetWidth;
+    header.classList.add(tone === 'up' ? 'is-price-up' : tone === 'down' ? 'is-price-down' : 'is-price-steady');
+    window.setTimeout(() => header.classList.remove('is-price-up', 'is-price-down', 'is-price-steady'), 720);
+  }
+
+  function initArticleSmartHeader() {
+    const header = $('[data-article-smart-header]');
+    const article = $('.article-main[data-article-kind="market"]');
+    const hero = article && $('.article-hero', article);
+    if (!header || !article || !hero || !articleInstrumentId()) return;
+    header.hidden = false;
+    const update = () => {
+      const heroBottom = window.scrollY + hero.getBoundingClientRect().bottom;
+      const articleBottom = window.scrollY + article.getBoundingClientRect().bottom;
+      const visible = window.scrollY > heroBottom + 40 && window.scrollY < articleBottom - window.innerHeight * 0.35;
+      header.classList.toggle('is-visible', visible);
+      document.body.classList.toggle('article-smart-header-visible', visible);
+      header.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    };
     update();
     window.addEventListener('scroll', update, { passive: true });
     window.addEventListener('resize', update);
@@ -611,6 +671,13 @@
 
     const sections = $$('[data-article-reading-section]', body);
     if (!sections.length) return;
+    const measureSections = () => {
+      sections.forEach((section) => {
+        if (section.classList.contains('is-reading-mode-hidden')) return;
+        section.style.setProperty('--article-section-height', `${Math.max(120, section.scrollHeight + 32)}px`);
+      });
+    };
+    measureSections();
     const quickPattern = /エグゼクティブ|要約|全体像|概要|歴史|コミュニティ|技術|アーキテクチャ|供給|トークノミクス|市場|価格|主要リスク|まとめ|結論/i;
     const focusPattern = /価格|市場|取引|手数料|コスト|流動性|供給|希薄化|インフレ|上場商品|規制|税|リスク|シナリオ|チェックリスト|まとめ|結論/i;
     const setReadingMode = (mode) => {
@@ -623,6 +690,14 @@
       article.dataset.articleReadingMode = normalized;
       sections.forEach((section) => {
         const visible = normalized === 'full' || visibleSections.includes(section);
+        if (visible && section.classList.contains('is-reading-mode-hidden')) {
+          section.classList.remove('is-reading-mode-hidden');
+          section.style.setProperty('--article-section-height', `${Math.max(120, section.scrollHeight + 32)}px`);
+          section.animate(
+            [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'translateY(0)' }],
+            { duration: 300, easing: 'cubic-bezier(.22,1,.36,1)' }
+          );
+        }
         section.classList.toggle('is-reading-mode-hidden', !visible);
         section.setAttribute('aria-hidden', visible ? 'false' : 'true');
       });
@@ -631,6 +706,7 @@
     };
     body.addEventListener('article:summary-mode-change', event => setReadingMode(event.detail && event.detail.key));
     setReadingMode('full');
+    window.addEventListener('resize', measureSections);
   }
 
   function initDogeArticleExperience() {
@@ -2161,6 +2237,7 @@
       ? settings.readerTheme
       : readStoredTheme();
     let readerFamily = settings.readerFamily === 'serif' ? 'serif' : 'sans';
+    let readerHighlights = settings.readerHighlights !== false;
     let utterance = null;
 
     const syncFont = () => {
@@ -2168,6 +2245,7 @@
       article.style.setProperty('--article-reader-line-height', String(lineHeight));
       article.dataset.readerTheme = readerTheme;
       article.dataset.readerFamily = readerFamily;
+      article.classList.toggle('article-reader-highlights', readerHighlights);
       tools.dataset.fontScale = fontScale.toFixed(2);
       if (sizeRange) sizeRange.value = String(Math.round(fontScale * 100));
       if (sizeOutput) sizeOutput.textContent = `${Math.round(fontScale * 100)}%`;
@@ -2179,6 +2257,11 @@
       $$('[data-reader-family]', dialog || document).forEach((button) => {
         button.setAttribute('aria-pressed', button.dataset.readerFamily === readerFamily ? 'true' : 'false');
       });
+      const highlightsButton = $('[data-reader-highlights]', dialog || document);
+      if (highlightsButton) {
+        highlightsButton.setAttribute('aria-pressed', readerHighlights ? 'true' : 'false');
+        highlightsButton.textContent = `重要ハイライト ${readerHighlights ? 'ON' : 'OFF'}`;
+      }
     };
     const syncFocus = (enabled) => {
       document.body.classList.toggle('article-focus-mode', enabled);
@@ -2286,6 +2369,15 @@
         syncFont();
       });
     });
+    const highlightsButton = $('[data-reader-highlights]', dialog || document);
+    if (highlightsButton) {
+      highlightsButton.addEventListener('click', () => {
+        readerHighlights = !readerHighlights;
+        settings.readerHighlights = readerHighlights;
+        writeArticleReaderSettings(settings);
+        syncFont();
+      });
+    }
     $$('[data-reader-command]', dialog || document).forEach((button) => {
       button.addEventListener('click', () => {
         const selectors = {
@@ -2578,9 +2670,29 @@
     hint.className = 'article-table-scroll-hint';
     hint.textContent = '左右にスクロールできます';
     hint.hidden = true;
+    const controls = document.createElement('div');
+    controls.className = 'article-table-view-toggle';
+    controls.setAttribute('role', 'group');
+    controls.setAttribute('aria-label', 'スマートフォンでの表の表示形式');
+    controls.innerHTML = `
+      <span>表示</span>
+      <button type="button" data-article-table-view="table" aria-pressed="false">表形式</button>
+      <button type="button" data-article-table-view="cards" aria-pressed="true">カード形式</button>
+    `;
     table.parentNode.insertBefore(shell, table);
-    shell.append(hint, wrapper);
+    shell.append(controls, hint, wrapper);
     wrapper.appendChild(table);
+    $$('[data-article-table-view]', controls).forEach((button) => {
+      button.addEventListener('click', () => {
+        const cards = button.dataset.articleTableView === 'cards';
+        table.classList.toggle('data-table--cards', cards);
+        controls.dataset.tableView = cards ? 'cards' : 'table';
+        $$('[data-article-table-view]', controls).forEach((item) => {
+          item.setAttribute('aria-pressed', item === button ? 'true' : 'false');
+        });
+        window.requestAnimationFrame(() => syncArticleTableScrollState(wrapper, hint));
+      });
+    });
     const sync = () => syncArticleTableScrollState(wrapper, hint);
     wrapper.addEventListener('scroll', sync, { passive: true });
     window.addEventListener('resize', sync);
@@ -2644,9 +2756,18 @@
       if (!detail || !notes.length || !nodes.length) return;
 
       const normalize = value => String(value || '').replace(/\s+/g, '').replace(/[?？]/g, '').trim();
+      const steps = [];
+      const controls = document.createElement('div');
+      controls.className = 'article-flow-controls';
+      controls.innerHTML = '<button type="button" data-flow-step="prev" aria-label="前のステップ">← 前へ</button><output aria-live="polite">1 / 1</output><button type="button" data-flow-step="next">次へ →</button>';
+      detail.insertAdjacentElement('afterend', controls);
       const show = (node, note) => {
         nodes.forEach(item => item.classList.toggle('is-active', item === node));
-        detail.innerHTML = `<span>Selected step</span><strong>${escapeHtml(note.dataset.flowTitle || note.dataset.flowLabel)}</strong><p>${escapeHtml(note.textContent.trim())}</p>`;
+        const index = Math.max(0, steps.findIndex(step => step.node === node));
+        detail.innerHTML = `<span>Step ${index + 1}</span><strong>${escapeHtml(note.dataset.flowTitle || note.dataset.flowLabel)}</strong><p>${escapeHtml(note.textContent.trim())}</p>`;
+        const output = $('output', controls);
+        if (output) output.textContent = `${index + 1} / ${steps.length}`;
+        controls.dataset.activeFlowStep = String(index);
       };
       nodes.forEach((node) => {
         const label = normalize(node.textContent);
@@ -2656,13 +2777,26 @@
         node.setAttribute('tabindex', '0');
         node.setAttribute('role', 'button');
         node.setAttribute('aria-label', `${note.dataset.flowTitle || note.dataset.flowLabel}の解説を表示`);
+        steps.push({ node, note });
         node.addEventListener('click', () => show(node, note));
+        node.addEventListener('mouseenter', () => show(node, note));
         node.addEventListener('keydown', (event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
           event.preventDefault();
           show(node, note);
         });
       });
+      $$('[data-flow-step]', controls).forEach((button) => {
+        button.addEventListener('click', () => {
+          if (!steps.length) return;
+          const active = Number(controls.dataset.activeFlowStep) || 0;
+          const delta = button.dataset.flowStep === 'prev' ? -1 : 1;
+          const next = (active + delta + steps.length) % steps.length;
+          show(steps[next].node, steps[next].note);
+          steps[next].node.focus({ preventScroll: true });
+        });
+      });
+      if (steps.length) show(steps[0].node, steps[0].note);
       wrapper.dataset.articleFlowReady = 'true';
     });
   }
@@ -3019,6 +3153,7 @@
         <span data-live-market-venue>国内板を取得中</span>
         <strong data-live-market-price>取得中</strong>
         <small data-live-market-price-note>最良買気配と最良売気配の仲値</small>
+        <div class="article-live-market-card__mini-chart" data-live-market-mini-chart aria-label="直近24時間の価格推移"><span>24h推移を取得中</span></div>
       </div>
       <div class="article-live-market-card__sides" data-live-market-sparkline aria-label="売却と購入の最良気配を取得中"></div>
       <div class="article-live-market-card__meta">
@@ -3323,6 +3458,39 @@
     `;
   }
 
+  function renderArticleRemoteSparkline(card, reference) {
+    const root = $('[data-live-market-mini-chart]', card);
+    const rows = reference && Array.isArray(reference.sparkline24h)
+      ? reference.sparkline24h
+        .map(item => ({ at: Number(item && item.at), value: Number(item && item.jpy) }))
+        .filter(item => Number.isFinite(item.at) && Number.isFinite(item.value) && item.value > 0)
+      : [];
+    if (!root || rows.length < 2) return false;
+    const width = 180;
+    const height = 48;
+    const pad = 3;
+    const values = rows.map(item => item.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const spread = Math.max(max - min, Math.max(0.000001, max * 0.0005));
+    const firstAt = rows[0].at;
+    const timeSpan = Math.max(1, rows[rows.length - 1].at - firstAt);
+    const points = rows.map(item => {
+      const x = pad + ((item.at - firstAt) / timeSpan) * (width - pad * 2);
+      const y = height - pad - ((item.value - min) / spread) * (height - pad * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const change = ((values[values.length - 1] - values[0]) / values[0]) * 100;
+    const tone = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+    root.dataset.trend = tone;
+    root.setAttribute('aria-label', `CoinGeckoによる直近24時間のXLM/JPY推移、${change >= 0 ? '+' : ''}${formatPct(change, 2)}`);
+    root.innerHTML = `
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-hidden="true"><polyline points="${points}" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>24h <strong>${change >= 0 ? '+' : ''}${escapeHtml(formatPct(change, 2))}</strong></span>
+    `;
+    return true;
+  }
+
   function renderArticleSpreadGauge(card, spreadPct) {
     const root = $('[data-live-market-spread-gauge]', card);
     if (!root || !Number.isFinite(spreadPct)) return;
@@ -3408,6 +3576,7 @@
     const copyNode = $('[data-live-market-copy]', card);
 
     const priceTone = priceNode ? setAnimatedJpy(priceNode, midpointJpy) : 'steady';
+    syncArticleSmartHeaderPrice(midpointJpy, priceTone);
     if (venueNode) venueNode.textContent = '仲値（国内取引所ベストレート）';
     if (spreadNode) {
       spreadNode.textContent = Number.isFinite(spreadPct)
@@ -3442,6 +3611,18 @@
     renderArticleLiveSeries(card, instrumentId, midpointJpy);
     renderArticleSpreadGauge(card, spreadPct);
     renderArticleContextualMarketCtas(report, bestBid, bestAsk);
+    const smartCta = $('[data-article-smart-cta]');
+    const smartActions = articleExchangeActions(report, bestAsk.exchangeId);
+    const smartHref = safeHttpsUrl(smartActions.referralUrl);
+    if (smartCta) {
+      smartCta.href = `/markets/${encodeURIComponent(instrumentId)}`;
+      if (smartHref) {
+        smartCta.href = smartHref;
+        smartCta.target = smartActions.referralTarget || '_blank';
+        smartCta.rel = smartActions.referralRel || 'sponsored noopener';
+        smartCta.textContent = `${askVenue}で比較・購入 ↗`;
+      }
+    }
     if (sourceNode) {
       sourceNode.hidden = false;
       sourceNode.href = `/markets/${encodeURIComponent(instrumentId)}`;
@@ -3487,6 +3668,7 @@
     const copyNode = $('[data-live-market-copy]', card);
 
     const priceTone = priceNode ? setAnimatedJpy(priceNode, priceJpy) : 'steady';
+    syncArticleSmartHeaderPrice(priceJpy, priceTone);
     if (venueNode) {
       venueNode.textContent = isOrderbook
         ? `仲値（${reference.source || '海外取引所'} ${reference.pair || ''}）`.trim()
@@ -3568,6 +3750,7 @@
         : '国内取引所で未取扱いかつ海外板を取得できないため、公開市場の集計参考値を表示しています。';
     }
     renderArticleLiveSeries(card, articleInstrumentId(), priceJpy);
+    renderArticleRemoteSparkline(card, reference);
     if (isOrderbook) renderArticleSpreadGauge(card, spreadPct);
 
     setLiveMarketCardState(
@@ -3622,6 +3805,9 @@
           if (abortController !== controller) return;
           if (renderDomesticMarketReference(card, domesticReport, instrumentId)) {
             domesticRetryCount = 0;
+            fetchExternalMarketReference(ticker, controller.signal)
+              .then(reference => renderArticleRemoteSparkline(card, reference))
+              .catch(() => false);
             return;
           }
           domesticRetryCount += 1;
@@ -4083,6 +4269,7 @@
     initToc();
     syncArticleTocVisibility();
     initReadingProgress();
+    initArticleSmartHeader();
     initArticleTables();
     initDogeSupplySimulator();
     initArticleDataCharts();
