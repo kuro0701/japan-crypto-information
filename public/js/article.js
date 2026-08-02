@@ -427,6 +427,10 @@
           panel.hidden = panel.dataset.summaryPanel !== activeTab.dataset.summaryTab;
         });
         root.dataset.activeSummary = activeTab.dataset.summaryTab;
+        root.dispatchEvent(new CustomEvent('article:summary-mode-change', {
+          bubbles: true,
+          detail: { key: activeTab.dataset.summaryTab },
+        }));
         if (options.focus) activeTab.focus();
       };
 
@@ -498,6 +502,148 @@
     heading.replaceWith(details);
     const container = $('div', details);
     content.forEach(node => container.appendChild(node));
+  }
+
+  function dogeSectionAudiences(label) {
+    const audiences = new Set();
+    if (/エグゼクティブ|歴史|供給|手数料|規制|リスク|チェックリスト|まとめ/.test(label)) audiences.add('beginner');
+    if (/エグゼクティブ|供給|市場データ|上場商品|規制|競争環境|リスク|シナリオ|チェックリスト/.test(label)) audiences.add('trader');
+    if (/技術|手数料|ソフトウェア|リスク|まとめ/.test(label)) audiences.add('developer');
+    if (!audiences.size) audiences.add('beginner');
+    return Array.from(audiences);
+  }
+
+  function syncDogeTocVisibility() {
+    const article = $('.article-main[data-article-slug="doge"]');
+    if (!article) return;
+    $$('[data-article-toc-link]').forEach((link) => {
+      const heading = document.getElementById(link.dataset.articleTocLink || '');
+      const section = heading && heading.closest('[data-doge-section]');
+      link.hidden = Boolean(section && section.classList.contains('is-reading-mode-hidden'));
+    });
+  }
+
+  function makeDogeCollapsible(section, label) {
+    if (!section || section.dataset.dogeCollapsibleReady === 'true') return;
+    const heading = $('h2', section);
+    if (!heading) return;
+    const body = document.createElement('div');
+    body.className = 'doge-collapsible__body';
+    let cursor = heading.nextSibling;
+    while (cursor) {
+      const next = cursor.nextSibling;
+      body.appendChild(cursor);
+      cursor = next;
+    }
+    const toggle = document.createElement('button');
+    toggle.className = 'doge-collapsible__toggle';
+    toggle.type = 'button';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.innerHTML = `<span>${escapeHtml(label)}</span><strong>開いて確認</strong><i aria-hidden="true">＋</i>`;
+    section.append(toggle, body);
+    section.classList.add('doge-section--collapsible');
+    section.dataset.dogeCollapsibleReady = 'true';
+    const sync = (open) => {
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      toggle.querySelector('strong').textContent = open ? '閉じる' : '開いて確認';
+      toggle.querySelector('i').textContent = open ? '−' : '＋';
+      body.hidden = !open;
+      section.classList.toggle('is-open', open);
+    };
+    toggle.addEventListener('click', () => sync(toggle.getAttribute('aria-expanded') !== 'true'));
+    sync(false);
+  }
+
+  function collapseDogeChangelog(body) {
+    const source = $('.article-changelog--shared', body);
+    if (!source || source.tagName === 'DETAILS') return;
+    const title = $('h3', source)?.textContent.trim() || 'この記事の更新履歴';
+    const details = document.createElement('details');
+    details.className = `${source.className} article-changelog--collapsible`;
+    details.dataset.sharedArticleChangelog = source.dataset.sharedArticleChangelog || 'true';
+    details.innerHTML = `<summary><span>Changelog</span><strong>${escapeHtml(title)}</strong><i aria-hidden="true">＋</i></summary><div class="article-changelog__collapsible-body"></div>`;
+    const host = $('.article-changelog__collapsible-body', details);
+    const timeline = $('.article-changelog__timeline', source);
+    if (timeline) host.appendChild(timeline);
+    details.addEventListener('toggle', () => {
+      const icon = $('summary i', details);
+      if (icon) icon.textContent = details.open ? '−' : '＋';
+    });
+    source.replaceWith(details);
+  }
+
+  function initDogeArticleExperience() {
+    const article = $('.article-main[data-article-slug="doge"]');
+    const body = article && $('.article-body', article);
+    if (!article || !body) return;
+
+    collapseDogeChangelog(body);
+
+    const headings = $$(':scope > h2', body);
+    headings.forEach((heading) => {
+      const label = heading.textContent.trim();
+      const section = document.createElement('section');
+      section.className = 'doge-section';
+      section.dataset.dogeSection = label;
+      const audiences = dogeSectionAudiences(label);
+      section.dataset.dogeAudiences = audiences.join(' ');
+      heading.parentNode.insertBefore(section, heading);
+      section.appendChild(heading);
+      let cursor = section.nextSibling;
+      while (cursor) {
+        if (cursor.nodeType === 1 && (cursor.tagName === 'H2' || cursor.matches('.article-section-disclaimer'))) break;
+        const next = cursor.nextSibling;
+        section.appendChild(cursor);
+        cursor = next;
+      }
+      const badge = document.createElement('span');
+      badge.className = 'doge-section__audience-badge';
+      badge.textContent = audiences.map(item => ({ beginner: '初心者', trader: 'トレーダー', developer: '技術' }[item])).join(' / ');
+      heading.appendChild(badge);
+      if (/主要情報源|参考文献/.test(label)) makeDogeCollapsible(section, 'Sources');
+    });
+
+    const quickPattern = /エグゼクティブ|歴史|技術アーキテクチャ|供給設計|市場データ|主要リスク|まとめ/;
+    const focusPattern = /供給設計|市場データ|米国上場商品|日本の規制|主要リスク|ネットワーク・事業シナリオ|確認チェックリスト|まとめ/;
+    const setReadingMode = (mode) => {
+      const normalized = ['quick', 'focus'].includes(mode) ? mode : 'full';
+      article.dataset.dogeReadingMode = normalized;
+      $$('[data-doge-section]', body).forEach((section) => {
+        const label = section.dataset.dogeSection || '';
+        const visible = normalized === 'full'
+          || (normalized === 'quick' && quickPattern.test(label))
+          || (normalized === 'focus' && focusPattern.test(label));
+        section.classList.toggle('is-reading-mode-hidden', !visible);
+        section.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      });
+      window.requestAnimationFrame(syncDogeTocVisibility);
+      window.setTimeout(() => window.dispatchEvent(new Event('resize')), 380);
+    };
+    body.addEventListener('article:summary-mode-change', (event) => setReadingMode(event.detail && event.detail.key));
+    setReadingMode('full');
+
+    const controls = $$('[data-doge-persona]', body);
+    const status = $('[data-doge-persona-status]', body);
+    let activePersona = '';
+    const labels = { beginner: '初心者', trader: 'トレーダー', developer: '技術・開発者' };
+    controls.forEach((button) => {
+      button.addEventListener('click', () => {
+        const requested = button.dataset.dogePersona || '';
+        activePersona = activePersona === requested ? '' : requested;
+        controls.forEach((item) => {
+          const active = item.dataset.dogePersona === activePersona;
+          item.classList.toggle('is-active', active);
+          item.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        $$('[data-doge-section]', body).forEach((section) => {
+          const matches = !activePersona || String(section.dataset.dogeAudiences || '').split(/\s+/).includes(activePersona);
+          section.classList.toggle('is-persona-muted', !matches);
+        });
+        if (status) status.textContent = activePersona
+          ? `${labels[activePersona]}向けの章を強調しています。もう一度押すと解除できます。`
+          : 'すべての章を表示しています';
+      });
+    });
   }
 
   function initMarketBeginnerSections() {
@@ -1026,6 +1172,308 @@
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
+  }
+
+  function initDogeSupplySimulator() {
+    $$('[data-doge-supply-simulator]').forEach((root) => {
+      const input = $('[data-doge-supply-years]', root);
+      const yearOutput = $('[data-doge-supply-year]', root);
+      const totalOutput = $('[data-doge-supply-total]', root);
+      const addedOutput = $('[data-doge-supply-added]', root);
+      const inflationOutput = $('[data-doge-supply-inflation]', root);
+      const chart = $('[data-doge-supply-chart]', root);
+      const baseSupply = Number(root.dataset.baseSupply);
+      const annualIssuance = Number(root.dataset.annualIssuance);
+      if (!input || !chart || !Number.isFinite(baseSupply) || !Number.isFinite(annualIssuance)) return;
+
+      const supplyLabel = value => `${(value / 100000000).toLocaleString('ja-JP', { maximumFractionDigits: 1 })}億 DOGE`;
+      const update = () => {
+        const years = Math.max(1, Math.min(10, Number(input.value) || 1));
+        const total = baseSupply + annualIssuance * years;
+        const inflation = annualIssuance / total * 100;
+        const progress = (years - 1) / 9 * 100;
+        root.style.setProperty('--doge-supply-progress', `${progress}%`);
+        if (yearOutput) yearOutput.textContent = `${years}年後`;
+        if (totalOutput) totalOutput.textContent = supplyLabel(total);
+        if (addedOutput) addedOutput.textContent = `基準時点から +${supplyLabel(annualIssuance * years)}`;
+        if (inflationOutput) inflationOutput.textContent = `${inflation.toFixed(2)}% / 年`;
+
+        const width = 720;
+        const height = 220;
+        const padX = 34;
+        const padY = 26;
+        const points = Array.from({ length: years + 1 }, (_, index) => {
+          const supply = baseSupply + annualIssuance * index;
+          return { year: index, supply, inflation: annualIssuance / supply * 100 };
+        });
+        const supplyMin = baseSupply;
+        const supplyMax = total;
+        const inflationMax = points[0].inflation;
+        const inflationMin = points[points.length - 1].inflation;
+        const x = year => padX + (year / Math.max(1, years)) * (width - padX * 2);
+        const ySupply = value => height - padY - ((value - supplyMin) / Math.max(1, supplyMax - supplyMin)) * (height - padY * 2);
+        const yInflation = value => height - padY - ((value - inflationMin) / Math.max(0.0001, inflationMax - inflationMin)) * (height - padY * 2);
+        const supplyPath = points.map(point => `${x(point.year).toFixed(1)},${ySupply(point.supply).toFixed(1)}`).join(' ');
+        const inflationPath = points.map(point => `${x(point.year).toFixed(1)},${yInflation(point.inflation).toFixed(1)}`).join(' ');
+        chart.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" aria-hidden="true" focusable="false">
+            <defs><linearGradient id="doge-supply-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5c451" stop-opacity=".34"/><stop offset="1" stop-color="#f5c451" stop-opacity="0"/></linearGradient></defs>
+            <path class="doge-supply-grid" d="M${padX} ${padY}H${width - padX}M${padX} ${height / 2}H${width - padX}M${padX} ${height - padY}H${width - padX}"/>
+            <polygon class="doge-supply-area" points="${supplyPath} ${x(years).toFixed(1)},${height - padY} ${x(0).toFixed(1)},${height - padY}"/>
+            <polyline class="doge-supply-line" points="${supplyPath}"/>
+            <polyline class="doge-inflation-line" points="${inflationPath}"/>
+            ${points.map(point => `<circle class="doge-supply-point" cx="${x(point.year).toFixed(1)}" cy="${ySupply(point.supply).toFixed(1)}" r="3"><title>${point.year}年後 ${supplyLabel(point.supply)}</title></circle>`).join('')}
+            ${points.map(point => `<circle class="doge-inflation-point" cx="${x(point.year).toFixed(1)}" cy="${yInflation(point.inflation).toFixed(1)}" r="3"><title>${point.year}年後 ${point.inflation.toFixed(2)}%</title></circle>`).join('')}
+            <text x="${padX}" y="${height - 6}">現在</text><text x="${width - padX}" y="${height - 6}" text-anchor="end">${years}年後</text>
+          </svg>
+        `;
+        chart.setAttribute('aria-label', `${years}年後の推定総供給量は${supplyLabel(total)}、その時点の単純年間増加率は${inflation.toFixed(2)}%です。`);
+      };
+      input.addEventListener('input', update);
+      update();
+    });
+  }
+
+  function dogeCostAction(row) {
+    const actions = row && row.actions ? row.actions : {};
+    return actions.referralUrl || actions.signupUrl || actions.detailPath || '/markets/DOGE-JPY';
+  }
+
+  function renderDogeCostRow(row, amount) {
+    const labels = { gmo: 'GMOコイン', bitbank: 'bitbank' };
+    const id = row && row.exchangeId ? row.exchangeId : '';
+    const label = labels[id] || buyingRowExchangeLabel(row);
+    const ready = row && row.status === 'fresh' && row.result && !row.result.error && row.result.executionStatus === 'executable';
+    if (!ready) {
+      return `
+        <article class="doge-cost-row is-waiting" data-exchange-id="${escapeHtml(id)}">
+          <div><span>${escapeHtml(label)}</span><strong>板データ取得待ち</strong></div>
+          <p>${escapeHtml((row && row.message) || '新鮮な板を取得でき次第、自動で比較します。')}</p>
+          <a href="${escapeHtml(dogeCostAction(row))}">公式条件を確認 ↗</a>
+        </article>
+      `;
+    }
+    const result = row.result;
+    const filled = finiteNumber(result.totalBTCFilled) || 0;
+    const fees = Math.max(0, finiteNumber(result.feesJPY) || 0);
+    const friction = Math.max(0, buyingVenueCost(row) || 0);
+    const impact = finiteNumber(result.marketImpactPct);
+    const effectiveVwap = finiteNumber(result.effectiveVWAP);
+    return `
+      <article class="doge-cost-row" data-exchange-id="${escapeHtml(id)}" data-doge-filled="${filled}" data-doge-friction="${friction}">
+        <div class="doge-cost-row__title"><span>${escapeHtml(label)}</span><strong>${escapeHtml(formatBaseAmount(filled, 'DOGE'))}</strong><small>${escapeHtml(formatJpy(amount))}での取得目安</small></div>
+        <dl>
+          <div><dt>板＋手数料の推定コスト</dt><dd>${escapeHtml(formatJpy(friction))}</dd></div>
+          <div><dt>取引手数料</dt><dd>${escapeHtml(formatJpy(fees))}</dd></div>
+          <div><dt>実効VWAP</dt><dd>${effectiveVwap == null ? '—' : escapeHtml(formatJpy(effectiveVwap))}</dd></div>
+          <div><dt>Impact</dt><dd>${impact == null ? '—' : escapeHtml(formatPct(impact, 3))}</dd></div>
+        </dl>
+        <a href="${escapeHtml(dogeCostAction(row))}">口座開設 / 取引へ ↗</a>
+      </article>
+    `;
+  }
+
+  function initDogeCostCalculator() {
+    const root = $('[data-doge-cost-calculator]');
+    if (!root) return;
+    const input = $('[data-doge-cost-amount]', root);
+    const rowsHost = $('[data-doge-cost-rows]', root);
+    const summary = $('[data-doge-cost-summary]', root);
+    if (!input || !rowsHost) return;
+    let abortController = null;
+    let debounceTimer = null;
+
+    const load = async () => {
+      const amount = Math.max(1000, Math.min(10000000, Number(input.value) || 100000));
+      input.value = String(Math.round(amount));
+      if (abortController) abortController.abort();
+      abortController = new AbortController();
+      const controller = abortController;
+      root.setAttribute('aria-busy', 'true');
+      const params = new URLSearchParams({ instrumentId: 'DOGE-JPY', side: 'buy', amountType: 'jpy', amount: String(Math.round(amount)) });
+      try {
+        const response = await fetch(`/api/market-impact-comparison?${params.toString()}`, { cache: 'no-store', signal: controller.signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (abortController !== controller) return;
+        const byId = new Map((Array.isArray(data.rows) ? data.rows : []).map(row => [row.exchangeId, row]));
+        const rows = ['gmo', 'bitbank'].map(id => byId.get(id) || { exchangeId: id, status: 'waiting' });
+        rowsHost.innerHTML = rows.map(row => renderDogeCostRow(row, amount)).join('');
+        const ready = rows
+          .filter(row => row.status === 'fresh' && row.result && !row.result.error && row.result.executionStatus === 'executable')
+          .map(row => ({ row, filled: finiteNumber(row.result.totalBTCFilled) || 0, friction: Math.max(0, buyingVenueCost(row) || 0) }));
+        if (summary && ready.length === 2) {
+          const winner = ready.slice().sort((a, b) => b.filled - a.filled)[0];
+          const other = ready.find(item => item !== winner);
+          const dogeDiff = Math.abs(winner.filled - other.filled);
+          const costDiff = Math.abs(winner.friction - other.friction);
+          const headline = dogeDiff < 0.00001
+            ? '2社の取得量差はほぼありません'
+            : `${buyingRowExchangeLabel(winner.row)}の取得量が約${formatBaseAmount(dogeDiff, 'DOGE')}多い`;
+          summary.innerHTML = `<span>現時点の参考結果</span><strong>${escapeHtml(headline)}</strong><small>推定コスト差は約${escapeHtml(formatJpy(costDiff))}。最終注文前に両社の公式画面で確認してください。</small>`;
+        } else if (summary) {
+          summary.textContent = `板を取得できた${ready.length}社を表示中です。2社そろうと差額を自動計算します。`;
+        }
+      } catch (error) {
+        if (error && error.name === 'AbortError') return;
+        rowsHost.innerHTML = '<p>板データを取得できませんでした。時間をおいて再度お試しください。</p>';
+        if (summary) summary.textContent = '比較ツールでDOGE/JPYの最新板を確認してください。';
+      } finally {
+        if (abortController === controller) root.setAttribute('aria-busy', 'false');
+      }
+    };
+    const schedule = () => {
+      if (debounceTimer) window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(load, 220);
+    };
+    input.addEventListener('input', schedule);
+    input.addEventListener('change', load);
+    load();
+    window.setInterval(load, 30000);
+  }
+
+  function wrapDogeCanvasText(context, text, x, y, maxWidth, lineHeight, maxLines) {
+    const characters = Array.from(String(text || ''));
+    const lines = [];
+    let line = '';
+    characters.forEach((character) => {
+      const candidate = line + character;
+      if (context.measureText(candidate).width > maxWidth && line) {
+        lines.push(line);
+        line = character;
+      } else {
+        line = candidate;
+      }
+    });
+    if (line) lines.push(line);
+    lines.slice(0, maxLines).forEach((item, index) => {
+      const clipped = index === maxLines - 1 && lines.length > maxLines ? `${item.slice(0, -1)}…` : item;
+      context.fillText(clipped, x, y + index * lineHeight);
+    });
+  }
+
+  function saveDogeSectionCard(title, summary, slug) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 630;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    const gradient = context.createLinearGradient(0, 0, 1200, 630);
+    gradient.addColorStop(0, '#070b0e');
+    gradient.addColorStop(0.65, '#111a1d');
+    gradient.addColorStop(1, '#2a2108');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = 'rgba(245,196,81,.14)';
+    context.beginPath();
+    context.arc(1050, 80, 280, 0, Math.PI * 2);
+    context.fill();
+    context.fillStyle = '#f5c451';
+    context.font = '800 26px sans-serif';
+    context.fillText('DOGECOIN RESEARCH', 70, 82);
+    context.fillStyle = '#f7faf9';
+    context.font = '800 54px sans-serif';
+    wrapDogeCanvasText(context, title, 70, 180, 1030, 72, 3);
+    context.fillStyle = '#c5d0cf';
+    context.font = '400 30px sans-serif';
+    wrapDogeCanvasText(context, summary, 70, 390, 1040, 46, 3);
+    context.fillStyle = '#f5c451';
+    context.font = '700 24px sans-serif';
+    context.fillText('get-crypto.org/articles/doge', 70, 574);
+    const download = (url) => {
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `doge-${slug || 'section'}.png`;
+      anchor.click();
+    };
+    if (canvas.toBlob) {
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        download(url);
+        window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+      }, 'image/png');
+    } else {
+      download(canvas.toDataURL('image/png'));
+    }
+  }
+
+  function initDogeSectionShareTools() {
+    const article = $('.article-main[data-article-slug="doge"]');
+    if (!article) return;
+    $$('[data-doge-section]', article).forEach((section) => {
+      const heading = $('h2', section);
+      if (!heading || /主要情報源|参考文献/.test(heading.textContent)) return;
+      const summary = $('p', section)?.textContent.replace(/\s+/g, ' ').trim().slice(0, 180) || 'Dogecoinの要点を確認します。';
+      const tools = document.createElement('div');
+      tools.className = 'doge-section-share';
+      tools.setAttribute('aria-label', `${heading.textContent.trim()}を共有`);
+      tools.innerHTML = '<button type="button" data-doge-section-share="x">X</button><button type="button" data-doge-section-share="image">画像保存</button><button type="button" data-doge-section-share="copy">リンク</button>';
+      heading.insertAdjacentElement('afterend', tools);
+      tools.addEventListener('click', async (event) => {
+        const button = event.target.closest('[data-doge-section-share]');
+        if (!button) return;
+        const url = new URL(window.location.href);
+        url.hash = heading.id;
+        const title = heading.textContent.replace(/初心者|トレーダー|技術/g, '').trim();
+        if (button.dataset.dogeSectionShare === 'x') {
+          const intent = new URL('https://twitter.com/intent/tweet');
+          intent.searchParams.set('text', `${title}｜Dogecoin（DOGE）総合分析`);
+          intent.searchParams.set('url', url.href);
+          window.open(intent.href, '_blank', 'noopener,noreferrer,width=640,height=560');
+        } else if (button.dataset.dogeSectionShare === 'image') {
+          saveDogeSectionCard(title, summary, heading.id);
+          showArticleToast('共有カード画像を保存しました');
+        } else {
+          await copyTextToClipboard(url.href);
+          showArticleToast('この章のリンクをコピーしました');
+        }
+      });
+    });
+  }
+
+  function initDogeMobileBar() {
+    const article = $('.article-main[data-article-slug="doge"]');
+    const actions = $('[data-article-mobile-actions]');
+    if (!article || !actions) return;
+    actions.classList.add('article-mobile-actions--doge');
+    actions.innerHTML = `
+      <button type="button" data-mobile-toc-button><span aria-hidden="true">☰</span><strong>目次</strong></button>
+      <button type="button" data-doge-mobile-price><span data-doge-mobile-price-value>取得中</span><strong>価格</strong></button>
+      <button type="button" data-doge-mobile-mode><span data-doge-mobile-mode-value>23分</span><strong>モード</strong></button>
+      <button type="button" data-doge-mobile-share><span aria-hidden="true">↗</span><strong>シェア</strong></button>
+    `;
+    const priceButton = $('[data-doge-mobile-price]', actions);
+    const priceValue = $('[data-doge-mobile-price-value]', actions);
+    const modeButton = $('[data-doge-mobile-mode]', actions);
+    const modeValue = $('[data-doge-mobile-mode-value]', actions);
+    const shareButton = $('[data-doge-mobile-share]', actions);
+    const livePrice = $('[data-live-market-price]');
+    const syncPrice = () => {
+      if (priceValue && livePrice) priceValue.textContent = livePrice.textContent.trim() || '取得中';
+    };
+    syncPrice();
+    if (livePrice) new MutationObserver(syncPrice).observe(livePrice, { childList: true, subtree: true, characterData: true });
+    if (priceButton) priceButton.addEventListener('click', () => {
+      const card = $('[data-article-live-market-card]');
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    const summaryRoot = $('[data-article-summary-tabs]');
+    const syncMode = () => {
+      const labels = { full: '23分', quick: '3分', focus: '1分' };
+      if (modeValue) modeValue.textContent = labels[summaryRoot && summaryRoot.dataset.activeSummary] || '23分';
+    };
+    syncMode();
+    if (summaryRoot) new MutationObserver(syncMode).observe(summaryRoot, { attributes: true, attributeFilter: ['data-active-summary'] });
+    if (modeButton) modeButton.addEventListener('click', () => {
+      const tabs = summaryRoot ? $$('[data-summary-tab]', summaryRoot) : [];
+      const activeIndex = tabs.findIndex(tab => tab.getAttribute('aria-selected') === 'true');
+      if (tabs.length) tabs[(activeIndex + 1 + tabs.length) % tabs.length].click();
+    });
+    if (shareButton) shareButton.addEventListener('click', () => {
+      const trigger = $('[data-reader-share]');
+      if (trigger) trigger.click();
+    });
   }
 
   function parseJpyAmount(value) {
@@ -1648,15 +2096,40 @@
     const menu = $('[data-reader-tools-menu]', tools);
     const menuToggle = $('[data-reader-tools-toggle]', tools);
     const menuToggleLabel = $('[data-reader-tools-toggle-label]', tools);
+    const dialog = $('[data-reader-settings-dialog]');
+    const sizeRange = $('[data-reader-size-range]', dialog || document);
+    const sizeOutput = $('[data-reader-size-output]', dialog || document);
+    const lineHeightRange = $('[data-reader-line-height-range]', dialog || document);
+    const lineHeightOutput = $('[data-reader-line-height-output]', dialog || document);
     const settings = articleReaderSettings();
     let fontScale = Number(settings.fontScale);
     if (!Number.isFinite(fontScale)) fontScale = 1;
-    fontScale = Math.max(0.9, Math.min(1.25, fontScale));
+    fontScale = Math.max(0.9, Math.min(1.3, fontScale));
+    let lineHeight = Number(settings.lineHeight);
+    if (!Number.isFinite(lineHeight)) lineHeight = 1.8;
+    lineHeight = Math.max(1.5, Math.min(2.2, lineHeight));
+    let readerTheme = ['dark', 'sepia', 'light', 'oled'].includes(settings.readerTheme)
+      ? settings.readerTheme
+      : readStoredTheme();
+    let readerFamily = settings.readerFamily === 'serif' ? 'serif' : 'sans';
     let utterance = null;
 
     const syncFont = () => {
       article.style.setProperty('--article-reader-scale', String(fontScale));
+      article.style.setProperty('--article-reader-line-height', String(lineHeight));
+      article.dataset.readerTheme = readerTheme;
+      article.dataset.readerFamily = readerFamily;
       tools.dataset.fontScale = fontScale.toFixed(2);
+      if (sizeRange) sizeRange.value = String(Math.round(fontScale * 100));
+      if (sizeOutput) sizeOutput.textContent = `${Math.round(fontScale * 100)}%`;
+      if (lineHeightRange) lineHeightRange.value = String(Math.round(lineHeight * 100));
+      if (lineHeightOutput) lineHeightOutput.textContent = lineHeight.toFixed(2);
+      $$('[data-reader-theme]', dialog || document).forEach((button) => {
+        button.setAttribute('aria-pressed', button.dataset.readerTheme === readerTheme ? 'true' : 'false');
+      });
+      $$('[data-reader-family]', dialog || document).forEach((button) => {
+        button.setAttribute('aria-pressed', button.dataset.readerFamily === readerFamily ? 'true' : 'false');
+      });
     };
     const syncFocus = (enabled) => {
       document.body.classList.toggle('article-focus-mode', enabled);
@@ -1664,6 +2137,7 @@
       if (button) button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
       if (menuToggleLabel) menuToggleLabel.textContent = enabled ? '通常表示へ' : '読書ツール';
       if (enabled && menu) menu.hidden = true;
+      if (enabled && dialog && dialog.open) dialog.close();
       if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
     };
     const setMenuOpen = (open) => {
@@ -1677,6 +2151,23 @@
         if (first) first.focus({ preventScroll: true });
       }
     };
+    const setSettingsOpen = (open) => {
+      if (!dialog || !menuToggle) return;
+      if (open) {
+        if (typeof dialog.showModal === 'function') {
+          if (!dialog.open) dialog.showModal();
+        } else {
+          dialog.setAttribute('open', '');
+        }
+        menuToggle.setAttribute('aria-expanded', 'true');
+        const first = $('input, button', dialog);
+        if (first) window.setTimeout(() => first.focus({ preventScroll: true }), 0);
+      } else {
+        if (typeof dialog.close === 'function' && dialog.open) dialog.close();
+        else dialog.removeAttribute('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
+      }
+    };
     if (menuToggle) {
       menuToggle.addEventListener('click', () => {
         if (document.body.classList.contains('article-focus-mode')) {
@@ -1686,7 +2177,15 @@
           showArticleToast('通常レイアウトに戻しました');
           return;
         }
-        setMenuOpen(menuToggle.getAttribute('aria-expanded') !== 'true');
+        setSettingsOpen(!dialog || !dialog.open);
+      });
+    }
+    if (dialog) {
+      dialog.addEventListener('close', () => {
+        if (menuToggle) menuToggle.setAttribute('aria-expanded', 'false');
+      });
+      dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) setSettingsOpen(false);
       });
     }
     document.addEventListener('click', (event) => {
@@ -1706,10 +2205,60 @@
     syncFont();
     syncFocus(Boolean(settings.focus));
 
+    if (sizeRange) {
+      sizeRange.addEventListener('input', () => {
+        fontScale = Math.max(0.9, Math.min(1.3, Number(sizeRange.value) / 100 || 1));
+        settings.fontScale = fontScale;
+        writeArticleReaderSettings(settings);
+        syncFont();
+      });
+    }
+    if (lineHeightRange) {
+      lineHeightRange.addEventListener('input', () => {
+        lineHeight = Math.max(1.5, Math.min(2.2, Number(lineHeightRange.value) / 100 || 1.8));
+        settings.lineHeight = lineHeight;
+        writeArticleReaderSettings(settings);
+        syncFont();
+      });
+    }
+    $$('[data-reader-theme]', dialog || document).forEach((button) => {
+      button.addEventListener('click', () => {
+        readerTheme = button.dataset.readerTheme || 'dark';
+        settings.readerTheme = readerTheme;
+        writeArticleReaderSettings(settings);
+        syncFont();
+      });
+    });
+    $$('[data-reader-family]', dialog || document).forEach((button) => {
+      button.addEventListener('click', () => {
+        readerFamily = button.dataset.readerFamily === 'serif' ? 'serif' : 'sans';
+        settings.readerFamily = readerFamily;
+        writeArticleReaderSettings(settings);
+        syncFont();
+      });
+    });
+    $$('[data-reader-command]', dialog || document).forEach((button) => {
+      button.addEventListener('click', () => {
+        const selectors = {
+          search: '[data-article-search-open]',
+          focus: '[data-reader-focus]',
+          speech: '[data-reader-speech]',
+          print: '[data-reader-print]',
+          markdown: '[data-reader-markdown]',
+          share: '[data-reader-share]',
+        };
+        const target = selectors[button.dataset.readerCommand]
+          ? $(selectors[button.dataset.readerCommand], tools)
+          : null;
+        setSettingsOpen(false);
+        if (target) target.click();
+      });
+    });
+
     $$('[data-reader-font]', tools).forEach((button) => {
       button.addEventListener('click', () => {
         fontScale += button.dataset.readerFont === 'up' ? 0.05 : -0.05;
-        fontScale = Math.round(Math.max(0.9, Math.min(1.25, fontScale)) * 100) / 100;
+        fontScale = Math.round(Math.max(0.9, Math.min(1.3, fontScale)) * 100) / 100;
         settings.fontScale = fontScale;
         writeArticleReaderSettings(settings);
         syncFont();
@@ -2440,6 +2989,7 @@
             <div role="group" aria-label="価格推移の期間">
               <button type="button" data-live-series-range="1h" aria-pressed="true">1H</button>
               <button type="button" data-live-series-range="24h" aria-pressed="false">24H</button>
+              <button type="button" data-live-series-range="7d" aria-pressed="false">7D</button>
             </div>
           </header>
           <div data-live-market-series><span>最初の価格を記録中です</span></div>
@@ -2633,7 +3183,7 @@
     try {
       const stored = JSON.parse(localStorage.getItem(ARTICLE_LIVE_SERIES_STORAGE_KEY) || '{}');
       const rows = stored && Array.isArray(stored[instrumentId]) ? stored[instrumentId] : [];
-      const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+      const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
       return rows
         .map(item => ({ at: Number(item.at), value: Number(item.value) }))
         .filter(item => Number.isFinite(item.at) && Number.isFinite(item.value) && item.at >= cutoff && item.value > 0);
@@ -2650,7 +3200,7 @@
     if (!last || last.value !== value || now - last.at >= 120000) {
       rows.push({ at: now, value });
     }
-    const trimmed = rows.slice(-3000);
+    const trimmed = rows.slice(-20000);
     try {
       const stored = JSON.parse(localStorage.getItem(ARTICLE_LIVE_SERIES_STORAGE_KEY) || '{}');
       const next = stored && typeof stored === 'object' ? stored : {};
@@ -2668,7 +3218,11 @@
     if (!root || !chart) return;
     const allRows = appendArticleLiveSeries(instrumentId, value);
     const selectedRange = root.dataset.liveSeriesRange || '1h';
-    const duration = selectedRange === '24h' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000;
+    const duration = selectedRange === '7d'
+      ? 7 * 24 * 60 * 60 * 1000
+      : selectedRange === '24h'
+      ? 24 * 60 * 60 * 1000
+      : 60 * 60 * 1000;
     const cutoff = Date.now() - duration;
     const rows = allRows.filter(item => item.at >= cutoff);
     $$('[data-live-series-range]', root).forEach((button) => {
@@ -2709,7 +3263,7 @@
     const change = values.length > 1 ? ((values[values.length - 1] - values[0]) / values[0]) * 100 : 0;
     const tone = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
     chart.innerHTML = `
-      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${selectedRange === '24h' ? '24時間' : '1時間'}の記録価格推移、${change >= 0 ? '+' : ''}${formatPct(change, 3)}">
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${selectedRange === '7d' ? '7日間' : selectedRange === '24h' ? '24時間' : '1時間'}の記録価格推移、${change >= 0 ? '+' : ''}${formatPct(change, 3)}">
         <defs><linearGradient id="article-live-fill-${escapeHtml(instrumentId.toLowerCase())}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".28"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
         ${points.length > 1 ? `<polygon points="${path} ${points[points.length - 1].x.toFixed(1)},${height - pad} ${points[0].x.toFixed(1)},${height - pad}" fill="url(#article-live-fill-${escapeHtml(instrumentId.toLowerCase())})"/>` : ''}
         <polyline points="${path}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -3470,16 +4024,20 @@
   document.addEventListener('DOMContentLoaded', () => {
     initThemeToggle();
     initArticleEndDisclaimer();
-    initArticleSummaryTabs();
     initMarketBeginnerSections();
+    initDogeArticleExperience();
+    initArticleSummaryTabs();
     initToc();
+    syncDogeTocVisibility();
     initReadingProgress();
     initArticleTables();
+    initDogeSupplySimulator();
     initArticleDataCharts();
     initTronOnchainDashboard();
     initArticleDiffHighlight();
     initMermaidDiagrams();
     initArticleLiveMarketCard();
+    initDogeCostCalculator();
     initBeginnerModeToast();
     initMiniSimulator();
     initBuyingAmountSimulator();
@@ -3495,6 +4053,8 @@
     initArticleTerms();
     initArticleBeginnerGuide();
     initExchangeChecklist();
+    initDogeSectionShareTools();
+    initDogeMobileBar();
     initArticleMobileActions();
     initArticleCopyToast();
     initArticleSearch();
