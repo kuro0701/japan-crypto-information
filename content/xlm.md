@@ -54,13 +54,13 @@ XLMは、手数料、Classicアカウントの最低残高、信頼ライン等�
 
 市場面では、2026年7月24日のCoinGecko集計でXLMは約0.184ドル、時価総額約62.9億ドル、24時間出来高約1.37億ドル、時価総額順位19位でした。集計サイト、時刻、異常値除外方法によって値は変わります。価格の長期推移だけでなく、SDF保有残高の放出、取引所別板の厚み、オンチェーン資産の発行体信用、バリデーター構成、規制、スマートコントラクトの不具合を別々に確認する必要があります。
 
-<section class="xlm-key-metrics" aria-labelledby="xlm-key-metrics-title">
+<section class="article-key-metrics article-key-metrics--xlm" aria-labelledby="xlm-key-metrics-title">
   <header>
     <span>Key metrics</span>
     <h3 id="xlm-key-metrics-title">XLMを読むうえで外せない4つの数値</h3>
     <p>文章中の重要値を、供給・集中・利用コストの観点で切り分けています。</p>
   </header>
-  <div class="xlm-key-metrics__grid">
+  <div class="article-key-metrics__grid">
     <article><span>総供給量</span><strong>500.018<small>億 XLM</small></strong><p>流通、SDF Mandate、fee pool等を含む現行値。</p><span class="article-data-source-badge" tabindex="0">ⓘ 2026/07/24 05:28 UTC 取得<span role="tooltip"><strong>SDF Dashboard API</strong><code>totalSupply: 50,001,786,839.9124767</code><a href="https://dashboard.stellar.org/api/v3/lumens" target="_blank" rel="noopener noreferrer">公式APIを開く ↗</a></span></span></article>
     <article><span>SDF Mandate</span><strong>155.578<small>億 XLM</small></strong><p>総供給の約31.1%。配布・売却動向を別に確認。</p><span class="article-data-source-badge" tabindex="0">ⓘ 2026/07/24 05:28 UTC 取得<span role="tooltip"><strong>SDF Dashboard API</strong><code>mandate: 15,557,774,831.974759</code><a href="https://dashboard.stellar.org/api/v3/lumens" target="_blank" rel="noopener noreferrer">公式APIを開く ↗</a></span></span></article>
     <article><span>最低ベース手数料</span><strong>100<small>stroops / op</small></strong><p>0.00001 XLM。混雑時はsurge pricingで上昇。</p><span class="article-data-source-badge" tabindex="0">ⓘ 公式仕様<span role="tooltip"><strong>Stellar Developer Docs</strong><code>minimum inclusion fee: 100 stroops × operations</code><a href="https://developers.stellar.org/docs/learn/fundamentals/fees-resource-limits-metering" target="_blank" rel="noopener noreferrer">手数料仕様を開く ↗</a></span></span></article>
@@ -361,7 +361,7 @@ CoinGeckoは117取引所、252市場から価格を集計していました。Up
 
 日本では複数の登録暗号資産交換業者がXLM/JPYを取り扱っています。取引所方式と販売所方式、板の厚み、スプレッド、取引手数料、XLM出庫手数料、memo要件、メンテナンス状況は各社で異なります。
 
-<div class="article-context-market-cta xlm-market-cta" data-article-market-cta aria-label="XLMの最新板比較">
+<div class="article-context-market-cta" data-article-market-cta aria-label="XLMの最新板比較">
   <article data-article-market-cta-bid><span>売却側 Best bid</span><strong>国内板を取得中</strong><small>最も高く売れる気配を確認します</small></article>
   <article data-article-market-cta-ask><span>購入側 Best ask</span><strong>国内板を取得中</strong><small>最も安く買える気配を確認します</small></article>
 </div>
