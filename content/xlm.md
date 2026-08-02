@@ -2,7 +2,7 @@
 title: Stellar（XLM）総合分析｜SCP・Soroban・供給・決済・集中リスク
 description: Stellar（XLM）のSCP、資産発行・DEX、Soroban、XLM供給とSDF保有、MoneyGram・PYUSD・BENJI、市場データ、規制・セキュリティリスクを総合分析します。
 date: 2026-07-24
-updated: 2026-07-24
+updated: 2026-08-03
 author: 国内暗号資産取引所ナビ
 slug: xlm
 path: /articles/xlm
@@ -14,6 +14,29 @@ readMinutes: 28
 ---
 
 > **重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。** 掲載する評価、市場データ、利用例は調査時点の分析上の情報であり、将来の成果を保証しません。暗号資産は、価格変動、流動性、技術、規制、税務、オペレーション、カウンターパーティー等のリスクを伴います。実際の利用・取引判断は、最新の公式情報を確認し、ご自身の状況に応じて行ってください。本稿の時点データは、原則として2026年7月24日JST時点で確認できた公開情報に基づきます。
+
+<section class="article-summary-tabs xlm-summary-tabs" data-article-summary-tabs data-active-summary="full" aria-label="XLM記事の読み方を選ぶ">
+  <div class="article-summary-tabs__list" role="tablist" aria-label="読む範囲">
+    <button type="button" role="tab" id="xlm-summary-full-tab" aria-controls="xlm-summary-full" aria-selected="true" data-summary-tab="full">全体像 <small>28分</small></button>
+    <button type="button" role="tab" id="xlm-summary-quick-tab" aria-controls="xlm-summary-quick" aria-selected="false" tabindex="-1" data-summary-tab="quick">要点ナビ <small>3分</small></button>
+    <button type="button" role="tab" id="xlm-summary-focus-tab" aria-controls="xlm-summary-focus" aria-selected="false" tabindex="-1" data-summary-tab="focus">価格・リスク <small>1分</small></button>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="xlm-summary-full" aria-labelledby="xlm-summary-full-tab" data-summary-panel="full">
+    <span class="article-summary-tabs__eyebrow">Full research</span>
+    <h3>SCPから市場・規制まで通読</h3>
+    <p>技術、供給、実利用、市場、規制、リスクを省略せずに確認します。タブを切り替えると対象外の章を滑らかに折りたたみます。</p>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="xlm-summary-quick" aria-labelledby="xlm-summary-quick-tab" data-summary-panel="quick" hidden>
+    <span class="article-summary-tabs__eyebrow">3-minute brief</span>
+    <h3>結論と重要な仕組みだけを読む</h3>
+    <p>エグゼクティブサマリー、SCP、供給、市場、主要リスク、まとめへ絞ります。各章の目安時間は右側の目次で確認できます。</p>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="xlm-summary-focus" aria-labelledby="xlm-summary-focus-tab" data-summary-panel="focus" hidden>
+    <span class="article-summary-tabs__eyebrow">1-minute risk lens</span>
+    <h3>価格形成と下振れ要因を先に確認</h3>
+    <p>供給、国内板、市場流動性、規制、主要リスク、シナリオへ絞ります。価格上昇を前提にせず、XLM需要とSDF放出を分けて見ます。</p>
+  </div>
+</section>
 
 ## エグゼクティブサマリー
 
@@ -30,6 +53,20 @@ XLMは、手数料、Classicアカウントの最低残高、信頼ライン等�
 実利用では、MoneyGramの現金オン・オフランプと2026年6月に米国で開始したMGUSD、2025年9月にStellar対応したPayPal USD（PYUSD）、Franklin TempletonのBENJIトークン化ファンド、国際援助の配布事例等が公表されています。ただし、提携発表、実証実験、限定地域での開始、全世界での本番利用は区別が必要です。BENJIについても、2026年4月公表の約19.8億ドルは複数チェーンを含むBENJIスイート全体で、Stellar上は6.5億ドル超でした。
 
 市場面では、2026年7月24日のCoinGecko集計でXLMは約0.184ドル、時価総額約62.9億ドル、24時間出来高約1.37億ドル、時価総額順位19位でした。集計サイト、時刻、異常値除外方法によって値は変わります。価格の長期推移だけでなく、SDF保有残高の放出、取引所別板の厚み、オンチェーン資産の発行体信用、バリデーター構成、規制、スマートコントラクトの不具合を別々に確認する必要があります。
+
+<section class="xlm-key-metrics" aria-labelledby="xlm-key-metrics-title">
+  <header>
+    <span>Key metrics</span>
+    <h3 id="xlm-key-metrics-title">XLMを読むうえで外せない4つの数値</h3>
+    <p>文章中の重要値を、供給・集中・利用コストの観点で切り分けています。</p>
+  </header>
+  <div class="xlm-key-metrics__grid">
+    <article><span>総供給量</span><strong>500.018<small>億 XLM</small></strong><p>流通、SDF Mandate、fee pool等を含む現行値。</p><span class="article-data-source-badge" tabindex="0">ⓘ 2026/07/24 05:28 UTC 取得<span role="tooltip"><strong>SDF Dashboard API</strong><code>totalSupply: 50,001,786,839.9124767</code><a href="https://dashboard.stellar.org/api/v3/lumens" target="_blank" rel="noopener noreferrer">公式APIを開く ↗</a></span></span></article>
+    <article><span>SDF Mandate</span><strong>155.578<small>億 XLM</small></strong><p>総供給の約31.1%。配布・売却動向を別に確認。</p><span class="article-data-source-badge" tabindex="0">ⓘ 2026/07/24 05:28 UTC 取得<span role="tooltip"><strong>SDF Dashboard API</strong><code>mandate: 15,557,774,831.974759</code><a href="https://dashboard.stellar.org/api/v3/lumens" target="_blank" rel="noopener noreferrer">公式APIを開く ↗</a></span></span></article>
+    <article><span>最低ベース手数料</span><strong>100<small>stroops / op</small></strong><p>0.00001 XLM。混雑時はsurge pricingで上昇。</p><span class="article-data-source-badge" tabindex="0">ⓘ 公式仕様<span role="tooltip"><strong>Stellar Developer Docs</strong><code>minimum inclusion fee: 100 stroops × operations</code><a href="https://developers.stellar.org/docs/learn/fundamentals/fees-resource-limits-metering" target="_blank" rel="noopener noreferrer">手数料仕様を開く ↗</a></span></span></article>
+    <article><span>流通供給量</span><strong>341.749<small>億 XLM</small></strong><p>公式定義の流通推計。集計サイトとは定義差があり得る。</p><span class="article-data-source-badge" tabindex="0">ⓘ 2026/07/24 05:28 UTC 取得<span role="tooltip"><strong>SDF Dashboard API</strong><code>circulatingSupply: 34,174,901,809.4428527</code><a href="https://dashboard.stellar.org/api/v3/lumens" target="_blank" rel="noopener noreferrer">公式APIを開く ↗</a></span></span></article>
+  </div>
+</section>
 
 ## 基本情報
 
@@ -74,7 +111,7 @@ Stanford大学教授のDavid Mazièresが設計したSCPは2015年4月に論文�
 
 SCPでは、バリデーターが「どのノード群の賛成を十分とみなすか」をクォーラムセットとして設定します。クォーラムスライスは、そのノードが合意へ進むために必要な信頼集合の部分です。複数ノードのスライスが十分に重なり、**quorum intersection**が保たれていることが、安全性と一つの台帳へ収束するための重要な条件です。
 
-<div class="article-mermaid">
+<div class="article-mermaid" data-article-flow>
 <pre class="mermaid">graph TD
     A[Validator quorum settings] --> B[Overlapping quorum slices]
     B --> C[Nomination]
@@ -83,6 +120,15 @@ SCPでは、バリデーターが「どのノード群の賛成を十分とみ�
     D --> E
     E --> F[Closed ledger]
 </pre>
+<div class="article-flow-notes" hidden>
+  <span data-flow-label="Validator quorum settings" data-flow-title="1. 信頼集合を設定">各バリデーターが、どのノード群の賛成を十分とみなすかを自ら設定します。</span>
+  <span data-flow-label="Overlapping quorum slices" data-flow-title="2. スライスが重なる">信頼集合が十分に重なるquorum intersectionが、一つの台帳へ収束する基礎です。</span>
+  <span data-flow-label="Nomination" data-flow-title="3. 候補を指名">次の台帳に含める取引集合の候補をノード間で絞り込みます。</span>
+  <span data-flow-label="Ballot protocol" data-flow-title="4. 投票で確定へ進む">候補値についてprepare、commit等の段階を進め、矛盾する値の確定を防ぎます。</span>
+  <span data-flow-label="Agreed transaction set" data-flow-title="5. 取引集合に合意">NominationとBallotの結果から、次の台帳へ適用する取引集合を共有します。</span>
+  <span data-flow-label="Closed ledger" data-flow-title="6. 台帳をクローズ">合意した取引を適用し、新しい台帳状態として確定します。</span>
+</div>
+<div class="article-flow-detail" data-article-flow-detail aria-live="polite"><span>図のステップをタップ、または「次へ」で解説を確認できます。</span></div>
 </div>
 
 PoWのハッシュパワーやPoSの預託額に応じて権利を配る方式ではないため、SCPの分散性はノード数だけでは測れません。重要なのは、誰がバリデーターを運用し、どのクォーラム設定が実際に使われ、組織・クラウド・地域・ソフトウェアがどの程度分散しているかです。
@@ -157,16 +203,29 @@ Stellarはプロトコルに注文板型のSDEXを持ちます。ユーザーは
 
 Path Paymentは、送付人が持つ資産から受取人が希望する資産まで、SDEXの注文板や流動性プールを組み合わせて交換経路を探します。XLMは経路の一部になり得ますが、常にXLMを通るわけではありません。例えば十分な直接市場があれば、USDCから別の発行資産へ直接交換できます。
 
-<div class="article-mermaid">
+<div class="article-mermaid" data-article-flow>
 <pre class="mermaid">flowchart LR
     A[Sender asset] --> B[Order book or AMM]
     B --> C[Optional bridge asset]
     C --> D[Receiver asset]
     B --> D
 </pre>
+<div class="article-flow-notes" hidden>
+  <span data-flow-label="Sender asset" data-flow-title="1. 送付資産を指定">送付人が保有するUSDC等の資産と支払上限を指定します。</span>
+  <span data-flow-label="Order book or AMM" data-flow-title="2. 流動性を探索">SDEXの注文板とAMMから、受取条件を満たす交換経路を探索します。</span>
+  <span data-flow-label="Optional bridge asset" data-flow-title="3. 必要なら中継資産">直接市場が薄い場合のみXLM等を中継します。XLM経由は必須ではありません。</span>
+  <span data-flow-label="Receiver asset" data-flow-title="4. 希望資産で受取">最小受取額を満たす場合、交換と送金を一つの原子的な処理として完了します。</span>
+</div>
+<div class="article-flow-detail" data-article-flow-detail aria-live="polite"><span>経路の各ステップをタップして、価格変換の意味を確認できます。</span></div>
 </div>
 
 利便性は流動性に依存します。市場が薄いと、提示レートと実際の平均交換価格が乖離し、経路が見つからず取引が失敗する場合があります。資産コードが同じでも発行体が異なる市場は別物です。価格だけでなく、板の深さ、スプレッド、経路、最小受取額、発行体信用を確認する必要があります。
+
+<aside class="xlm-context-links" aria-label="板取引の比較リンク">
+  <span>この文脈で確認</span>
+  <a href="/simulator?market=XLM-JPY&exchange=bitbank&side=buy&amountType=jpy&amount=100000">bitbankのXLM板コストを見る ↗</a>
+  <a href="/markets/XLM-JPY">国内取引所のBest bid / askを比較 ↗</a>
+</aside>
 
 ## アンカー、オン・オフランプ、SEP
 
@@ -216,6 +275,8 @@ Protocol 25は2026年1月22日にメインネットで完了し、BN254楕円曲
 Stellar開始時に1000億XLMが生成され、初期の年1%インフレにより約54.439億XLMが追加されました。インフレは2019年10月28日のバリデーター投票で廃止されました。2019年11月4日、SDFは約554.421億XLMを署名者のいないアクセス不能アカウントへ送り、供給から除外しました。
 
 2026年7月24日5時28分UTCの公式Dashboard APIは次の値を示しました。
+
+<span class="article-data-source-badge article-data-source-badge--inline" tabindex="0">ⓘ 2026/07/24 05:28 UTC 取得<span role="tooltip"><strong>SDF Dashboard API</strong><code>totalSupply / circulatingSupply / mandate</code><a href="https://dashboard.stellar.org/api/v3/lumens" target="_blank" rel="noopener noreferrer">公式レスポンスを開く ↗</a></span></span>
 
 | 指標 | XLM | 意味 |
 |---|---:|---|
@@ -282,6 +343,8 @@ StellarはMastercard Crypto Credentialエコシステムへの参加を公表し
 
 2026年7月24日のCoinGecko画面で確認した市場スナップショットは次のとおりです。値は常時変動し、集計サイトは取引所の異常価格・出来高を除外または警告する場合があります。
 
+<span class="article-data-source-badge article-data-source-badge--inline" tabindex="0">ⓘ 2026/07/24 取得<span role="tooltip"><strong>CoinGecko / Stellar</strong><code>price ≈ $0.1841, market_cap ≈ $6.291B</code><a href="https://www.coingecko.com/en/coins/stellar" target="_blank" rel="noopener noreferrer">市場データ元を開く ↗</a></span></span>
+
 | 指標 | スナップショット | 注意点 |
 |---|---:|---|
 | 価格 | 約0.1841ドル | 複数市場の出来高加重平均 |
@@ -297,6 +360,17 @@ StellarはMastercard Crypto Credentialエコシステムへの参加を公表し
 CoinGeckoは117取引所、252市場から価格を集計していました。Upbit、Binance、Coinbase等に流動性が分散する一方、市場一覧には異常価格として警告されたDEXペアもありました。単純な24時間出来高だけでなく、取引したい通貨ペアの買い板・売り板、2%深度、スプレッド、出入金可否、価格乖離を確認する必要があります。
 
 日本では複数の登録暗号資産交換業者がXLM/JPYを取り扱っています。取引所方式と販売所方式、板の厚み、スプレッド、取引手数料、XLM出庫手数料、memo要件、メンテナンス状況は各社で異なります。
+
+<div class="article-context-market-cta xlm-market-cta" data-article-market-cta aria-label="XLMの最新板比較">
+  <article data-article-market-cta-bid><span>売却側 Best bid</span><strong>国内板を取得中</strong><small>最も高く売れる気配を確認します</small></article>
+  <article data-article-market-cta-ask><span>購入側 Best ask</span><strong>国内板を取得中</strong><small>最も安く買える気配を確認します</small></article>
+</div>
+
+<aside class="xlm-context-links" aria-label="販売所リスクの比較リンク">
+  <span>販売所を使う前に確認</span>
+  <a href="/sales-spread?instrumentId=XLM-JPY">各社のXLM販売所スプレッドを比較 ↗</a>
+  <a href="/simulator?market=XLM-JPY&side=buy&amountType=jpy&amount=100000">10万円購入時の実効コストを試算 ↗</a>
+</aside>
 
 ## 規制・法務・税務
 

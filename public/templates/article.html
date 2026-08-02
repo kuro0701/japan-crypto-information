@@ -32,7 +32,7 @@
     })();
   </script>
   <link rel="stylesheet" href="/css/style.css?v=ui-35">
-  <link rel="stylesheet" href="/css/article.css?v=33">
+  <link rel="stylesheet" href="/css/article.css?v=34">
 </head>
 <body class="terminal-body bg-gray-950 text-gray-200 min-h-screen">
   <a href="#main" class="sr-only skip-link">メインコンテンツへスキップ</a>
@@ -79,6 +79,23 @@
     </div>
     <div class="reading-progress" aria-hidden="true"><span data-reading-progress></span></div>
   </header>
+
+  <aside class="article-smart-header" data-article-smart-header hidden aria-label="記事の現在地と価格">
+    <div class="article-smart-header__inner">
+      <div class="article-smart-header__context">
+        <span data-article-smart-ticker>{{ARTICLE_MARKET_TICKER}}</span>
+        <strong data-article-smart-section>記事の先頭</strong>
+      </div>
+      <div class="article-smart-header__progress" role="progressbar" aria-label="記事の読了進捗" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-article-smart-progress>
+        <span></span><output>0%</output>
+      </div>
+      <div class="article-smart-header__price">
+        <small>{{ARTICLE_MARKET_TICKER}} / JPY</small>
+        <strong data-article-smart-price>取得中</strong>
+      </div>
+      <a class="article-smart-header__cta" href="/markets" data-article-smart-cta>比較・購入</a>
+    </div>
+  </aside>
 
   <main id="main" class="dashboard-shell article-page-shell flex flex-col gap-4 p-4 max-w-[1180px] mx-auto">
     <nav class="text-xs text-gray-500" aria-label="パンくず">
@@ -210,6 +227,12 @@
           <button type="button" data-reader-family="serif" aria-pressed="false">明朝</button>
         </div>
       </fieldset>
+      <fieldset>
+        <legend>重要箇所</legend>
+        <div class="article-reader-settings__choices">
+          <button type="button" data-reader-highlights aria-pressed="true">重要ハイライト ON</button>
+        </div>
+      </fieldset>
       <div class="article-reader-settings__actions" aria-label="その他の読書ツール">
         <button type="button" data-reader-command="search">記事内検索</button>
         <button type="button" data-reader-command="focus">集中モード</button>
@@ -249,7 +272,7 @@
 
   <footer class="border-t border-gray-800 px-6 py-2 text-xs text-gray-600 text-center">国内暗号資産取引所ナビ | 記事</footer>
   <script src="/js/article-term-tooltips-v4.js?v=1"></script>
-  <script src="/js/beginner-mode.js?v=20"></script>
-  <script src="/js/article.js?v=28"></script>
+  <script src="/js/beginner-mode.js?v=21"></script>
+  <script src="/js/article.js?v=29"></script>
 </body>
 </html>

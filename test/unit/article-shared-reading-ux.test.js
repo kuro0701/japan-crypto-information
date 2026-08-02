@@ -60,14 +60,19 @@ test('live ticker placement and long-form interaction tools are shared by every 
   assert.match(articleStyle, /\.article-mobile-actions--smart/);
   assert.match(articleStyle, /\.article-main \.article-data-table :is\(th, td\):first-child/);
   assert.match(articleStyle, /\.article-main \.article-data-table\.data-table--cards/);
+  assert.match(articleScript, /function initArticleSmartHeader/);
+  assert.match(articleScript, /data-article-table-view/);
+  assert.match(articleScript, /articleSectionMinutes/);
+  assert.match(articleStyle, /\.article-smart-header/);
+  assert.match(articleStyle, /\.article-table-view-toggle/);
 });
 
 test('article asset versions are bumped for the shared rollout', () => {
   const template = read('public/templates/article.html');
 
-  assert.match(template, /article\.css\?v=33/);
-  assert.match(template, /beginner-mode\.js\?v=20/);
-  assert.match(template, /article\.js\?v=28/);
+  assert.match(template, /article\.css\?v=34/);
+  assert.match(template, /beginner-mode\.js\?v=21/);
+  assert.match(template, /article\.js\?v=29/);
 });
 
 test('all article routes render one changelog and never duplicate summary tabs', () => {
