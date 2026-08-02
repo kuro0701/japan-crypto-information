@@ -22,19 +22,20 @@ test('DOGE article exposes audience, live cost, supply, and interactive architec
   assert.match(source, /data-flow-label="Scryptマイナー"/);
 });
 
-test('DOGE reading modes, section sharing, mobile bar, and live 7D series are wired', () => {
+test('DOGE modules use the shared reading, section sharing, and mobile foundations', () => {
   const script = read('public/js/article.js');
 
   assert.match(script, /function initDogeArticleExperience/);
+  assert.match(script, /function initArticleReadingModes/);
   assert.match(script, /article:summary-mode-change/);
   assert.match(script, /is-reading-mode-hidden/);
   assert.match(script, /function initDogeSupplySimulator/);
   assert.match(script, /function initDogeCostCalculator/);
   assert.match(script, /DOGE-JPY/);
-  assert.match(script, /function initDogeSectionShareTools/);
-  assert.match(script, /saveDogeSectionCard/);
-  assert.match(script, /function initDogeMobileBar/);
-  assert.match(script, /data-doge-mobile-price/);
+  assert.match(script, /function initArticleSectionShareTools/);
+  assert.match(script, /saveArticleSectionCard/);
+  assert.match(script, /function initArticleSmartMobileBar/);
+  assert.match(script, /data-article-mobile-price/);
   assert.match(script, /data-live-series-range="7d"/);
   assert.match(script, /7 \* 24 \* 60 \* 60 \* 1000/);
 });
