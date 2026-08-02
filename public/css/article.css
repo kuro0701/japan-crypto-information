@@ -9992,40 +9992,6 @@ html.theme-light :is(.article-live-market-card--ticker, .article-reader-tools__m
 .xlm-market-cta { width: min(100%, 740px); margin-inline: auto; }
 .article-mermaid[data-article-flow] { border-color: rgba(183, 156, 255, .24); background: radial-gradient(circle at top right, rgba(183, 156, 255, .08), transparent 45%), rgba(6, 12, 15, .82); }
 
-html.theme-light .article-main[data-article-slug="xlm"] {
-  --xlm-violet: #6847bd;
-  background:
-    radial-gradient(circle at 96% 2%, rgba(104, 71, 189, .09), transparent 30%),
-    linear-gradient(180deg, #fff, #f5f8f8) !important;
-}
-
-html.theme-light .xlm-key-metrics {
-  border-color: rgba(104, 71, 189, .2);
-  background:
-    radial-gradient(circle at 92% 0, rgba(104, 71, 189, .1), transparent 38%),
-    rgba(255, 255, 255, .9);
-}
-
-html.theme-light .xlm-key-metrics__grid > article {
-  border-color: rgba(104, 71, 189, .16);
-  background: rgba(255, 255, 255, .8);
-}
-
-html.theme-light .article-mermaid[data-article-flow] {
-  border-color: rgba(104, 71, 189, .18);
-  background:
-    radial-gradient(circle at top right, rgba(104, 71, 189, .07), transparent 45%),
-    rgba(255, 255, 255, .86);
-}
-
-html.theme-light .article-data-source-badge > [role="tooltip"] {
-  border-color: rgba(23, 125, 146, .22);
-  background: rgba(255, 255, 255, .98);
-}
-
-html.theme-light .article-smart-header__context strong { color: #eef8f6; }
-html.theme-light .article-smart-header__progress output { color: #a9bdb9; }
-
 @media (max-width: 900px) {
   .article-smart-header { top: 64px; padding-inline: var(--sp-3); }
   .article-smart-header__inner { grid-template-columns: minmax(0, 1fr) auto auto; gap: 9px; }

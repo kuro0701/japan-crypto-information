@@ -70,7 +70,7 @@ test('live ticker placement and long-form interaction tools are shared by every 
 test('article asset versions are bumped for the shared rollout', () => {
   const template = read('public/templates/article.html');
 
-  assert.match(template, /article\.css\?v=35/);
+  assert.match(template, /article\.css\?v=34/);
   assert.match(template, /beginner-mode\.js\?v=21/);
   assert.match(template, /article\.js\?v=29/);
 });
