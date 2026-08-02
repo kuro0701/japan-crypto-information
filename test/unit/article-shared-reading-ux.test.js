@@ -45,12 +45,29 @@ test('external citations and final disclaimers receive shared in-place reading c
   assert.match(articleScript, /参照ページを開く/);
 });
 
+test('live ticker placement and long-form interaction tools are shared by every article', () => {
+  const articleScript = read('public/js/article.js');
+  const articleStyle = read('public/css/article.css');
+
+  assert.match(articleScript, /article\.classList\.add\('article-main--live-ticker'\)/);
+  assert.match(articleStyle, /\.article-main--live-ticker\s*\{[^}]*overflow:\s*visible/s);
+  assert.match(articleScript, /function initArticleSupportingAccordions/);
+  assert.match(articleScript, /function initArticleReadingModes/);
+  assert.match(articleScript, /function initArticleSectionShareTools/);
+  assert.match(articleScript, /function initArticleSmartMobileBar/);
+  assert.match(articleStyle, /\.article-reading-section\.is-reading-mode-hidden/);
+  assert.match(articleStyle, /\.article-section-share/);
+  assert.match(articleStyle, /\.article-mobile-actions--smart/);
+  assert.match(articleStyle, /\.article-main \.article-data-table :is\(th, td\):first-child/);
+  assert.match(articleStyle, /\.article-main \.article-data-table\.data-table--cards/);
+});
+
 test('article asset versions are bumped for the shared rollout', () => {
   const template = read('public/templates/article.html');
 
-  assert.match(template, /article\.css\?v=32/);
+  assert.match(template, /article\.css\?v=33/);
   assert.match(template, /beginner-mode\.js\?v=20/);
-  assert.match(template, /article\.js\?v=27/);
+  assert.match(template, /article\.js\?v=28/);
 });
 
 test('all article routes render one changelog and never duplicate summary tabs', () => {
