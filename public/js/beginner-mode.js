@@ -131,6 +131,35 @@
       title: 'Proof of Work',
       description: '計算作業によってブロックを追加する権利を競う仕組みです。改ざんには大きな計算コストが必要になります。',
     },
+    utxo: {
+      title: 'UTXO（未使用トランザクション出力）',
+      description: 'まだ使われていない受取記録を、次の送金時に消費する残高管理方式です。Dogecoinでは複数のUTXOをまとめ、送金先とおつりの新しいUTXOを作ります。',
+      visual: ['未使用の受取記録', '秘密鍵で署名', '送金先＋おつり'],
+      links: [
+        { href: 'https://dogecoin.com/dogepedia/articles/how-dogecoin-works/', label: 'Dogecoin公式：仕組み' },
+      ],
+    },
+    scrypt: {
+      title: 'Scrypt',
+      description: 'DogecoinとLitecoinが採用するProof of Workのハッシュ方式です。専用ASICも普及しており、現在の安全性は実際のハッシュレートとプール集中を併せて評価します。',
+      visual: ['取引を検証', 'Scrypt計算', '有効ブロック'],
+      links: [
+        { href: 'https://github.com/dogecoin/dogecoin/blob/master/doc/bips.md', label: 'Dogecoin Core：採用仕様' },
+      ],
+    },
+    auxpow: {
+      title: 'AuxPoW（補助Proof of Work）',
+      description: '親チェーンの採掘作業を、別のチェーンのブロック生成にも利用する方式です。Dogecoinでは主にLitecoinとのマージマイニングに使われます。',
+      visual: ['Litecoin採掘', 'AuxPoW証明', 'DOGEも保護'],
+      links: [
+        { href: 'https://github.com/dogecoin/dogecoin/blob/master/doc/bips.md', label: 'Dogecoin Core：AuxPoW' },
+      ],
+    },
+    dex: {
+      title: 'DEX（分散型取引所）',
+      description: '中央の事業者が注文を仲介する代わりに、主にスマートコントラクトで暗号資産を交換する仕組みです。ブリッジやラップ資産を使う場合は、それぞれ別の技術リスクがあります。',
+      visual: ['ウォレット接続', 'Contractで交換', '資産を受取'],
+    },
     halving: {
       title: '半減期',
       description: '新しく発行されるBTCの量が約4年ごとに半分になるイベントです。供給ペースは下がりますが、価格上昇を保証するものではありません。',
@@ -242,6 +271,10 @@
   };
 
   const AUTO_ARTICLE_TERMS = [
+    { key: 'utxo', pattern: /\bUTXO(?:モデル)?\b/i },
+    { key: 'scrypt', pattern: /\bScrypt(?:-1024)?\b/i },
+    { key: 'auxpow', pattern: /\bAux(?:iliary\s+)?PoW\b|マージマイニング/i },
+    { key: 'dex', pattern: /\bDEX\b|分散型取引所/i },
     { key: 'dpos', pattern: /Delegated Proof of Stake|\bDPoS\b/i },
     { key: 'tvm', pattern: /TRON Virtual Machine|\bTVM\b/i },
     { key: 'bandwidth-energy', pattern: /Bandwidth\s*(?:と|\/|／|and)\s*Energy/i },
