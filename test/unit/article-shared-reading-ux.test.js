@@ -89,9 +89,9 @@ test('key metrics, diagram steps, local sparklines, and market CTAs have shared 
 test('article asset versions are bumped for the shared rollout', () => {
   const template = read('public/templates/article.html');
 
-  assert.match(template, /article\.css\?v=35/);
+  assert.match(template, /article\.css\?v=36/);
   assert.match(template, /beginner-mode\.js\?v=22/);
-  assert.match(template, /article\.js\?v=30/);
+  assert.match(template, /article\.js\?v=31/);
 });
 
 test('all article routes render one changelog and never duplicate summary tabs', () => {
