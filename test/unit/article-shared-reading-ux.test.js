@@ -65,6 +65,8 @@ test('live ticker placement and long-form interaction tools are shared by every 
   assert.match(articleScript, /articleSectionMinutes/);
   assert.match(articleStyle, /\.article-smart-header/);
   assert.match(articleStyle, /\.article-table-view-toggle/);
+  assert.match(articleStyle, /\.article-live-market-card--ticker\s*\{[^}]*position:\s*static/s);
+  assert.doesNotMatch(articleStyle, /\.article-live-market-card--ticker\s*\{[^}]*position:\s*sticky/s);
   assert.match(articleScript, /article\.dataset\.articleKind === 'market' && summary/);
   assert.match(articleScript, /article-live-market-card--summary-inline/);
   assert.match(articleStyle, /\.article-live-market-card--summary-inline\s*\{[^}]*position:\s*static\s*!important/s);
@@ -98,7 +100,7 @@ test('key metrics, diagram steps, local sparklines, and market CTAs have shared 
 test('article asset versions are bumped for the shared rollout', () => {
   const template = read('public/templates/article.html');
 
-  assert.match(template, /article\.css\?v=38/);
+  assert.match(template, /article\.css\?v=39/);
   assert.match(template, /beginner-mode\.js\?v=22/);
   assert.match(template, /article\.js\?v=33/);
 });
