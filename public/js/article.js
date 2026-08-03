@@ -2817,6 +2817,14 @@
     table.dataset.articleKeyMetrics = 'true';
   }
 
+  function fitArticleKeyMetricValues(root = document) {
+    $$('.article-key-metrics__grid > article > strong', root).forEach((value) => {
+      const length = value.textContent.replace(/\s+/g, ' ').trim().length;
+      value.classList.toggle('article-key-metric-value--long', length >= 13);
+      value.classList.toggle('article-key-metric-value--xlong', length >= 22);
+    });
+  }
+
   function initArticleTables() {
     $$('.article-body table').forEach((table) => {
       if (!shouldEnhanceArticleTable(table)) return;
@@ -2830,6 +2838,7 @@
       if (!table.hidden) wrapArticleTable(table);
       table.dataset.articleTableReady = 'true';
     });
+    fitArticleKeyMetricValues();
   }
 
   function initInteractiveArticleFlows() {
