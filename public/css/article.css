@@ -8368,9 +8368,9 @@ html.theme-light :is(.article-live-market-card__trend-chart, .article-live-marke
 }
 
 .article-live-market-card--ticker {
-  position: sticky;
-  top: 68px;
-  z-index: 42;
+  position: static;
+  top: auto;
+  z-index: auto;
   grid-template-columns: minmax(110px, 0.55fr) minmax(132px, 0.7fr) minmax(260px, 1.4fr) minmax(150px, 0.8fr) auto;
   gap: 8px;
   align-items: center;
@@ -9026,7 +9026,7 @@ html.theme-light :is(.article-live-market-card--ticker, .article-reader-tools__m
 
 @media (max-width: 767px) {
   .article-live-market-card--ticker {
-    top: 60px;
+    top: auto;
     grid-template-columns: minmax(76px, 0.5fr) minmax(118px, 0.7fr) auto;
     margin-inline: -8px;
     border-radius: 14px;
@@ -9910,8 +9910,6 @@ html.theme-light :is(.article-live-market-card--ticker, .article-reader-tools__m
 }
 .article-smart-header.is-price-up .article-smart-header__price strong { animation-name: article-price-flash-up; }
 .article-smart-header.is-price-down .article-smart-header__price strong { animation-name: article-price-flash-down; }
-
-.article-smart-header-visible .article-live-market-card--ticker { position: relative; top: auto; }
 
 .article-live-market-card__mini-chart {
   width: min(180px, 100%);
