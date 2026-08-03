@@ -84,14 +84,18 @@ test('key metrics, diagram steps, local sparklines, and market CTAs have shared 
   assert.match(beginnerMode, /Node\.DOCUMENT_POSITION_PRECEDING/);
   assert.match(articleStyle, /\.article-context-market-cta\[hidden\]/);
   assert.match(articleStyle, /\.article-key-metrics/);
+  assert.match(articleScript, /function fitArticleKeyMetricValues/);
+  assert.match(articleScript, /article-key-metric-value--long/);
+  assert.match(articleStyle, /container-type:\s*inline-size/);
+  assert.match(articleStyle, /overflow-wrap:\s*anywhere/);
 });
 
 test('article asset versions are bumped for the shared rollout', () => {
   const template = read('public/templates/article.html');
 
-  assert.match(template, /article\.css\?v=36/);
+  assert.match(template, /article\.css\?v=37/);
   assert.match(template, /beginner-mode\.js\?v=22/);
-  assert.match(template, /article\.js\?v=31/);
+  assert.match(template, /article\.js\?v=32/);
 });
 
 test('all article routes render one changelog and never duplicate summary tabs', () => {
