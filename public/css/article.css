@@ -7210,6 +7210,15 @@ html.theme-light .article-toc__progress::before {
   font-size: calc(15px * var(--article-reader-scale));
 }
 
+.article-main[data-article-kind="market"] .article-body {
+  font-size: calc(16.5px * var(--article-reader-scale));
+  line-height: 1.8;
+}
+
+.article-main[data-article-kind="market"] .article-reading-section > p + p {
+  margin-top: 1.5em;
+}
+
 .article-main[data-article-slug="sol"] {
   --sol-purple: #9d7cff;
   --sol-green: #43e6a4;
@@ -8246,6 +8255,10 @@ html.theme-light :is(.article-live-market-card__trend-chart, .article-live-marke
 @media (max-width: 767px) {
   .article-main .article-body {
     font-size: calc(14px * var(--article-reader-scale));
+  }
+
+  .article-main[data-article-kind="market"] .article-body {
+    font-size: calc(16px * var(--article-reader-scale));
   }
 
   .article-changelog,
@@ -10193,11 +10206,6 @@ html.theme-light .article-key-metrics__grid > article { background: rgba(255, 25
   background: radial-gradient(circle at 96% 2%, rgba(77, 141, 255, .13), transparent 31%), linear-gradient(180deg, #0d1824, #071017) !important;
 }
 
-.article-main[data-article-slug="link"] .article-body {
-  font-size: calc(16.5px * var(--article-reader-scale));
-}
-
-.article-main[data-article-slug="link"] .article-reading-section > p + p { margin-top: 1.5em; }
 .article-main[data-article-slug="link"] .article-hero::before { background: linear-gradient(90deg, #4d8dff, #76adff, transparent 86%); }
 
 .article-main[data-article-slug="link"] :is(.article-summary-tabs, .article-live-market-card, .article-mermaid, .article-table-shell) {
@@ -10225,11 +10233,18 @@ html.theme-light .article-key-metrics__grid > article { background: rgba(255, 25
 
 .link-executive-points strong { color: #76adff; }
 
-.article-live-market-card--link-inline {
-  position: relative !important;
-  top: auto !important;
-  z-index: 2;
+.article-live-market-card--summary-inline {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto;
+  width: 100%;
+  max-height: none;
+  contain: layout;
+  isolation: isolate;
+  backdrop-filter: none;
+  transform: none !important;
   margin: var(--sp-5) 0 var(--sp-6);
+  scroll-margin-top: 116px;
 }
 
 .article-main[data-article-slug="link"] .article-mermaid[data-article-flow] {
