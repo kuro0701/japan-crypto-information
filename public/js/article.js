@@ -257,13 +257,25 @@
     });
   }
 
+  function articleTocSubheadings(heading) {
+    const section = heading && heading.closest('[data-article-reading-section]');
+    if (!section) return [];
+    return $$(':scope > h3', section).filter(item => item.textContent.trim());
+  }
+
   function buildTocLinks(headings) {
     return headings.map((heading, index) => {
       const className = [
         'article-toc__link',
         index >= 4 ? 'article-toc__link--extra' : '',
       ].filter(Boolean).join(' ');
-      return `<a class="${className}" href="#${heading.id}" data-article-toc-link="${heading.id}"><span>${escapeHtml(heading.textContent.trim())}</span><small>約${escapeHtml(heading.dataset.articleSectionMinutes || '1')}分</small></a>`;
+      const subheadings = articleTocSubheadings(heading);
+      const subnav = subheadings.length
+        ? `<div class="article-toc__subnav" data-article-toc-subnav="${heading.id}">${subheadings.map(subheading => (
+          `<a class="article-toc__sublink" href="#${subheading.id}" data-article-toc-link="${subheading.id}" data-article-toc-parent="${heading.id}"><span>${escapeHtml(subheading.textContent.trim())}</span></a>`
+        )).join('')}</div>`
+        : '';
+      return `<div class="article-toc__group${index >= 4 ? ' article-toc__group--extra' : ''}" data-article-toc-group="${heading.id}"><a class="${className}" href="#${heading.id}" data-article-toc-link="${heading.id}" data-article-toc-parent="${heading.id}"><span>${escapeHtml(heading.textContent.trim())}</span><small>約${escapeHtml(heading.dataset.articleSectionMinutes || '1')}分</small></a>${subnav}</div>`;
     }).join('');
   }
 
@@ -318,9 +330,10 @@
 
     const headings = $$('h2', body).filter((heading) => heading.textContent.trim());
     if (headings.length < 2) return;
+    const spyHeadings = headings.flatMap(heading => [heading, ...articleTocSubheadings(heading)]);
 
     const usedIds = new Set();
-    headings.forEach((heading, index) => {
+    spyHeadings.forEach((heading, index) => {
       const baseId = heading.id || slugify(heading.textContent, index);
       let id = baseId;
       let suffix = 2;
@@ -351,18 +364,30 @@
     const setActive = (id) => {
       const changed = id !== activeTocId;
       activeTocId = id;
+      const activeHeading = document.getElementById(id);
+      const activeSection = activeHeading && activeHeading.closest('[data-article-reading-section]');
+      const activeParent = activeSection && $(':scope > h2', activeSection);
+      const activeParentId = activeParent ? activeParent.id : id;
+      $$('[data-article-toc-group]').forEach((group) => {
+        const current = group.dataset.articleTocGroup === activeParentId;
+        group.classList.toggle('is-current', current);
+        const subnav = $('[data-article-toc-subnav]', group);
+        if (subnav) subnav.setAttribute('aria-hidden', current ? 'false' : 'true');
+        $$('.article-toc__sublink', group).forEach(link => { link.tabIndex = current ? 0 : -1; });
+      });
       links.forEach((link) => {
         const active = link.dataset.articleTocLink === id;
         link.classList.toggle('is-active', active);
+        link.classList.toggle('is-section-active', link.classList.contains('article-toc__link') && link.dataset.articleTocParent === activeParentId);
         if (active) link.setAttribute('aria-current', 'true');
         else link.removeAttribute('aria-current');
-        if (active && link.classList.contains('article-toc__link--extra')) {
+        if (link.dataset.articleTocParent === activeParentId && Number(headings.findIndex(heading => heading.id === activeParentId)) >= 4) {
           setTocExpanded(link.closest('[data-article-toc], [data-article-mobile-toc]'), true);
         }
       });
       if (changed) {
         const smartSection = $('[data-article-smart-section]');
-        if (smartSection) smartSection.textContent = currentHeadingText(headings, id);
+        if (smartSection) smartSection.textContent = currentHeadingText(spyHeadings, id);
         const sideLink = links.find(link => link.dataset.articleTocLink === id && link.closest('[data-article-toc]'));
         if (sideLink) {
           const linkTop = sideLink.offsetTop;
@@ -384,9 +409,9 @@
     const updateActiveFromScroll = () => {
       scrollSpyFrame = 0;
       const marker = Math.min(220, Math.max(112, window.innerHeight * 0.24));
-      let current = headings[0];
+      let current = spyHeadings[0];
 
-      headings.forEach((heading) => {
+      spyHeadings.forEach((heading) => {
         if (heading.getBoundingClientRect().top <= marker) {
           current = heading;
         }
@@ -590,6 +615,10 @@
       const heading = document.getElementById(link.dataset.articleTocLink || '');
       const section = heading && heading.closest('[data-article-reading-section]');
       link.hidden = Boolean(section && section.classList.contains('is-reading-mode-hidden'));
+      if (link.classList.contains('article-toc__link')) {
+        const group = link.closest('[data-article-toc-group]');
+        if (group) group.hidden = link.hidden;
+      }
     });
   }
 
@@ -1527,7 +1556,17 @@
       const tools = document.createElement('div');
       tools.className = 'article-section-share';
       tools.setAttribute('aria-label', `${articleHeadingText(heading)}を共有`);
-      tools.innerHTML = '<button type="button" data-article-section-share="x">X</button><button type="button" data-article-section-share="image">画像保存</button><button type="button" data-article-section-share="copy">リンク</button>';
+      tools.innerHTML = `
+        <button class="article-icon-button" type="button" data-article-section-share="x" data-tooltip="Xで共有" aria-label="Xで共有">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 4l14 16M19 4 5 20"/></svg><span class="sr-only">Xで共有</span>
+        </button>
+        <button class="article-icon-button" type="button" data-article-section-share="image" data-tooltip="画像を保存" aria-label="画像を保存">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3"/></svg><span class="sr-only">画像を保存</span>
+        </button>
+        <button class="article-icon-button" type="button" data-article-section-share="copy" data-tooltip="章リンクをコピー" aria-label="章リンクをコピー">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9.5 14.5l5-5M7.2 16.8l-1 1a3.5 3.5 0 0 1-5-5l3.1-3.1a3.5 3.5 0 0 1 5 0m7.5-2.5 1-1a3.5 3.5 0 1 1 5 5l-3.1 3.1a3.5 3.5 0 0 1-5 0"/></svg><span class="sr-only">章リンクをコピー</span>
+        </button>
+      `;
       heading.insertAdjacentElement('afterend', tools);
       tools.addEventListener('click', async (event) => {
         const button = event.target.closest('[data-article-section-share]');
@@ -2821,14 +2860,19 @@
       const steps = [];
       const controls = document.createElement('div');
       controls.className = 'article-flow-controls';
-      controls.innerHTML = '<button type="button" data-flow-step="prev" aria-label="前のステップ">← 前へ</button><output aria-live="polite">1 / 1</output><button type="button" data-flow-step="next">次へ →</button>';
+      controls.innerHTML = `
+        <button class="article-icon-button" type="button" data-flow-step="prev" data-tooltip="前のステップ" aria-label="前のステップ"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m14.5 5-7 7 7 7"/></svg><span class="sr-only">前のステップ</span></button>
+        <output aria-live="polite">STEP 1 / 1</output>
+        <button class="article-icon-button" type="button" data-flow-step="next" data-tooltip="次のステップ" aria-label="次のステップ"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9.5 5 7 7-7 7"/></svg><span class="sr-only">次のステップ</span></button>
+      `;
       detail.insertAdjacentElement('afterend', controls);
       const show = (node, note) => {
         nodes.forEach(item => item.classList.toggle('is-active', item === node));
         const index = Math.max(0, steps.findIndex(step => step.node === node));
-        detail.innerHTML = `<span>Step ${index + 1}</span><strong>${escapeHtml(note.dataset.flowTitle || note.dataset.flowLabel)}</strong><p>${escapeHtml(note.textContent.trim())}</p>`;
+        detail.innerHTML = `<span>STEP ${index + 1} / ${steps.length}</span><strong>${escapeHtml(note.dataset.flowTitle || note.dataset.flowLabel)}</strong><p>${escapeHtml(note.textContent.trim())}</p>`;
         const output = $('output', controls);
-        if (output) output.textContent = `${index + 1} / ${steps.length}`;
+        if (output) output.textContent = `STEP ${index + 1} / ${steps.length}`;
+        controls.style.setProperty('--article-flow-progress', `${((index + 1) / Math.max(1, steps.length)) * 100}%`);
         controls.dataset.activeFlowStep = String(index);
       };
       nodes.forEach((node) => {
@@ -3211,6 +3255,7 @@
     const article = $('.article-main');
     const hero = article && $('.article-hero', article);
     const slot = article && $('[data-article-live-market-slot]', article);
+    const summary = article && $('[data-article-summary-tabs]', article);
     if (!body || !instrumentId) return null;
 
     const anchor = findArticleHeading(/市場データの現在地/) || findArticleHeading(/基本データ/);
@@ -3271,7 +3316,11 @@
       });
     }
 
-    if (slot) {
+    if (article && article.dataset.articleSlug === 'link' && summary) {
+      if (slot) slot.remove();
+      card.classList.add('article-live-market-card--link-inline');
+      summary.insertAdjacentElement('afterend', card);
+    } else if (slot) {
       slot.replaceWith(card);
     } else if (hero) {
       hero.insertAdjacentElement('beforebegin', card);
@@ -4252,16 +4301,8 @@
     `;
     document.body.appendChild(guide);
 
-    const position = () => {
-      const rect = toggle.getBoundingClientRect();
-      const margin = 12;
-      const width = Math.min(340, window.innerWidth - margin * 2);
-      const left = Math.max(margin, Math.min(rect.right - width, window.innerWidth - width - margin));
-      guide.style.width = `${width}px`;
-      guide.style.left = `${left}px`;
-      guide.style.top = `${Math.max(margin, Math.min(window.innerHeight - guide.offsetHeight - margin, rect.bottom + 10))}px`;
-    };
     const dismiss = () => {
+      guide.classList.remove('is-visible');
       guide.hidden = true;
       try {
         localStorage.setItem(storageKey, 'seen');
@@ -4272,15 +4313,13 @@
 
     $('[data-beginner-guide-dismiss]', guide).addEventListener('click', dismiss);
     toggle.addEventListener('click', dismiss, { once: true });
-    window.addEventListener('resize', position);
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && !guide.hidden) dismiss();
     });
     window.setTimeout(() => {
       guide.hidden = false;
-      position();
       guide.classList.add('is-visible');
-    }, 700);
+    }, 1200);
   }
 
   function initExchangeChecklist() {

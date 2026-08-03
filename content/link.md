@@ -2,7 +2,7 @@
 title: Chainlink（LINK）総合分析｜オラクル・CCIP・ステーキング・供給リスク
 description: Chainlink（LINK）のData Feeds、OCR、CCIP、VRF、ステーキングv0.2、固定供給と流通、機関連携、市場データ、規制・技術リスクを総合分析します。
 date: 2026-07-24
-updated: 2026-07-24
+updated: 2026-08-03
 author: 国内暗号資産取引所ナビ
 slug: link
 path: /articles/link
@@ -14,6 +14,47 @@ readMinutes: 27
 ---
 
 > **重要：本記事は情報提供のみを目的としており、特定の暗号資産の売買・保有を勧誘または推奨する投資助言ではありません。** 掲載する評価、市場データ、利用例は調査時点の分析上の情報であり、将来の成果を保証しません。暗号資産は、価格変動、流動性、技術、規制、税務、オペレーション、カウンターパーティー等のリスクを伴います。実際の利用・取引判断は、最新の公式情報を確認し、ご自身の状況に応じて行ってください。本稿の時点データは、原則として2026年7月24日JST時点で確認できた公開情報に基づきます。
+
+<section class="article-summary-tabs article-summary-tabs--link" data-article-summary-tabs aria-label="LINK記事の読み方を選ぶ">
+  <div class="article-summary-tabs__list" role="tablist" aria-label="読み方を選ぶ">
+    <button type="button" role="tab" id="link-summary-full-tab" aria-controls="link-summary-full" aria-selected="true" data-summary-tab="full">全体像 <small>27分</small></button>
+    <button type="button" role="tab" id="link-summary-quick-tab" aria-controls="link-summary-quick" aria-selected="false" tabindex="-1" data-summary-tab="quick">要点ナビ <small>3分</small></button>
+    <button type="button" role="tab" id="link-summary-focus-tab" aria-controls="link-summary-focus" aria-selected="false" tabindex="-1" data-summary-tab="focus">価格・リスク <small>1分</small></button>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="link-summary-full" aria-labelledby="link-summary-full-tab" data-summary-panel="full">
+    <span class="article-summary-tabs__eyebrow">Executive view</span>
+    <h3>結論から読むChainlink</h3>
+    <ul class="link-executive-points">
+      <li><strong>事業:</strong> 外部データとブロックチェーンをつなぐDONが中核。Data FeedsとCCIPが主要な評価軸です。</li>
+      <li><strong>トークン:</strong> 最大10億LINKで追加鋳造はありませんが、未流通分の移動は希薄化要因として確認が必要です。</li>
+      <li><strong>採用:</strong> 本番統合と実証実験を分け、送信量や提携社数だけで判断しないことが重要です。</li>
+      <li><strong>最大の注意点:</strong> データソース、管理権限、CCIP、価値捕捉、流動性を個別に評価します。</li>
+    </ul>
+    <div class="article-summary-tabs__jumps"><button type="button" data-summary-jump="0">エグゼクティブサマリーへ<span aria-hidden="true">→</span></button></div>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="link-summary-quick" aria-labelledby="link-summary-quick-tab" data-summary-panel="quick" hidden>
+    <span class="article-summary-tabs__eyebrow">3-minute navigator</span>
+    <h3>仕組みと評価軸を4章で把握</h3>
+    <p>結論、オラクルのデータフロー、LINKの供給、主要リスクの順に確認します。</p>
+    <div class="article-summary-tabs__jumps">
+      <button type="button" data-summary-jump="0">結論<span aria-hidden="true">→</span></button>
+      <button type="button" data-summary-jump="3">Data Feeds<span aria-hidden="true">→</span></button>
+      <button type="button" data-summary-jump="6">供給・価値捕捉<span aria-hidden="true">→</span></button>
+      <button type="button" data-summary-jump="13">主要リスク<span aria-hidden="true">→</span></button>
+    </div>
+  </div>
+  <div class="article-summary-tabs__panel" role="tabpanel" id="link-summary-focus" aria-labelledby="link-summary-focus-tab" data-summary-panel="focus" hidden>
+    <span class="article-summary-tabs__eyebrow">1-minute risk lens</span>
+    <h3>価格・供給・規制・リスクだけ確認</h3>
+    <p>Live Referenceは国内取引所の板を優先する現在値、本文中の市場数値は調査時点のスナップショットとして分けて確認してください。</p>
+    <div class="article-summary-tabs__jumps">
+      <button type="button" data-summary-jump="9">市場・流動性<span aria-hidden="true">→</span></button>
+      <button type="button" data-summary-jump="6">供給<span aria-hidden="true">→</span></button>
+      <button type="button" data-summary-jump="11">規制・税務<span aria-hidden="true">→</span></button>
+      <button type="button" data-summary-jump="13">主要リスク<span aria-hidden="true">→</span></button>
+    </div>
+  </div>
+</section>
 
 ## エグゼクティブサマリー
 
@@ -62,7 +103,7 @@ Chainlinkは、複数のデータソース、複数のノード、署名、集�
 
 一般的な価格フィードでは、データアグリゲーターが複数市場の価格を統合し、独立したChainlinkノードがそれぞれデータを取得します。Offchain Reporting（OCR）では、ノードが観測値をオフチェーンで交換し、一定数の署名を含むレポートへまとめます。一つの送信ノードがレポートを対象チェーンへ提出し、アグリゲーターコントラクトが署名を検証して最新値を保存します。すべての観測値を個別にオンチェーンへ送る方式より、ガス消費を抑えられます。
 
-<div class="article-mermaid">
+<div class="article-mermaid" data-article-flow>
 <pre class="mermaid">graph TD
     A[Market and data sources] --> B[Data aggregators]
     B --> C[Independent node observations]
@@ -70,6 +111,14 @@ Chainlinkは、複数のデータソース、複数のノード、署名、集�
     D --> E[Onchain aggregator]
     E --> F[Consumer contract]
 </pre>
+<div class="article-flow-notes" hidden>
+  <span data-flow-label="Market and data sources" data-flow-title="市場・データソース">複数市場や一次データから観測値を集めます。入力元が集中していないかが最初の確認点です。</span>
+  <span data-flow-label="Data aggregators" data-flow-title="データアグリゲーター">市場ごとの価格や品質を整え、ノードが参照できるデータへ統合します。</span>
+  <span data-flow-label="Independent node observations" data-flow-title="独立ノードの観測">複数ノードがそれぞれ値を取得し、単一ノードへの依存を減らします。</span>
+  <span data-flow-label="OCR signed report" data-flow-title="OCR署名レポート">観測値をオフチェーンで集約し、一定数の署名を含むレポートへまとめます。</span>
+  <span data-flow-label="Onchain aggregator" data-flow-title="オンチェーン集約">コントラクトが署名を検証し、最新値を対象チェーンへ保存します。</span>
+  <span data-flow-label="Consumer contract" data-flow-title="利用コントラクト">DeFi等の利用側が更新時刻や異常値を検証して値を使います。</span>
+</div>
 </div>
 
 多くの価格フィードは複数ノードの値を中央値で集約しますが、すべてのフィードが同じソース数、同じノード数、同じ集約方法ではありません。計算値、一つの一次情報、特定のNAV、準備資産等を使うフィードもあります。「Chainlinkの名称が付いているから、必ず多市場・多ソース」という前提は置けません。
@@ -118,7 +167,7 @@ Proof of Reserveは、準備資産データをオンチェーンで利用可能�
 
 CCIPは、異なるチェーン間で任意メッセージ、トークン、メッセージ付きトークンを送るためのプロトコルです。送信元チェーンのコントラクトがメッセージを受け付け、コミット用DONがMerkle Root等を確定し、実行用DONが宛先チェーンへ届けます。Risk Management Network（RMN）は独立した実装・運用系統からCCIPの状態を監視し、異常時の停止に関与します。
 
-<div class="article-mermaid">
+<div class="article-mermaid" data-article-flow>
 <pre class="mermaid">graph TD
     A[Source chain application] --> B[CCIP onramp]
     B --> C[Commit and execution DONs]
@@ -127,6 +176,14 @@ CCIPは、異なるチェーン間で任意メッセージ、トークン、メ�
     F[Risk Management Network] --> C
     F --> D
 </pre>
+<div class="article-flow-notes" hidden>
+  <span data-flow-label="Source chain application" data-flow-title="送信元アプリ">送信元チェーンのアプリがメッセージまたはトークン移転を開始します。</span>
+  <span data-flow-label="CCIP onramp" data-flow-title="CCIP OnRamp">送信内容、手数料、許可条件を検証し、CCIPの処理へ引き渡します。</span>
+  <span data-flow-label="Commit and execution DONs" data-flow-title="Commit・Execution DON">コミットと実行を分離したDONが、宛先へ届けるデータを検証します。</span>
+  <span data-flow-label="Destination chain offramp" data-flow-title="CCIP OffRamp">宛先チェーンでレポートを検証し、メッセージを受信側へ渡します。</span>
+  <span data-flow-label="Destination application" data-flow-title="宛先アプリ">受信後の任意メッセージ処理やトークン利用を実行します。</span>
+  <span data-flow-label="Risk Management Network" data-flow-title="Risk Management Network">独立系統で状態を監視し、異常時の停止やリスク制御に関与します。</span>
+</div>
 </div>
 
 CCIPは防御層として、複数DON、RMN、レート制限、トークンごとのプール、アップグレード遅延等を組み合わせます。しかし、クロスチェーン処理には次のリスクが残ります。
