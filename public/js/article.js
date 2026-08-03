@@ -3325,9 +3325,9 @@
       });
     }
 
-    if (article && article.dataset.articleSlug === 'link' && summary) {
+    if (article && article.dataset.articleKind === 'market' && summary) {
       if (slot) slot.remove();
-      card.classList.add('article-live-market-card--link-inline');
+      card.classList.add('article-live-market-card--summary-inline');
       summary.insertAdjacentElement('afterend', card);
     } else if (slot) {
       slot.replaceWith(card);

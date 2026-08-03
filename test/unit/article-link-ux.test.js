@@ -8,7 +8,7 @@ const { createSiteContentService } = require('../../lib/server/site-content-serv
 
 const read = relativePath => fs.readFileSync(path.join(__dirname, '../..', relativePath), 'utf8');
 
-test('LINK article prioritizes its curated executive view before the inline Live Reference', () => {
+test('LINK article uses the shared summary-first Live Reference placement', () => {
   const content = read('content/link.md');
   const script = read('public/js/article.js');
   const style = read('public/css/article.css');
@@ -19,9 +19,11 @@ test('LINK article prioritizes its curated executive view before the inline Live
   assert.match(content, /data-summary-tab="quick"/);
   assert.match(content, /data-summary-tab="focus"/);
   assert.match(content, /結論から読むChainlink/);
-  assert.match(script, /article\.dataset\.articleSlug === 'link' && summary/);
+  assert.match(script, /article\.dataset\.articleKind === 'market' && summary/);
   assert.match(script, /summary\.insertAdjacentElement\('afterend', card\)/);
-  assert.match(style, /\.article-live-market-card--link-inline\s*\{[^}]*position:\s*relative/s);
+  assert.match(script, /article-live-market-card--summary-inline/);
+  assert.match(style, /\.article-live-market-card--summary-inline\s*\{[^}]*position:\s*static\s*!important/s);
+  assert.match(style, /\.article-live-market-card--summary-inline\s*\{[^}]*contain:\s*layout/s);
   assert.match(style, /\.article-main\[data-article-slug="link"\]/);
 });
 
